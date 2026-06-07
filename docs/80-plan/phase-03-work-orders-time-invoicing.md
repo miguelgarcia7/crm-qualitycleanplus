@@ -2,9 +2,22 @@
 
 | Field | Value |
 |---|---|
-| Status | 🚧 In progress |
+| Status | ✅ Done (core pipeline; 48 Pest tests green, Pint + Larastan clean, build + types clean). Phase 03b deferrals listed below. |
 | Last updated | 2026-06-07 |
 | Owner | Engineering |
+
+## As built (current state)
+
+- **Contexts (ADR-0025):** `app/Domain/WorkOrders`, `app/Domain/Time`, `app/Domain/Billing` — thin controllers calling Actions.
+- **Work Orders:** CRUD with rates auto-filled from the Bible (`Property::currentRateFor`, via a `rate-lookup` endpoint), overridable; `WorkOrderPolicy` (recruiter own-property scoping); Create/Update/Close actions; sidebar wired.
+- **Time:** `payroll_periods` / `time_entries` / `time_summaries`; `EnsurePayrollPeriods` command (scheduled daily) materializes periods + draft timesheets; manual entry actions; `RecomputeTimeSummary` job runs the weekly **40h regular / OT split** + training bucket (holiday = 0 until Phase 08; training paid at pay rate, not billed); live weekly grid (`/admin/properties/{id}/grid`) with add/remove punches.
+- **Realtime:** `TimeEntrySaved` broadcast on private `property.{id}` (Reverb); grid refreshes live. Fired from the HTTP path only.
+- **Timesheets (both surfaces):** `TimesheetStatus` state machine; recruiter **Send for Approval** on `/admin` (locks the period); PM **Approve / Decline** on QC Minute (`/timesheets`); database notifications; `TimesheetPolicy`.
+- **Invoicing:** approval auto-generates a **frozen, numbered invoice** (`INV-YYYY-NNNNNN`) in a transaction (idempotent), with property + invoicer snapshots and tax from `property.tax_rate`; `SendInvoice` marks sent; PDF via dompdf (`resources/views/pdf/invoice.blade.php`); invoice index/show + download.
+- **Seeder:** `SampleDataSeeder` builds a full dev scenario (property, Bible rates, recruiter + PM, 3 contractors on WOs, a week of hours). Verified end-to-end: 45h → 40 reg + 5 OT; approval produced `INV-2026-000001` totaling $4,752.38 (correct 8.75% tax).
+- **Dev fix:** `config/inertia.php` `page_paths` already pointed at `js/admin/views` (Phase 02). `phpunit.xml` already had `BROADCAST_CONNECTION=null`.
+
+---
 
 Just-in-time plan for Phase 03 of `80-plan/roadmap.md` — the **money pipeline**. Builds on Phase 02 (Bible rates auto-fill work orders) and Phase 01 (identity/roles). Backend follows ADR-0025 (`app/Domain/<Context>`): new contexts **`WorkOrders`**, **`Time`**, **`Billing`**.
 

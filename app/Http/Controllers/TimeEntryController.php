@@ -71,11 +71,18 @@ class TimeEntryController extends Controller
             ]);
 
         $user = Auth::user();
+        $timesheet = $period?->timesheet;
 
         return Inertia::render('admin/timesheets/grid', [
             'property' => ['id' => $property->id, 'name' => $property->name, 'timezone' => $tz],
             'week' => ['start' => $weekStart->toDateString(), 'end' => $weekStart->addDays(6)->toDateString(), 'days' => $days],
             'period' => $period === null ? null : ['id' => $period->id, 'status' => $period->status->value],
+            'timesheet' => $timesheet === null ? null : [
+                'id' => $timesheet->id,
+                'status' => $timesheet->status->value,
+                'status_label' => $timesheet->status->label(),
+                'decline_reason' => $timesheet->decline_reason,
+            ],
             'rows' => $workOrders->map(fn (WorkOrder $wo): array => [
                 'work_order_id' => $wo->id,
                 'contractor' => $wo->person?->name,
@@ -86,6 +93,8 @@ class TimeEntryController extends Controller
             'can' => [
                 'edit' => $user instanceof Person && $user->can('time_entries.create_manual')
                     && ($period?->status->isEditable() ?? false),
+                'submit' => $user instanceof Person && $user->can('timesheets.submit_for_approval')
+                    && ($timesheet?->status->canSubmit() ?? false),
             ],
         ]);
     }

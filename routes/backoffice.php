@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\ContractController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
 use App\Http\Controllers\PropertyPositionRateController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\TimeEntryController;
+use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +49,15 @@ Route::post('work-orders/{work_order}/close', [WorkOrderController::class, 'clos
 Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');
 Route::post('work-orders/{work_order}/time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
 Route::delete('time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
+
+// Timesheets — recruiter submits for PM approval (Phase 03)
+Route::post('timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
+
+// Invoices (Phase 03)
+Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+Route::post('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
 
 // Settings
 Route::redirect('/settings', '/admin/settings/profile');

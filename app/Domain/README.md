@@ -22,10 +22,12 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 |---|---|
 | `People` | `Person` (the one identity spine for every human — applicant/contractor/staff), `PersonStatus`, legal-hold + lifecycle |
 | `PropertyBible` | Properties, departments, positions, per-property rates (effective-dated), contracts, property assignments |
+| `WorkOrders` | Work orders (contractor↔property↔position + rates); authoritative rate source for time entries |
+| `Time` | Payroll periods, time entries, time summaries, `RecomputeTimeSummary` bucketing, `TimeEntrySaved` broadcast |
+| `Billing` | Timesheets (approval state machine), invoices + items, `GenerateInvoice` / `SendInvoice` |
 | `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model) |
 
-Added as their phases land: `WorkOrders`, `Time`, `Invoicing`, `Workflows`,
-`Inventory`, `Reporting`, …
+Added as their phases land: `Workflows`, `Inventory`, `Reporting`, …
 
 ## Wiring notes
 

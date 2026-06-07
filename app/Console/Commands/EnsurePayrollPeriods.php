@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
@@ -38,6 +39,12 @@ class EnsurePayrollPeriods extends Command
                             'week_end' => $weekStart->copy()->addDays(6)->toDateString(),
                             'status' => PayrollPeriodStatus::Open,
                         ],
+                    );
+
+                    // Every period gets a draft timesheet (ADR-0007).
+                    $period->timesheet()->firstOrCreate(
+                        [],
+                        ['property_id' => $property->id, 'source' => 'clock_in', 'status' => TimesheetStatus::Draft],
                     );
 
                     if ($period->wasRecentlyCreated) {

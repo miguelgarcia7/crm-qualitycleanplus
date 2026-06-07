@@ -14,22 +14,31 @@ type Entry = {
 }
 type Summary = { regular_minutes: number; overtime_minutes: number; training_minutes: number; total_pay: number; total_bill: number }
 
+type Timesheet = { id: number; status: string; status_label: string; decline_reason: string | null }
+
 type Props = {
   property: { id: number; name: string; timezone: string }
   week: { start: string; end: string; days: string[] }
   period: { id: number; status: string } | null
+  timesheet: Timesheet | null
   rows: Row[]
   entries: Entry[]
   summaries: Record<number, Summary>
-  can: { edit: boolean }
+  can: { edit: boolean; submit: boolean }
 }
 
 const hrs = (min: number | null | undefined) => ((min ?? 0) / 60).toFixed(2)
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 const dayLabel = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })
 
-const Page = ({ property, week, period, rows, entries, summaries, can }: Props) => {
+const Page = ({ property, week, period, timesheet, rows, entries, summaries, can }: Props) => {
   const [modal, setModal] = useState<{ workOrderId: number; date: string } | null>(null)
+
+  const submitForApproval = () => {
+    if (timesheet && confirm('Send this week to the property manager for approval?')) {
+      router.post(`/admin/timesheets/${timesheet.id}/submit`, {}, { preserveScroll: true })
+    }
+  }
 
   // Live updates (Reverb): refresh the grid when anyone changes this property's
   // entries for the week currently in view.
@@ -64,15 +73,26 @@ const Page = ({ property, week, period, rows, entries, summaries, can }: Props) 
           <div className="flex items-center gap-3">
             <h4 className="card-title">
               Week of {week.start}
-              {period && <span className="badge badge-soft-secondary ms-2 capitalize">{period.status}</span>}
+              {timesheet && <span className="badge badge-soft-secondary ms-2">{timesheet.status_label}</span>}
             </h4>
           </div>
           <div className="flex items-center gap-2">
             <button className="btn btn-light px-3 py-1.5" onClick={() => shiftWeek(-1)}>← Prev</button>
             <button className="btn btn-light px-3 py-1.5" onClick={() => shiftWeek(1)}>Next →</button>
+            {can.submit && (
+              <button className="btn bg-primary px-4 py-1.5 font-semibold text-white" onClick={submitForApproval}>
+                Send for Approval
+              </button>
+            )}
             <Link href={`/admin/properties/${property.id}`} className="text-default-500 ms-2 text-sm hover:underline">Property</Link>
           </div>
         </div>
+
+        {timesheet?.status === 'declined' && timesheet.decline_reason && (
+          <div className="bg-danger/10 text-danger mx-6 mb-4 rounded-lg px-4 py-3 text-sm">
+            <strong>Declined:</strong> {timesheet.decline_reason}
+          </div>
+        )}
 
         {!period ? (
           <div className="card-body text-default-400 p-6">No payroll period for this week yet.</div>

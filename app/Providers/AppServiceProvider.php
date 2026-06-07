@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Domain\Billing\Models\Invoice;
+use App\Domain\Billing\Models\Timesheet;
+use App\Domain\Billing\Policies\InvoicePolicy;
+use App\Domain\Billing\Policies\TimesheetPolicy;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\ContractPolicy;
@@ -46,6 +50,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Property::class, PropertyPolicy::class);
         Gate::policy(Contract::class, ContractPolicy::class);
         Gate::policy(WorkOrder::class, WorkOrderPolicy::class);
+        Gate::policy(Timesheet::class, TimesheetPolicy::class);
+        Gate::policy(Invoice::class, InvoicePolicy::class);
 
         // Audit logins (Phase 01 acceptance + ADR-0010 audit trail).
         Event::listen(Login::class, function (Login $event): void {

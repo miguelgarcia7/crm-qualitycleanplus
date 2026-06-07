@@ -76,11 +76,11 @@ class RecomputeTimeSummary implements ShouldQueue
         }
 
         TimeSummary::updateOrCreate(
-            ['work_order_id' => $this->workOrderId, 'week_start' => $period->week_start->toDateString()],
+            ['work_order_id' => $this->workOrderId, 'payroll_period_id' => $period->id],
             [
                 'person_id' => $workOrder->person_id,
                 'property_id' => $workOrder->property_id,
-                'payroll_period_id' => $period->id,
+                'week_start' => $period->week_start->toDateString(),
                 'week_end' => $period->week_end->toDateString(),
 
                 'regular_minutes' => $regular,

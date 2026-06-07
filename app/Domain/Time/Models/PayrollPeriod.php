@@ -2,6 +2,7 @@
 
 namespace App\Domain\Time\Models;
 
+use App\Domain\Billing\Models\Timesheet;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use Carbon\CarbonImmutable;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A property's pay week (ADR-0009).
@@ -67,5 +69,13 @@ class PayrollPeriod extends Model
     public function timeEntries(): HasMany
     {
         return $this->hasMany(TimeEntry::class);
+    }
+
+    /**
+     * @return HasOne<Timesheet, $this>
+     */
+    public function timesheet(): HasOne
+    {
+        return $this->hasOne(Timesheet::class);
     }
 }
