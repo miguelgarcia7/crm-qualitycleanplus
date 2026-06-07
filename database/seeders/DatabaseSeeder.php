@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
         // A super admin who can log in to either domain (Phase 01 acceptance).
         // Local/dev convenience seed — production provisions the real owner.
         $person = Person::firstOrCreate(
-            ['email' => 'admin@qcpstaffing.com'],
+            ['email' => 'super-admin@example.com'],
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('password'),

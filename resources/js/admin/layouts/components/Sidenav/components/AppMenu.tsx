@@ -89,8 +89,23 @@ const MenuItem = ({ item, level = 0 }: { item: MenuItemType; level?: number }) =
   )
 }
 
+// Keep only items the current user may see. An item with a `permission` is
+// hidden unless the user holds it; a group is dropped once it has no children.
+const filterByPermission = (items: MenuItemType[], permissions: string[]): MenuItemType[] =>
+  items
+    .map((item): MenuItemType | null => {
+      if (item.children) {
+        const children = filterByPermission(item.children, permissions)
+        return children.length ? { ...item, children } : null
+      }
+      return !item.permission || permissions.includes(item.permission) ? item : null
+    })
+    .filter((item): item is MenuItemType => item !== null)
+
 const AppMenu = () => {
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null)
+  const permissions = ((usePage().props as { auth?: { permissions?: string[] } }).auth?.permissions) ?? []
+  const items = filterByPermission(menuItems, permissions)
   const scrollToActiveLink = () => {
     const activeItem: HTMLAnchorElement | null = document.querySelector('.menu-link.active')
     if (activeItem) {
@@ -107,7 +122,7 @@ const AppMenu = () => {
 
   return (
     <ul className="side-nav hs-accordion-group px-2.5 pb-16.5">
-      {menuItems.map((item, idx) => (
+      {items.map((item, idx) => (
         <Fragment key={idx}>
           {item.isTitle && (
             <li className="menu-title mt-0!">

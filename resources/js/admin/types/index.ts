@@ -14,6 +14,8 @@ export type MenuItemType = {
   target?: string
   isDisabled?: boolean
   isSpecial?: boolean
+  /** If set, the item only renders when the user has this permission. */
+  permission?: string
   children?: MenuItemType[]
 }
 

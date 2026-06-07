@@ -1,5 +1,5 @@
-import BaseLayout from '@/layouts/BaseLayout'
-import { Head, Link, useForm, usePage } from '@inertiajs/react'
+import PageBreadcrumb from '@/components/PageBreadcrumb'
+import { Head, useForm, usePage } from '@inertiajs/react'
 import { FormEvent } from 'react'
 
 const Page = () => {
@@ -15,15 +15,12 @@ const Page = () => {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <Head title="Settings · Profile" />
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Profile settings</h1>
-        <Link href="/admin/dashboard" className="text-primary text-sm font-semibold">&larr; Dashboard</Link>
-      </header>
+    <>
+      <Head title="Profile" />
+      <PageBreadcrumb title="Profile" subtitle="Settings" />
 
       <div className="card max-w-lg rounded-2xl">
-        <div className="card-body p-8">
+        <div className="card-body p-6">
           <form onSubmit={submit}>
             <div className="mb-4">
               <label htmlFor="name" className="form-label">Name</label>
@@ -44,10 +41,8 @@ const Page = () => {
           </form>
         </div>
       </div>
-    </div>
+    </>
   )
 }
-
-Page.layout = (page: React.ReactNode) => <BaseLayout>{page}</BaseLayout>
 
 export default Page
