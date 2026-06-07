@@ -1,0 +1,49 @@
+{
+  "name": "minute",
+  "version": "1.5.0",
+  "description": "Minute is a modern, responsive admin dashboard",
+  "author": "StudioMex",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:ssr": "vite build && vite build --ssr",
+    "types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@laravel/vite-plugin-wayfinder": "^0.1.7",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.1.6",
+    "@types/node": "^25.0.3",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "eslint": "^10.2.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^17.4.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.1",
+    "vite": "^7.3.2"
+  },
+  "dependencies": {
+    "@iconify/react": "^6.0.2",
+    "@inertiajs/react": "^2.3.21",
+    "@tanstack/react-table": "^8.21.3",
+    "apexcharts": "^5.10.5",
+    "clsx": "^2.1.1",
+    "jsvectormap": "1.3.3",
+    "laravel-vite-plugin": "^2.1.0",
+    "preline": "4.0.1",
+    "react": "^19.2.5",
+    "react-apexcharts": "^2.1.0",
+    "react-countup": "^6.5.3",
+    "react-dom": "^19.2.5",
+    "simplebar-react": "^3.3.2",
+    "tailwind-merge": "^3.5.0",
+    "usehooks-ts": "^3.1.1"
+  }
+}

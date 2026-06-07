@@ -1,0 +1,288 @@
+/**
+* Skin Name: Sage
+* Aesthetic: Refined organic — muted sage/slate-green brand on a warm greige canvas,
+*            complementary terracotta accent, earthy desaturated semantics, soft warm
+*            shadows, airy spacing. Humanist sans body + literary serif titles.
+* Activate: html[data-skin="sage"] (set via the Customizer "Skin" panel)
+*/
+
+html[data-skin="sage"] {
+    --font-body: "Schibsted Grotesk", sans-serif;
+    /*--font-secondary: "Spectral", serif;*/
+    --font-secondary: "Schibsted Grotesk", sans-serif;
+
+    /* Airy type scale — sized up ~1px to visually match Nimbus despite the
+       shorter x-height of Schibsted Grotesk vs Plus Jakarta Sans */
+    --text-body: 16px;
+
+    /* Warm greige canvas, warm-white cards */
+    --color-body-bg: #f3f1ea;
+    --color-body-color: #5c5f57;
+    --color-card: #fcfbf7;
+
+    /* Brand — muted sage / slate-green */
+    --color-primary: #596d69;
+    --color-primary-hover: #46554f;
+
+    /* Complementary terracotta */
+    --color-secondary: #c17a54;
+    --color-secondary-hover: #a3623f;
+
+    --color-success: #5fa177;
+    --color-success-hover: #4c865f;
+
+    --color-info: #5d92ad;
+    --color-info-hover: #487589;
+
+    --color-warning: #d8a548;
+    --color-warning-hover: #b58836;
+
+    --color-danger: #c8503f;
+    --color-danger-hover: #a63f30;
+
+    --color-purple: #8f7193;
+    --color-purple-hover: #735877;
+
+    --color-light: #eceae2;
+    --color-light-hover: #b6b3a6;
+
+    /* Slate-green charcoal */
+    --color-dark: #313a36;
+    --color-dark-hover: #3d4742;
+
+    /* Soft, warm, restrained shadows */
+    --shadow: 0 4px 18px rgba(70, 75, 60, 0.06);
+    --shadow-lg: 0 12px 30px rgba(70, 75, 60, 0.12);
+    --shadow-sm: 0 1px 3px rgba(70, 75, 60, 0.06);
+
+    /* Warm hairline borders */
+    --color-default-300: #e6e3d8;
+
+    --text-sm: 15px;
+    --text-base: 16px;
+
+    /* Generous gaps between cards (gap-base / mb-base) */
+    --spacing-base: 24px;
+
+    --radius: 12px;
+
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Menu items — airy */
+    --sidenav-item-icon-size: 1.125rem;
+    --sidenav-item-gap: 12px;
+    --sidenav-item-padding-x: 14px;
+    --sidenav-item-padding-y: 11px;
+    --sidenav-item-font-size: 0.875rem;
+    --sidenav-item-font-weight: 500;
+
+    /* Sub Menu Items */
+    --sidenav-sub-item-font-size: 0.8125rem;
+    --sidenav-sub-item-font-weight: 400;
+    --sidenav-sub-item-gap: 4px;
+    --sidenav-sub-item-padding-x: 12px;
+    --sidenav-sub-item-padding-y: 8px;
+
+    /* Light left-sidebar — warm cream panel, filled sage active pill */
+    &[data-menu-color="light"] {
+        --sidenav-bg: #faf8f1;
+        --sidenav-border-color: #ebe7db;
+        --sidenav-item-color: #6a6d62;
+        --sidenav-item-hover-color: var(--color-primary);
+        --sidenav-item-hover-bg: #ecefe9;
+        --sidenav-item-active-color: #ffffff;
+        --sidenav-item-active-bg: var(--color-primary);
+    }
+
+    /* Gray left-sidebar */
+    &[data-menu-color="gray"] {
+        --sidenav-bg: #ecebe2;
+        --sidenav-border-color: #e2dfd2;
+        --sidenav-item-color: #6a6d62;
+        --sidenav-item-hover-color: var(--color-primary);
+        --sidenav-item-hover-bg: #e0e4dc;
+        --sidenav-item-active-color: #ffffff;
+        --sidenav-item-active-bg: var(--color-primary);
+    }
+
+    /* Dark Left Sidebar — slate-green */
+    &[data-menu-color="dark"] {
+        --sidenav-bg: #2a322e;
+        --sidenav-border-color: #2a322e;
+        --sidenav-item-color: #94a09a;
+        --sidenav-item-hover-color: #dde6e1;
+        --sidenav-item-hover-bg: #343d39;
+        --sidenav-item-active-color: #ffffff;
+        --sidenav-item-active-bg: var(--color-primary);
+    }
+
+    /* Gradient Menu — tonal sage into deep slate */
+    &[data-menu-color="gradient"] {
+        --sidenav-bg: linear-gradient(160deg, #51635e, #2e3531);
+        --sidenav-border-color: null;
+        --sidenav-item-color: #a7b3ac;
+        --sidenav-item-hover-color: #ffffff;
+        --sidenav-item-hover-bg: rgba(255, 255, 255, 0.08);
+        --sidenav-item-active-color: #ffffff;
+        --sidenav-item-active-bg: rgba(255, 255, 255, 0.16);
+    }
+
+    /* Image Menu */
+    &[data-menu-color="image"] {
+        --sidenav-bg: linear-gradient(to bottom right, rgba(22, 28, 25, 0.88), #2e3531), url("../../../images/admin/sidenav-bg.jpg") center/cover no-repeat;
+        --sidenav-border-color: null;
+        --sidenav-item-color: #b3bdb6;
+        --sidenav-item-hover-color: #ffffff;
+        --sidenav-item-hover-bg: rgba(255, 255, 255, 0.08);
+        --sidenav-item-active-color: #ffffff;
+        --sidenav-item-active-bg: rgba(255, 255, 255, 0.16);
+    }
+
+    /* Dark Mode */
+    &[data-theme="dark"][data-menu-color="dark"],
+    &[data-theme="dark"][data-menu-color="gray"],
+    &[data-theme="dark"][data-menu-color="light"] {
+        --sidenav-bg: #1f2521;
+        --sidenav-border-color: #333d38;
+        --sidenav-item-color: #94a09a;
+        --sidenav-item-hover-color: #dde6e1;
+        --sidenav-item-hover-bg: #2a312d;
+        --sidenav-item-active-color: #ffffff;
+        --sidenav-item-active-bg: var(--color-primary);
+    }
+
+    /* Light Topbar */
+    &[data-topbar-color="light"] {
+        --topbar-bg: #faf8f1;
+        --topbar-item-color: #6a6d62;
+        --topbar-item-hover-color: var(--color-primary);
+        --topbar-search-bg: #f3f1ea;
+        --topbar-search-border: #ebe7db;
+    }
+
+    /* Gray Topbar */
+    &[data-topbar-color="gray"] {
+        --topbar-bg: #f3f1ea;
+        --topbar-item-color: #6a6d62;
+        --topbar-item-hover-color: var(--color-primary);
+        --topbar-search-bg: #e8e5d9;
+        --topbar-search-border: #e8e5d9;
+    }
+
+    /* Dark Topbar */
+    &[data-topbar-color="dark"] {
+        --topbar-bg: #2a322e;
+        --topbar-item-color: #aab4ad;
+        --topbar-item-hover-color: #ffffff;
+        --topbar-search-bg: #343d39;
+        --topbar-search-border: #343d39;
+    }
+
+    /* Gradient Topbar */
+    &[data-topbar-color="gradient"] {
+        --topbar-bg: linear-gradient(to right, #51635e, #2e3531);
+        --topbar-item-color: rgba(255, 255, 255, 0.75);
+        --topbar-item-hover-color: #ffffff;
+        --topbar-search-bg: rgba(255, 255, 255, 0.12);
+        --topbar-search-border: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Topbar (Dark Mode) */
+    &[data-theme="dark"][data-topbar-color="dark"],
+    &[data-theme="dark"][data-topbar-color="light"],
+    &[data-theme="dark"][data-topbar-color="gray"] {
+        --topbar-bg: #1f2521;
+        --topbar-item-color: #aab4ad;
+        --topbar-item-hover-color: #ffffff;
+        --topbar-search-bg: #2a312d;
+        --topbar-search-border: #2a312d;
+    }
+
+    /* Chart Colors — sage hero, earthy supporting hues */
+    --color-chart-primary: #596d69;
+    --color-chart-secondary: #c17a54;
+    --color-chart-alpha: #5fa177;
+    --color-chart-beta: #c8503f;
+    --color-chart-gamma: #d8a548;
+    --color-chart-delta: #5d92ad;
+    --color-chart-zeta: #8f7193;
+    --color-chart-gray: #ece9df;       /* warm chart track */
+    --color-chart-dark: #313a36;
+    --color-chart-border-color: #ece9df;
+    --color-chart-title-color: #b0ac9c;
+}
+
+/* Dark Mode surfaces — deep slate-green */
+html[data-theme="dark"][data-skin="sage"] {
+    --color-body-bg: #1a1f1c;
+    --color-body-color: #aab4ad;
+    --color-card: #232a26;
+    --shadow: 0px 0px 30px rgba(0, 0, 0, 0.38);
+    --shadow-lg: 0px 0px 40px rgba(0, 0, 0, 0.5);
+    --color-default-300: #333d38;
+
+    --color-chart-gray: #2b322d;
+    --color-chart-border-color: #28302b;
+    --color-chart-title-color: #6c746d;
+
+    .card,
+    .hs-dropdown-menu {
+        border: 1px solid var(--color-default-300) !important;
+    }
+}
+
+/* ============================================================
+   Sage — refined organic signature
+   ============================================================ */
+html[data-skin="sage"] {
+    .app-header {
+        box-shadow: none;
+    }
+
+    .hs-dropdown-menu,
+    .card {
+        box-shadow: var(--shadow);
+    }
+
+    /* Literary serif titles — quiet editorial character */
+    .card-title,
+    .page-main-title {
+        font-family: var(--font-secondary);
+        font-weight: 600;
+        letter-spacing: -0.005em;
+    }
+
+    /* Roomier card interiors for an airy, breathable layout */
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Clean hairline card headers (no dashed dividers) + matching horizontal padding */
+    .card .card-header {
+        padding: 1.125rem 1.5rem;
+        border-bottom-style: solid;
+        border-bottom-color: var(--color-default-300);
+    }
+
+    .card .card-footer {
+        padding: 1.125rem 1.5rem;
+    }
+}
+
+/* Rounded, floating active-nav pill */
+html[data-skin="sage"]:not([data-sidenav-size="sm"]) {
+    .side-nav .menu-item > .menu-link {
+        border-radius: 10px;
+    }
+}
+
+/* Soft sage glow under the filled active pill (cream sidebars) */
+html[data-skin="sage"][data-menu-color="light"]:not([data-sidenav-size="sm"]),
+html[data-skin="sage"][data-menu-color="gray"]:not([data-sidenav-size="sm"]) {
+    .side-nav .menu-item.active > .menu-link,
+    .side-nav .menu-item > .menu-link.active {
+        box-shadow: 0 6px 16px rgba(89, 109, 105, 0.3);
+    }
+}

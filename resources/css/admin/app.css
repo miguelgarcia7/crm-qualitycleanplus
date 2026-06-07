@@ -1,0 +1,87 @@
+/**
+* Template Name: Minute - Admin & Dashboard Template
+* By (Author): Coderthemes
+* Module/App (File Name): App CSS File
+* Version: 1.2.0
+*/
+
+@import "./config/_font.css";
+
+
+
+@layer base {
+@import "jsvectormap/dist/css/jsvectormap.min.css";
+}
+
+
+
+/* ========= Tailwind CSS ========= */
+@import "tailwindcss";
+
+/* ========= Tailwind Plugin ========= */
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+
+
+/* ========= Preline UI ========= */
+@source "preline/dist/*.js";
+@import "preline/variants.css";
+
+
+/* ========= Themes Config ========= */
+@import "./config/_root.css";
+@import "./config/_theme-sage.css";
+
+/* ========= Custom CSS ========= */
+
+@import "./structure/_layout.css";
+@import "./structure/_sidenav.css";
+@import "./structure/_horizontal.css";
+@import "./structure/_topbar.css";
+@import "./structure/_footer.css";
+
+/* Custom Components */
+@import "./custom/_reboot.css";
+@import "./custom/_helper.css";
+@import "./custom/_buttons.css";
+@import "./custom/_badge.css";
+@import "./custom/_card.css";
+@import "./custom/_dropdown.css";
+@import "./custom/_forms.css";
+@import "./custom/_print.css";
+@import "./custom/_table.css";
+@import "./custom/_pagination.css";
+@import "./custom/_progress.css";
+@import "./custom/_modal.css";
+
+@import "./plugins/_simplebar.css";
+@import "./plugins/_flatpickr.css";
+@import "./plugins/_prismjs.css";
+
+@import "./pages/_email.css";
+@import "./pages/_kanban.css";
+@import "./pages/_error.css";
+@import "./pages/_auth.css";
+@import "./pages/_widgets.css";
+
+@import "./plugins/_apexcharts.css";
+@import "./plugins/_calendar.css";
+@import "./plugins/_choice.css";
+@import "./plugins/_colorpicker.css";
+@import "./plugins/_cropper.css";
+@import "./plugins/_datatables.css";
+@import "./plugins/_daterangepicker.css";
+@import "./plugins/_dropzone.css";
+@import "./plugins/_filepond.css";
+@import "./plugins/_flatpickr.css";
+@import "./plugins/_jvectormap.css";
+@import "./plugins/_noui-rangeslider.css";
+@import "./plugins/_pass-bar.css";
+@import "./plugins/_quill-editor.css";
+@import "./plugins/_select2.css";
+@import "./plugins/_sortablejs.css";
+@import "./plugins/_sweetalert2.css";
+@import "./plugins/_tour.css";
+@import "./plugins/_treeview.css";
+@import "./plugins/_typehead.css";
+@import './framework-custom.css';
