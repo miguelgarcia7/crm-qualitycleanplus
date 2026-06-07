@@ -2,16 +2,19 @@
 
 | Field | Value |
 |---|---|
-| Status | Built (foundation complete; 19 Pest tests green, Larastan clean) |
-| Last updated | 2026-06-06 |
+| Status | ✅ Done (foundation complete; 19 Pest tests green, Pint + Larastan clean) |
+| Last updated | 2026-06-07 |
 | Owner | Engineering |
 
-## As built — deviations from the plan
+## As built (current state)
 
-- **Login reuses the reference `auth/sign-in` view** (wired to Fortify), not a bespoke login page — per the reuse-the-library principle. Fortify `loginView` → `auth/sign-in/index`.
-- **`minute` surface renders from the `admin` bundle** (views under `views/minute/`) for now; the separate `minute` Vite bundle is deferred to when QC Minute is built out (it's a build optimization, not a functional requirement).
-- **Dashboards are minimal placeholders** (BaseLayout) — the full reference shell/nav comes when the back office is built.
-- **Domain groups live in `routes/web.php`**, not a `withRouting(then:)` closure — Herd can't serialize closures (see the Herd routing gotcha). Route files are closure-free (`Route::view`/`Route::inertia`/controllers).
+- **Two domains, config-driven** (ADR-0024): `routes/web.php` registers `Route::domain(config('domains.main'))` for marketing (`/`, Blade) + back office (`/admin`, Inertia) and `Route::domain(config('domains.qcminute'))` for QC Minute (`/`). Local Herd hosts: `qcpminute.test` (main) + `qcminute.test`. Route files are closure-free so they cache. (No `withRouting(then:)` closure — kept route registration in `web.php`; not because of closures, that was a red herring — see below.)
+- **Login** reuses the reference `auth/sign-in` view wired to Fortify (`loginView` → `auth/sign-in/index`); host-aware post-login redirect; registration + email verification disabled.
+- **Admin shell is the real theme `MainLayout`** (sidebar + topbar). The sidebar (`layouts/components/data.ts`) shows OUR menu — Dashboard + Profile live; upcoming sections are disabled "Soon" placeholders — **gated by permission** (filter in `Sidenav/AppMenu` against `auth.permissions`, shared via `HandleInertiaRequests`). Topbar trimmed to functional controls; user dropdown shows the real person + working Fortify logout.
+- **`minute` surface renders from the `admin` bundle** (views under `views/minute/`); a separate `minute` Vite bundle is deferred (build optimization, not functional).
+- **Dev login:** `super-admin@example.com` / `password` (seeded in `DatabaseSeeder`).
+
+> **Gotcha resolved:** an early 500-on-every-request came from renaming `sessions.user_id` → `person_id` (Laravel's DB session driver requires `user_id`); Herd's profiler masked it as a `$__herd_closure` error. Fixed by keeping `sessions.user_id`. See the `diagnosing-500s-and-herd` memory.
 
 Just-in-time detailed plan for Phase 01 of `80-plan/roadmap.md`. Stands up the real foundation so every later phase builds on it.
 
@@ -39,6 +42,12 @@ Implements against the canonical architecture: ADR-0004 (one `people` table), AD
 ## Verification
 
 `migrate:fresh --seed` (10 roles, ~100 perms) → `npm run build` clean → Herd: `qcpminute.test/` marketing, `qcpminute.test/admin/login` + `qcminute.test/login` render → log in as super admin on both → dashboard + Settings → contractor blocked on `/admin` (wrong-door) → `activity_log` has login row → `composer test` + `composer stan` green.
+
+## Open follow-ups (small, not blocking Phase 02)
+
+- Seed a sample user per role so sidebar permission-gating can be tested across roles (only the super admin exists today).
+- Clean up ~5 pre-existing theme `tsc` errors (`ApexChart.tsx`, `preline.ts`) so `npm run types` is fully green. (`npm run types` now actually runs; our code is type-clean.)
+- Horizontal nav menu is not permission-gated yet (only the vertical Sidenav is). Default orientation is vertical.
 
 ## Out of scope (later phases)
 
