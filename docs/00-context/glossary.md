@@ -119,10 +119,10 @@ Terms used throughout these docs. When the same word means different things in d
 
 | Term | Meaning |
 |---|---|
-| **QC Minute** | The public-facing time/invoicing surface. Domain: `qcminute.com` (TBD final name). Property managers and contractors log in here. |
-| **QCP Staffing back office** | The internal admin surface. Domain: `backoffice.qcpstaffing.com` (TBD final name). All QCP staff log in here. |
-| **Public marketing site** | `qualitycleanplus.com`. A **Blade** surface within this same codebase (server-rendered for SEO, own asset bundle). Hosts the marketing pages, job listings, and the job application form. See ADR-0023. |
-| **/device path** | The endpoint hierarchy for tablet devices that contractors clock in on. Sanctum-authenticated, property-locked tokens. Lives within the QC Minute domain but is a distinct route group. Legacy backup flow (per ADR-0017). |
+| **QC Minute** | The time/invoicing surface. Domain: `qcpstaffing.com` (local: `qcminute.test`). React/Inertia, `minute` bundle. Property managers and contractors log in here; tablets clock in at `/device/*`. |
+| **QCP Staffing back office** | The internal admin surface. Lives at `qualitycleanplus.com/admin` (local: `qcpminute.test/admin`). React/Inertia, `admin` bundle. All QCP staff log in here. |
+| **Public marketing site** | `qualitycleanplus.com/` (root of the main domain). A **Blade** surface within this same codebase (server-rendered for SEO, own `site` asset bundle). Hosts the marketing pages, job listings, and the job application form. See ADR-0023. |
+| **/device path** | The endpoint hierarchy for tablet devices that contractors clock in on. Sanctum-authenticated, property-locked tokens. Lives within the QC Minute domain (`qcpstaffing.com/device/*`) but is a distinct route group. Legacy backup flow (per ADR-0017). |
 | **QR clock-in** | Modern primary contractor clock-in flow (per ADR-0017). Contractor scans static QR code at the property, enters phone number, picks work order, GPS + selfie captured, time_entry created. Browser-based; no app or tablet required. |
 | **Field visit** | Recruiter's check-in at a property (per ADR-0017). Captures GPS + selfie via Back Office mobile's floating action button. Operational logging only — not paid time, not billable. Lives in `field_visits` table, separate from `time_entries`. |
 | **Floating action button (FAB)** | Persistent button in the bottom corner of Back Office mobile UI, used for recruiter check-in/out. Context-aware — shows Check In if no open visit, Check Out if one exists. |

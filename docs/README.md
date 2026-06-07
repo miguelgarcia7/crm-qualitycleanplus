@@ -23,7 +23,7 @@ docs/
 ├── 40-flows/          ← step-by-step end-to-end workflow specs
 ├── 50-ui/             ← screen-by-screen UI specs (added per phase — currently empty)
 ├── 60-reports/        ← reporting strategy and catalog (added per phase — currently empty)
-├── 70-decisions/      ← ADRs — immutable records of architectural choices (23 to date)
+├── 70-decisions/      ← ADRs — immutable records of architectural choices (24 to date)
 ├── 80-plan/           ← phased implementation plan + roadmap
 ├── 90-open/           ← unresolved questions, deferred items
 └── reviews/           ← dated client reviews + cost estimates
@@ -79,7 +79,7 @@ When an open item is resolved, move it to the appropriate place (an ADR for a de
 
 Dated artifacts in `reviews/` are point-in-time client-facing summaries. They capture state at a specific moment for stakeholder conversations.
 
-## ADRs at a glance (23 total)
+## ADRs at a glance (24 total)
 
 | # | Title | Decided |
 |---|---|---|
@@ -106,6 +106,7 @@ Dated artifacts in `reviews/` are point-in-time client-facing summaries. They ca
 | 0021 | More Staff Request workflow | 2026-05-21 |
 | 0022 | Frontend stack: React + Inertia + Fortify | 2026-06-06 |
 | 0023 | Marketing site in-monorepo as a Blade surface | 2026-06-06 |
+| 0024 | Two-domain layout + per-surface asset bundles | 2026-06-06 |
 
 ## Current status (snapshot)
 
@@ -113,7 +114,7 @@ As of 2026-06-06:
 
 - **Spec coverage:** complete across all 11 workflows, both domains, all role definitions, time tracking, invoicing, inventory, PTO, field check-in, audit/PII
 - **64+ documentation files** across 9 folders
-- **23 ADRs** locking in every architectural decision
+- **24 ADRs** locking in every architectural decision
 - **10 flow files** covering the major end-to-end processes
 - **Open items:** 1 (Contracts data model — deferred per David's direction)
 - **Parked items:** 2 (Applicant-to-contractor promotion detailed flow, Recruiter-to-property bulk transfer)

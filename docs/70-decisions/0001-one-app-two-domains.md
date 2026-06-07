@@ -7,7 +7,7 @@
 | Owner | Product + Engineering |
 | Supersedes | — |
 | Superseded by | — |
-| Refined by | ADR-0023 (marketing site moves into this codebase as a Blade surface) |
+| Refined by | ADR-0023 (marketing site moves into this codebase as a Blade surface); ADR-0024 (concrete two-domain layout: qualitycleanplus.com + qcpstaffing.com; back office at /admin) |
 
 ## Context
 

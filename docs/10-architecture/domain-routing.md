@@ -3,135 +3,132 @@
 | Field | Value |
 |---|---|
 | Status | Accepted |
-| Last updated | 2026-05-21 |
+| Last updated | 2026-06-06 |
 | Owner | Engineering |
 
 ## Pattern
 
-Laravel's `Route::domain()` lets us mount different route trees on different hostnames within the same app. We use this to enforce that:
+Laravel's `Route::domain()` lets us mount different route trees on different hostnames within the same app. There are **two domains** and **three surfaces** (see ADR-0024):
 
-- Property managers and contractors can only log in via `qcminute.com`
-- All QCP back-office staff can only log in via `backoffice.qcpstaffing.com`
-- Super admins can use either
+- **`qualitycleanplus.com`** — marketing at `/` (public Blade) **and** the back office at `/admin` (React/Inertia)
+- **`qcpstaffing.com`** — QC Minute at `/` (React/Inertia, PMs + contractors) and tablet clock-in at `/device/*`
+- Super admins can use either authenticated surface
+
+Domain names are **never hardcoded** — they come from config so local (`.test`) and production (`.com`) differ.
 
 ## Route files
 
 ```
 routes/
-├── public.php          ← marketing site → fetched JSON / submitted applications
-├── qcminute.php        ← QC Minute domain (PM + contractor + super-admin)
-├── backoffice.php      ← Back office domain (everyone else + super-admin)
-├── device.php          ← Tablet endpoints (sanctum)
-├── web.php             ← Shared infrastructure: login, password reset, error pages
-└── console.php         ← Schedule definitions
+├── marketing.php       ← qualitycleanplus.com "/"      (public Blade: pages, job listings, application form)
+├── backoffice.php      ← qualitycleanplus.com "/admin"  (React/Inertia; staff roles)
+├── qcminute.php        ← qcpstaffing.com "/"            (React/Inertia; PM + contractor + super-admin)
+├── device.php          ← qcpstaffing.com "/device/*"    (Sanctum tablets)
+├── web.php             ← shared infrastructure: auth scaffolding (Fortify), error pages
+└── console.php         ← schedule definitions
+```
+
+## Config
+
+`config/domains.php`:
+
+```php
+return [
+    'main'     => env('DOMAIN_MAIN', 'qualitycleanplus.com'),   // marketing + back office
+    'qcminute' => env('DOMAIN_QCMINUTE', 'qcpstaffing.com'),    // qcminute + device
+];
+```
+
+```dotenv
+# local (.env)                          # production (.env)
+DOMAIN_MAIN=qcpminute.test              DOMAIN_MAIN=qualitycleanplus.com
+DOMAIN_QCMINUTE=qcminute.test           DOMAIN_QCMINUTE=qcpstaffing.com
 ```
 
 ## Bootstrap
 
-In `bootstrap/app.php`:
+In `bootstrap/app.php` (`->withRouting(... then:)`):
 
 ```php
-->withRouting(
-    web: __DIR__.'/../routes/web.php',
-    commands: __DIR__.'/../routes/console.php',
-    then: function () {
-        Route::middleware('web')->group(function () {
-            Route::domain(config('app.domains.qcminute'))
-                ->group(base_path('routes/qcminute.php'));
+then: function () {
+    // DOMAIN 1 — qualitycleanplus.com
+    Route::domain(config('domains.main'))->middleware('web')->group(function () {
+        // Marketing — public, server-rendered Blade, at "/"
+        Route::group([], base_path('routes/marketing.php'));
 
-            Route::domain(config('app.domains.backoffice'))
-                ->group(base_path('routes/backoffice.php'));
-        });
+        // Back office — React/Inertia, at "/admin"
+        Route::prefix('admin')
+            ->middleware(['auth', 'allowed_on_backoffice'])
+            ->group(base_path('routes/backoffice.php'));
+    });
 
-        Route::middleware('api')
-            ->prefix('api')
-            ->group(base_path('routes/public.php'));
+    // DOMAIN 2 — qcpstaffing.com
+    Route::domain(config('domains.qcminute'))->middleware('web')
+        ->middleware(['auth', 'allowed_on_qcminute'])
+        ->group(base_path('routes/qcminute.php'));
 
-        Route::middleware(['auth:sanctum'])
-            ->domain(config('app.domains.qcminute'))
-            ->prefix('device')
-            ->group(base_path('routes/device.php'));
-    },
-)
+    Route::domain(config('domains.qcminute'))
+        ->prefix('device')
+        ->middleware('auth:sanctum')
+        ->group(base_path('routes/device.php'));
+},
 ```
-
-Domains live in config so they're environment-aware (local uses `qcminute.test`, etc.).
 
 ## Domain access middleware
 
-Two middleware classes enforce "right person on right domain":
+Two middleware classes enforce "right person on the right surface":
 
 ```php
-// app/Http/Middleware/AllowedOnQcMinute.php
-public function handle(Request $request, Closure $next)
-{
-    $user = $request->user();
-    abort_unless(
-        $user?->hasAnyRole(['property_manager', 'contractor', 'super_admin']),
-        403,
-        'This account cannot access QC Minute.'
-    );
-    return $next($request);
-}
+// app/Http/Middleware/AllowedOnQcMinute.php  (alias: allowed_on_qcminute)
+abort_unless(
+    $request->user()?->hasAnyRole(['property_manager', 'contractor', 'admin', 'super_admin']),
+    403, 'This account cannot access QC Minute.'
+);
 
-// app/Http/Middleware/AllowedOnBackoffice.php
-public function handle(Request $request, Closure $next)
-{
-    $user = $request->user();
-    abort_unless(
-        $user?->hasAnyRole([
-            'super_admin', 'office_manager', 'hr', 'payroll',
-            'recruiter', 'w2_employee'
-        ]),
-        403,
-        'This account cannot access the back office.'
-    );
-    return $next($request);
-}
+// app/Http/Middleware/AllowedOnBackoffice.php (alias: allowed_on_backoffice)
+abort_unless(
+    $request->user()?->hasAnyRole([
+        'super_admin', 'admin', 'office_manager', 'front_desk',
+        'hr', 'payroll', 'recruiter', 'w2_employee',
+    ]),
+    403, 'This account cannot access the back office.'
+);
 ```
 
-Applied to the route groups in `qcminute.php` and `backoffice.php`.
+Marketing (`/`) has no auth middleware — it's public.
 
 ## Login flow
 
-Each domain has its **own login page** at `/login` on that domain. Both submit to the same backend (the auth controller is shared), but:
+Each authenticated surface has its own login page; both authenticate through the same Fortify backend:
 
-- Login form on `qcminute.com/login` redirects to `qcminute.com/dashboard` (PM dashboard or contractor dashboard depending on role)
-- Login form on `backoffice.qcpstaffing.com/login` redirects to `backoffice.qcpstaffing.com/dashboard` (recruiter dashboard, office-manager dashboard, etc. depending on role)
+- `qcpstaffing.com/login` → QC Minute dashboard (PM or contractor, by role)
+- `qualitycleanplus.com/admin/login` → back office dashboard (recruiter, office manager, etc., by role)
 
-If a user successfully authenticates but doesn't have a role permitted on that domain, they see a clear "wrong door" message with a link to the correct domain's login.
+If a user authenticates but lacks a role permitted on that surface, they see a clear "wrong door" message linking to the correct surface's login.
 
 ## Super admin
 
-A super admin can log in on either domain. The UI shell they see depends on which domain they entered through, but they have full data access regardless. There's a "Switch to back office" / "Switch to QC Minute" link in the super-admin nav.
+A super admin can log in on either surface. The shell they see depends on which surface they entered through, but they have full data access regardless. A "Switch to back office" / "Switch to QC Minute" link lives in the super-admin nav.
 
-## Per-domain branding
+## Per-surface chrome
 
-Layout selection happens at the layout level based on the request's host:
+The three surfaces are **separate asset bundles**, each with its own root layout:
 
-```blade
-@extends(request()->getHost() === config('app.domains.qcminute')
-    ? 'layouts.qcminute'
-    : 'layouts.backoffice')
-```
+- **Marketing** — a Blade layout (`resources/views/site/`), `site` bundle.
+- **Back office** — its Inertia root layout in the `admin` bundle (`resources/js/admin/`), pages under `views/admin/`.
+- **QC Minute** — its Inertia root layout in the `minute` bundle (`resources/js/minute/`), pages under `views/minute/`.
 
-Different navigation, different theming, different page chrome. Same underlying components for shared views (e.g. the timesheet detail view that both PMs and recruiters see).
+Shared React components (e.g. a timesheet detail view both PMs and recruiters see) are imported by whichever bundle needs them.
 
 ## URL generation
 
-Always use named routes with explicit domain context when generating URLs that cross domains:
+Use named routes; for cross-surface links, generate against the target domain from config:
 
 ```php
-URL::route('invoice.show', ['invoice' => $invoice], true);
-// Generates the URL on whatever domain the route was registered on
-```
-
-For notifications that link back to a specific domain:
-
-```php
-$pmDashboard = URL::secure(
-    route('timesheet.show', ['timesheet' => $t], false),
-    domain: config('app.domains.qcminute')
+// link to a QC Minute page from a back-office notification
+URL::secure(
+    route('timesheet.show', ['timesheet' => $t], absolute: false),
+    domain: config('domains.qcminute'),
 );
 ```
 
@@ -139,26 +136,22 @@ $pmDashboard = URL::secure(
 
 ## Local development
 
-Local hosts file entries:
+Herd serves both hostnames at `.test` (its dnsmasq resolves `*.test` to 127.0.0.1 — no `/etc/hosts` edits needed):
 
-```
-127.0.0.1   qcminute.test
-127.0.0.1   backoffice.qcpstaffing.test
-127.0.0.1   qualitycleanplus.test
-```
-
-Local config sets:
-
-```
-APP_DOMAIN_QCMINUTE=qcminute.test
-APP_DOMAIN_BACKOFFICE=backoffice.qcpstaffing.test
+```bash
+cd <project>
+herd link qcminute      # this app at qcminute.test  (= qcpstaffing.com)
+herd secure qcminute    # https
+# qcpminute.test (= qualitycleanplus.com) is already linked + secured
 ```
 
-`php artisan serve` doesn't support multi-domain natively; local dev uses Laravel Herd or Valet with `valet link` per domain.
+Set `DOMAIN_MAIN=qcpminute.test` and `DOMAIN_QCMINUTE=qcminute.test` in `.env`, then `php artisan config:clear`. (`php artisan serve` can't do multi-domain — use Herd/Valet.)
 
 ## Related
 
 - `10-architecture/overview.md` — the system shape
 - `10-architecture/identity-and-auth.md` — login flows in detail
 - `10-architecture/permissions-matrix.md` — which roles are allowed where
-- ADR-0001 — One app, two domains
+- ADR-0001 — One app, multiple domains (refined by ADR-0023, ADR-0024)
+- ADR-0023 — Marketing site in-monorepo as a Blade surface
+- ADR-0024 — Two-domain layout + per-surface bundles

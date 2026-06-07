@@ -12,8 +12,10 @@ A unified system for **Quality Cleaning Plus (QCP)** — a commercial cleaning s
 
 The system replaces two legacy applications (**QC Minute** and **QCP CRM**) with a single Laravel 13 application accessed through two domains:
 
-- **QC Minute** (`qcminute.com`) — time tracking, timesheets, invoices. Used by property managers and contractors.
-- **QCP Staffing back office** (`backoffice.qcpstaffing.com`) — all internal operations. Used by recruiters, office managers, HR, payroll, and super admins.
+- **QC Minute** (`qcpstaffing.com`) — time tracking, timesheets, invoices. Used by property managers and contractors.
+- **QCP Staffing back office** (`qualitycleanplus.com/admin`) — all internal operations. Used by recruiters, office managers, HR, payroll, and super admins.
+
+The marketing site shares the first domain: marketing pages live at `qualitycleanplus.com/` (Blade), the back office at `qualitycleanplus.com/admin`. See ADR-0024.
 
 Both domains read and write to the **same MySQL database** through the **same Laravel codebase**. The domain split is a UX and access boundary, not a data isolation boundary.
 

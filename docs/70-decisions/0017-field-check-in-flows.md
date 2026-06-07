@@ -7,6 +7,7 @@
 | Owner | Product (David) + Engineering |
 | Supersedes | — (refines Phase 07 "Recruiter GPS check-in" from roadmap; extends ADR-0012's clock-in model) |
 | Superseded by | — |
+| Note | The QR/device URLs in this ADR's body use the old `qcminute.com` domain; the live domain is `qcpstaffing.com` per ADR-0024. |
 
 ## Context
 

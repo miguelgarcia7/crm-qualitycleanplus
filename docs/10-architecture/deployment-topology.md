@@ -3,47 +3,40 @@
 | Field | Value |
 |---|---|
 | Status | Accepted |
-| Last updated | 2026-05-21 |
+| Last updated | 2026-06-06 |
 | Owner | Engineering |
 
 ## What gets deployed
 
-Three things go to production:
+**One thing** goes to production — this unified app — serving two domains:
 
 | Deployable | Codebase | Database | Purpose |
 |---|---|---|---|
-| **Main app** (qcminute.com + backoffice.qcpstaffing.com + /device/*) | This repo | This DB (MySQL) | Everything we're building |
-| **Public marketing site** | Existing legacy repo (`www.qualitycleanplus.site`) | None (or its own small one) | Marketing pages, job listings, public application form |
-| **Job listings feed** | Endpoint on the main app | This DB | The public site fetches active job postings via JSON to render them |
+| **The app** (`qualitycleanplus.com` + `qcpstaffing.com` + `/device/*`) | This repo | This DB (MySQL) | Everything — marketing, back office, QC Minute, device clock-in |
+
+The marketing site is **no longer a separate deployable** — it moved into this codebase as a Blade surface (ADR-0023, ADR-0024).
 
 ## Domain map
 
-| Domain | Hosts | Roles allowed |
-|---|---|---|
-| `qualitycleanplus.com` | Main app, marketing route group (Blade surface, own asset bundle) | Anyone (no auth) |
-| `qcminute.com` | Main app, QC Minute route group | Property Manager, Contractor, Super Admin |
-| `backoffice.qcpstaffing.com` | Main app, back office route group | Super Admin, Office Manager, HR, Payroll, Recruiter, W-2 Employee |
-| `qcminute.com/device/*` | Main app, device route group (Sanctum) | Devices (token-authenticated, property-locked) |
+Two production domains, config-driven (local uses Herd `.test` equivalents):
 
-Final domain names TBD. The structure stands regardless of the exact names chosen.
+| Domain · path | Surface | Render | Roles allowed |
+|---|---|---|---|
+| `qualitycleanplus.com/` | Marketing | Blade | Anyone (no auth) |
+| `qualitycleanplus.com/admin` | Back office | React/Inertia | Super Admin, Admin, Office Manager, Front Desk, HR, Payroll, Recruiter, W-2 Employee |
+| `qcpstaffing.com/` | QC Minute | React/Inertia | Property Manager, Contractor, Admin, Super Admin |
+| `qcpstaffing.com/device/*` | Tablet clock-in | — | Devices (Sanctum token, property-locked) |
 
-## How the public site stays integrated
+Local equivalents (Herd): `qcpminute.test` (= `qualitycleanplus.com`) and `qcminute.test` (= `qcpstaffing.com`).
 
-The marketing site is a separate codebase and database, but it needs to:
+## How marketing integrates with the rest
 
-1. **Display current job listings.** It fetches them via a public JSON endpoint on the main app:
-   ```
-   GET https://backoffice.qcpstaffing.com/api/public/job-postings
-   ```
-   Returns active postings (title, description, location, posted date). No auth.
+Because marketing is in the same codebase and database, there's **no cross-app API**:
 
-2. **Submit applications.** The application form POSTs to the main app:
-   ```
-   POST https://backoffice.qcpstaffing.com/api/public/applications
-   ```
-   Creates a `person` row with status = `applicant`. Returns success page redirect URL.
+1. **Job listings** render directly from the shared DB (the active `job_postings`, read in-process).
+2. **Applications** — the public form POSTs in-app (CSRF-protected, no pre-shared key) and creates a `person` with status = `applicant`, triggering a recruiter notification.
 
-No tighter coupling. The public site has no other access to the main database.
+This removes the previous separate-app integration (the old public JSON endpoint + pre-shared-key POST are gone).
 
 ## Infrastructure (suggested, TBD on hosting choice)
 

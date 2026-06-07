@@ -36,7 +36,7 @@ Related: ADR-0017, `20-domain/time-tracking.md`.
    ▼
 2. Scans QR code (printed at front desk, time clock area, etc.)
    │
-   QR is a static URL: qcminute.com/clock-in/{property_id}
+   QR is a static URL: qcpstaffing.com/clock-in/{property_id}
    │
    ▼
 3. Browser opens the QC Minute clock-in page

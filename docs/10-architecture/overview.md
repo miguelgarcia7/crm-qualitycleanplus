@@ -12,27 +12,29 @@
 ONE LARAVEL 13 APPLICATION  ·  ONE MySQL DATABASE
 (same models · migrations · policies · jobs · one deployment)
 
- ├─ qualitycleanplus.com         MARKETING        Blade (server-rendered, SEO)      bundle: site
+DOMAIN 1 — qualitycleanplus.com            (local: qcpminute.test)
+ ├─ /          MARKETING     Blade (server-rendered, SEO)      bundle: site
  │     public pages · job listings · application form
  │     (form POST → person with status='applicant', written in-app)
  │
- ├─ qcminute.com                 TIME TRACKING    React + Inertia                   bundle: contractor (planned)
+ └─ /admin     BACK OFFICE   React + Inertia                   bundle: admin   (views/admin)
+       roles: Admin · Super Admin · Office Manager · Front Desk · HR · Payroll
+              · Recruiter · W-2 Employee (PTO/KB only)
+       Property Bible · dashboards · import wizard · workflows · applicants/job postings
+       KB authoring · PTO admin · reports · inventory · audit · field check-in (FAB)
+
+DOMAIN 2 — qcpstaffing.com                 (local: qcminute.test)
+ ├─ /          QC MINUTE     React + Inertia                   bundle: minute  (views/minute)
  │     roles: Property Manager · Contractor (RO) · Admin · Super Admin
  │     live weekly grid · approve timesheet · invoice list/view · send invoice
  │     contractor self-service · KB (role-gated) · QR clock-in (GPS + selfie)
  │
- ├─ qcminute.com/device/*        TABLET CLOCK-IN  Sanctum token auth (backup flow)
- │     property-locked clock in/out endpoints
- │
- └─ backoffice.qcpstaffing.com   INTERNAL OPS     React + Inertia (under /admin)    bundle: admin
-       roles: Admin · Super Admin · Office Manager · Front Desk · HR · Payroll
-              · Recruiter · W-2 Employee (PTO/KB only)
-       Property Bible · dashboards · import wizard · workflows · applicants/job postings
-       KB authoring · PTO admin · reports · inventory (Front Desk) · audit (Admin/SA)
-       · field check-in (FAB)
+ └─ /device/*  TABLET        Sanctum token auth (backup flow)
+       property-locked clock in/out endpoints
 
-Each surface compiles its own asset bundle (Vite multi-entry) — see "Surfaces & asset bundles".
-The public marketing site is part of THIS codebase (a Blade surface), not a separate app — see ADR-0023.
+Two domains, one codebase. Domains are config-driven (config/domains.php ← env) so
+local .test ≠ production .com. Each surface ships its own asset bundle (Vite multi-entry).
+Marketing is a Blade surface in THIS codebase (ADR-0023); the two-domain layout is ADR-0024.
 ```
 
 ## Stack
@@ -43,7 +45,7 @@ The public marketing site is part of THIS codebase (a Blade surface), not a sepa
 | Framework | Laravel 13 | Latest, long-term support |
 | Database | MySQL 8 | Operational continuity from legacy systems |
 | Queue / cache | Redis | Background jobs for time_summary recomputation, notification dispatch, retention purges |
-| Frontend | React 19 + Inertia 2 + TypeScript for the app surfaces (Vite 7, Tailwind v4, Paces/Minute theme); **Blade** for the public marketing site | App surfaces are server-driven SPAs (Inertia, no separate API); marketing is server-rendered HTML for SEO. Per-surface asset bundles. Mobile-responsive throughout |
+| Frontend | React 19 + Inertia 2 + TypeScript for the app surfaces (Vite 7, Tailwind v4, Paces/Minute theme); **Blade** for the public marketing site | App surfaces are server-driven SPAs (Inertia, no separate API); marketing is server-rendered HTML for SEO. One asset bundle per surface. Mobile-responsive throughout |
 | Auth | Laravel Fortify (headless: login, password reset, 2FA scaffolding) | Sanctum added later only for the `/device/*` tablet token path |
 | Permissions | Spatie Permission | Battle-tested, drives both UI gating and policy enforcement |
 | Real-time | Laravel Reverb + Echo (deferred to Phase 03) | First-party WebSocket server; live clock-in widget, live weekly grid for PMs |
@@ -53,32 +55,40 @@ The public marketing site is part of THIS codebase (a Blade surface), not a sepa
 
 ## How the surfaces share one codebase + database
 
-The surfaces are **not separate applications**. They are route groups in one Laravel app, mounted per domain:
+There are **two domains** and **three surfaces** in one Laravel app. Domains are read from
+config (never hardcoded) so local `.test` hosts and production `.com` hosts both work:
 
 ```php
-// Marketing — public, server-rendered Blade (no auth)
-Route::domain('qualitycleanplus.com')
-    ->group(base_path('routes/public.php'));
+// config/domains.php
+return [
+    'main'     => env('DOMAIN_MAIN', 'qualitycleanplus.com'),   // marketing + back office
+    'qcminute' => env('DOMAIN_QCMINUTE', 'qcpstaffing.com'),    // qcminute + device
+];
 
-Route::domain('qcminute.com')
-    ->middleware(['auth', 'allowed_on_qcminute'])
-    ->group(base_path('routes/qcminute.php'));
+// routes wiring (bootstrap/app.php or a route service provider)
+Route::domain(config('domains.main'))
+    ->group(base_path('routes/marketing.php'));                  // Blade, public, "/"
 
-Route::domain('backoffice.qcpstaffing.com')
+Route::domain(config('domains.main'))
+    ->prefix('admin')
     ->middleware(['auth', 'allowed_on_backoffice'])
-    ->group(base_path('routes/backoffice.php'));
+    ->group(base_path('routes/backoffice.php'));                 // React/Inertia, "/admin"
 
-Route::domain('qcminute.com')
+Route::domain(config('domains.qcminute'))
+    ->middleware(['auth', 'allowed_on_qcminute'])
+    ->group(base_path('routes/qcminute.php'));                   // React/Inertia, "/"
+
+Route::domain(config('domains.qcminute'))
     ->prefix('device')
     ->middleware('auth:sanctum')
-    ->group(base_path('routes/device.php'));
+    ->group(base_path('routes/device.php'));                     // Sanctum tablets
 ```
 
 - Same models, services, policies, jobs
 - Same migrations
 - Same deployment (one CI/CD pipeline)
-- Domain-aware middleware controls *who* can be on *which* domain
-- Super Admin can be on either authenticated domain; everyone else is on their assigned one
+- Domain- and path-aware middleware controls *who* can be on *which* surface
+- Super Admin can be on either authenticated surface; everyone else is on their assigned one
 
 See `10-architecture/domain-routing.md` for the detailed routing pattern.
 
@@ -86,18 +96,18 @@ See `10-architecture/domain-routing.md` for the detailed routing pattern.
 
 Each surface compiles its **own** asset bundle via Vite multi-entry, so bundles don't bleed into each other and the marketing pages stay lightweight and crawlable:
 
-| Surface | Render | Entry / bundle | Status |
-|---|---|---|---|
-| Back office (`/admin`) | React + Inertia | `resources/js/admin/app.tsx` → `admin` | Built (scaffold) |
-| Marketing | Blade | `resources/css/site/app.css` + `resources/js/site/app.js` → `site` | Planned |
-| qcminute (contractor/PM) | React + Inertia | `resources/js/contractor/app.tsx` → `contractor` | Planned |
+| Surface | Domain · path | Render | Entry / bundle | Views | Status |
+|---|---|---|---|---|---|
+| Marketing | `qualitycleanplus.com` · `/` | Blade | `resources/css/site/` + `resources/js/site/` → `site` | `resources/views/site/` | Planned |
+| Back office | `qualitycleanplus.com` · `/admin` | React + Inertia | `resources/js/admin/app.tsx` → `admin` | `views/admin/` | Built (scaffold) |
+| QC Minute | `qcpstaffing.com` · `/` | React + Inertia | `resources/js/minute/app.tsx` → `minute` | `views/minute/` | Planned |
 
-Per-surface assets also live in per-surface folders: `resources/{css,js,images,data}/admin/` today, with `site/` and `contractor/` siblings added as those surfaces are built.
+Per-surface assets live in per-surface folders: `resources/{css,js,images,data}/admin/` today, with `site/` and `minute/` siblings added as those surfaces are built.
 
 ## What's NOT in this architecture
 
 - **No multi-tenancy.** No `tenant_id` column anywhere. Row-level access is via permissions and role-scoped relationships. See ADR-0002.
-- **No external API layer between the surfaces.** They share the database directly; no REST or webhook bridge needed.
+- **No external API layer between the surfaces.** They share the database directly; no REST or webhook bridge needed. (The marketing surface reads/writes the same DB in-process — no public API hop.)
 - **No microservices.** One Laravel app, one DB, one deployment.
 - **No native mobile app.** Browser-based responsive UI. Tablet devices run a browser-loaded SPA-ish page authenticated via Sanctum tokens.
 - **No GraphQL.** Standard Laravel routes + controllers. App surfaces return Inertia (React) responses; the marketing surface returns server-rendered Blade for SEO.
@@ -130,8 +140,9 @@ There is no global tenant scope. Each query is responsible for its own access sc
 - `10-architecture/domain-routing.md` — Laravel routing pattern details
 - `10-architecture/identity-and-auth.md` — login, sessions, devices
 - `10-architecture/permissions-matrix.md` — roles × capabilities
-- ADR-0001 — One app, two domains (refined by ADR-0023)
+- ADR-0001 — One app, multiple domains (refined by ADR-0023, ADR-0024)
 - ADR-0002 — No multi-tenancy
 - ADR-0003 — Fresh build on Laravel 13
 - ADR-0022 — Frontend stack: React + Inertia + Fortify
 - ADR-0023 — Marketing site in-monorepo as a Blade surface
+- ADR-0024 — Two-domain layout (qualitycleanplus.com + qcpstaffing.com) + per-surface bundles

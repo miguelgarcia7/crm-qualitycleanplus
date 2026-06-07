@@ -30,12 +30,12 @@ Their `status` distinguishes lifecycle position (applicant / active / inactive /
 | Identity type | Mechanism | Lives where |
 |---|---|---|
 | Human user (any role) | Session-based, Laravel Fortify | Login on either authenticated domain |
-| Device (tablet at hotel) | Sanctum personal access token | `qcminute.com/device/*` |
+| Device (tablet at hotel) | Sanctum personal access token | `qcpstaffing.com/device/*` |
 | Public visitor (marketing) | None — unauthenticated form (CSRF-protected) | `qualitycleanplus.com` |
 
 ### Human user login
 
-- Login pages live at `qcminute.com/login` and `backoffice.qcpstaffing.com/login`
+- Login pages live at `qcpstaffing.com/login` (QC Minute) and `qualitycleanplus.com/admin/login` (back office)
 - Both submit to the same backend authenticator
 - Successful login + role allowed on that domain → redirect to role-appropriate dashboard
 - Successful login + role NOT allowed on that domain → "wrong door" page with link to correct domain
@@ -49,7 +49,7 @@ A tablet at a hotel uses Sanctum tokens:
 ```
 1. Admin creates a Device record in back office for Property X
    → Device gets a 6-digit one_time_code
-2. Tablet at Property X visits qcminute.com/device/activate
+2. Tablet at Property X visits qcpstaffing.com/device/activate
    → Enters the 6-digit code
 3. Server validates, issues a long-lived Sanctum token
    → Token tied to Property X (property_id stored on the token row)
@@ -90,7 +90,7 @@ Spatie roles, seeded on first deploy:
 | `w2_employee` | Back office | Own profile, PTO request, KB read |
 | `property_manager` | QC Minute | Their property: live grid, approval, invoices |
 | `contractor` | QC Minute | Own hours, paychecks, profile (RO), uniform balance, role-gated KB |
-| `device` | qcminute.com/device/* | Clock in/out at its assigned property |
+| `device` | qcpstaffing.com/device/* | Clock in/out at its assigned property |
 
 A person can hold multiple roles (an admin who's also a recruiter, for instance). Multi-role users get the union of capabilities.
 
