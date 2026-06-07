@@ -6,6 +6,7 @@ use App\Domain\People\Concerns\HasLegalHold;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
+use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -121,5 +122,15 @@ class Person extends Authenticatable
         return $this->propertyAssignments()
             ->where('property_id', $property->getKey())
             ->exists();
+    }
+
+    /**
+     * Work orders where this person is the contractor.
+     *
+     * @return HasMany<WorkOrder, $this>
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
     }
 }

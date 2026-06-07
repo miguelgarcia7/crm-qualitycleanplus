@@ -6,6 +6,8 @@ use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
 use App\Http\Controllers\PropertyPositionRateController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\TimeEntryController;
+use App\Http\Controllers\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -35,6 +37,16 @@ Route::delete('properties/{property}/contracts/{contract}', [ContractController:
 
 Route::post('properties/{property}/assignments', [PropertyAssignmentController::class, 'store'])->name('properties.assignments.store');
 Route::delete('properties/{property}/assignments/{assignment}', [PropertyAssignmentController::class, 'destroy'])->name('properties.assignments.destroy');
+
+// Work Orders (Phase 03)
+Route::get('work-orders/rate-lookup', [WorkOrderController::class, 'rateLookup'])->name('work-orders.rate-lookup');
+Route::resource('work-orders', WorkOrderController::class)->only(['index', 'create', 'store', 'edit', 'update']);
+Route::post('work-orders/{work_order}/close', [WorkOrderController::class, 'close'])->name('work-orders.close');
+
+// Time tracking — live weekly grid + manual entries (Phase 03)
+Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');
+Route::post('work-orders/{work_order}/time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
+Route::delete('time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
 
 // Settings
 Route::redirect('/settings', '/admin/settings/profile');

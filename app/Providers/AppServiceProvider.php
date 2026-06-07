@@ -6,6 +6,8 @@ use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\ContractPolicy;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Domain\WorkOrders\Policies\WorkOrderPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -43,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         // registered explicitly rather than via Laravel's App\Models guesser.
         Gate::policy(Property::class, PropertyPolicy::class);
         Gate::policy(Contract::class, ContractPolicy::class);
+        Gate::policy(WorkOrder::class, WorkOrderPolicy::class);
 
         // Audit logins (Phase 01 acceptance + ADR-0010 audit trail).
         Event::listen(Login::class, function (Login $event): void {

@@ -4,6 +4,8 @@ namespace App\Domain\PropertyBible\Models;
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
+use App\Domain\Time\Models\PayrollPeriod;
+use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -90,6 +92,22 @@ class Property extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(PropertyAssignment::class);
+    }
+
+    /**
+     * @return HasMany<WorkOrder, $this>
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    /**
+     * @return HasMany<PayrollPeriod, $this>
+     */
+    public function payrollPeriods(): HasMany
+    {
+        return $this->hasMany(PayrollPeriod::class);
     }
 
     /**

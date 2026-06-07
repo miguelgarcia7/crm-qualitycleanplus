@@ -1,0 +1,56 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * A work order links a contractor to a property + position with specific
+     * pay/bill rates. Every billable hour belongs to a WO. The WO is the
+     * authoritative rate source for the time entries it owns (ADR-0005); the
+     * Bible's rates only auto-fill the form. See 20-domain/work-orders.md.
+     */
+    public function up(): void
+    {
+        Schema::create('work_orders', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('person_id')->constrained('people')->restrictOnDelete();
+            $table->foreignId('property_id')->constrained('properties')->restrictOnDelete();
+            $table->foreignId('position_id')->constrained('positions')->restrictOnDelete();
+
+            // Authoritative rates for this WO's time entries (cents).
+            $table->bigInteger('pay_rate');
+            $table->bigInteger('bill_rate');
+            $table->bigInteger('ot_pay_rate');
+            $table->bigInteger('ot_bill_rate');
+
+            $table->date('start_date');
+            $table->date('end_date')->nullable(); // null = open-ended
+            $table->enum('status', ['active', 'closed', 'suspended'])->default('active')->index();
+            $table->unsignedInteger('probationary_period_minutes')->default(2080);
+            $table->enum('source', [
+                'recruiter_created',
+                'imported',
+                'pay_increase',
+                'transfer',
+                'temporary_assignment',
+            ])->default('recruiter_created');
+            $table->foreignId('parent_wo_id')->nullable()->constrained('work_orders')->nullOnDelete();
+            $table->text('notes')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('people')->nullOnDelete();
+
+            $table->softDeletes();
+            $table->timestamps();
+
+            $table->index(['property_id', 'status']);
+            $table->index(['person_id', 'status']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('work_orders');
+    }
+};

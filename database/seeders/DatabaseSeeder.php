@@ -31,5 +31,10 @@ class DatabaseSeeder extends Seeder
         );
 
         $person->syncRoles('super_admin');
+
+        // Local/dev demo data only (never in production).
+        if (! app()->isProduction()) {
+            $this->call(SampleDataSeeder::class);
+        }
     }
 }
