@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Enums\PersonStatus;
-use App\Models\Person;
+use App\Domain\People\Enums\PersonStatus;
+use App\Domain\People\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -13,6 +13,8 @@ use Illuminate\Support\Str;
  */
 class PersonFactory extends Factory
 {
+    protected $model = Person::class;
+
     protected static ?string $password;
 
     /**

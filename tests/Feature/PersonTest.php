@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\PersonStatus;
-use App\Models\Person;
+use App\Domain\People\Enums\PersonStatus;
+use App\Domain\People\Models\Person;
 
 it('casts status to the PersonStatus enum', function () {
     $person = Person::factory()->create(['status' => PersonStatus::ContractorActive]);

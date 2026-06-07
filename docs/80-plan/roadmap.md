@@ -15,8 +15,8 @@ Estimates are calendar-week ranges assuming one engineer working steadily. Adjus
 | # | Phase | Estimate | Status |
 |---|---|---|---|
 | 01 | Foundation: schema, identity, domain routing | 2-3 weeks | ✅ Done (see `phase-01-foundation.md`) |
-| 02 | Property Bible | 3-4 weeks | Next |
-| 03 | Work orders + time tracking + invoicing | 4-5 weeks | Not started |
+| 02 | Property Bible | 3-4 weeks | ✅ Done (see `phase-02-property-bible.md`) |
+| 03 | Work orders + time tracking + invoicing | 4-5 weeks | Next |
 | 04 | Workflow engine + first workflows (incl. unified supply_request) | 3-4 weeks | Not started |
 | 05 | Import flow | 1-2 weeks | Not started |
 | 06 | Dashboards | 2-3 weeks | Not started |

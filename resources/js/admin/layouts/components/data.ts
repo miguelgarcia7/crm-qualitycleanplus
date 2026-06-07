@@ -25,7 +25,7 @@ export const menuItems: MenuItemType[] = [
     label: 'Operations',
     isTitle: true,
     children: [
-      { url: '#', slug: 'bible', label: 'Property Bible', icon: 'table-column', permission: 'bible.properties.view', isDisabled: true, badge: soon },
+      { url: '/admin/properties', slug: 'bible', label: 'Property Bible', icon: 'table-column', permission: 'bible.properties.view' },
       { url: '#', slug: 'people', label: 'People', icon: 'user-circle', permission: 'people.contractors.view', isDisabled: true, badge: soon },
       { url: '#', slug: 'work-orders', label: 'Work Orders', icon: 'files', permission: 'work_orders.view', isDisabled: true, badge: soon },
       { url: '#', slug: 'timesheets', label: 'Timesheets', icon: 'layout', permission: 'timesheets.view_history', isDisabled: true, badge: soon },

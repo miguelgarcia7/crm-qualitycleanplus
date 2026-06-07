@@ -1,6 +1,8 @@
 <?php
 
+use App\Domain\People\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /*
@@ -44,7 +46,19 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function main(string $path = ''): string
 {
-    // ..
+    return 'http://'.config('domains.main').$path;
+}
+
+function qcminute(string $path = ''): string
+{
+    return 'http://'.config('domains.qcminute').$path;
+}
+
+/** Create a person with the given role assigned (requires RolePermissionSeeder). */
+function person(string $role): Person
+{
+    return tap(Person::factory()->create(['password' => Hash::make('secret')]))
+        ->assignRole($role);
 }

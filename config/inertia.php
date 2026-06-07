@@ -38,7 +38,7 @@ return [
         'ensure_pages_exist' => true,
 
         'page_paths' => [
-            resource_path('js/views'),
+            resource_path('js/admin/views'),
         ],
 
         'page_extensions' => [

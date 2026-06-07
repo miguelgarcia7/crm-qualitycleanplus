@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enums;
+namespace App\Domain\People\Enums;
 
 /**
  * Lifecycle position of a person (ADR-0004, 20-domain/people-lifecycle.md).

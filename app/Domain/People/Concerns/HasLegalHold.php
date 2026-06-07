@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Concerns;
+namespace App\Domain\People\Concerns;
 
-use App\Models\Person;
+use App\Domain\People\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 
 /**

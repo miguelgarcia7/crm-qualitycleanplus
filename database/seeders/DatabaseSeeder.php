@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Enums\PersonStatus;
-use App\Models\Person;
+use App\Domain\People\Enums\PersonStatus;
+use App\Domain\People\Models\Person;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -11,7 +11,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(RolePermissionSeeder::class);
+        $this->call([
+            RolePermissionSeeder::class,
+            DepartmentSeeder::class,
+            PositionSeeder::class,
+        ]);
 
         // A super admin who can log in to either domain (Phase 01 acceptance).
         // Local/dev convenience seed — production provisions the real owner.

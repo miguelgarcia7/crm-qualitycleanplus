@@ -1,27 +1,9 @@
 <?php
 
-use App\Models\Person;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
-
-function main(string $path = ''): string
-{
-    return 'http://'.config('domains.main').$path;
-}
-
-function qcminute(string $path = ''): string
-{
-    return 'http://'.config('domains.qcminute').$path;
-}
-
-function person(string $role): Person
-{
-    return tap(Person::factory()->create(['password' => Hash::make('secret')]))
-        ->assignRole($role);
-}
 
 it('serves the public marketing page', function () {
     $this->get(main('/'))

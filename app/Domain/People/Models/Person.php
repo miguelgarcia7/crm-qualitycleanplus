@@ -1,12 +1,16 @@
 <?php
 
-namespace App\Models;
+namespace App\Domain\People\Models;
 
-use App\Enums\PersonStatus;
-use App\Models\Concerns\HasLegalHold;
+use App\Domain\People\Concerns\HasLegalHold;
+use App\Domain\People\Enums\PersonStatus;
+use App\Domain\PropertyBible\Models\Property;
+use App\Domain\PropertyBible\Models\PropertyAssignment;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -89,5 +93,33 @@ class Person extends Authenticatable
     public function primaryRecruiter(): BelongsTo
     {
         return $this->belongsTo(self::class, 'primary_recruiter_id');
+    }
+
+    /**
+     * @return HasMany<PropertyAssignment, $this>
+     */
+    public function propertyAssignments(): HasMany
+    {
+        return $this->hasMany(PropertyAssignment::class);
+    }
+
+    /**
+     * Properties this person is assigned to (as recruiter or PM).
+     *
+     * @return BelongsToMany<Property, $this>
+     */
+    public function assignedProperties(): BelongsToMany
+    {
+        return $this->belongsToMany(Property::class, 'property_assignments')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /** Whether this person is assigned to the given property (any role). */
+    public function isAssignedTo(Property $property): bool
+    {
+        return $this->propertyAssignments()
+            ->where('property_id', $property->getKey())
+            ->exists();
     }
 }
