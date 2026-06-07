@@ -2,22 +2,30 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Enums\PersonStatus;
+use App\Models\Person;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->call(RolePermissionSeeder::class);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // A super admin who can log in to either domain (Phase 01 acceptance).
+        // Local/dev convenience seed — production provisions the real owner.
+        $person = Person::firstOrCreate(
+            ['email' => 'admin@qcpstaffing.com'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('password'),
+                'status' => PersonStatus::StaffActive,
+                'hire_date' => now(),
+                'email_verified_at' => now(),
+            ],
+        );
+
+        $person->syncRoles('super_admin');
     }
 }

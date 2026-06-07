@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class LayoutsController extends Controller
 {
-
     public function boxed()
     {
         return Inertia::render('admin/layouts/boxed/index');

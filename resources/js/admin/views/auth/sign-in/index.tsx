@@ -1,6 +1,6 @@
 import BaseLayout from "@/layouts/BaseLayout";
-import authCard from '@/images/auth-card-bg.svg'
-import authImg from '@/images/auth.jpg'
+import authCard from '@/images/admin/auth-card-bg.svg'
+import authImg from '@/images/admin/auth.jpg'
 import AuthLogo from '@/components/AuthLogo'
 import { currentYear, META_DATA } from '@/config/constants'
 import { Link } from '@inertiajs/react'
@@ -60,13 +60,6 @@ const Page = () => {
 
                   <div className="rounded-md">
                     <Form />
-
-                    <p className="text-default-400 mt-7.5 text-center">
-                      New here?&nbsp;
-                      <Link href="/auth/card/sign-up" className="text-primary font-semibold underline underline-offset-4">
-                        Create an account
-                      </Link>
-                    </p>
 
                     <p className="text-default-400 mt-7.5 text-center">
                       &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>

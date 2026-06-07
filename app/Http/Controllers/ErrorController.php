@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ErrorController extends Controller
 {
-
     public function error400()
     {
         return Inertia::render('error/400/index');

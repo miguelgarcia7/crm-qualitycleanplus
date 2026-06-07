@@ -144,9 +144,9 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Registration + email verification disabled: accounts are created by
+        // Admin/HR (`admin.users.create`), there is no public self-signup.
         Features::resetPasswords(),
-        Features::emailVerification(),
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,

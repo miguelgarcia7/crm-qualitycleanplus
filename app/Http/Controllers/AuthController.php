@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class AuthController extends Controller
 {
-
     public function cardDeleteAccount()
     {
         return Inertia::render('auth/card/delete-account/index');

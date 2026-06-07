@@ -1,7 +1,7 @@
 import BaseLayout from "@/layouts/BaseLayout";
-import authCard from '@/images/auth-card-bg.svg'
-import authImg from '@/images/auth.jpg'
-import deleteImg from '@/images/delete.png'
+import authCard from '@/images/admin/auth-card-bg.svg'
+import authImg from '@/images/admin/auth.jpg'
+import deleteImg from '@/images/admin/delete.png'
 import AuthLogo from '@/components/AuthLogo'
 import { currentYear, META_DATA } from '@/config/constants'
 
