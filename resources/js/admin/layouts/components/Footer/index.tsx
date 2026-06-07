@@ -12,8 +12,7 @@ const Footer = () => {
 
           <div className="md:text-end hidden md:block">
             Power by
-            <span className="font-bold"> StudioMex.com </span>
-            Free.
+            <span className="font-bold"> StudioMex.com</span>
           </div>
         </div>
       </div>
