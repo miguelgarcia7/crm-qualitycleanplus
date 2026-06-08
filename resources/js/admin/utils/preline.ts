@@ -28,7 +28,7 @@ export const preline = {
     if (initialized || typeof window === 'undefined') return
     initialized = true
 
-    import('preline').then(() => {
+    import('preline/dist').then(() => {
       autoInit()
       // Re-init after every Inertia visit (incl. back/forward), once the new
       // page has painted.

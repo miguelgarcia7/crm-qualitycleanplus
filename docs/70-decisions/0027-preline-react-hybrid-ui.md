@@ -68,6 +68,14 @@ via `requestAnimationFrame`) — replacing the previous body-wide `MutationObser
 which re-init'd unpredictably. A `preline.refresh()` escape hatch re-inits after
 rendering Preline markup dynamically.
 
+### Version: stay on 4.0.1 (for now)
+
+Preline is **pinned to an exact `4.0.1`**. The 4.2.x line ships a strict package
+`exports` map that omits the CSS specifiers our Tailwind v4 stylesheet relies on
+(`@import "preline/variants.css"`), which breaks `vite build`. Until that packaging
+stabilises (or we migrate the CSS to whatever 4.2's exports expect), we hold at
+4.0.1 and pin it exactly so a caret range can't pull in the broken minor.
+
 ## Consequences
 
 ### Positive
