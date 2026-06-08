@@ -19,11 +19,11 @@ return new class extends Migration
             $table->foreignId('payroll_period_id')->constrained('payroll_periods')->restrictOnDelete();
             $table->bigInteger('amount'); // cents
             $table->unsignedTinyInteger('payment_index');
-            $table->enum('status', ['scheduled', 'applied', 'skipped'])->default('scheduled')->index();
+            $table->enum('status', ['scheduled', 'applied', 'skipped'])->default('scheduled')->index('ccse_status_index');
             $table->foreignId('applied_adjustment_id')->nullable()->constrained('time_entry_adjustments')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['payroll_period_id', 'status']);
+            $table->index(['payroll_period_id', 'status'], 'ccse_period_status_index');
         });
     }
 
