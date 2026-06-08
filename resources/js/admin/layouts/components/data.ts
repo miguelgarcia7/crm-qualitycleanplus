@@ -31,6 +31,7 @@ export const menuItems: MenuItemType[] = [
       { url: '/admin/work-orders', slug: 'work-orders', label: 'Work Orders', icon: 'files', permission: 'work_orders.view' },
       { url: '#', slug: 'timesheets', label: 'Timesheets', icon: 'layout', permission: 'timesheets.view_history', isDisabled: true, badge: soon },
       { url: '/admin/invoices', slug: 'invoices', label: 'Invoices', icon: 'files', permission: 'invoices.view' },
+      { url: '/admin/pay-increases', slug: 'pay-increases', label: 'Pay Increases', icon: 'trending-up', permission: 'workflows.pay_increase.initiate' },
       { url: '#', slug: 'workflows', label: 'Workflows', icon: 'sitemap', permission: 'workflows.pto.initiate', isDisabled: true, badge: soon },
       { url: '/admin/inventory', slug: 'inventory', label: 'Inventory', icon: 'components', permission: 'inventory.items.view' },
       { url: '/admin/requests', slug: 'requests', label: 'Requests', icon: 'package', permission: 'workflows.supply_request.initiate' },

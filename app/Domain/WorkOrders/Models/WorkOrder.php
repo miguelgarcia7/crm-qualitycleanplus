@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * @property WorkOrderStatus $status
  * @property WorkOrderSource $source
+ * @property bool $is_temporary_assignment
  * @property CarbonImmutable $start_date
  * @property CarbonImmutable|null $end_date
  */
@@ -45,6 +46,7 @@ class WorkOrder extends Model
         'status',
         'probationary_period_minutes',
         'source',
+        'is_temporary_assignment',
         'parent_wo_id',
         'notes',
         'created_by',
@@ -58,6 +60,7 @@ class WorkOrder extends Model
         return [
             'status' => WorkOrderStatus::class,
             'source' => WorkOrderSource::class,
+            'is_temporary_assignment' => 'boolean',
             'pay_rate' => 'integer',
             'bill_rate' => 'integer',
             'ot_pay_rate' => 'integer',

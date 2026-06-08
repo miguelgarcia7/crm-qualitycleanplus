@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentAssignmentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PayIncreaseController;
 use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\TimeEntryController;
 use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\WorkflowTaskController;
 use App\Http\Controllers\WorkOrderController;
+use App\Http\Controllers\WorkOrderWorkflowController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -52,6 +54,16 @@ Route::delete('properties/{property}/assignments/{assignment}', [PropertyAssignm
 Route::get('work-orders/rate-lookup', [WorkOrderController::class, 'rateLookup'])->name('work-orders.rate-lookup');
 Route::resource('work-orders', WorkOrderController::class)->only(['index', 'create', 'store', 'edit', 'update']);
 Route::post('work-orders/{work_order}/close', [WorkOrderController::class, 'close'])->name('work-orders.close');
+
+// WO-lifecycle workflows (Phase 04b, ADR-0019)
+Route::post('work-orders/{work_order}/transfer', [WorkOrderWorkflowController::class, 'transfer'])->name('work-orders.transfer');
+Route::post('work-orders/{work_order}/temporary-assignment', [WorkOrderWorkflowController::class, 'temporaryAssignment'])->name('work-orders.temp');
+
+// Pay increases — recruiter queue + recruiter-initiated (Phase 04b, ADR-0020)
+Route::get('pay-increases', [PayIncreaseController::class, 'index'])->middleware('can:workflows.pay_increase.initiate')->name('pay-increases.index');
+Route::post('pay-increases', [PayIncreaseController::class, 'store'])->middleware('can:workflows.pay_increase.initiate')->name('pay-increases.store');
+Route::post('pay-increases/{workflow}/approve', [PayIncreaseController::class, 'approve'])->name('pay-increases.approve');
+Route::post('pay-increases/{workflow}/decline', [PayIncreaseController::class, 'decline'])->name('pay-increases.decline');
 
 // Time tracking — live weekly grid + manual entries (Phase 03)
 Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');

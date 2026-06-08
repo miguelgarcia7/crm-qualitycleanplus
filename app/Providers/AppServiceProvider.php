@@ -15,6 +15,9 @@ use App\Domain\Workflows\Definitions\WorkflowRegistry;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\Workflows\Policies\WorkflowPolicy;
+use App\Domain\WorkOrders\Definitions\PayIncreaseDefinition;
+use App\Domain\WorkOrders\Definitions\TemporaryAssignmentDefinition;
+use App\Domain\WorkOrders\Definitions\TransferDefinition;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Policies\WorkOrderPolicy;
 use Carbon\CarbonImmutable;
@@ -90,6 +93,9 @@ class AppServiceProvider extends ServiceProvider
         // arrive in Phase 04b.
         $registry = $this->app->make(WorkflowRegistry::class);
         $registry->register(WorkflowType::SupplyRequest, SupplyRequestDefinition::class);
+        $registry->register(WorkflowType::Transfer, TransferDefinition::class);
+        $registry->register(WorkflowType::TemporaryAssignment, TemporaryAssignmentDefinition::class);
+        $registry->register(WorkflowType::PayIncrease, PayIncreaseDefinition::class);
     }
 
     /**

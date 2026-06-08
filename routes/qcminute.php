@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Minute\PayIncreaseController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,3 +18,7 @@ Route::get('timesheets', [TimesheetApprovalController::class, 'index'])->name('q
 Route::get('timesheets/{timesheet}', [TimesheetApprovalController::class, 'show'])->name('qcminute.timesheets.show');
 Route::post('timesheets/{timesheet}/approve', [TimesheetApprovalController::class, 'approve'])->name('qcminute.timesheets.approve');
 Route::post('timesheets/{timesheet}/decline', [TimesheetApprovalController::class, 'decline'])->name('qcminute.timesheets.decline');
+
+// Property-manager pay increase requests (Phase 04b, ADR-0020)
+Route::get('pay-increases', [PayIncreaseController::class, 'index'])->name('qcminute.pay-increases.index');
+Route::post('pay-increases', [PayIncreaseController::class, 'store'])->name('qcminute.pay-increases.store');

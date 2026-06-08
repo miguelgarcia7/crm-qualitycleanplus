@@ -146,6 +146,14 @@ class SampleDataSeeder extends Seeder
 
         $this->seedInventory($recruiter);
         $this->seedRequestsAndCharges($property, $recruiter, $frontDesk, $contractors, $workOrders);
+
+        // A pending PM-initiated pay increase awaiting recruiter approval (Phase 04b).
+        app(StartWorkflow::class)->handle(WorkflowType::PayIncrease, $workOrders[0]->person, $pm, [
+            'work_order_id' => $workOrders[0]->id,
+            'source' => 'pm',
+            'pm_requested_increase_cents' => 100,
+            'reason' => 'Consistently strong performance',
+        ]);
     }
 
     /** A uniform (with size variants) and an equipment item, both stocked. */

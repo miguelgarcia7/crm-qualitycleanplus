@@ -10,11 +10,17 @@ namespace App\Domain\Workflows\Enums;
 enum WorkflowType: string
 {
     case SupplyRequest = 'supply_request';
+    case Transfer = 'transfer';
+    case TemporaryAssignment = 'temporary_assignment';
+    case PayIncrease = 'pay_increase';
 
     public function label(): string
     {
         return match ($this) {
             self::SupplyRequest => 'Supply Request',
+            self::Transfer => 'Transfer',
+            self::TemporaryAssignment => 'Temporary Assignment',
+            self::PayIncrease => 'Pay Increase',
         };
     }
 }

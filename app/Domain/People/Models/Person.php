@@ -11,6 +11,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Factories\PersonFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -117,6 +118,19 @@ class Person extends Authenticatable
         return $this->belongsToMany(Property::class, 'property_assignments')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    /**
+     * Contractors a recruiter "owns" for roster-count purposes (ADR-0019) —
+     * scoped by `primary_recruiter_id`, so temporary visitors (whose primary
+     * recruiter is unchanged) never inflate the count.
+     *
+     * @param  Builder<Person>  $query
+     */
+    public function scopePrimaryContractorsOf(Builder $query, int $recruiterId): void
+    {
+        $query->where('primary_recruiter_id', $recruiterId)
+            ->whereIn('status', [PersonStatus::ContractorActive, PersonStatus::ContractorInactive]);
     }
 
     /** Whether this person is assigned to the given property (any role). */

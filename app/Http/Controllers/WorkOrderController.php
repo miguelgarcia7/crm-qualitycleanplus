@@ -37,15 +37,28 @@ class WorkOrderController extends Controller
         return Inertia::render('admin/work-orders/index', [
             'workOrders' => $query->get()->map(fn (WorkOrder $wo): array => [
                 'id' => $wo->id,
+                'person_id' => $wo->person_id,
                 'contractor' => $wo->person?->name,
+                'property_id' => $wo->property_id,
                 'property' => $wo->property?->name,
+                'position_id' => $wo->position_id,
                 'position' => $wo->position?->name,
                 'pay_rate' => $wo->pay_rate,
                 'bill_rate' => $wo->bill_rate,
+                'ot_pay_rate' => $wo->ot_pay_rate,
+                'ot_bill_rate' => $wo->ot_bill_rate,
                 'status' => $wo->status->value,
+                'is_temporary_assignment' => $wo->is_temporary_assignment,
                 'start_date' => $wo->start_date->toDateString(),
             ]),
-            'can' => ['create' => $user instanceof Person && $user->can('work_orders.create')],
+            'catalogs' => $this->catalogs() + [
+                'recruiters' => Person::role('recruiter')->orderBy('name')->get(['id', 'name']),
+            ],
+            'can' => [
+                'create' => $user instanceof Person && $user->can('work_orders.create'),
+                'transfer' => $user instanceof Person && $user->can('workflows.transfer.initiate'),
+                'temp' => $user instanceof Person && $user->can('workflows.temporary_assignment.initiate'),
+            ],
         ]);
     }
 
