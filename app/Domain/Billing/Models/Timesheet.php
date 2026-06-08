@@ -6,6 +6,7 @@ use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
 use Database\Factories\TimesheetFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,6 +51,16 @@ class Timesheet extends Model
             'declined_at' => 'datetime',
             'approved_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Timesheets awaiting a property manager's decision.
+     *
+     * @param  Builder<Timesheet>  $query
+     */
+    public function scopePendingApproval(Builder $query): void
+    {
+        $query->where('status', TimesheetStatus::PendingApproval->value);
     }
 
     /**

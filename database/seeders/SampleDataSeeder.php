@@ -92,6 +92,14 @@ class SampleDataSeeder extends Seeder
         );
         $frontDesk->syncRoles('front_desk');
 
+        // Office-staff logins so each role's dashboard is testable (Phase 06).
+        foreach (['office_manager', 'payroll', 'hr', 'super_admin'] as $role) {
+            Person::firstOrCreate(
+                ['email' => "{$role}@example.com"],
+                ['name' => ucwords(str_replace('_', ' ', $role)), 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now()],
+            )->syncRoles($role);
+        }
+
         // Two positions with Bible rates (cents).
         $positions = Position::query()->whereIn('slug', ['housekeeper', 'banquet-server'])->get();
         foreach ($positions as $i => $position) {

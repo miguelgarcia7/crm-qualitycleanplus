@@ -7,6 +7,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
 use Carbon\CarbonImmutable;
 use Database\Factories\InvoiceFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,6 +58,16 @@ class Invoice extends Model
             'frozen_at' => 'datetime',
             'notification_sent_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Frozen invoices generated but not yet sent to the property.
+     *
+     * @param  Builder<Invoice>  $query
+     */
+    public function scopeAwaitingSend(Builder $query): void
+    {
+        $query->where('status', InvoiceStatus::Invoiced->value);
     }
 
     /**

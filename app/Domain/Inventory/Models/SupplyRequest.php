@@ -7,6 +7,7 @@ use App\Domain\Inventory\Enums\SupplyRequestStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\Workflows\Models\Workflow;
 use Database\Factories\SupplyRequestFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -63,6 +64,16 @@ class SupplyRequest extends Model
     public function isNewItem(): bool
     {
         return $this->item_variant_id === null;
+    }
+
+    /**
+     * Requests still awaiting approval/fulfillment action.
+     *
+     * @param  Builder<SupplyRequest>  $query
+     */
+    public function scopePending(Builder $query): void
+    {
+        $query->where('status', SupplyRequestStatus::Pending->value);
     }
 
     /**

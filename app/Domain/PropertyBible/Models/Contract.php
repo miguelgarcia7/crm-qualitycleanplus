@@ -7,6 +7,7 @@ use App\Domain\PropertyBible\Enums\ContractType;
 use App\Domain\Shared\Models\File;
 use Carbon\CarbonImmutable;
 use Database\Factories\ContractFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -53,6 +54,18 @@ class Contract extends Model
             'expiration_date' => 'date',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Active contracts whose expiration falls within the next $days days.
+     *
+     * @param  Builder<Contract>  $query
+     */
+    public function scopeExpiringWithin(Builder $query, int $days): void
+    {
+        $query->where('is_active', true)
+            ->whereNotNull('expiration_date')
+            ->whereBetween('expiration_date', [now()->toDateString(), now()->addDays($days)->toDateString()]);
     }
 
     /**

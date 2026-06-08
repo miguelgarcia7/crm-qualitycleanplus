@@ -1,35 +1,48 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import { Head, Link, usePage } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
+import StatCard, { Stat } from './widgets/StatCard'
+import ListCard, { ListWidget } from './widgets/ListCard'
+import TrendChart, { Trend } from './widgets/TrendChart'
 
-type Props = { pendingTasks?: number }
+type Widgets = { stats: Stat[]; lists: ListWidget[]; charts: Trend[] }
+type Props = { widgets: Widgets }
 
-const Page = ({ pendingTasks = 0 }: Props) => {
-  const user = (usePage().props as any).auth?.user
+const Page = ({ widgets }: Props) => {
+  const user = (usePage().props as { auth?: { user?: { name?: string } } }).auth?.user
 
   return (
     <>
       <Head title="Dashboard" />
       <PageBreadcrumb title="Dashboard" subtitle="Back Office" />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="card rounded-2xl md:col-span-2">
-          <div className="card-body p-6">
-            <h4 className="mb-1 text-base font-bold">Welcome back, {user?.name}</h4>
-            <p className="text-default-400">
-              Property Bible, work orders, time &amp; invoicing, and the workflow + inventory system are in place.
-              Role-specific dashboards arrive in a later phase.
-            </p>
-          </div>
-        </div>
-
-        <Link href="/admin/tasks" className="card rounded-2xl transition hover:shadow-lg">
-          <div className="card-body p-6">
-            <p className="text-default-400 text-sm uppercase">My pending tasks</p>
-            <h2 className="mt-1 text-3xl font-bold">{pendingTasks}</h2>
-            <p className="text-primary mt-2 text-sm">View My Tasks →</p>
-          </div>
-        </Link>
+      <div className="mb-4">
+        <h4 className="text-base font-bold">Welcome back, {user?.name}</h4>
+        <p className="text-default-400 text-sm">Here's what needs your attention.</p>
       </div>
+
+      {widgets.stats.length > 0 && (
+        <div className="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {widgets.stats.map((stat, i) => (
+            <StatCard key={i} stat={stat} />
+          ))}
+        </div>
+      )}
+
+      {widgets.charts.length > 0 && (
+        <div className="mb-4 grid gap-4 lg:grid-cols-2">
+          {widgets.charts.map((trend, i) => (
+            <TrendChart key={i} trend={trend} />
+          ))}
+        </div>
+      )}
+
+      {widgets.lists.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {widgets.lists.map((widget, i) => (
+            <ListCard key={i} widget={widget} />
+          ))}
+        </div>
+      )}
     </>
   )
 }

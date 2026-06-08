@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Minute\ChangePersonalInfoController;
+use App\Http\Controllers\Minute\DashboardController;
 use App\Http\Controllers\Minute\MoreStaffController;
 use App\Http\Controllers\Minute\PayIncreaseController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 | Closure-free so routes stay cacheable.
 */
 
-Route::inertia('/', 'minute/dashboard/index')->name('qcminute.dashboard');
+Route::get('/', [DashboardController::class, 'index'])->name('qcminute.dashboard');
 
 // Property-manager timesheet approval (Phase 03)
 Route::get('timesheets', [TimesheetApprovalController::class, 'index'])->name('qcminute.timesheets.index');

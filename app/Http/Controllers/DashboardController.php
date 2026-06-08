@@ -2,21 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Workflows\Models\WorkflowStep;
+use App\Domain\Dashboards\Services\DashboardMetrics;
+use App\Domain\People\Models\Person;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The back-office landing dashboard. Surfaces lightweight, cross-cutting widgets
- * (the role-specific dashboards arrive in Phase 06).
+ * The back-office landing dashboard — a role-aware set of widgets (Phase 06)
+ * assembled by {@see DashboardMetrics} from the viewer's roles + permissions.
  */
 class DashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, DashboardMetrics $metrics): Response
     {
+        $user = $request->user();
+        abort_unless($user instanceof Person, 403);
+
         return Inertia::render('admin/dashboard/index', [
-            'pendingTasks' => WorkflowStep::query()->openForPerson($request->user())->count(),
+            'widgets' => $metrics->forBackOffice($user),
         ]);
     }
 }
