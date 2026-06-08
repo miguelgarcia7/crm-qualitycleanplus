@@ -154,6 +154,16 @@ class SampleDataSeeder extends Seeder
             'pm_requested_increase_cents' => 100,
             'reason' => 'Consistently strong performance',
         ]);
+
+        // An in-progress termination awaiting front-desk equipment recovery (Phase 04b-ii).
+        // Uses the last contractor so it doesn't cancel the pay-increase seeded above.
+        app(StartWorkflow::class)->handle(WorkflowType::Termination, $contractors[2], $recruiter, [
+            'effective_date' => now()->toDateString(),
+            'termination_type' => 'voluntary',
+            'reason_category' => 'resignation',
+            'notes' => 'Relocating out of state.',
+            'rehireable' => true,
+        ]);
     }
 
     /** A uniform (with size variants) and an equipment item, both stocked. */

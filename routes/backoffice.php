@@ -15,6 +15,7 @@ use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SupplyRequestController;
+use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\TimeEntryController;
 use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\WorkflowTaskController;
@@ -64,6 +65,16 @@ Route::get('pay-increases', [PayIncreaseController::class, 'index'])->middleware
 Route::post('pay-increases', [PayIncreaseController::class, 'store'])->middleware('can:workflows.pay_increase.initiate')->name('pay-increases.store');
 Route::post('pay-increases/{workflow}/approve', [PayIncreaseController::class, 'approve'])->name('pay-increases.approve');
 Route::post('pay-increases/{workflow}/decline', [PayIncreaseController::class, 'decline'])->name('pay-increases.decline');
+
+// Terminations (Phase 04b-ii, ADR-0018)
+Route::get('terminations', [TerminationController::class, 'index'])->name('backoffice.terminations.index');
+Route::get('terminations/create', [TerminationController::class, 'create'])->middleware('can:workflows.termination.initiate')->name('backoffice.terminations.create');
+Route::post('terminations', [TerminationController::class, 'store'])->middleware('can:workflows.termination.initiate')->name('backoffice.terminations.store');
+Route::get('terminations/{workflow}', [TerminationController::class, 'show'])->name('backoffice.terminations.show');
+Route::post('terminations/{workflow}/recover-equipment', [TerminationController::class, 'recoverEquipment'])->name('backoffice.terminations.recover-equipment');
+Route::post('terminations/{workflow}/move-file', [TerminationController::class, 'moveFile'])->name('backoffice.terminations.move-file');
+Route::post('terminations/{workflow}/final-paycheck', [TerminationController::class, 'processFinalPaycheck'])->name('backoffice.terminations.final-paycheck');
+Route::post('terminations/{workflow}/cancel', [TerminationController::class, 'cancel'])->name('backoffice.terminations.cancel');
 
 // Time tracking — live weekly grid + manual entries (Phase 03)
 Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');

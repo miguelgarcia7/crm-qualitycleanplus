@@ -27,6 +27,8 @@ use Spatie\Permission\Traits\HasRoles;
  * Every human in the system — applicant, contractor, or W-2 staff — is one
  * `people` row, distinguished by {@see PersonStatus}. Roles (Spatie) are
  * independent of status. See ADR-0004 and 20-domain/people-lifecycle.md.
+ *
+ * @property PersonStatus $status
  */
 class Person extends Authenticatable
 {
