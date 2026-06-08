@@ -577,9 +577,14 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
             <h4 className="card-title">{property.name}</h4>
             <span className={`badge ${property.status === 'active' ? 'badge-soft-success' : 'badge-soft-secondary'} capitalize`}>{property.status}</span>
           </div>
-          <Link href="/admin/properties" className="text-default-500 text-sm hover:underline">
-            ← All Properties
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href={`/admin/properties/${property.id}/grid`} className="btn bg-primary px-4 py-1.5 font-semibold text-white">
+              Weekly Timesheet
+            </Link>
+            <Link href="/admin/properties" className="text-default-500 text-sm hover:underline">
+              ← All Properties
+            </Link>
+          </div>
         </div>
 
         <div className="border-default-300 border-b px-6">

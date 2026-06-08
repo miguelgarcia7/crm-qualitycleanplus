@@ -42,6 +42,7 @@ const Page = ({ properties, can }: Props) => {
                 <th>City</th>
                 <th>State</th>
                 <th>Status</th>
+                <th className="text-end">Timesheet</th>
               </tr>
             </thead>
             <tbody>
@@ -58,11 +59,16 @@ const Page = ({ properties, can }: Props) => {
                     <td>
                       <StatusBadge status={p.status} />
                     </td>
+                    <td className="text-end">
+                      <Link href={`/admin/properties/${p.id}/grid`} className="text-primary text-sm hover:underline">
+                        Weekly grid →
+                      </Link>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-default-400 py-4 text-center">
+                  <td colSpan={5} className="text-default-400 py-4 text-center">
                     No properties yet.
                   </td>
                 </tr>
