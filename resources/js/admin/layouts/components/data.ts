@@ -17,6 +17,7 @@ export const menuItems: MenuItemType[] = [
     isTitle: true,
     children: [
       { url: '/admin/dashboard', slug: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { url: '/admin/tasks', slug: 'tasks', label: 'My Tasks', icon: 'checklist' },
     ],
   },
   {
@@ -31,7 +32,8 @@ export const menuItems: MenuItemType[] = [
       { url: '#', slug: 'timesheets', label: 'Timesheets', icon: 'layout', permission: 'timesheets.view_history', isDisabled: true, badge: soon },
       { url: '/admin/invoices', slug: 'invoices', label: 'Invoices', icon: 'files', permission: 'invoices.view' },
       { url: '#', slug: 'workflows', label: 'Workflows', icon: 'sitemap', permission: 'workflows.pto.initiate', isDisabled: true, badge: soon },
-      { url: '#', slug: 'inventory', label: 'Inventory', icon: 'components', permission: 'inventory.items.view', isDisabled: true, badge: soon },
+      { url: '/admin/inventory', slug: 'inventory', label: 'Inventory', icon: 'components', permission: 'inventory.items.view' },
+      { url: '/admin/requests', slug: 'requests', label: 'Requests', icon: 'package', permission: 'workflows.supply_request.initiate' },
       { url: '#', slug: 'reports', label: 'Reports', icon: 'table-column', permission: 'reports.operational.view', isDisabled: true, badge: soon },
     ],
   },

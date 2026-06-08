@@ -1,7 +1,14 @@
+declare global {
+  interface Window {
+    HSStaticMethods?: { autoInit: () => void }
+    HSOverlay?: { open: (selector: string) => void }
+  }
+}
+
 let initialized = false
 export const preline = {
   init: () => {
-    let debounceRef: NodeJS.Timeout | null = null
+    let debounceRef: ReturnType<typeof setTimeout> | null = null
     const refreshPreline = () => {
       if (typeof window.HSStaticMethods?.autoInit === 'function') {
         window.HSStaticMethods.autoInit()

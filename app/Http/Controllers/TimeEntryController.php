@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
@@ -70,6 +71,21 @@ class TimeEntryController extends Controller
                 'total_bill' => $s->total_bill,
             ]);
 
+        $adjustments = $period === null ? collect() : $period->adjustments()
+            ->with('person:id,name')
+            ->get()
+            ->map(fn (TimeEntryAdjustment $a): array => [
+                'id' => $a->id,
+                'person' => $a->person->name,
+                'person_id' => $a->person_id,
+                'work_order_id' => $a->work_order_id,
+                'type' => $a->type->value,
+                'value' => $a->value,
+                'is_billable' => $a->is_billable,
+                'notes' => $a->notes,
+                'source_type' => $a->source_type->value,
+            ]);
+
         $user = Auth::user();
         $timesheet = $period?->timesheet;
 
@@ -85,16 +101,20 @@ class TimeEntryController extends Controller
             ],
             'rows' => $workOrders->map(fn (WorkOrder $wo): array => [
                 'work_order_id' => $wo->id,
+                'person_id' => $wo->person_id,
                 'contractor' => $wo->person?->name,
                 'position' => $wo->position?->name,
             ]),
             'entries' => $entries->values(),
             'summaries' => $summaries,
+            'adjustments' => $adjustments->values(),
             'can' => [
                 'edit' => $user instanceof Person && $user->can('time_entries.create_manual')
                     && ($period?->status->isEditable() ?? false),
                 'submit' => $user instanceof Person && $user->can('timesheets.submit_for_approval')
                     && ($timesheet?->status->canSubmit() ?? false),
+                'adjust' => $user instanceof Person && $user->can('time_entries.add_adjustment')
+                    && ($period?->status->isEditable() ?? false),
             ],
         ]);
     }

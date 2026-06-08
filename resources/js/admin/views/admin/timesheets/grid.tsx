@@ -2,7 +2,7 @@ import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useEffect, useState } from 'react'
 
-type Row = { work_order_id: number; contractor: string | null; position: string | null }
+type Row = { work_order_id: number; person_id: number; contractor: string | null; position: string | null }
 type Entry = {
   id: number
   work_order_id: number
@@ -15,6 +15,17 @@ type Entry = {
 type Summary = { regular_minutes: number; overtime_minutes: number; training_minutes: number; total_pay: number; total_bill: number }
 
 type Timesheet = { id: number; status: string; status_label: string; decline_reason: string | null }
+type Adjustment = {
+  id: number
+  person: string
+  person_id: number
+  work_order_id: number | null
+  type: string
+  value: number
+  is_billable: boolean
+  notes: string | null
+  source_type: string
+}
 
 type Props = {
   property: { id: number; name: string; timezone: string }
@@ -24,15 +35,17 @@ type Props = {
   rows: Row[]
   entries: Entry[]
   summaries: Record<number, Summary>
-  can: { edit: boolean; submit: boolean }
+  adjustments: Adjustment[]
+  can: { edit: boolean; submit: boolean; adjust: boolean }
 }
 
 const hrs = (min: number | null | undefined) => ((min ?? 0) / 60).toFixed(2)
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 const dayLabel = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })
 
-const Page = ({ property, week, period, timesheet, rows, entries, summaries, can }: Props) => {
+const Page = ({ property, week, period, timesheet, rows, entries, summaries, adjustments, can }: Props) => {
   const [modal, setModal] = useState<{ workOrderId: number; date: string } | null>(null)
+  const [adjustModal, setAdjustModal] = useState(false)
 
   const submitForApproval = () => {
     if (timesheet && confirm('Send this week to the property manager for approval?')) {
@@ -153,7 +166,60 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, can
         )}
       </div>
 
+      {period && (
+        <div className="card mt-4 rounded-2xl">
+          <div className="card-header flex items-center justify-between p-6">
+            <h4 className="card-title">Adjustments</h4>
+            {can.adjust && (
+              <button className="btn btn-light px-3 py-1.5" onClick={() => setAdjustModal(true)}>+ Add adjustment</button>
+            )}
+          </div>
+          <div className="table-wrapper">
+            <table className="table table-hover text-sm">
+              <thead className="thead-sm">
+                <tr className="bg-light/25 text-2xs uppercase">
+                  <th>Contractor</th>
+                  <th>Type</th>
+                  <th className="text-end">Amount</th>
+                  <th>Billable</th>
+                  <th>Source</th>
+                  <th>Notes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {adjustments.length ? (
+                  adjustments.map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.person}</td>
+                      <td>
+                        <span className={`badge ${a.type === 'incentive' ? 'badge-soft-success' : 'badge-soft-danger'}`}>{a.type}</span>
+                      </td>
+                      <td className="text-end whitespace-nowrap">{a.type === 'deduction' ? '−' : '+'}{money(a.value)}</td>
+                      <td>{a.is_billable ? 'Yes' : 'No'}</td>
+                      <td className="text-default-400">{a.source_type === 'manual' ? 'Manual' : a.source_type.replaceAll('_', ' ')}</td>
+                      <td className="text-default-400">{a.notes}</td>
+                      <td className="text-end">
+                        {can.adjust && a.source_type === 'manual' && (
+                          <button className="text-danger" title="Remove"
+                            onClick={() => router.delete(`/admin/adjustments/${a.id}`, { preserveScroll: true })}>×</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan={7} className="text-default-400 py-4 text-center">No adjustments for this week.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {modal && <AddEntryModal workOrderId={modal.workOrderId} date={modal.date} onClose={() => setModal(null)} />}
+      {adjustModal && period && (
+        <AddAdjustmentModal periodId={period.id} rows={rows} onClose={() => setAdjustModal(false)} />
+      )}
     </>
   )
 }
@@ -198,6 +264,83 @@ const AddEntryModal = ({ workOrderId, date, onClose }: { workOrderId: number; da
                 <option value="work">Work</option>
                 <option value="training">Training</option>
               </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const AddAdjustmentModal = ({ periodId, rows, onClose }: { periodId: number; rows: Row[]; onClose: () => void }) => {
+  const { data, setData, processing, errors } = useForm<{
+    work_order_id: number | string; amount: string; type: string; is_billable: boolean; notes: string
+  }>({
+    work_order_id: rows[0]?.work_order_id ?? '',
+    amount: '',
+    type: 'deduction',
+    is_billable: false,
+    notes: '',
+  })
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    const row = rows.find((r) => r.work_order_id === Number(data.work_order_id))
+    router.post(
+      `/admin/payroll-periods/${periodId}/adjustments`,
+      {
+        person_id: row?.person_id,
+        work_order_id: data.work_order_id,
+        amount: data.amount,
+        type: data.type,
+        is_billable: data.type === 'incentive' ? data.is_billable : false,
+        notes: data.notes,
+      },
+      { preserveScroll: true, onSuccess: onClose },
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header p-5"><h4 className="card-title">Add Adjustment</h4></div>
+        <div className="card-body p-5">
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="form-label">Contractor</label>
+              <select className="form-select" value={data.work_order_id} onChange={(e) => setData('work_order_id', e.target.value)} required>
+                {rows.map((r) => (
+                  <option key={r.work_order_id} value={r.work_order_id}>{r.contractor} — {r.position}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="form-label">Type</label>
+                <select className="form-select" value={data.type} onChange={(e) => setData('type', e.target.value)}>
+                  <option value="deduction">Deduction</option>
+                  <option value="incentive">Incentive</option>
+                </select>
+              </div>
+              <div>
+                <label className="form-label">Amount ($)</label>
+                <input type="number" step="0.01" min="0.01" className="form-input" value={data.amount} onChange={(e) => setData('amount', e.target.value)} required />
+                {errors.amount && <p className="text-danger mt-1 text-sm">{errors.amount}</p>}
+              </div>
+            </div>
+            {data.type === 'incentive' && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="form-checkbox" checked={data.is_billable} onChange={(e) => setData('is_billable', e.target.checked)} />
+                Billable (adds to the property invoice)
+              </label>
+            )}
+            <div>
+              <label className="form-label">Notes</label>
+              <input type="text" className="form-input" value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>

@@ -1,14 +1,22 @@
 <?php
 
+use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\ContractController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EquipmentAssignmentController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
 use App\Http\Controllers\PropertyPositionRateController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\TimeEntryController;
 use App\Http\Controllers\TimesheetController;
+use App\Http\Controllers\WorkflowTaskController;
 use App\Http\Controllers\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin/dashboard');
 
-Route::inertia('/dashboard', 'admin/dashboard/index')->name('backoffice.dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('backoffice.dashboard');
 
 // Property Bible (Phase 02)
 Route::resource('properties', PropertyController::class);
@@ -50,6 +58,10 @@ Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->
 Route::post('work-orders/{work_order}/time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
 Route::delete('time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
 
+// Payroll adjustments — manual incentives/deductions (Phase 04)
+Route::post('payroll-periods/{period}/adjustments', [AdjustmentController::class, 'store'])->name('adjustments.store');
+Route::delete('adjustments/{adjustment}', [AdjustmentController::class, 'destroy'])->name('adjustments.destroy');
+
 // Timesheets — recruiter submits for PM approval (Phase 03)
 Route::post('timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
 
@@ -58,6 +70,30 @@ Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.inde
 Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
 Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
 Route::post('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+
+// Inventory (Phase 04, ADR-0012)
+Route::get('inventory', [InventoryController::class, 'index'])->middleware('can:inventory.items.view')->name('inventory.index');
+Route::post('inventory/items', [InventoryController::class, 'store'])->middleware('can:inventory.items.create')->name('inventory.items.store');
+Route::post('inventory/variants/{variant}/receive', [StockController::class, 'receive'])->middleware('can:inventory.stock.receive_direct')->name('inventory.stock.receive');
+Route::post('inventory/variants/{variant}/manual-out', [StockController::class, 'manualOut'])->middleware('can:inventory.stock.manual_out')->name('inventory.stock.manual-out');
+Route::post('inventory/variants/{variant}/return', [StockController::class, 'returnStock'])->middleware('can:inventory.stock.return_to_stock')->name('inventory.stock.return');
+Route::get('inventory/purchase-orders', [PurchaseOrderController::class, 'index'])->middleware('can:inventory.purchase_orders.view')->name('inventory.purchase-orders.index');
+Route::post('inventory/purchase-orders', [PurchaseOrderController::class, 'store'])->middleware('can:inventory.purchase_orders.create')->name('inventory.purchase-orders.store');
+Route::post('inventory/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->middleware('can:inventory.purchase_orders.receive')->name('inventory.purchase-orders.receive');
+Route::get('inventory/equipment', [EquipmentAssignmentController::class, 'index'])->middleware('can:inventory.equipment.view_assignments')->name('inventory.equipment.index');
+Route::post('inventory/equipment/{assignment}/return', [EquipmentAssignmentController::class, 'return'])->middleware('can:inventory.equipment.return')->name('inventory.equipment.return');
+
+// Supply requests (Phase 04, ADR-0012/0014)
+Route::get('requests', [SupplyRequestController::class, 'index'])->middleware('can:workflows.supply_request.initiate')->name('requests.index');
+Route::post('requests', [SupplyRequestController::class, 'store'])->middleware('can:workflows.supply_request.initiate')->name('requests.store');
+Route::post('requests/{supplyRequest}/approve', [SupplyRequestController::class, 'approve'])->name('requests.approve');
+Route::post('requests/{supplyRequest}/deny', [SupplyRequestController::class, 'deny'])->name('requests.deny');
+Route::post('requests/{supplyRequest}/fulfill', [SupplyRequestController::class, 'fulfill'])->name('requests.fulfill');
+
+// My Tasks — shared workflow task inbox (Phase 04, ADR-0026)
+Route::get('tasks', [WorkflowTaskController::class, 'index'])->name('tasks.index');
+Route::post('workflow-steps/{step}/complete', [WorkflowTaskController::class, 'complete'])->name('workflow-steps.complete');
+Route::post('workflow-steps/{step}/reject', [WorkflowTaskController::class, 'reject'])->name('workflow-steps.reject');
 
 // Settings
 Route::redirect('/settings', '/admin/settings/profile');

@@ -6,10 +6,15 @@ use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Billing\Policies\InvoicePolicy;
 use App\Domain\Billing\Policies\TimesheetPolicy;
+use App\Domain\Inventory\Definitions\SupplyRequestDefinition;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\ContractPolicy;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Domain\Workflows\Definitions\WorkflowRegistry;
+use App\Domain\Workflows\Enums\WorkflowType;
+use App\Domain\Workflows\Models\WorkflowStep;
+use App\Domain\Workflows\Policies\WorkflowPolicy;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Policies\WorkOrderPolicy;
 use Carbon\CarbonImmutable;
@@ -36,6 +41,10 @@ class AppServiceProvider extends ServiceProvider
         Factory::guessFactoryNamesUsing(
             fn (string $modelName): string => 'Database\\Factories\\'.class_basename($modelName).'Factory'
         );
+
+        // The workflow definition registry is a singleton so registrations made
+        // in boot() (see registerWorkflows) persist for the request (ADR-0026).
+        $this->app->singleton(WorkflowRegistry::class);
     }
 
     /**
@@ -52,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(WorkOrder::class, WorkOrderPolicy::class);
         Gate::policy(Timesheet::class, TimesheetPolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(WorkflowStep::class, WorkflowPolicy::class);
+
+        $this->registerWorkflows();
 
         // Audit logins (Phase 01 acceptance + ADR-0010 audit trail).
         Event::listen(Login::class, function (Login $event): void {
@@ -64,6 +76,20 @@ class AppServiceProvider extends ServiceProvider
                 ->event('login')
                 ->log('Logged in');
         });
+    }
+
+    /**
+     * Map each WorkflowType to its concrete definition (ADR-0026). Definitions
+     * live in their owning context; wiring them here keeps the Workflows context
+     * free of dependencies on the others.
+     */
+    protected function registerWorkflows(): void
+    {
+        // Each WorkflowType is mapped to its concrete definition here as its phase
+        // lands (ADR-0026). The people/WO workflows (termination, transfer, …)
+        // arrive in Phase 04b.
+        $registry = $this->app->make(WorkflowRegistry::class);
+        $registry->register(WorkflowType::SupplyRequest, SupplyRequestDefinition::class);
     }
 
     /**

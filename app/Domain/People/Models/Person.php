@@ -2,6 +2,9 @@
 
 namespace App\Domain\People\Models;
 
+use App\Domain\Adjustments\Models\TimeEntryAdjustment;
+use App\Domain\Inventory\Models\ContractorChargeSchedule;
+use App\Domain\Inventory\Models\ContractorChargeScheduleEntry;
 use App\Domain\People\Concerns\HasLegalHold;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\PropertyBible\Models\Property;
@@ -132,5 +135,34 @@ class Person extends Authenticatable
     public function workOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class);
+    }
+
+    /**
+     * Payroll adjustments (incentives/deductions) applied to this person.
+     *
+     * @return HasMany<TimeEntryAdjustment, $this>
+     */
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(TimeEntryAdjustment::class);
+    }
+
+    /**
+     * Contractor charge schedules (e.g. uniform deductions) for this person.
+     *
+     * @return HasMany<ContractorChargeSchedule, $this>
+     */
+    public function chargeSchedules(): HasMany
+    {
+        return $this->hasMany(ContractorChargeSchedule::class);
+    }
+
+    /** Total cents still scheduled (not yet applied) across active charge schedules. */
+    public function outstandingChargeBalance(): int
+    {
+        return (int) ContractorChargeScheduleEntry::query()
+            ->where('status', 'scheduled')
+            ->whereHas('schedule', fn ($q) => $q->where('person_id', $this->id)->where('status', 'active'))
+            ->sum('amount');
     }
 }

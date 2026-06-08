@@ -2,6 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Inventory\Actions\CreateItem;
+use App\Domain\Inventory\Actions\ReceiveStock;
+use App\Domain\Inventory\Models\Category;
+use App\Domain\Inventory\Models\Item;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
@@ -120,6 +124,46 @@ class SampleDataSeeder extends Seeder
                     'end_time' => '18:00',
                     'entry_type' => 'work',
                 ], $recruiter);
+            }
+        }
+
+        $this->seedInventory($recruiter);
+    }
+
+    /** A uniform (with size variants) and an equipment item, both stocked. */
+    private function seedInventory(Person $actor): void
+    {
+        $createItem = app(CreateItem::class);
+        $receive = app(ReceiveStock::class);
+
+        $uniforms = Category::query()->where('slug', 'uniforms')->first();
+        if ($uniforms !== null && ! Item::query()->where('name', 'Housekeeping Polo')->exists()) {
+            $polo = $createItem->handle([
+                'name' => 'Housekeeping Polo',
+                'category_id' => $uniforms->id,
+                'description' => 'Branded polo shirt',
+                'has_variants' => true,
+                'variants' => [
+                    ['size' => 'S', 'color' => 'Navy', 'reorder_threshold' => 5],
+                    ['size' => 'M', 'color' => 'Navy', 'reorder_threshold' => 5],
+                    ['size' => 'L', 'color' => 'Navy', 'reorder_threshold' => 5],
+                ],
+            ], $actor);
+            foreach ($polo->variants as $variant) {
+                $receive->handle($variant, 20, 'Initial stock', $actor);
+            }
+        }
+
+        $equipment = Category::query()->where('slug', 'equipment')->first();
+        if ($equipment !== null && ! Item::query()->where('name', 'Backpack Vacuum')->exists()) {
+            $vacuum = $createItem->handle([
+                'name' => 'Backpack Vacuum',
+                'category_id' => $equipment->id,
+                'description' => 'Commercial backpack vacuum',
+                'reorder_threshold' => 2,
+            ], $actor);
+            foreach ($vacuum->variants as $variant) {
+                $receive->handle($variant, 6, 'Initial stock', $actor);
             }
         }
     }

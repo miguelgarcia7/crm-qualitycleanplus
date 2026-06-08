@@ -51,7 +51,7 @@ The live timesheet grid broadcasts over **Laravel Reverb**, and summary recomput
 ```bash
 php artisan reverb:start    # websocket server (live grid updates)
 php artisan queue:work      # notifications, broadcasts
-php artisan schedule:work   # payroll-period creation, contract-expiration alerts
+php artisan schedule:work   # payroll periods, contract-expiration alerts, contractor-charge application
 ```
 
 The app works without these — the grid still loads/refreshes on navigation, and

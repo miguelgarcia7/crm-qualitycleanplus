@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             DepartmentSeeder::class,
             PositionSeeder::class,
+            InventorySeeder::class,
         ]);
 
         // A super admin who can log in to either domain (Phase 01 acceptance).

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Time\Models;
 
+use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
@@ -77,5 +78,13 @@ class PayrollPeriod extends Model
     public function timesheet(): HasOne
     {
         return $this->hasOne(Timesheet::class);
+    }
+
+    /**
+     * @return HasMany<TimeEntryAdjustment, $this>
+     */
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(TimeEntryAdjustment::class);
     }
 }

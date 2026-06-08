@@ -17,7 +17,7 @@ Estimates are calendar-week ranges assuming one engineer working steadily. Adjus
 | 01 | Foundation: schema, identity, domain routing | 2-3 weeks | ✅ Done (see `phase-01-foundation.md`) |
 | 02 | Property Bible | 3-4 weeks | ✅ Done (see `phase-02-property-bible.md`) |
 | 03 | Work orders + time tracking + invoicing | 4-5 weeks | ✅ Done — core pipeline (see `phase-03-work-orders-time-invoicing.md`); 03b deferrals noted |
-| 04 | Workflow engine + first workflows (incl. unified supply_request) | 3-4 weeks | Next |
+| 04 | Workflow engine + first workflows (incl. unified supply_request) | 3-4 weeks | ✅ Done — 04a slice (engine + inventory + supply request + charge chain; see `phase-04-workflow-inventory.md`); 04b deferrals (termination, transfer, temp, pay-increase, more-staff, change-info) noted |
 | 05 | Import flow | 1-2 weeks | Not started |
 | 06 | Dashboards | 2-3 weeks | Not started |
 | 07 | Field check-in flows (recruiter + contractor QR) | 2-3 weeks | Not started |

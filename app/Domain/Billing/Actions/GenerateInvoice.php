@@ -2,6 +2,7 @@
 
 namespace App\Domain\Billing\Actions;
 
+use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
@@ -85,12 +86,19 @@ class GenerateInvoice
                 $trn += $summary->training_minutes;
             }
 
-            $subtotal = $workSubtotal; // + adjustment_total (Phase 03b)
+            // Billable adjustments (always incentives — deductions are never
+            // billable) add to the invoice; deductions are payroll-only (ADR-0014).
+            $adjustmentTotal = (int) TimeEntryAdjustment::query()
+                ->where('payroll_period_id', $period->id)
+                ->where('is_billable', true)
+                ->sum('value');
+
+            $subtotal = $workSubtotal + $adjustmentTotal;
             $tax = (int) round($subtotal * (float) $property->tax_rate);
 
             $invoice->update([
                 'work_subtotal' => $workSubtotal,
-                'adjustment_total' => 0,
+                'adjustment_total' => $adjustmentTotal,
                 'subtotal' => $subtotal,
                 'tax_amount' => $tax,
                 'total' => $subtotal + $tax,

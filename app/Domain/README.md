@@ -25,9 +25,12 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `WorkOrders` | Work orders (contractor↔property↔position + rates); authoritative rate source for time entries |
 | `Time` | Payroll periods, time entries, time summaries, `RecomputeTimeSummary` bucketing, `TimeEntrySaved` broadcast |
 | `Billing` | Timesheets (approval state machine), invoices + items, `GenerateInvoice` / `SendInvoice` |
+| `Workflows` | Generic workflow engine (ADR-0026): `Workflow`/`WorkflowStep`, code-defined `WorkflowDefinition`s + registry, engine Actions, shared My Tasks surface |
+| `Inventory` | Unified inventory (ADR-0012): categories/items/variants, stock movements, purchase orders, equipment assignments, supply requests, contractor charge schedules |
+| `Adjustments` | Payroll incentives/deductions (`adjustment_items`, `time_entry_adjustments`); billable incentives flow to invoices, deductions are payroll-only |
 | `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model) |
 
-Added as their phases land: `Workflows`, `Inventory`, `Reporting`, …
+Added as their phases land: `Reporting`, …
 
 ## Wiring notes
 
