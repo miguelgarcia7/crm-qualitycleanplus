@@ -19,11 +19,13 @@ type Property = {
   closing_day: number | null
   tax_rate: string | null
   status: string
+  time_source: string
 }
 
 type Props = {
   property: Property | null
   statuses: { value: string; label: string }[]
+  timeSources: { value: string; label: string }[]
 }
 
 const TIMEZONES = [
@@ -44,7 +46,7 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
   </div>
 )
 
-const Page = ({ property, statuses }: Props) => {
+const Page = ({ property, statuses, timeSources }: Props) => {
   const editing = property !== null
 
   const { data, setData, post, patch, processing, errors } = useForm({
@@ -63,6 +65,7 @@ const Page = ({ property, statuses }: Props) => {
     closing_day: property?.closing_day ?? '',
     tax_rate: property?.tax_rate ?? '0',
     status: property?.status ?? 'active',
+    time_source: property?.time_source ?? 'clock_in',
   })
 
   const submit = (e: FormEvent) => {
@@ -144,6 +147,16 @@ const Page = ({ property, statuses }: Props) => {
               </Field>
               <Field label="Tax Rate (e.g. 0.0875)" error={errors.tax_rate}>
                 <input className="form-input" value={data.tax_rate} onChange={(e) => setData('tax_rate', e.target.value)} />
+              </Field>
+              <Field label="Time Source" error={errors.time_source}>
+                <select className="form-select" value={data.time_source} onChange={(e) => setData('time_source', e.target.value)}>
+                  {timeSources.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-muted mt-1 text-xs">Import = no clock-in; hours arrive via the weekly Excel import.</p>
               </Field>
             </div>
 

@@ -9,6 +9,7 @@ use App\Domain\PropertyBible\Concerns\LogsPropertyActivity;
 use App\Domain\PropertyBible\Enums\ContractType;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
+use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Department;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
@@ -61,6 +62,7 @@ class PropertyController extends Controller
         return Inertia::render('admin/properties/form', [
             'property' => null,
             'statuses' => $this->statusOptions(),
+            'timeSources' => $this->timeSourceOptions(),
         ]);
     }
 
@@ -156,6 +158,7 @@ class PropertyController extends Controller
         return Inertia::render('admin/properties/form', [
             'property' => $this->propertyPayload($property),
             'statuses' => $this->statusOptions(),
+            'timeSources' => $this->timeSourceOptions(),
         ]);
     }
 
@@ -198,6 +201,7 @@ class PropertyController extends Controller
             'closing_day' => $property->closing_day,
             'tax_rate' => $property->tax_rate,
             'status' => $property->status->value,
+            'time_source' => $property->time_source->value,
         ];
     }
 
@@ -229,6 +233,16 @@ class PropertyController extends Controller
     {
         return collect(PropertyStatus::cases())
             ->map(fn (PropertyStatus $s): array => ['value' => $s->value, 'label' => $s->label()])
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, string>>
+     */
+    private function timeSourceOptions(): array
+    {
+        return collect(PropertyTimeSource::cases())
+            ->map(fn (PropertyTimeSource $s): array => ['value' => $s->value, 'label' => $s->label()])
             ->all();
     }
 }

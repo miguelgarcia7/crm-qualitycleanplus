@@ -18,7 +18,7 @@ Estimates are calendar-week ranges assuming one engineer working steadily. Adjus
 | 02 | Property Bible | 3-4 weeks | ✅ Done (see `phase-02-property-bible.md`) |
 | 03 | Work orders + time tracking + invoicing | 4-5 weeks | ✅ Done — core pipeline (see `phase-03-work-orders-time-invoicing.md`); 03b deferrals noted |
 | 04 | Workflow engine + first workflows (incl. unified supply_request) | 3-4 weeks | ✅ Done — 04a (engine + inventory + supply request); 04b-i (transfer + temp + pay-increase) `phase-04b-wo-lifecycle-workflows.md`; 04b-ii (termination) `phase-04b-ii-termination.md`; 04b-iii (more-staff + change-personal-info) `phase-04b-iii-requests.md`. PTO deferred to Phase 08 |
-| 05 | Import flow | 1-2 weeks | Not started |
+| 05 | Import flow | 1-2 weeks | ✅ Done (see `phase-05-import.md`) |
 | 06 | Dashboards | 2-3 weeks | Not started |
 | 07 | Field check-in flows (recruiter + contractor QR) | 2-3 weeks | Not started |
 | 08 | KB + Applicants + Job postings + PTO | 3-4 weeks | Not started |

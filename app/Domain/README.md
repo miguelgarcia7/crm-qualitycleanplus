@@ -28,6 +28,7 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `Workflows` | Generic workflow engine (ADR-0026): `Workflow`/`WorkflowStep`, code-defined `WorkflowDefinition`s + registry, engine Actions, shared My Tasks surface |
 | `Inventory` | Unified inventory (ADR-0012): categories/items/variants, stock movements, purchase orders, equipment assignments, supply requests, contractor charge schedules |
 | `Adjustments` | Payroll incentives/deductions (`adjustment_items`, `time_entry_adjustments`); billable incentives flow to invoices, deductions are payroll-only |
+| `Imports` | Excel hour import for import-only properties (Phase 05): `ImportBatch`/`ImportBatchRow`, `HourImportParser`, `CreateImportBatch`/`CommitImport`/`RollbackImport`; produces imported time entries → auto-approved timesheet → frozen invoice |
 | `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model) |
 
 Added as their phases land: `Reporting`, …

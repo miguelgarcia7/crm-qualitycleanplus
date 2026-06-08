@@ -5,6 +5,7 @@ use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentAssignmentController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MoreStaffController;
@@ -88,6 +89,16 @@ Route::get('info-changes', [ChangePersonalInfoController::class, 'index'])->name
 Route::post('info-changes', [ChangePersonalInfoController::class, 'store'])->name('backoffice.info-changes.store');
 Route::post('info-changes/{workflow}/approve', [ChangePersonalInfoController::class, 'approve'])->name('backoffice.info-changes.approve');
 Route::post('info-changes/{workflow}/decline', [ChangePersonalInfoController::class, 'decline'])->name('backoffice.info-changes.decline');
+
+// Hour imports — Excel import wizard for import-only properties (Phase 05)
+Route::get('imports', [ImportController::class, 'index'])->middleware('can:imports.upload')->name('backoffice.imports.index');
+Route::get('imports/create', [ImportController::class, 'create'])->middleware('can:imports.upload')->name('backoffice.imports.create');
+Route::post('imports', [ImportController::class, 'store'])->middleware('can:imports.upload')->name('backoffice.imports.store');
+Route::get('imports/{importBatch}', [ImportController::class, 'show'])->name('backoffice.imports.show');
+Route::post('imports/{importBatch}/resolve', [ImportController::class, 'resolve'])->name('backoffice.imports.resolve');
+Route::post('imports/{importBatch}/adjustments', [ImportController::class, 'adjustments'])->name('backoffice.imports.adjustments');
+Route::post('imports/{importBatch}/commit', [ImportController::class, 'commit'])->middleware('can:imports.commit')->name('backoffice.imports.commit');
+Route::post('imports/{importBatch}/rollback', [ImportController::class, 'rollback'])->middleware('can:imports.rollback')->name('backoffice.imports.rollback');
 
 // Time tracking — live weekly grid + manual entries (Phase 03)
 Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');

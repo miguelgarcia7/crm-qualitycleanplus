@@ -154,6 +154,16 @@ class Person extends Authenticatable
     }
 
     /**
+     * Hotel-specific identifiers used to match this contractor on hour imports.
+     *
+     * @return HasMany<PersonExternalId, $this>
+     */
+    public function externalIds(): HasMany
+    {
+        return $this->hasMany(PersonExternalId::class);
+    }
+
+    /**
      * Payroll adjustments (incentives/deductions) applied to this person.
      *
      * @return HasMany<TimeEntryAdjustment, $this>

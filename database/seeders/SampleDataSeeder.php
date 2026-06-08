@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Domain\Adjustments\Actions\CreateManualAdjustment;
+use App\Domain\Imports\Actions\CommitImport;
+use App\Domain\Imports\Actions\CreateImportBatch;
 use App\Domain\Inventory\Actions\CreateItem;
 use App\Domain\Inventory\Actions\ReceiveStock;
 use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
@@ -12,11 +14,14 @@ use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
+use App\Domain\People\Models\PersonExternalId;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
+use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
+use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Workflows\Actions\CompleteStep;
 use App\Domain\Workflows\Actions\StartWorkflow;
@@ -31,6 +36,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Local/dev demo data: one property with Bible rates, a recruiter assigned to it,
@@ -189,6 +196,65 @@ class SampleDataSeeder extends Seeder
             'reason' => 'New cell number.',
             'requested_by' => $contractors[1]->id,
         ]);
+
+        // An import-only property with one committed weekly hour import (Phase 05).
+        $this->seedImport($recruiter, $positions->first());
+    }
+
+    /**
+     * An import-only hotel with a committed Excel hour import: a contractor on an
+     * active WO whose weekly total is imported, producing an approved timesheet and
+     * frozen invoice — so the Imports list + a real import-sourced invoice show up.
+     */
+    private function seedImport(Person $actor, Position $position): void
+    {
+        $property = Property::create([
+            'name' => 'Imported Inn (Mesa)',
+            'pm_name' => 'Mona Manager',
+            'city' => 'Mesa',
+            'state' => 'AZ',
+            'timezone' => 'America/Phoenix',
+            'tax_rate' => 0.0875,
+            'status' => PropertyStatus::Active,
+            'time_source' => PropertyTimeSource::Import,
+        ]);
+        $property->assignments()->create(['person_id' => $actor->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+        $property->positionRates()->create([
+            'position_id' => $position->id, 'effective_date' => now()->subMonths(2)->toDateString(),
+            'pay_rate' => 2000, 'bill_rate' => 3200, 'ot_pay_rate' => 3000, 'ot_bill_rate' => 4800,
+            'is_active' => true, 'created_by' => $actor->id,
+        ]);
+
+        $weekStart = Carbon::now($property->timezone)->startOfWeek(Carbon::MONDAY)->subWeeks(2);
+        $period = PayrollPeriod::create([
+            'property_id' => $property->id,
+            'week_start' => $weekStart->toDateString(),
+            'week_end' => $weekStart->copy()->addDays(6)->toDateString(),
+            'status' => PayrollPeriodStatus::Open,
+        ]);
+
+        $contractor = Person::factory()->create(['name' => 'Iris Imported', 'status' => PersonStatus::ContractorActive]);
+        $contractor->syncRoles('contractor');
+        PersonExternalId::create(['person_id' => $contractor->id, 'property_id' => $property->id, 'external_id' => '5001']);
+        WorkOrder::create([
+            'person_id' => $contractor->id, 'property_id' => $property->id, 'position_id' => $position->id,
+            'pay_rate' => 2000, 'bill_rate' => 3200, 'ot_pay_rate' => 3000, 'ot_bill_rate' => 4800,
+            'start_date' => $weekStart->toDateString(), 'status' => WorkOrderStatus::Active,
+            'source' => WorkOrderSource::Imported, 'created_by' => $actor->id,
+        ]);
+
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->getActiveSheet()->fromArray([
+            ['Name', 'EmployeeID', 'TotalHours', 'PayRate', 'BillRate', 'StartDate', 'EndDate', 'Position'],
+            ['Iris Imported', '5001', 38, 20, 32, $weekStart->toDateString(), $weekStart->copy()->addDays(6)->toDateString(), $position->name],
+        ], null, 'A1');
+        $path = tempnam(sys_get_temp_dir(), 'seedimp').'.xlsx';
+        (new Xlsx($spreadsheet))->save($path);
+
+        $batch = app(CreateImportBatch::class)->handle($property, $period, $path, $actor);
+        app(CommitImport::class)->handle($batch->fresh(), $actor);
+
+        @unlink($path);
     }
 
     /** A uniform (with size variants) and an equipment item, both stocked. */

@@ -3,6 +3,7 @@
 namespace App\Concerns;
 
 use App\Domain\PropertyBible\Enums\PropertyStatus;
+use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use Illuminate\Validation\Rule;
 
 /**
@@ -32,6 +33,7 @@ trait PropertyValidationRules
             'closing_day' => ['nullable', 'integer', 'min:1', 'max:31'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:1'],
             'status' => ['required', Rule::enum(PropertyStatus::class)],
+            'time_source' => ['sometimes', Rule::enum(PropertyTimeSource::class)],
         ];
     }
 }

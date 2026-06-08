@@ -14,10 +14,10 @@ class CreateWorkOrder
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, ?Person $creator): WorkOrder
+    public function handle(array $data, ?Person $creator, WorkOrderSource $source = WorkOrderSource::RecruiterCreated): WorkOrder
     {
         $workOrder = new WorkOrder($data);
-        $workOrder->source = WorkOrderSource::RecruiterCreated;
+        $workOrder->source = $source;
         $workOrder->created_by = $creator?->id;
         $workOrder->save();
 

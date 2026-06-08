@@ -4,6 +4,7 @@ namespace App\Domain\PropertyBible\Models;
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
+use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Factories\PropertyFactory;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Positions & Rates, Contracts, History). See 20-domain/property-bible.md.
  *
  * @property PropertyStatus $status
+ * @property PropertyTimeSource $time_source
  */
 class Property extends Model
 {
@@ -44,6 +46,7 @@ class Property extends Model
         'closing_day',
         'tax_rate',
         'status',
+        'time_source',
         'created_by',
     ];
 
@@ -54,6 +57,7 @@ class Property extends Model
     {
         return [
             'status' => PropertyStatus::class,
+            'time_source' => PropertyTimeSource::class,
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'geofence_radius_meters' => 'integer',
