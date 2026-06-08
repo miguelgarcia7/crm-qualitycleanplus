@@ -69,6 +69,15 @@ orders, and a week of hours.
 | `super-admin@example.com` | `password` | Super admin — both domains |
 | `recruiter@example.com` | `password` | Recruiter (assigned to the sample property) — back office |
 | `pm@example.com` | `password` | Property manager — QC Minute timesheet approval |
+| `front-desk@example.com` | `password` | Front desk — fulfils supply requests (Phase 04 My Tasks) |
+
+The `SampleDataSeeder` also seeds **Phase 04 demo data**: a stocked uniform /
+equipment / office-supply item; five supply requests across states (fulfilled with
+an applied uniform charge → payroll deductions; fulfilled with an *outstanding*
+charge; a pending office-supply fulfillment in Front Desk's My Tasks; a pending
+new-item admin approval; a fulfilled equipment request → an equipment assignment);
+plus a manual incentive adjustment. So a fresh `migrate:fresh --seed` exercises the
+workflow inbox, inventory, charge schedules and adjustments end-to-end.
 
 Surfaces:
 - Back office → `https://qcpminute.test/admin`

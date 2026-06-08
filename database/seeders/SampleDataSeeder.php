@@ -2,10 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Adjustments\Actions\CreateManualAdjustment;
 use App\Domain\Inventory\Actions\CreateItem;
 use App\Domain\Inventory\Actions\ReceiveStock;
+use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\Inventory\Models\Category;
 use App\Domain\Inventory\Models\Item;
+use App\Domain\Inventory\Models\ItemVariant;
+use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
@@ -13,6 +17,10 @@ use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
+use App\Domain\Time\Models\PayrollPeriod;
+use App\Domain\Workflows\Actions\CompleteStep;
+use App\Domain\Workflows\Actions\StartWorkflow;
+use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
@@ -67,6 +75,13 @@ class SampleDataSeeder extends Seeder
             ['person_id' => $pm->id, 'role' => PropertyAssignmentRole::PropertyManager->value],
         );
 
+        // A front-desk user who fulfills supply requests (Phase 04 My Tasks queue).
+        $frontDesk = Person::firstOrCreate(
+            ['email' => 'front-desk@example.com'],
+            ['name' => 'Fred Front Desk', 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now()],
+        );
+        $frontDesk->syncRoles('front_desk');
+
         // Two positions with Bible rates (cents).
         $positions = Position::query()->whereIn('slug', ['housekeeper', 'banquet-server'])->get();
         foreach ($positions as $i => $position) {
@@ -84,6 +99,7 @@ class SampleDataSeeder extends Seeder
 
         // Three contractors, each on an active work order at the property.
         $workOrders = [];
+        $contractors = [];
         foreach (['Carlos Contractor', 'Dana Cleaner', 'Sam Server'] as $i => $name) {
             $position = $positions[$i % $positions->count()];
             $rate = $property->currentRateFor($position->id);
@@ -94,6 +110,7 @@ class SampleDataSeeder extends Seeder
                 'primary_recruiter_id' => $recruiter->id,
             ]);
             $contractor->syncRoles('contractor');
+            $contractors[] = $contractor;
 
             $workOrders[] = WorkOrder::create([
                 'person_id' => $contractor->id,
@@ -128,6 +145,7 @@ class SampleDataSeeder extends Seeder
         }
 
         $this->seedInventory($recruiter);
+        $this->seedRequestsAndCharges($property, $recruiter, $frontDesk, $contractors, $workOrders);
     }
 
     /** A uniform (with size variants) and an equipment item, both stocked. */
@@ -165,6 +183,127 @@ class SampleDataSeeder extends Seeder
             foreach ($vacuum->variants as $variant) {
                 $receive->handle($variant, 6, 'Initial stock', $actor);
             }
+        }
+
+        $office = Category::query()->where('slug', 'office_supplies')->first();
+        if ($office !== null && ! Item::query()->where('name', 'Printer Paper')->exists()) {
+            $paper = $createItem->handle([
+                'name' => 'Printer Paper',
+                'category_id' => $office->id,
+                'description' => 'Case of 5,000 sheets',
+                'reorder_threshold' => 10,
+            ], $actor);
+            foreach ($paper->variants as $variant) {
+                $receive->handle($variant, 4, 'Initial stock', $actor); // low: 4 ≤ 10 threshold
+            }
+        }
+    }
+
+    /**
+     * Phase 04 demo data: supply requests in several states so the My Tasks
+     * inbox, request queues, charge schedules, payroll deductions and equipment
+     * assignments all have something to show.
+     *
+     * @param  array<int, Person>  $contractors
+     * @param  array<int, WorkOrder>  $workOrders
+     */
+    private function seedRequestsAndCharges(Property $property, Person $recruiter, Person $frontDesk, array $contractors, array $workOrders): void
+    {
+        if (SupplyRequest::query()->exists() || $contractors === []) {
+            return;
+        }
+
+        $start = app(StartWorkflow::class);
+        $complete = app(CompleteStep::class);
+
+        $uniforms = Category::query()->where('slug', 'uniforms')->firstOrFail();
+        $equipment = Category::query()->where('slug', 'equipment')->firstOrFail();
+        $office = Category::query()->where('slug', 'office_supplies')->firstOrFail();
+
+        $polo = ItemVariant::query()->whereHas('item', fn ($q) => $q->where('name', 'Housekeeping Polo'))->first();
+        $vacuum = ItemVariant::query()->whereHas('item', fn ($q) => $q->where('name', 'Backpack Vacuum'))->first();
+        $paper = ItemVariant::query()->whereHas('item', fn ($q) => $q->where('name', 'Printer Paper'))->first();
+
+        // A — uniform charge, fulfilled + applied → shows payroll deductions.
+        if ($polo !== null) {
+            $this->fulfilledRequest($start, $complete, $recruiter, $frontDesk, [
+                'category_id' => $uniforms->id, 'item_variant_id' => $polo->id,
+                'beneficiary_type' => 'contractor', 'beneficiary_person_id' => $contractors[0]->id,
+                'quantity' => 1, 'charge_amount' => 4500, 'split_payments' => 3,
+                'requested_by' => $recruiter->id, 'status' => 'pending',
+            ]);
+            (new ApplyScheduledContractorCharges)->handle();
+        }
+
+        // B — uniform charge, fulfilled but NOT applied → shows outstanding balance.
+        if ($polo !== null && isset($contractors[1])) {
+            $this->fulfilledRequest($start, $complete, $recruiter, $frontDesk, [
+                'category_id' => $uniforms->id, 'item_variant_id' => $polo->id,
+                'beneficiary_type' => 'contractor', 'beneficiary_person_id' => $contractors[1]->id,
+                'quantity' => 1, 'charge_amount' => 3000, 'split_payments' => 2,
+                'requested_by' => $recruiter->id, 'status' => 'pending',
+            ]);
+        }
+
+        // C — existing office supply, PENDING fulfillment → Front Desk My Tasks + queue.
+        if ($paper !== null) {
+            $this->startedRequest($start, [
+                'category_id' => $office->id, 'item_variant_id' => $paper->id,
+                'beneficiary_type' => 'general_office', 'quantity' => 2,
+                'purpose' => 'Front office printer', 'requested_by' => $recruiter->id, 'status' => 'pending',
+            ], $recruiter);
+        }
+
+        // D — new item, PENDING admin approval → Approvals queue.
+        $this->startedRequest($start, [
+            'category_id' => $equipment->id, 'item_variant_id' => null,
+            'beneficiary_type' => 'self', 'quantity' => 1,
+            'proposed_item_name' => 'Cordless Drill', 'proposed_description' => '18V drill for maintenance',
+            'estimated_cost' => 8900, 'requested_by' => $recruiter->id, 'status' => 'pending',
+        ], $recruiter);
+
+        // E — equipment, fulfilled → creates an equipment assignment.
+        if ($vacuum !== null) {
+            $this->fulfilledRequest($start, $complete, $recruiter, $frontDesk, [
+                'category_id' => $equipment->id, 'item_variant_id' => $vacuum->id,
+                'beneficiary_type' => 'contractor', 'beneficiary_person_id' => $contractors[0]->id,
+                'quantity' => 1, 'requested_by' => $recruiter->id, 'status' => 'pending',
+            ]);
+        }
+
+        // A manual incentive on the current open period → shows on the grid.
+        $openPeriod = PayrollPeriod::query()
+            ->where('property_id', $property->id)
+            ->where('status', 'open')
+            ->orderBy('week_start')
+            ->first();
+        if ($openPeriod !== null) {
+            app(CreateManualAdjustment::class)->handle($openPeriod, [
+                'person_id' => $contractors[0]->id,
+                'work_order_id' => $workOrders[0]->id,
+                'value' => 2500, 'type' => 'incentive', 'is_billable' => false,
+                'notes' => 'Perfect attendance bonus',
+            ], $recruiter);
+        }
+    }
+
+    /** Create a supply request and start its workflow (leaves it pending). */
+    private function startedRequest(StartWorkflow $start, array $attributes, Person $initiator): SupplyRequest
+    {
+        $request = SupplyRequest::create($attributes);
+        $workflow = $start->handle(WorkflowType::SupplyRequest, $request, $initiator);
+        $request->update(['workflow_id' => $workflow->id]);
+
+        return $request;
+    }
+
+    /** Create, start, and fulfill a supply request (front desk completes the step). */
+    private function fulfilledRequest(StartWorkflow $start, CompleteStep $complete, Person $initiator, Person $frontDesk, array $attributes): void
+    {
+        $request = $this->startedRequest($start, $attributes, $initiator);
+        $step = $request->workflow?->currentStep();
+        if ($step !== null) {
+            $complete->handle($step, $frontDesk);
         }
     }
 }
