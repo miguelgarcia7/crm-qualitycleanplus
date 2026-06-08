@@ -581,6 +581,9 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
             <Link href={`/admin/properties/${property.id}/grid`} className="btn bg-primary px-4 py-1.5 font-semibold text-white">
               Weekly Timesheet
             </Link>
+            <Link href={`/admin/properties/${property.id}/qr`} className="btn btn-light px-4 py-1.5 font-semibold">
+              Clock-In QR
+            </Link>
             <Link href="/admin/properties" className="text-default-500 text-sm hover:underline">
               ← All Properties
             </Link>

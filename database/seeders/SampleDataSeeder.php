@@ -56,6 +56,8 @@ class SampleDataSeeder extends Seeder
                 'city' => 'Phoenix',
                 'state' => 'AZ',
                 'timezone' => 'America/Phoenix',
+                'latitude' => 33.4484,   // enables the QR clock-in geofence (Phase 07a)
+                'longitude' => -112.0740,
                 'tax_rate' => 0.0875,
                 'status' => PropertyStatus::Active,
             ],
@@ -122,10 +124,13 @@ class SampleDataSeeder extends Seeder
             $position = $positions[$i % $positions->count()];
             $rate = $property->currentRateFor($position->id);
 
+            $phone = '(602) 555-020'.$i;
             $contractor = Person::factory()->create([
                 'name' => $name,
                 'status' => PersonStatus::ContractorActive,
                 'primary_recruiter_id' => $recruiter->id,
+                'phone' => $phone,                                  // QR clock-in lookup (Phase 07a)
+                'normalized_phone' => preg_replace('/\D/', '', $phone),
             ]);
             $contractor->syncRoles('contractor');
             $contractors[] = $contractor;

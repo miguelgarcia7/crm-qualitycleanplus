@@ -23,7 +23,7 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `People` | `Person` (the one identity spine for every human — applicant/contractor/staff), `PersonStatus`, legal-hold + lifecycle |
 | `PropertyBible` | Properties, departments, positions, per-property rates (effective-dated), contracts, property assignments |
 | `WorkOrders` | Work orders (contractor↔property↔position + rates); authoritative rate source for time entries |
-| `Time` | Payroll periods, time entries, time summaries, `RecomputeTimeSummary` bucketing, `TimeEntrySaved` broadcast |
+| `Time` | Payroll periods, time entries, time summaries, `RecomputeTimeSummary` bucketing, `TimeEntrySaved` broadcast; QR clock in/out (`ClockInContractor`/`ClockOutContractor`, GPS + selfie, Phase 07a) |
 | `Billing` | Timesheets (approval state machine), invoices + items, `GenerateInvoice` / `SendInvoice` |
 | `Workflows` | Generic workflow engine (ADR-0026): `Workflow`/`WorkflowStep`, code-defined `WorkflowDefinition`s + registry, engine Actions, shared My Tasks surface |
 | `Inventory` | Unified inventory (ADR-0012): categories/items/variants, stock movements, purchase orders, equipment assignments, supply requests, contractor charge schedules |

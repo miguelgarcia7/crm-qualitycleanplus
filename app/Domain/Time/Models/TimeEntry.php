@@ -4,6 +4,7 @@ namespace App\Domain\Time\Models;
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Shared\Models\File;
 use App\Domain\Time\Enums\TimeEntrySource;
 use App\Domain\Time\Enums\TimeEntryType;
 use App\Domain\WorkOrders\Models\WorkOrder;
@@ -46,6 +47,14 @@ class TimeEntry extends Model
         'bill_rate_snapshot',
         'ot_pay_rate_snapshot',
         'ot_bill_rate_snapshot',
+        'clock_in_gps_lat',
+        'clock_in_gps_lng',
+        'clock_in_gps_accuracy_meters',
+        'clock_in_selfie_file_id',
+        'clock_out_gps_lat',
+        'clock_out_gps_lng',
+        'clock_out_gps_accuracy_meters',
+        'clock_out_selfie_file_id',
         'source_metadata',
         'was_updated',
         'created_by',
@@ -66,6 +75,12 @@ class TimeEntry extends Model
             'bill_rate_snapshot' => 'integer',
             'ot_pay_rate_snapshot' => 'integer',
             'ot_bill_rate_snapshot' => 'integer',
+            'clock_in_gps_lat' => 'decimal:7',
+            'clock_in_gps_lng' => 'decimal:7',
+            'clock_in_gps_accuracy_meters' => 'integer',
+            'clock_out_gps_lat' => 'decimal:7',
+            'clock_out_gps_lng' => 'decimal:7',
+            'clock_out_gps_accuracy_meters' => 'integer',
             'source_metadata' => 'array',
             'was_updated' => 'boolean',
         ];
@@ -101,5 +116,21 @@ class TimeEntry extends Model
     public function payrollPeriod(): BelongsTo
     {
         return $this->belongsTo(PayrollPeriod::class);
+    }
+
+    /**
+     * @return BelongsTo<File, $this>
+     */
+    public function clockInSelfie(): BelongsTo
+    {
+        return $this->belongsTo(File::class, 'clock_in_selfie_file_id');
+    }
+
+    /**
+     * @return BelongsTo<File, $this>
+     */
+    public function clockOutSelfie(): BelongsTo
+    {
+        return $this->belongsTo(File::class, 'clock_out_selfie_file_id');
     }
 }

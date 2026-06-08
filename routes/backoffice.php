@@ -37,6 +37,7 @@ Route::redirect('/', '/admin/dashboard');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('backoffice.dashboard');
 
 // Property Bible (Phase 02)
+Route::get('properties/{property}/qr', [PropertyController::class, 'qr'])->name('properties.qr'); // clock-in QR (Phase 07a)
 Route::resource('properties', PropertyController::class);
 
 // Bible sub-sections (nested under a property)

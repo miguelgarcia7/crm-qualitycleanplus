@@ -151,6 +151,20 @@ class PropertyController extends Controller
         ]);
     }
 
+    public function qr(Property $property): Response
+    {
+        $this->authorize('view', $property);
+
+        return Inertia::render('admin/properties/qr', [
+            'property' => [
+                'id' => $property->id,
+                'name' => $property->name,
+                'has_location' => $property->latitude !== null && $property->longitude !== null,
+            ],
+            'url' => 'https://'.config('domains.qcminute').'/clock-in/'.$property->id,
+        ]);
+    }
+
     public function edit(Property $property): Response
     {
         $this->authorize('update', $property);
