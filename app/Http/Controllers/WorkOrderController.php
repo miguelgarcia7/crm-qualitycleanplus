@@ -9,7 +9,10 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\WorkOrders\Actions\CloseWorkOrder;
 use App\Domain\WorkOrders\Actions\CreateWorkOrder;
+use App\Domain\WorkOrders\Actions\RecordMoreStaffPlacement;
 use App\Domain\WorkOrders\Actions\UpdateWorkOrder;
+use App\Domain\WorkOrders\Enums\MoreStaffStatus;
+use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Http\Requests\WorkOrder\StoreWorkOrderRequest;
 use App\Http\Requests\WorkOrder\UpdateWorkOrderRequest;
@@ -72,9 +75,11 @@ class WorkOrderController extends Controller
         ]);
     }
 
-    public function store(StoreWorkOrderRequest $request, CreateWorkOrder $action): RedirectResponse
+    public function store(StoreWorkOrderRequest $request, CreateWorkOrder $action, RecordMoreStaffPlacement $placement): RedirectResponse
     {
-        $action->handle($this->toCentsData($request->validated()), $request->user());
+        $workOrder = $action->handle($this->toCentsData($request->validated()), $request->user());
+
+        $placement->handle($workOrder, $request->user());
 
         return to_route('work-orders.index')->with('success', 'Work order created.');
     }
@@ -145,6 +150,16 @@ class WorkOrderController extends Controller
                 ->orderBy('name')->get(['id', 'name']),
             'properties' => Property::query()->orderBy('name')->get(['id', 'name']),
             'positions' => Position::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'moreStaffRequests' => MoreStaffRequest::query()
+                ->whereIn('status', [MoreStaffStatus::Submitted, MoreStaffStatus::InProgress])
+                ->with('position:id,name')
+                ->orderBy('property_id')
+                ->get()
+                ->map(fn (MoreStaffRequest $r): array => [
+                    'id' => $r->id,
+                    'property_id' => $r->property_id,
+                    'label' => "#{$r->id} · {$r->position?->name} ({$r->quantity_fulfilled} of {$r->quantity_requested} placed)",
+                ])->all(),
         ];
     }
 

@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\AdjustmentController;
+use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentAssignmentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\MoreStaffController;
 use App\Http\Controllers\PayIncreaseController;
 use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
@@ -75,6 +77,17 @@ Route::post('terminations/{workflow}/recover-equipment', [TerminationController:
 Route::post('terminations/{workflow}/move-file', [TerminationController::class, 'moveFile'])->name('backoffice.terminations.move-file');
 Route::post('terminations/{workflow}/final-paycheck', [TerminationController::class, 'processFinalPaycheck'])->name('backoffice.terminations.final-paycheck');
 Route::post('terminations/{workflow}/cancel', [TerminationController::class, 'cancel'])->name('backoffice.terminations.cancel');
+
+// Staffing requests — recruiter queue (Phase 04b-iii, ADR-0021)
+Route::get('staffing-requests', [MoreStaffController::class, 'index'])->middleware('can:workflows.more_staff.fulfill')->name('backoffice.more-staff.index');
+Route::post('staffing-requests/{moreStaffRequest}/decline', [MoreStaffController::class, 'decline'])->name('backoffice.more-staff.decline');
+Route::post('staffing-requests/{moreStaffRequest}/cancel', [MoreStaffController::class, 'cancel'])->name('backoffice.more-staff.cancel');
+
+// Personal-info change requests — HR verify + on-behalf (Phase 04b-iii)
+Route::get('info-changes', [ChangePersonalInfoController::class, 'index'])->name('backoffice.info-changes.index');
+Route::post('info-changes', [ChangePersonalInfoController::class, 'store'])->name('backoffice.info-changes.store');
+Route::post('info-changes/{workflow}/approve', [ChangePersonalInfoController::class, 'approve'])->name('backoffice.info-changes.approve');
+Route::post('info-changes/{workflow}/decline', [ChangePersonalInfoController::class, 'decline'])->name('backoffice.info-changes.decline');
 
 // Time tracking — live weekly grid + manual entries (Phase 03)
 Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');

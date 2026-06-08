@@ -21,8 +21,11 @@ use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Workflows\Actions\CompleteStep;
 use App\Domain\Workflows\Actions\StartWorkflow;
 use App\Domain\Workflows\Enums\WorkflowType;
+use App\Domain\WorkOrders\Enums\MoreStaffStatus;
+use App\Domain\WorkOrders\Enums\MoreStaffUrgency;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
+use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -163,6 +166,28 @@ class SampleDataSeeder extends Seeder
             'reason_category' => 'resignation',
             'notes' => 'Relocating out of state.',
             'rehireable' => true,
+        ]);
+
+        // An open more-staff request from the PM awaiting recruiter fulfillment (Phase 04b-iii).
+        $moreStaff = MoreStaffRequest::create([
+            'property_id' => $property->id,
+            'position_id' => $positions->first()->id,
+            'quantity_requested' => 2,
+            'by_date' => now()->addWeeks(2)->toDateString(),
+            'urgency' => MoreStaffUrgency::High,
+            'reason' => 'Banquet season ramp-up — need extra coverage.',
+            'status' => MoreStaffStatus::Submitted,
+            'initiated_by' => $pm->id,
+            'assigned_recruiter_id' => $recruiter->id,
+        ]);
+        $moreStaffWorkflow = app(StartWorkflow::class)->handle(WorkflowType::MoreStaff, $moreStaff, $pm);
+        $moreStaff->update(['workflow_id' => $moreStaffWorkflow->id]);
+
+        // A pending personal-info change request awaiting HR verification (Phase 04b-iii).
+        app(StartWorkflow::class)->handle(WorkflowType::ChangePersonalInfo, $contractors[1], $contractors[1], [
+            'changes' => ['phone' => '(602) 555-0148'],
+            'reason' => 'New cell number.',
+            'requested_by' => $contractors[1]->id,
         ]);
     }
 

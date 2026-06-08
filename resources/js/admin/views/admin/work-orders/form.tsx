@@ -18,9 +18,10 @@ type WorkOrder = {
   notes: string | null
 }
 
+type MoreStaffOption = { id: number; property_id: number; label: string }
 type Props = {
   workOrder: WorkOrder | null
-  catalogs: { contractors: Option[]; properties: Option[]; positions: Option[] }
+  catalogs: { contractors: Option[]; properties: Option[]; positions: Option[]; moreStaffRequests?: MoreStaffOption[] }
 }
 
 const toDollars = (cents: number) => (cents / 100).toFixed(2)
@@ -48,7 +49,10 @@ const Page = ({ workOrder, catalogs }: Props) => {
     end_date: workOrder?.end_date ?? '',
     status: workOrder?.status ?? 'active',
     notes: workOrder?.notes ?? '',
+    more_staff_request_id: '',
   })
+
+  const linkableRequests = (catalogs.moreStaffRequests ?? []).filter((r) => String(r.property_id) === data.property_id)
 
   // Auto-fill rates from the Property Bible when property + position are chosen
   // (create only; don't clobber an existing WO's rates). Overridable.
@@ -141,6 +145,17 @@ const Page = ({ workOrder, catalogs }: Props) => {
                 </Field>
               )}
             </div>
+
+            {!editing && linkableRequests.length > 0 && (
+              <Field label="Link to staffing request (optional)" error={errors.more_staff_request_id}>
+                <select className="form-select" value={data.more_staff_request_id} onChange={(e) => setData('more_staff_request_id', e.target.value)}>
+                  <option value="">No — standalone work order</option>
+                  {linkableRequests.map((r) => (
+                    <option key={r.id} value={r.id}>{r.label}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
 
             <Field label="Notes" error={errors.notes}>
               <textarea className="form-input" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />

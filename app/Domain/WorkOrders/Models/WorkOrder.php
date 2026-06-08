@@ -48,6 +48,7 @@ class WorkOrder extends Model
         'source',
         'is_temporary_assignment',
         'parent_wo_id',
+        'more_staff_request_id',
         'notes',
         'created_by',
     ];
@@ -101,6 +102,14 @@ class WorkOrder extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(Person::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsTo<MoreStaffRequest, $this>
+     */
+    public function moreStaffRequest(): BelongsTo
+    {
+        return $this->belongsTo(MoreStaffRequest::class);
     }
 
     /**

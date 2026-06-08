@@ -14,6 +14,8 @@ enum WorkflowType: string
     case TemporaryAssignment = 'temporary_assignment';
     case PayIncrease = 'pay_increase';
     case Termination = 'termination';
+    case MoreStaff = 'more_staff';
+    case ChangePersonalInfo = 'change_personal_info';
 
     public function label(): string
     {
@@ -23,6 +25,8 @@ enum WorkflowType: string
             self::TemporaryAssignment => 'Temporary Assignment',
             self::PayIncrease => 'Pay Increase',
             self::Termination => 'Termination',
+            self::MoreStaff => 'More Staff Request',
+            self::ChangePersonalInfo => 'Change Personal Info',
         };
     }
 }

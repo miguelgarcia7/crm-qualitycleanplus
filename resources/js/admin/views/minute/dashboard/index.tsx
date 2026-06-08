@@ -31,6 +31,20 @@ const Page = () => {
             <p className="text-primary mt-2 text-sm">Open →</p>
           </div>
         </Link>
+        <Link href="/staffing-requests" className="card rounded-2xl transition hover:shadow-lg">
+          <div className="card-body p-6">
+            <h5 className="font-semibold">Staffing Requests</h5>
+            <p className="text-default-400 text-sm">Ask for more contractors at your property.</p>
+            <p className="text-primary mt-2 text-sm">Open →</p>
+          </div>
+        </Link>
+        <Link href="/my-info" className="card rounded-2xl transition hover:shadow-lg">
+          <div className="card-body p-6">
+            <h5 className="font-semibold">My Info</h5>
+            <p className="text-default-400 text-sm">Request a change to your name, email, or phone.</p>
+            <p className="text-primary mt-2 text-sm">Open →</p>
+          </div>
+        </Link>
       </div>
     </>
   )

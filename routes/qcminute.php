@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Minute\ChangePersonalInfoController;
+use App\Http\Controllers\Minute\MoreStaffController;
 use App\Http\Controllers\Minute\PayIncreaseController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
 use Illuminate\Support\Facades\Route;
@@ -22,3 +24,12 @@ Route::post('timesheets/{timesheet}/decline', [TimesheetApprovalController::clas
 // Property-manager pay increase requests (Phase 04b, ADR-0020)
 Route::get('pay-increases', [PayIncreaseController::class, 'index'])->name('qcminute.pay-increases.index');
 Route::post('pay-increases', [PayIncreaseController::class, 'store'])->name('qcminute.pay-increases.store');
+
+// Property-manager staffing requests (Phase 04b-iii, ADR-0021)
+Route::get('staffing-requests', [MoreStaffController::class, 'index'])->name('qcminute.more-staff.index');
+Route::post('staffing-requests', [MoreStaffController::class, 'store'])->name('qcminute.more-staff.store');
+Route::post('staffing-requests/{moreStaffRequest}/cancel', [MoreStaffController::class, 'cancel'])->name('qcminute.more-staff.cancel');
+
+// Self-service personal-info change requests (Phase 04b-iii)
+Route::get('my-info', [ChangePersonalInfoController::class, 'index'])->name('qcminute.info-changes.index');
+Route::post('my-info', [ChangePersonalInfoController::class, 'store'])->name('qcminute.info-changes.store');

@@ -7,6 +7,7 @@ use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Billing\Policies\InvoicePolicy;
 use App\Domain\Billing\Policies\TimesheetPolicy;
 use App\Domain\Inventory\Definitions\SupplyRequestDefinition;
+use App\Domain\People\Definitions\ChangePersonalInfoDefinition;
 use App\Domain\People\Definitions\TerminationDefinition;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
@@ -16,6 +17,7 @@ use App\Domain\Workflows\Definitions\WorkflowRegistry;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\Workflows\Policies\WorkflowPolicy;
+use App\Domain\WorkOrders\Definitions\MoreStaffDefinition;
 use App\Domain\WorkOrders\Definitions\PayIncreaseDefinition;
 use App\Domain\WorkOrders\Definitions\TemporaryAssignmentDefinition;
 use App\Domain\WorkOrders\Definitions\TransferDefinition;
@@ -98,6 +100,8 @@ class AppServiceProvider extends ServiceProvider
         $registry->register(WorkflowType::TemporaryAssignment, TemporaryAssignmentDefinition::class);
         $registry->register(WorkflowType::PayIncrease, PayIncreaseDefinition::class);
         $registry->register(WorkflowType::Termination, TerminationDefinition::class);
+        $registry->register(WorkflowType::MoreStaff, MoreStaffDefinition::class);
+        $registry->register(WorkflowType::ChangePersonalInfo, ChangePersonalInfoDefinition::class);
     }
 
     /**
