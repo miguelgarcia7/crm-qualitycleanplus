@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdjustmentController;
+use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
@@ -102,6 +103,12 @@ Route::post('pto/adjust', [PtoController::class, 'adjust'])->middleware('can:pto
 Route::post('pto/{ptoRequest}/approve', [PtoController::class, 'approve'])->name('backoffice.pto.approve');
 Route::post('pto/{ptoRequest}/reject', [PtoController::class, 'reject'])->name('backoffice.pto.reject');
 Route::post('pto/{ptoRequest}/cancel', [PtoController::class, 'cancel'])->name('backoffice.pto.cancel');
+
+// Applicants — review queue, onboarding checklist, promotion (Phase 08b-ii)
+Route::get('applicants', [ApplicantController::class, 'index'])->name('backoffice.applicants.index');
+Route::get('applicants/{application}', [ApplicantController::class, 'show'])->name('backoffice.applicants.show');
+Route::post('applicants/{application}/start-review', [ApplicantController::class, 'startReview'])->name('backoffice.applicants.start-review');
+Route::post('applicants/{application}/reject', [ApplicantController::class, 'reject'])->name('backoffice.applicants.reject');
 
 // Job postings — manage the public job board (Phase 08b-ii)
 Route::get('job-postings', [JobPostingController::class, 'index'])->name('backoffice.job-postings.index');

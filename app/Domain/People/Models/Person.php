@@ -32,6 +32,8 @@ use Spatie\Permission\Traits\HasRoles;
  * independent of status. See ADR-0004 and 20-domain/people-lifecycle.md.
  *
  * @property PersonStatus $status
+ * @property CarbonImmutable|null $application_date
+ * @property CarbonImmutable|null $dob
  * @property BackgroundCheckStatus|null $background_check_status
  * @property CarbonImmutable|null $background_check_completed_at
  * @property CarbonImmutable|null $i9_verified_at

@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property JobApplicationStatus $status
  * @property CarbonImmutable $submitted_at
+ * @property CarbonImmutable|null $desired_start_date
+ * @property CarbonImmutable|null $reviewed_at
+ * @property CarbonImmutable|null $promoted_at
  */
 class JobApplication extends Model
 {
