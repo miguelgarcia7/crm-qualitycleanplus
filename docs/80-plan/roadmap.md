@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Living document — updates as we build |
-| Last updated | 2026-05-21 |
+| Last updated | 2026-06-08 (through Phase 08a) |
 | Owner | Product + Engineering |
 
 The phase sequence for building the new unified system. Each phase is a coherent deliverable. Phases ship in order — later phases depend on earlier ones.
