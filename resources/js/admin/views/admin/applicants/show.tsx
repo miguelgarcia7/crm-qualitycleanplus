@@ -420,98 +420,100 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
               </p>
             </div>
           </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h4 className="card-title">Application Details</h4>
-            </div>
-            <div className="card-body">
-              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
-                <Field label="Posting">{app.posting ?? '— (open application)'}</Field>
-                <Field label="Desired position">{app.desired_position ?? '—'}</Field>
-                <Field label="Desired salary">{app.desired_salary ?? '—'}</Field>
-                <Field label="Can start">{app.desired_start_date ?? '—'}</Field>
-                <Field label="Submitted">{app.submitted_at}</Field>
-                <Field label="Reviewer">{app.reviewed_by ? `${app.reviewed_by}${app.reviewed_at ? ` (${app.reviewed_at})` : ''}` : '—'}</Field>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h4 className="card-title">Declarations</h4>
-            </div>
-            <div className="card-body">
-              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
-                <Field label="Reliable transportation">{yesNo(app.transportation)}</Field>
-                <Field label="Worked at QCP (last 6 months)">
-                  {yesNo(app.work_at_qcp)}
-                  {app.work_at_qcp_explain && <span className="text-default-400"> — {app.work_at_qcp_explain}</span>}
-                </Field>
-                <Field label="Another staffing agency">
-                  {yesNo(app.another_staff_agency)}
-                  {app.non_complete && <span className="text-default-400"> — non-compete: {app.non_complete}</span>}
-                </Field>
-                <Field label="Felony conviction">
-                  {yesNo(app.convicted_felon)}
-                  {app.felony_conviction && <span className="text-default-400"> — {app.felony_conviction}</span>}
-                </Field>
-                <Field label="Certified true & correct">{app.acknowledgement ? 'Yes' : 'No'}</Field>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h4 className="card-title">Basic Information</h4>
-            </div>
-            <div className="card-body">
-              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
-                <Field label="Phone">{person.phone ?? '—'}</Field>
-                <Field label="Email">{person.email ?? '—'}</Field>
-                <Field label="Birthday">{person.dob ?? '—'}</Field>
-                <Field label="Address">{person.address || '—'}</Field>
-                <Field label="US citizen">{yesNo(person.usa_citizen)}</Field>
-                <Field label="Eligible to work">{yesNo(person.eligible_to_work)}</Field>
-                <Field label="First applied">{person.application_date ?? '—'}</Field>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h4 className="card-title">Emergency Contact Details</h4>
-            </div>
-            <div className="card-body">
-              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
-                <Field label="Contact Name">{person.emergency_contact_name ?? '—'}</Field>
-                <Field label="Relationship">{person.emergency_contact_relationship ?? '—'}</Field>
-                <Field label="Phone">{person.emergency_contact_phone ?? '—'}</Field>
-                <Field label="Address">{person.emergency_contact_address ?? '—'}</Field>
-              </div>
-            </div>
-          </div>
-
-          {other_applications.length > 0 && (
-            <div className="card">
-              <div className="card-header">
-                <h4 className="card-title">Other Applications</h4>
-              </div>
-              <div className="card-body">
-                <ul className="space-y-1 text-sm">
-                  {other_applications.map((a) => (
-                    <li key={a.id}>
-                      <Link href={`/admin/applicants/${a.id}`} className="text-primary">
-                        {a.desired_position ?? 'Open application'}
-                      </Link>{' '}
-                      — {a.status_label} · {a.submitted_at}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
+      </div>
+
+      <div className="gap-base mt-6 grid grid-cols-1 md:grid-cols-2">
+        <div className="card">
+          <div className="card-header">
+            <h4 className="card-title">Application Details</h4>
+          </div>
+          <div className="card-body">
+            <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-2">
+              <Field label="Posting">{app.posting ?? '— (open application)'}</Field>
+              <Field label="Desired position">{app.desired_position ?? '—'}</Field>
+              <Field label="Desired salary">{app.desired_salary ?? '—'}</Field>
+              <Field label="Can start">{app.desired_start_date ?? '—'}</Field>
+              <Field label="Submitted">{app.submitted_at}</Field>
+              <Field label="Reviewer">{app.reviewed_by ? `${app.reviewed_by}${app.reviewed_at ? ` (${app.reviewed_at})` : ''}` : '—'}</Field>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h4 className="card-title">Declarations</h4>
+          </div>
+          <div className="card-body">
+            <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-2">
+              <Field label="Reliable transportation">{yesNo(app.transportation)}</Field>
+              <Field label="Worked at QCP (last 6 months)">
+                {yesNo(app.work_at_qcp)}
+                {app.work_at_qcp_explain && <span className="text-default-400"> — {app.work_at_qcp_explain}</span>}
+              </Field>
+              <Field label="Another staffing agency">
+                {yesNo(app.another_staff_agency)}
+                {app.non_complete && <span className="text-default-400"> — non-compete: {app.non_complete}</span>}
+              </Field>
+              <Field label="Felony conviction">
+                {yesNo(app.convicted_felon)}
+                {app.felony_conviction && <span className="text-default-400"> — {app.felony_conviction}</span>}
+              </Field>
+              <Field label="Certified true & correct">{app.acknowledgement ? 'Yes' : 'No'}</Field>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h4 className="card-title">Basic Information</h4>
+          </div>
+          <div className="card-body">
+            <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-2">
+              <Field label="Phone">{person.phone ?? '—'}</Field>
+              <Field label="Email">{person.email ?? '—'}</Field>
+              <Field label="Birthday">{person.dob ?? '—'}</Field>
+              <Field label="Address">{person.address || '—'}</Field>
+              <Field label="US citizen">{yesNo(person.usa_citizen)}</Field>
+              <Field label="Eligible to work">{yesNo(person.eligible_to_work)}</Field>
+              <Field label="First applied">{person.application_date ?? '—'}</Field>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h4 className="card-title">Emergency Contact Details</h4>
+          </div>
+          <div className="card-body">
+            <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-2">
+              <Field label="Contact Name">{person.emergency_contact_name ?? '—'}</Field>
+              <Field label="Relationship">{person.emergency_contact_relationship ?? '—'}</Field>
+              <Field label="Phone">{person.emergency_contact_phone ?? '—'}</Field>
+              <Field label="Address">{person.emergency_contact_address ?? '—'}</Field>
+            </div>
+          </div>
+        </div>
+
+        {other_applications.length > 0 && (
+          <div className="card md:col-span-2">
+            <div className="card-header">
+              <h4 className="card-title">Other Applications</h4>
+            </div>
+            <div className="card-body">
+              <ul className="space-y-1 text-sm">
+                {other_applications.map((a) => (
+                  <li key={a.id}>
+                    <Link href={`/admin/applicants/${a.id}`} className="text-primary">
+                      {a.desired_position ?? 'Open application'}
+                    </Link>{' '}
+                    — {a.status_label} · {a.submitted_at}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
