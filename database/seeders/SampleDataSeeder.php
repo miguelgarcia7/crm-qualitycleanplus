@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Domain\Adjustments\Actions\CreateManualAdjustment;
+use App\Domain\FieldVisits\Enums\FieldVisitStatus;
+use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\Imports\Actions\CommitImport;
 use App\Domain\Imports\Actions\CreateImportBatch;
 use App\Domain\Inventory\Actions\CreateItem;
@@ -212,6 +214,20 @@ class SampleDataSeeder extends Seeder
 
         // An import-only property with one committed weekly hour import (Phase 05).
         $this->seedImport($recruiter, $positions->first());
+
+        // Recruiter field visits — one closed, one open (Phase 07b).
+        FieldVisit::create([
+            'person_id' => $recruiter->id, 'property_id' => $property->id, 'status' => FieldVisitStatus::Closed,
+            'check_in_at' => now()->subDay()->setTime(9, 0), 'check_out_at' => now()->subDay()->setTime(10, 15),
+            'check_in_gps_lat' => 33.4484, 'check_in_gps_lng' => -112.0740, 'check_in_gps_status' => 'ok',
+            'was_inside_geofence' => true, 'check_out_gps_status' => 'ok',
+        ]);
+        FieldVisit::create([
+            'person_id' => $recruiter->id, 'property_id' => $property->id, 'status' => FieldVisitStatus::Open,
+            'check_in_at' => now()->subMinutes(20),
+            'check_in_gps_lat' => 33.4484, 'check_in_gps_lng' => -112.0740, 'check_in_gps_status' => 'ok',
+            'was_inside_geofence' => true,
+        ]);
     }
 
     /**

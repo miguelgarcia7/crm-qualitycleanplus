@@ -30,6 +30,7 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `Adjustments` | Payroll incentives/deductions (`adjustment_items`, `time_entry_adjustments`); billable incentives flow to invoices, deductions are payroll-only |
 | `Imports` | Excel hour import for import-only properties (Phase 05): `ImportBatch`/`ImportBatchRow`, `HourImportParser`, `CreateImportBatch`/`CommitImport`/`RollbackImport`; produces imported time entries → auto-approved timesheet → frozen invoice |
 | `Dashboards` | Role-aware dashboard read service (Phase 06): `DashboardMetrics` assembles property-scoped stat/list/chart widgets from across contexts for the back office + QC Minute PM landing pages |
+| `FieldVisits` | Recruiter visit check-in/out (Phase 07b, ADR-0017): `FieldVisit` + `CheckInRecruiter`/`CheckOutRecruiter` (GPS + selfie, informational geofence, forgot-to-check-out) — accountability logging, not billable time |
 | `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model) |
 
 Added as their phases land: `Reporting`, …

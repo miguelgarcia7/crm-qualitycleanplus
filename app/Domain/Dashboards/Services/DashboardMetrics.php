@@ -6,6 +6,7 @@ use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
+use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\Imports\Models\ImportBatch;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\SupplyRequest;
@@ -159,6 +160,13 @@ class DashboardMetrics
             'icon' => 'user-circle',
         ];
         $stats[] = [
+            'title' => 'My visits this week',
+            'value' => FieldVisit::query()->where('person_id', $user->id)
+                ->where('check_in_at', '>=', CarbonImmutable::now()->startOfWeek(CarbonImmutable::MONDAY))->count(),
+            'icon' => 'map-pin',
+            'href' => '/admin/field-visits',
+        ];
+        $stats[] = [
             'title' => 'Invoices to send',
             'value' => Invoice::query()->awaitingSend()->whereIn('property_id', $ids)->count(),
             'icon' => 'files',
@@ -202,6 +210,14 @@ class DashboardMetrics
                 ->whereColumn('current_stock', '<=', 'reorder_threshold')->count(),
             'icon' => 'components',
             'href' => '/admin/inventory',
+            'tone' => 'warning',
+        ];
+        $stats[] = [
+            'title' => 'Stale open visits',
+            'value' => FieldVisit::query()->open()
+                ->where('check_in_at', '<', CarbonImmutable::now()->subDay())->count(),
+            'icon' => 'map-pin',
+            'href' => '/admin/field-visits?filter=open',
             'tone' => 'warning',
         ];
 

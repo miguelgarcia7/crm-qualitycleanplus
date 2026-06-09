@@ -3,24 +3,24 @@
 namespace App\Domain\Time\Support;
 
 use App\Domain\Shared\Models\File;
-use App\Domain\Time\Models\TimeEntry;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 
 /**
- * Persists a clock-event selfie to the configured disk and records it as a
- * polymorphic {@see File} attached to the time entry (Phase 07a, ADR-0017).
- * Selfies follow the 1-year PII retention rule (ADR-0010).
+ * Persists a clock/visit selfie to the configured disk and records it as a
+ * polymorphic {@see File} attached to the owning record — a time entry (Phase 07a)
+ * or a field visit (Phase 07b). Selfies follow the 1-year PII retention rule (ADR-0010).
  */
 class StoreSelfie
 {
-    public static function for(UploadedFile $selfie, TimeEntry $entry, ?int $uploadedBy): File
+    public static function for(UploadedFile $selfie, Model $fileable, ?int $uploadedBy): File
     {
         $disk = (string) config('filesystems.default');
         $path = $selfie->store('selfies', $disk);
 
         return File::create([
-            'fileable_type' => $entry->getMorphClass(),
-            'fileable_id' => $entry->id,
+            'fileable_type' => $fileable->getMorphClass(),
+            'fileable_id' => $fileable->getKey(),
             'disk' => $disk,
             'path' => $path,
             'original_name' => $selfie->getClientOriginalName(),

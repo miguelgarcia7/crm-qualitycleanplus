@@ -5,6 +5,7 @@ use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentAssignmentController;
+use App\Http\Controllers\FieldVisitController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
@@ -90,6 +91,12 @@ Route::get('info-changes', [ChangePersonalInfoController::class, 'index'])->name
 Route::post('info-changes', [ChangePersonalInfoController::class, 'store'])->name('backoffice.info-changes.store');
 Route::post('info-changes/{workflow}/approve', [ChangePersonalInfoController::class, 'approve'])->name('backoffice.info-changes.approve');
 Route::post('info-changes/{workflow}/decline', [ChangePersonalInfoController::class, 'decline'])->name('backoffice.info-changes.decline');
+
+// Recruiter field visits — check-in/out + history (Phase 07b, ADR-0017)
+Route::get('field-visits', [FieldVisitController::class, 'index'])->name('backoffice.field-visits.index');
+Route::get('field-visits/context', [FieldVisitController::class, 'context'])->name('backoffice.field-visits.context');
+Route::post('field-visits', [FieldVisitController::class, 'store'])->middleware('can:field_visits.create')->name('backoffice.field-visits.store');
+Route::post('field-visits/check-out', [FieldVisitController::class, 'checkOut'])->middleware('can:field_visits.close_own')->name('backoffice.field-visits.check-out');
 
 // Hour imports — Excel import wizard for import-only properties (Phase 05)
 Route::get('imports', [ImportController::class, 'index'])->middleware('can:imports.upload')->name('backoffice.imports.index');
