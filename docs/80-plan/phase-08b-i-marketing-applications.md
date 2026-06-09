@@ -12,7 +12,11 @@
   create `job_postings` + `job_applications`; enums `JobPostingStatus`/
   `JobApplicationStatus`; models + factories; `Person` cols/casts + `jobApplications()`,
   `PersonStatus::isApplicant()`. Marketing `site` Vite bundle (`resources/css/site/app.scss`
-  + `resources/js/site/app.js`, Bootstrap 5 via `bootstrap`+`sass`).
+  + `resources/js/site/app.js`, Bootstrap 5 via `bootstrap`+`sass`) — a **fully separate
+  bundle** with its own `vite-site.config.ts`, build dir `public/build/site` + manifest,
+  and hot file `public/site.hot`; the marketing surface reads it via the `UseMarketingVite`
+  middleware. Build with `npm run build` (both) or `npm run build:site` (marketing only);
+  dev with `npm run dev:site`.
 - **Marketing pages (Inc 1):** ported `site/layouts` + `elements` + `components` +
   pages (home/services/about/contact ×3) from the legacy site; `Site/PageController`
   + `Site/ContactController` (→ `ContactInquiry`, new `Marketing` context); stripped

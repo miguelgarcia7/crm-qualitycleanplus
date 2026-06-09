@@ -8,13 +8,9 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: [
-                'resources/js/admin/app.tsx',
-                // Marketing surface (qualitycleanplus.com "/") — its own Bootstrap
-                // bundle, separate from the admin Tailwind/React bundle (ADR-0023).
-                'resources/css/site/app.scss',
-                'resources/js/site/app.js',
-            ],
+            // Admin React/Inertia app only. The marketing surface is a fully
+            // separate bundle — see vite-site.config.ts (ADR-0023).
+            input: ['resources/js/admin/app.tsx'],
             ssr: 'resources/js/admin/ssr.tsx',
             refresh: true,
         }),
