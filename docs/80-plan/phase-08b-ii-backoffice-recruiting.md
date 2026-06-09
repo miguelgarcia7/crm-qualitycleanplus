@@ -2,9 +2,30 @@
 
 | Field | Value |
 |---|---|
-| Status | 🚧 In progress |
+| Status | ✅ Done (Pest green — 19 new tests across JobPostingAdmin/ApplicantReview/ApplicantOnboarding; Pint + Larastan + types + build clean; `migrate:fresh --seed` clean). |
 | Last updated | 2026-06-09 |
 | Owner | Engineering |
+
+## As built
+
+- **Inc 0:** onboarding-checklist + review/promotion-trail migrations;
+  `BackgroundCheckStatus`; `OnboardingChecklist` (item set + `missingItems`
+  promotion gate); `job_postings.manage` seeded; `JobPostingPolicy` +
+  `JobApplicationPolicy` registered.
+- **Inc 1:** `JobPostingController` + `backoffice.job-postings.*` +
+  `views/admin/job-postings/index.tsx` (draft → publish/close; slug stable;
+  delete blocked once applications exist); sidebar "Job Postings".
+- **Inc 2:** `ApplicantController` index (status filters + counts) / show
+  (application + person + history + checklist + policy `can` flags);
+  start-review + reject(reason); `views/admin/applicants/{index,show}.tsx`;
+  sidebar "Applicants".
+- **Inc 3:** `UploadOnboardingDocument` (File on person; I-9 re-upload clears
+  verification) + download/verify/background/waive endpoints (waive = HR/admin
+  only); `PromoteApplicantToContractor` + `ReversePromotion` (no-work-orders
+  rule, promoter-or-super_admin), both activity-logged; interactive checklist
+  UI; dashboard "Applications to review" + "Onboarding docs pending".
+- **Inc 4:** seed (Alex Applicant reviewing w/ pending background check); docs
+  (recruiting.md, permissions matrix += `job_postings.manage`, roadmap).
 
 ## Goal
 

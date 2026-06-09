@@ -16,6 +16,7 @@ use App\Domain\Inventory\Models\Item;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\Marketing\Models\ContactInquiry;
+use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Models\PersonExternalId;
@@ -27,6 +28,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Pto\Actions\EnsurePtoYear;
 use App\Domain\Pto\Actions\SubmitPtoRequest;
 use App\Domain\Recruiting\Actions\SubmitApplication;
+use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Enums\JobPostingStatus;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
@@ -299,7 +301,7 @@ class SampleDataSeeder extends Seeder
             'created_by' => $recruiter->id,
         ]);
 
-        app(SubmitApplication::class)->handle([
+        $alexApplication = app(SubmitApplication::class)->handle([
             'first_name' => 'Alex', 'last_name' => 'Applicant', 'email' => 'alex.applicant@example.com',
             'phone' => '(602) 555-0301', 'address' => '500 W McDowell Rd', 'city' => 'Phoenix',
             'state' => 'AZ', 'zip' => '85003', 'position' => 'Housekeeper', 'desired_salary' => '17',
@@ -309,6 +311,16 @@ class SampleDataSeeder extends Seeder
             'full_name' => 'Jordan Applicant', 'emergency_phone' => '(602) 555-0302',
             'relationship' => 'Sibling', 'acknowledgement' => '1',
         ], $housekeeperPosting);
+
+        // Alex is under active review with a partially-complete checklist (08b-ii):
+        // background check ordered, documents still outstanding — shows up in the
+        // front-desk "Onboarding docs pending" widget and the Reviewing filter.
+        $alexApplication->update([
+            'status' => JobApplicationStatus::Reviewing,
+            'reviewed_by' => $recruiter->id,
+            'reviewed_at' => now()->subDay(),
+        ]);
+        $alexApplication->person->forceFill(['background_check_status' => BackgroundCheckStatus::Pending])->save();
 
         app(SubmitApplication::class)->handle([
             'first_name' => 'Taylor', 'last_name' => 'Seeker', 'email' => 'taylor.seeker@example.com',

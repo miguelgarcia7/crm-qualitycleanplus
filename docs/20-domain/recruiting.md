@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | Accepted (08b-i built; 08b-ii pending) |
-| Last updated | 2026-06-08 |
+| Status | Accepted (08b-i + 08b-ii built) |
+| Last updated | 2026-06-09 |
 | Owner | Product + Engineering |
 
 How candidates discover openings and apply, and how those applications become
@@ -48,9 +48,27 @@ application form pre-filled for that posting.
   `/application` + `/application/{posting}` (form), `/application/thank-you`.
   Contact forms (`/contact-us/job-seekers`, `/contact-us/business-inquiries`)
   record `ContactInquiry` leads (Marketing context).
-- **Back office (08b-ii, pending)**: job-posting CRUD/publish, applicant review
-  queue, promote-to-contractor + onboarding checklist. `people.applicants.*`
-  permissions are already seeded; `job_postings.*` permissions land in 08b-ii.
+- **Back office (08b-ii, built)**: `/admin/job-postings` (create-as-draft / edit /
+  publish / close; delete only while no applications) and `/admin/applicants` —
+  the status-filtered review queue + detail page with start-review / reject
+  (reason), the onboarding checklist, and promote/reverse.
+
+## Onboarding checklist + promotion (08b-ii)
+
+The v1 checklist is hardcoded in `OnboardingChecklist` (people-lifecycle.md): ID
+front/back, I-9 (upload **and** HR verification; re-upload clears verification),
+W-9, signed contractor agreement, background check (`BackgroundCheckStatus`;
+`not_required`/`passed` satisfy the gate). Documents are real uploads — polymorphic
+`File` rows attached to the person, with per-item download (checklist-permission
+gated; these are PII). HR/admin may **waive** items; front desk edits the checklist
+but cannot waive (ADR-0013).
+
+`PromoteApplicantToContractor` requires every non-waived item complete, then flips
+the person to `contractor_active`, sets `converted_to_contractor_at` (first time
+only), assigns the contractor role, and defaults `primary_recruiter_id` to the
+promoting recruiter. `ReversePromotion` undoes a mistaken promotion **only while
+no work orders exist** — promoter or super_admin only. Both are activity-logged
+with old/new status.
 
 ## Related
 

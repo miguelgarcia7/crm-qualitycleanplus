@@ -56,6 +56,14 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 
 > Front Desk has view access on applicants and contractors so they can identify who they're handing items to. They edit *only* the onboarding checklist on applicants (not the broader profile).
 
+## Recruiting (Phase 08b-ii)
+
+| Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `job_postings.manage` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ |
+
+> One permission covers the posting lifecycle (create/edit/publish/close/delete). Waiving onboarding-checklist items is additionally restricted to hr/admin/super_admin roles (people-lifecycle.md); promotion reversal is promoter-or-super_admin (policy-enforced).
+
 ## Work orders
 
 | Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |
