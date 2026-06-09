@@ -12,12 +12,15 @@ use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
+use App\Domain\People\Support\OnboardingChecklist;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Pto\Enums\PtoBucket;
 use App\Domain\Pto\Models\PtoRequest;
 use App\Domain\Pto\Models\PtoYearAllotment;
+use App\Domain\Recruiting\Enums\JobApplicationStatus;
+use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeSummary;
@@ -78,6 +81,34 @@ class DashboardMetrics
                 'icon' => 'checklist',
                 'href' => '/admin/pto',
                 'tone' => 'warning',
+            ];
+        }
+
+        if ($user->can('people.applicants.view')) {
+            $stats[] = [
+                'title' => 'Applications to review',
+                'value' => JobApplication::query()->pending()->count(),
+                'icon' => 'user-circle',
+                'href' => '/admin/applicants',
+                'tone' => 'warning',
+            ];
+        }
+
+        if ($user->can('people.applicants.onboarding_checklist.edit')) {
+            // "Onboarding Docs Pending" (people-lifecycle.md): applicants under
+            // active review whose checklist still has open, non-waived items.
+            $pendingDocs = Person::query()
+                ->where('status', PersonStatus::Applicant)
+                ->whereHas('jobApplications', fn ($q) => $q->where('status', JobApplicationStatus::Reviewing->value))
+                ->get()
+                ->reject(fn (Person $applicant): bool => OnboardingChecklist::isComplete($applicant))
+                ->count();
+
+            $stats[] = [
+                'title' => 'Onboarding docs pending',
+                'value' => $pendingDocs,
+                'icon' => 'files',
+                'href' => '/admin/applicants?status=reviewing',
             ];
         }
 

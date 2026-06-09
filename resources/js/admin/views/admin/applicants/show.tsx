@@ -1,6 +1,6 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import { Head, Link, router, useForm } from '@inertiajs/react'
-import { useState } from 'react'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react'
+import { useRef, useState } from 'react'
 
 type ChecklistItem = {
   key: string
@@ -65,7 +65,70 @@ const statusBadge: Record<string, string> = {
   rejected: 'badge badge-soft-danger',
 }
 
+const BACKGROUND_OPTIONS = [
+  { value: 'not_required', label: 'Not required' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'passed', label: 'Passed' },
+  { value: 'failed', label: 'Failed' },
+]
+
+const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number; can: Props['can'] }) => {
+  const fileInput = useRef<HTMLInputElement>(null)
+  const isDocument = item.key !== 'background_check'
+
+  const upload = (file: File | undefined) => {
+    if (!file) return
+    router.post(`/admin/applicants/${appId}/onboarding/${item.key}`, { document: file }, { forceFormData: true, preserveScroll: true })
+  }
+  const verify = () => router.post(`/admin/applicants/${appId}/onboarding/i9/verify`, {}, { preserveScroll: true })
+  const toggleWaive = () =>
+    router.post(`/admin/applicants/${appId}/onboarding/${item.key}/waive`, { waived: !item.waived }, { preserveScroll: true })
+
+  return (
+    <li className="flex flex-wrap items-center gap-2 py-2.5">
+      <span className={`size-2.5 shrink-0 rounded-full ${item.complete ? 'bg-success' : item.waived ? 'bg-warning' : 'bg-default-300'}`} />
+      <span className="grow text-sm">
+        {item.label}
+        {item.needs_verification && item.file_id !== null && (
+          <span className={`ms-2 text-xs ${item.verified ? 'text-success' : 'text-warning'}`}>
+            {item.verified ? 'verified' : 'awaiting verification'}
+          </span>
+        )}
+        {item.waived && <span className="text-warning ms-2 text-xs">waived</span>}
+        {item.completed_at && <div className="text-muted text-xs">{item.completed_at}</div>}
+      </span>
+
+      <span className="flex shrink-0 items-center gap-1.5">
+        {isDocument && item.file_id !== null && (
+          <a className="btn btn-sm btn-light" href={`/admin/applicants/${appId}/onboarding/${item.key}/download`}>
+            View
+          </a>
+        )}
+        {isDocument && can.edit_checklist && (
+          <>
+            <input ref={fileInput} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onChange={(e) => upload(e.target.files?.[0])} />
+            <button className="btn btn-sm btn-light" onClick={() => fileInput.current?.click()}>
+              {item.file_id ? 'Replace' : 'Upload'}
+            </button>
+          </>
+        )}
+        {item.key === 'i9' && can.edit_checklist && item.file_id !== null && !item.verified && (
+          <button className="btn btn-sm btn-light text-success" onClick={verify}>
+            Verify
+          </button>
+        )}
+        {can.waive && !item.complete && (
+          <button className="btn btn-sm btn-light" onClick={toggleWaive}>
+            {item.waived ? 'Unwaive' : 'Waive'}
+          </button>
+        )}
+      </span>
+    </li>
+  )
+}
+
 const Page = ({ application: app, person, other_applications, checklist, checklist_complete, can }: Props) => {
+  const { errors } = usePage().props as { errors: Record<string, string> }
   const [showReject, setShowReject] = useState(false)
   const rejectForm = useForm({ reason: '' })
 
@@ -74,8 +137,19 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
     e.preventDefault()
     rejectForm.post(`/admin/applicants/${app.id}/reject`, { preserveScroll: true, onSuccess: () => setShowReject(false) })
   }
+  const promote = () => {
+    if (confirm(`Promote ${person.name} to active contractor?`)) {
+      router.post(`/admin/applicants/${app.id}/promote`, {}, { preserveScroll: true })
+    }
+  }
+  const reverse = () => {
+    if (confirm('Reverse this promotion? Status returns to applicant.')) {
+      router.post(`/admin/applicants/${app.id}/reverse`, {}, { preserveScroll: true })
+    }
+  }
 
   const isPending = app.status === 'submitted' || app.status === 'reviewing'
+  const backgroundItem = checklist.find((i) => i.key === 'background_check')
 
   return (
     <>
@@ -99,12 +173,43 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
             Start review
           </button>
         )}
+        {can.promote && isPending && (
+          <button className="btn btn-sm bg-success text-white" onClick={promote} disabled={!checklist_complete} title={checklist_complete ? '' : 'Complete or waive all checklist items first'}>
+            Promote to contractor
+          </button>
+        )}
+        {can.reverse && app.status === 'promoted' && !person.has_work_orders && (
+          <button className="btn btn-sm btn-light text-danger" onClick={reverse}>
+            Reverse promotion
+          </button>
+        )}
         {can.review && isPending && (
           <button className="btn btn-sm btn-light text-danger" onClick={() => setShowReject((v) => !v)}>
             Reject…
           </button>
         )}
       </div>
+
+      {Object.keys(errors).length > 0 && (
+        <div className="card border-danger mb-4 rounded-2xl border">
+          <div className="card-body text-danger p-4 text-sm">
+            {Object.values(errors).map((message, i) => (
+              <p key={i}>{message}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {app.status === 'promoted' && (
+        <div className="card mb-4 rounded-2xl">
+          <div className="card-body p-4 text-sm">
+            <span className="text-success font-medium">Promoted</span> {app.promoted_at && `on ${app.promoted_at}`}
+            {person.has_work_orders
+              ? ' — has work orders, so the promotion is permanent.'
+              : ' — reversible until work orders are created.'}
+          </div>
+        </div>
+      )}
 
       {showReject && (
         <form onSubmit={submitReject} className="card mb-4 rounded-2xl">
@@ -217,7 +322,7 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
         <div className="space-y-4">
           <div className="card rounded-2xl">
             <div className="card-body p-5">
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-2 flex items-center justify-between">
                 <h4 className="card-title">Onboarding checklist</h4>
                 {checklist_complete ? (
                   <span className="badge badge-soft-success">Complete</span>
@@ -225,25 +330,33 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
                   <span className="badge badge-soft-warning">Incomplete</span>
                 )}
               </div>
-              <ul className="divide-default-100 divide-y text-sm">
+              <ul className="divide-default-100 divide-y">
                 {checklist.map((item) => (
-                  <li key={item.key} className="flex items-center gap-3 py-2">
-                    <span className={`size-2.5 shrink-0 rounded-full ${item.complete ? 'bg-success' : item.waived ? 'bg-warning' : 'bg-default-300'}`} />
-                    <span className="grow">
-                      {item.label}
-                      {item.needs_verification && item.file_id !== null && (
-                        <span className={`ms-2 text-xs ${item.verified ? 'text-success' : 'text-warning'}`}>
-                          {item.verified ? 'verified' : 'awaiting verification'}
-                        </span>
-                      )}
-                      {item.waived && <span className="text-warning ms-2 text-xs">waived</span>}
-                    </span>
-                    <span className="text-muted text-xs">{item.completed_at ?? ''}</span>
-                  </li>
+                  <ChecklistRow key={item.key} item={item} appId={app.id} can={can} />
                 ))}
               </ul>
+
+              {can.edit_checklist && backgroundItem && (
+                <div className="border-default-200 mt-3 border-t pt-3">
+                  <label className="form-label">Background check status</label>
+                  <select
+                    className="form-select w-full"
+                    defaultValue={''}
+                    onChange={(e) => e.target.value && router.post(`/admin/applicants/${app.id}/background-check`, { status: e.target.value }, { preserveScroll: true })}
+                  >
+                    <option value="">Set status…</option>
+                    {BACKGROUND_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <p className="text-default-400 mt-3 text-xs">
-                Document uploads, I-9 verification, and promotion arrive on this page in the next increment.
+                Promotion requires every item complete or waived (waiving is an HR/admin power). Uniform issuance is tracked through
+                Inventory.
               </p>
             </div>
           </div>

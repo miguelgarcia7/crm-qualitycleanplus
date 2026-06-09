@@ -2,14 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\People\Actions\PromoteApplicantToContractor;
+use App\Domain\People\Actions\ReversePromotion;
+use App\Domain\People\Actions\UploadOnboardingDocument;
+use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Support\OnboardingChecklist;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Models\JobApplication;
+use App\Domain\Shared\Models\File;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Applicant review queue (Phase 08b-ii): applications come in from the public
@@ -169,5 +177,120 @@ class ApplicantController extends Controller
         ]);
 
         return back()->with('success', 'Application rejected.');
+    }
+
+    public function uploadDocument(Request $request, JobApplication $application, string $item, UploadOnboardingDocument $action): RedirectResponse
+    {
+        $this->authorize('editChecklist', $application);
+
+        abort_unless(array_key_exists($item, OnboardingChecklist::DOCUMENTS), 404);
+
+        $validated = $request->validate([
+            'document' => ['required', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,webp,heic'],
+        ]);
+
+        /** @var Person $person */
+        $person = $application->person;
+        /** @var Person $actor */
+        $actor = $request->user();
+
+        $action->handle($person, $item, $validated['document'], $actor);
+
+        return back()->with('success', 'Document uploaded.');
+    }
+
+    public function downloadDocument(JobApplication $application, string $item): StreamedResponse
+    {
+        $this->authorize('editChecklist', $application);
+
+        $definition = OnboardingChecklist::DOCUMENTS[$item] ?? abort(404);
+        /** @var Person $person */
+        $person = $application->person;
+
+        $fileId = $person->getAttribute($definition[1]);
+        abort_if($fileId === null, 404);
+
+        /** @var File $file */
+        $file = File::query()->findOrFail($fileId);
+
+        return Storage::disk($file->disk)->download($file->path, $file->original_name);
+    }
+
+    public function verifyI9(Request $request, JobApplication $application): RedirectResponse
+    {
+        $this->authorize('editChecklist', $application);
+
+        /** @var Person $person */
+        $person = $application->person;
+
+        abort_if($person->i9_file_id === null, 422, 'Upload the I-9 before verifying it.');
+
+        $person->forceFill(['i9_verified_by' => $request->user()?->id, 'i9_verified_at' => now()])->save();
+
+        return back()->with('success', 'I-9 verified.');
+    }
+
+    public function setBackgroundCheck(Request $request, JobApplication $application): RedirectResponse
+    {
+        $this->authorize('editChecklist', $application);
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::enum(BackgroundCheckStatus::class)],
+        ]);
+
+        $status = BackgroundCheckStatus::from($validated['status']);
+        /** @var Person $person */
+        $person = $application->person;
+
+        $person->forceFill([
+            'background_check_status' => $status,
+            'background_check_completed_at' => in_array($status, [BackgroundCheckStatus::Passed, BackgroundCheckStatus::Failed], true) ? now() : null,
+        ])->save();
+
+        return back()->with('success', "Background check: {$status->label()}.");
+    }
+
+    /** Waive/unwaive a checklist item — an HR power (people-lifecycle.md). */
+    public function waive(Request $request, JobApplication $application, string $item): RedirectResponse
+    {
+        $this->authorize('editChecklist', $application);
+        abort_unless($request->user()?->hasAnyRole(['hr', 'admin', 'super_admin']), 403);
+        abort_unless(in_array($item, OnboardingChecklist::ITEMS, true), 404);
+
+        $validated = $request->validate(['waived' => ['required', 'boolean']]);
+
+        /** @var Person $person */
+        $person = $application->person;
+        $waived = OnboardingChecklist::waivedItems($person);
+
+        $waived = $validated['waived']
+            ? array_values(array_unique([...$waived, $item]))
+            : array_values(array_diff($waived, [$item]));
+
+        $person->forceFill(['onboarding_waived_items' => $waived])->save();
+
+        return back()->with('success', $validated['waived'] ? 'Item waived.' : 'Waiver removed.');
+    }
+
+    public function promote(Request $request, JobApplication $application, PromoteApplicantToContractor $action): RedirectResponse
+    {
+        $this->authorize('promote', $application);
+
+        /** @var Person $promoter */
+        $promoter = $request->user();
+        $action->handle($application, $promoter);
+
+        return back()->with('success', "{$application->person->name} is now an active contractor.");
+    }
+
+    public function reverse(Request $request, JobApplication $application, ReversePromotion $action): RedirectResponse
+    {
+        $this->authorize('reverse', $application);
+
+        /** @var Person $actor */
+        $actor = $request->user();
+        $action->handle($application, $actor);
+
+        return back()->with('success', 'Promotion reversed — back to applicant.');
     }
 }

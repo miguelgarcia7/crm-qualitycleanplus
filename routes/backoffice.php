@@ -109,6 +109,13 @@ Route::get('applicants', [ApplicantController::class, 'index'])->name('backoffic
 Route::get('applicants/{application}', [ApplicantController::class, 'show'])->name('backoffice.applicants.show');
 Route::post('applicants/{application}/start-review', [ApplicantController::class, 'startReview'])->name('backoffice.applicants.start-review');
 Route::post('applicants/{application}/reject', [ApplicantController::class, 'reject'])->name('backoffice.applicants.reject');
+Route::post('applicants/{application}/onboarding/i9/verify', [ApplicantController::class, 'verifyI9'])->name('backoffice.applicants.verify-i9');
+Route::post('applicants/{application}/onboarding/{item}/waive', [ApplicantController::class, 'waive'])->name('backoffice.applicants.waive');
+Route::get('applicants/{application}/onboarding/{item}/download', [ApplicantController::class, 'downloadDocument'])->name('backoffice.applicants.download');
+Route::post('applicants/{application}/onboarding/{item}', [ApplicantController::class, 'uploadDocument'])->name('backoffice.applicants.upload');
+Route::post('applicants/{application}/background-check', [ApplicantController::class, 'setBackgroundCheck'])->name('backoffice.applicants.background-check');
+Route::post('applicants/{application}/promote', [ApplicantController::class, 'promote'])->name('backoffice.applicants.promote');
+Route::post('applicants/{application}/reverse', [ApplicantController::class, 'reverse'])->name('backoffice.applicants.reverse');
 
 // Job postings — manage the public job board (Phase 08b-ii)
 Route::get('job-postings', [JobPostingController::class, 'index'])->name('backoffice.job-postings.index');
