@@ -1,6 +1,21 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import DataTable from '@/components/table/DataTable'
+import TablePagination from '@/components/table/TablePagination'
+import Icon from '@/components/wrappers/Icon'
+import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
-import { useState } from 'react'
+import {
+  ColumnFiltersState,
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  Row as TableRow,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table'
+import { useMemo, useState } from 'react'
 
 type Posting = {
   id: number
@@ -24,9 +39,9 @@ type Props = {
 }
 
 const statusBadge: Record<string, string> = {
-  draft: 'badge badge-soft-warning',
-  published: 'badge badge-soft-success',
-  closed: 'badge badge-soft-secondary',
+  draft: 'bg-warning/15 text-warning',
+  published: 'bg-success/15 text-success',
+  closed: 'bg-secondary/15 text-secondary',
 }
 
 const emptyForm = {
@@ -39,9 +54,16 @@ const emptyForm = {
   location_label: '',
 }
 
+const columnHelper = createColumnHelper<Posting>()
+
 const Page = ({ postings, properties }: Props) => {
   const [editing, setEditing] = useState<Posting | null>(null)
   const { data, setData, post, put, processing, reset, errors, clearErrors } = useForm(emptyForm)
+
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
   const startEdit = (p: Posting) => {
     setEditing(p)
@@ -80,75 +102,177 @@ const Page = ({ postings, properties }: Props) => {
     }
   }
 
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('title', {
+        header: 'Title',
+        cell: ({ row }) => <span className="font-semibold">{row.original.title}</span>,
+      }),
+      columnHelper.accessor('location', {
+        header: 'Location',
+        cell: ({ row }) => row.original.location ?? '—',
+      }),
+      columnHelper.accessor('pay_range', {
+        header: 'Pay',
+        cell: ({ row }) => row.original.pay_range ?? '—',
+      }),
+      columnHelper.accessor('status', {
+        header: 'Status',
+        filterFn: 'equalsString',
+        enableColumnFilter: true,
+        cell: ({ row }) => (
+          <span className={cn('badge badge-label', statusBadge[row.original.status] ?? 'bg-light text-default-600')}>
+            {row.original.status_label}
+          </span>
+        ),
+      }),
+      columnHelper.accessor('applications_count', {
+        header: 'Apps',
+        cell: ({ row }) => (
+          <Link href={`/admin/applicants`} className={row.original.applications_count > 0 ? 'text-primary font-semibold' : ''}>
+            {row.original.applications_count}
+          </Link>
+        ),
+      }),
+      {
+        header: 'Actions',
+        cell: ({ row }: { row: TableRow<Posting> }) => {
+          const p = row.original
+          return (
+            <div className="flex justify-center gap-1.5">
+              {p.status !== 'published' ? (
+                <button className="btn btn-sm btn-soft-success" onClick={() => publish(p)}>
+                  Publish
+                </button>
+              ) : (
+                <button className="btn btn-sm btn-soft-secondary" onClick={() => close(p)}>
+                  Close
+                </button>
+              )}
+              <button
+                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                onClick={() => startEdit(p)}
+                title="Edit posting"
+              >
+                <Icon icon="edit" className="text-base" />
+              </button>
+              {p.applications_count === 0 && (
+                <button
+                  className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                  onClick={() => destroy(p)}
+                  title="Delete posting"
+                >
+                  <Icon icon="trash" className="text-base" />
+                </button>
+              )}
+            </div>
+          )
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+
+  const table = useReactTable({
+    data: postings,
+    columns,
+    state: { sorting, globalFilter, columnFilters, pagination },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+    enableColumnFilters: true,
+  })
+
+  const pageIndex = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+  const totalItems = table.getFilteredRowModel().rows.length
+  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
+  const end = Math.min(start + pageSize - 1, totalItems)
+
   return (
     <>
       <Head title="Job Postings" />
       <PageBreadcrumb title="Job Postings" subtitle="Recruiting" />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="gap-base grid lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="card rounded-2xl">
-            <div className="card-body p-0">
-              {postings.length === 0 ? (
-                <p className="text-muted p-6">No postings yet. Create one and publish it to the public job board.</p>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="border-default-200 text-muted border-b text-left">
-                    <tr>
-                      <th className="p-3">Title</th>
-                      <th className="p-3">Location</th>
-                      <th className="p-3">Pay</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3">Apps</th>
-                      <th className="p-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {postings.map((p) => (
-                      <tr key={p.id} className="border-default-100 border-b">
-                        <td className="p-3 font-medium">{p.title}</td>
-                        <td className="p-3">{p.location ?? '—'}</td>
-                        <td className="p-3">{p.pay_range ?? '—'}</td>
-                        <td className="p-3">
-                          <span className={statusBadge[p.status] ?? 'badge'}>{p.status_label}</span>
-                        </td>
-                        <td className="p-3">{p.applications_count}</td>
-                        <td className="space-x-2 p-3 text-right whitespace-nowrap">
-                          {p.status !== 'published' ? (
-                            <button className="btn btn-sm btn-light text-success" onClick={() => publish(p)}>
-                              Publish
-                            </button>
-                          ) : (
-                            <button className="btn btn-sm btn-light" onClick={() => close(p)}>
-                              Close
-                            </button>
-                          )}
-                          <button className="btn btn-sm btn-light" onClick={() => startEdit(p)}>
-                            Edit
-                          </button>
-                          {p.applications_count === 0 && (
-                            <button className="btn btn-sm btn-light text-danger" onClick={() => destroy(p)}>
-                              Delete
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+          <div className="card">
+            <div className="card-header">
+              <div className="flex flex-wrap gap-3">
+                <div className="input-icon-group">
+                  <Icon icon="search" className="input-icon" />
+                  <input
+                    className="form-input"
+                    placeholder="Search postings..."
+                    value={globalFilter}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
+                <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+                <select
+                  className="form-select w-auto"
+                  value={(table.getColumn('status')?.getFilterValue() as string) ?? 'All'}
+                  onChange={(e) => table.getColumn('status')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}
+                >
+                  <option value="All">Status</option>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="closed">Closed</option>
+                </select>
+                <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+                  {[10, 25, 50].map((size) => (
+                    <option key={size}>{size}</option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            <DataTable table={table} emptyMessage="No postings yet. Create one and publish it to the public job board." />
+
+            {table.getRowModel().rows.length > 0 && (
+              <div className="card-footer">
+                <TablePagination
+                  totalItems={totalItems}
+                  start={start}
+                  end={end}
+                  itemsName="postings"
+                  pageIndex={pageIndex}
+                  pageCount={table.getPageCount()}
+                  canPreviousPage={table.getCanPreviousPage()}
+                  canNextPage={table.getCanNextPage()}
+                  previousPage={table.previousPage}
+                  nextPage={table.nextPage}
+                  setPageIndex={table.setPageIndex}
+                  showInfo
+                />
+              </div>
+            )}
           </div>
           <p className="text-default-400 mt-3 text-xs">
-            Published postings appear on the public <Link href="/job-openings" className="text-primary">job board</Link>; applicants land in the
-            Applicants queue.
+            Published postings appear on the public{' '}
+            <Link href="/job-openings" className="text-primary">
+              job board
+            </Link>
+            ; applicants land in the Applicants queue.
           </p>
         </div>
 
         <div>
-          <div className="card rounded-2xl">
-            <div className="card-body p-5">
-              <h4 className="card-title mb-3">{editing ? `Edit "${editing.title}"` : 'New posting'}</h4>
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title">{editing ? `Edit "${editing.title}"` : 'New posting'}</h4>
+            </div>
+            <div className="card-body">
               <form onSubmit={submit} className="space-y-3">
                 <div>
                   <label className="form-label">Title</label>
@@ -187,7 +311,12 @@ const Page = ({ postings, properties }: Props) => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="form-label">Shift start</label>
-                    <input type="time" className="form-input w-full" value={data.hour_start} onChange={(e) => setData('hour_start', e.target.value)} />
+                    <input
+                      type="time"
+                      className="form-input w-full"
+                      value={data.hour_start}
+                      onChange={(e) => setData('hour_start', e.target.value)}
+                    />
                   </div>
                   <div>
                     <label className="form-label">Shift end</label>
@@ -199,7 +328,7 @@ const Page = ({ postings, properties }: Props) => {
                   <textarea className="form-input w-full" rows={4} value={data.content} onChange={(e) => setData('content', e.target.value)} />
                 </div>
                 <div className="flex gap-2">
-                  <button className="btn bg-primary flex-1 py-2 font-semibold text-white" disabled={processing}>
+                  <button className="btn bg-primary hover:bg-primary-hover flex-1 py-2 font-semibold text-white" disabled={processing}>
                     {editing ? 'Save changes' : 'Create draft'}
                   </button>
                   {editing && (
