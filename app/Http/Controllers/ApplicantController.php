@@ -31,45 +31,31 @@ class ApplicantController extends Controller
     {
         $this->authorize('viewAny', JobApplication::class);
 
-        $filter = (string) $request->query('status', 'pending');
-
+        // The full set ships to the client: status filtering (bordered tabs),
+        // search, sorting, and pagination all happen in the DataTable, matching
+        // the theme's HRM table pattern. `?status=` seeds the initial tab so
+        // dashboard deep-links still land on the right slice.
         $applications = JobApplication::query()
             ->with(['person:id,name,email,phone,city,state,status', 'jobPosting:id,title,slug'])
-            ->when($filter === 'pending', fn ($q) => $q->pending())
-            ->when(
-                in_array($filter, ['submitted', 'reviewing', 'promoted', 'rejected'], true),
-                fn ($q) => $q->where('status', $filter),
-            )
             ->latest('submitted_at')
             ->get()
             ->map(fn (JobApplication $a): array => [
                 'id' => $a->id,
                 'name' => $a->person->name,
+                'email' => str_ends_with((string) $a->person->email, '@qcp.invalid') ? null : $a->person->email,
+                'phone' => $a->person->phone,
                 'city' => trim(implode(', ', array_filter([$a->person->city, $a->person->state]))),
                 'desired_position' => $a->desired_position,
                 'posting' => $a->jobPosting?->title,
                 'status' => $a->status->value,
                 'status_label' => $a->status->label(),
-                'submitted_at' => $a->submitted_at->toDayDateTimeString(),
+                'submitted_at' => $a->submitted_at->toIso8601String(),
+                'submitted_at_display' => $a->submitted_at->toDayDateTimeString(),
             ]);
-
-        // toBase(): keep raw status strings — the enum cast would make unusable keys.
-        $counts = JobApplication::query()
-            ->toBase()
-            ->selectRaw('status, count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
 
         return Inertia::render('admin/applicants/index', [
             'applications' => $applications,
-            'filter' => $filter,
-            'counts' => [
-                'pending' => ($counts['submitted'] ?? 0) + ($counts['reviewing'] ?? 0),
-                'submitted' => $counts['submitted'] ?? 0,
-                'reviewing' => $counts['reviewing'] ?? 0,
-                'promoted' => $counts['promoted'] ?? 0,
-                'rejected' => $counts['rejected'] ?? 0,
-            ],
+            'filter' => (string) $request->query('status', 'pending'),
         ]);
     }
 

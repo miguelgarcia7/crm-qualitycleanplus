@@ -15,21 +15,22 @@ function applicant(): Person
     return Person::factory()->create(['status' => PersonStatus::Applicant, 'application_date' => now()->toDateString()]);
 }
 
-it('shows the pending queue by default and filters by status', function () {
+it('ships the full queue with the initial tab from the query string', function () {
     $hr = person('hr');
     JobApplication::factory()->create(['person_id' => applicant()->id]);
     JobApplication::factory()->reviewing()->create(['person_id' => applicant()->id]);
     JobApplication::factory()->create(['person_id' => applicant()->id, 'status' => JobApplicationStatus::Rejected]);
 
+    // Filtering/search/pagination are client-side (DataTable) — the controller
+    // returns everything and `filter` only seeds the active tab.
     $this->actingAs($hr)->get(main('/admin/applicants'))->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('admin/applicants/index')
-            ->has('applications', 2)
-            ->where('counts.pending', 2)
-            ->where('counts.rejected', 1));
+            ->has('applications', 3)
+            ->where('filter', 'pending'));
 
     $this->actingAs($hr)->get(main('/admin/applicants?status=rejected'))->assertOk()
-        ->assertInertia(fn ($page) => $page->has('applications', 1));
+        ->assertInertia(fn ($page) => $page->has('applications', 3)->where('filter', 'rejected'));
 });
 
 it('moves a submitted application to reviewing', function () {

@@ -1,31 +1,41 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import { Head, Link, router } from '@inertiajs/react'
+import DataTable from '@/components/table/DataTable'
+import TablePagination from '@/components/table/TablePagination'
+import Icon from '@/components/wrappers/Icon'
+import { cn } from '@/utils/helpers'
+import { Head, Link } from '@inertiajs/react'
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  Row as TableRow,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table'
+import { useMemo, useState } from 'react'
 
 type ApplicationRow = {
   id: number
   name: string
+  email: string | null
+  phone: string | null
   city: string
   desired_position: string | null
   posting: string | null
   status: string
   status_label: string
   submitted_at: string
+  submitted_at_display: string
 }
 
 type Props = {
   applications: ApplicationRow[]
   filter: string
-  counts: { pending: number; submitted: number; reviewing: number; promoted: number; rejected: number }
 }
 
-const statusBadge: Record<string, string> = {
-  submitted: 'badge badge-soft-info',
-  reviewing: 'badge badge-soft-warning',
-  promoted: 'badge badge-soft-success',
-  rejected: 'badge badge-soft-danger',
-}
-
-const FILTERS: { key: string; label: string }[] = [
+const TABS: { key: string; label: string }[] = [
   { key: 'pending', label: 'Pending' },
   { key: 'submitted', label: 'Submitted' },
   { key: 'reviewing', label: 'Reviewing' },
@@ -34,63 +44,189 @@ const FILTERS: { key: string; label: string }[] = [
   { key: 'all', label: 'All' },
 ]
 
-const Page = ({ applications, filter, counts }: Props) => {
-  const setFilter = (key: string) => router.get('/admin/applicants', key === 'pending' ? {} : { status: key }, { preserveState: true })
+const statusBadge: Record<string, string> = {
+  submitted: 'bg-info/15 text-info',
+  reviewing: 'bg-warning/15 text-warning',
+  promoted: 'bg-success/15 text-success',
+  rejected: 'bg-danger/15 text-danger',
+}
+
+const matchesTab = (status: string, tab: string) => {
+  if (tab === 'all') return true
+  if (tab === 'pending') return status === 'submitted' || status === 'reviewing'
+  return status === tab
+}
+
+const columnHelper = createColumnHelper<ApplicationRow>()
+
+const Page = ({ applications, filter }: Props) => {
+  const [activeTab, setActiveTab] = useState(TABS.some((t) => t.key === filter) ? filter : 'pending')
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'submitted_at', desc: true }])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+
+  const counts = useMemo(() => {
+    const result: Record<string, number> = {}
+    for (const tab of TABS) {
+      result[tab.key] = applications.filter((a) => matchesTab(a.status, tab.key)).length
+    }
+    return result
+  }, [applications])
+
+  const data = useMemo(() => applications.filter((a) => matchesTab(a.status, activeTab)), [applications, activeTab])
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('name', {
+        header: 'Applicant',
+        cell: ({ row }) => (
+          <div>
+            <Link href={`/admin/applicants/${row.original.id}`} className="hover:text-primary font-semibold">
+              {row.original.name}
+            </Link>
+            {row.original.email && <p className="text-default-400 text-xs">{row.original.email}</p>}
+          </div>
+        ),
+      }),
+      columnHelper.accessor('phone', {
+        header: 'Phone',
+        cell: ({ row }) => row.original.phone ?? '—',
+      }),
+      columnHelper.accessor('city', {
+        header: 'Location',
+        cell: ({ row }) => row.original.city || '—',
+      }),
+      columnHelper.accessor('desired_position', {
+        header: 'Position',
+        cell: ({ row }) => row.original.desired_position ?? '—',
+      }),
+      columnHelper.accessor('posting', {
+        header: 'Posting',
+        cell: ({ row }) => row.original.posting ?? '—',
+      }),
+      columnHelper.accessor('submitted_at', {
+        header: 'Submitted',
+        cell: ({ row }) => row.original.submitted_at_display,
+      }),
+      columnHelper.accessor('status', {
+        header: 'Status',
+        cell: ({ row }) => (
+          <span className={cn('badge badge-label', statusBadge[row.original.status] ?? 'bg-light text-default-600')}>
+            {row.original.status_label}
+          </span>
+        ),
+      }),
+      {
+        header: 'Actions',
+        cell: ({ row }: { row: TableRow<ApplicationRow> }) => (
+          <div className="flex justify-center gap-1.5">
+            <Link
+              href={`/admin/applicants/${row.original.id}`}
+              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              title="Open application"
+            >
+              <Icon icon="eye" className="text-base" />
+            </Link>
+          </div>
+        ),
+      },
+    ],
+    [],
+  )
+
+  const table = useReactTable({
+    data,
+    columns,
+    state: { sorting, globalFilter, pagination },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+  })
+
+  const pageIndex = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+  const totalItems = table.getFilteredRowModel().rows.length
+  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
+  const end = Math.min(start + pageSize - 1, totalItems)
+
+  const selectTab = (key: string) => {
+    setActiveTab(key)
+    setPagination((p) => ({ ...p, pageIndex: 0 }))
+  }
 
   return (
     <>
       <Head title="Applicants" />
       <PageBreadcrumb title="Applicants" subtitle="Recruiting" />
 
-      <div className="card rounded-2xl">
-        <div className="card-body p-0">
-          <div className="border-default-200 flex flex-wrap gap-2 border-b p-4">
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                className={`btn btn-sm ${filter === f.key ? 'bg-primary text-white' : 'btn-light'}`}
-                onClick={() => setFilter(f.key)}
-              >
-                {f.label}
-                {f.key in counts && <span className="ms-1 opacity-75">({counts[f.key as keyof typeof counts]})</span>}
-              </button>
-            ))}
+      <div className="card">
+        <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.key}
+              onClick={() => selectTab(tab.key)}
+              className={cn(
+                'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
+                activeTab === tab.key ? 'border-primary text-primary border-b' : '',
+              )}
+            >
+              {tab.label}
+              <span className="text-default-400 ms-1.5 text-xs">({counts[tab.key]})</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="card-header">
+          <div className="flex flex-wrap gap-3">
+            <div className="input-icon-group">
+              <Icon icon="search" className="input-icon" />
+              <input
+                className="form-input"
+                placeholder="Search applicants..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+              />
+            </div>
           </div>
 
-          {applications.length === 0 ? (
-            <p className="text-muted p-6">No applications match this filter.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="border-default-200 text-muted border-b text-left">
-                <tr>
-                  <th className="p-3">Applicant</th>
-                  <th className="p-3">Position</th>
-                  <th className="p-3">Posting</th>
-                  <th className="p-3">Submitted</th>
-                  <th className="p-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applications.map((a) => (
-                  <tr key={a.id} className="border-default-100 border-b">
-                    <td className="p-3">
-                      <Link href={`/admin/applicants/${a.id}`} className="text-primary font-medium">
-                        {a.name}
-                      </Link>
-                      {a.city && <div className="text-muted text-xs">{a.city}</div>}
-                    </td>
-                    <td className="p-3">{a.desired_position ?? '—'}</td>
-                    <td className="p-3">{a.posting ?? '—'}</td>
-                    <td className="p-3">{a.submitted_at}</td>
-                    <td className="p-3">
-                      <span className={statusBadge[a.status] ?? 'badge'}>{a.status_label}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
+            <span className="text-default-400 text-sm text-nowrap">Rows per page</span>
+            <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+              {[10, 25, 50, 100].map((size) => (
+                <option key={size}>{size}</option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        <DataTable table={table} emptyMessage="No applications match this view." />
+
+        {table.getRowModel().rows.length > 0 && (
+          <div className="card-footer">
+            <TablePagination
+              totalItems={totalItems}
+              start={start}
+              end={end}
+              itemsName="applications"
+              pageIndex={pageIndex}
+              pageCount={table.getPageCount()}
+              canPreviousPage={table.getCanPreviousPage()}
+              canNextPage={table.getCanNextPage()}
+              previousPage={table.previousPage}
+              nextPage={table.nextPage}
+              setPageIndex={table.setPageIndex}
+              showInfo
+            />
+          </div>
+        )}
       </div>
     </>
   )
