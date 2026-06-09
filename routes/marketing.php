@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Site\ContactController;
+use App\Http\Controllers\Site\JobBoardController;
 use App\Http\Controllers\Site\PageController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,9 @@ Route::get('/', [PageController::class, 'home'])->name('marketing.home');
 Route::get('/services', [PageController::class, 'services'])->name('marketing.services');
 Route::get('/about-us', [PageController::class, 'aboutUs'])->name('marketing.about');
 Route::get('/contact-us', [PageController::class, 'contactUs'])->name('marketing.contact');
+
+// Public job board (published postings).
+Route::get('/job-openings', [JobBoardController::class, 'index'])->name('marketing.job-openings');
 
 // Contact forms — Job Seekers + Business inquiries (GET form, POST store).
 Route::get('/contact-us/job-seekers', [ContactController::class, 'jobSeekers'])->name('marketing.contact.job-seekers');
