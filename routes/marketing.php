@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Site\ApplicationController;
 use App\Http\Controllers\Site\ContactController;
 use App\Http\Controllers\Site\JobBoardController;
 use App\Http\Controllers\Site\PageController;
@@ -19,6 +20,13 @@ Route::get('/contact-us', [PageController::class, 'contactUs'])->name('marketing
 
 // Public job board (published postings).
 Route::get('/job-openings', [JobBoardController::class, 'index'])->name('marketing.job-openings');
+
+// Employment application. Declare the static + thank-you routes before the
+// {posting} wildcard so "thank-you" isn't captured as a posting slug.
+Route::get('/application', [ApplicationController::class, 'index'])->name('marketing.application');
+Route::post('/application', [ApplicationController::class, 'store'])->name('marketing.application.store');
+Route::get('/application/thank-you', [ApplicationController::class, 'thankYou'])->name('marketing.application.thank-you');
+Route::get('/application/{posting}', [ApplicationController::class, 'apply'])->name('marketing.application.apply');
 
 // Contact forms — Job Seekers + Business inquiries (GET form, POST store).
 Route::get('/contact-us/job-seekers', [ContactController::class, 'jobSeekers'])->name('marketing.contact.job-seekers');
