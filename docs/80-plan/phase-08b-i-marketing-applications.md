@@ -2,9 +2,37 @@
 
 | Field | Value |
 |---|---|
-| Status | 🚧 In progress |
+| Status | ✅ Done (Pest green — 22 new tests; Pint + Larastan clean, build clean, `migrate:fresh --seed` clean). |
 | Last updated | 2026-06-08 |
 | Owner | Engineering |
+
+## As built
+
+- **Schema/models (Inc 0):** migrations add applicant durable columns to `people`,
+  create `job_postings` + `job_applications`; enums `JobPostingStatus`/
+  `JobApplicationStatus`; models + factories; `Person` cols/casts + `jobApplications()`,
+  `PersonStatus::isApplicant()`. Marketing `site` Vite bundle (`resources/css/site/app.scss`
+  + `resources/js/site/app.js`, Bootstrap 5 via `bootstrap`+`sass`).
+- **Marketing pages (Inc 1):** ported `site/layouts` + `elements` + `components` +
+  pages (home/services/about/contact ×3) from the legacy site; `Site/PageController`
+  + `Site/ContactController` (→ `ContactInquiry`, new `Marketing` context); stripped
+  login/Español + reCAPTCHA; GSAP scroll-reveal JS ported.
+- **Job board (Inc 2):** `Site/JobBoardController` → `/job-openings` (published only),
+  `JobPosting::locationName()`, graceful empty state, Apply → `/application/{slug}`.
+- **Application (Inc 3):** `Site/ApplicationController` + `StoreApplicationRequest` +
+  `SubmitApplication` (durable→Person applicant, event+attestations→JobApplication,
+  match-or-create by email, placeholder email, normalized phone).
+- **Seed/docs (Inc 4):** `SampleDataSeeder::seedRecruiting` (2 published + 1 draft
+  posting, 2 applications, 1 business lead); `20-domain/recruiting.md`; Domain README
+  += `Recruiting`/`Marketing`; roadmap.
+- **Tests:** `MarketingSiteTest` (10), `JobBoardTest` (3), `JobApplicationTest` (9).
+
+## Notes / follow-ups
+
+- The legacy hero video (`/media/downtown_dallas.mp4`, ~36 MB) is **not committed**
+  (repo bloat). The `<video>` degrades gracefully (empty) until hosted on CDN/S3.
+- Testimonials are not modelled yet — the home section is hidden when empty.
+- Spanish `/es/*` deferred; routes/views structured so it can be added later.
 
 ## Goal
 

@@ -15,6 +15,7 @@ use App\Domain\Inventory\Models\Category;
 use App\Domain\Inventory\Models\Item;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\SupplyRequest;
+use App\Domain\Marketing\Models\ContactInquiry;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Models\PersonExternalId;
@@ -25,6 +26,9 @@ use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Pto\Actions\EnsurePtoYear;
 use App\Domain\Pto\Actions\SubmitPtoRequest;
+use App\Domain\Recruiting\Actions\SubmitApplication;
+use App\Domain\Recruiting\Enums\JobPostingStatus;
+use App\Domain\Recruiting\Models\JobPosting;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
@@ -248,6 +252,80 @@ class SampleDataSeeder extends Seeder
             'check_in_at' => now()->subMinutes(20),
             'check_in_gps_lat' => 33.4484, 'check_in_gps_lng' => -112.0740, 'check_in_gps_status' => 'ok',
             'was_inside_geofence' => true,
+        ]);
+
+        $this->seedRecruiting($property, $recruiter);
+    }
+
+    /**
+     * Marketing recruiting (Phase 08b-i): published + draft job postings on the
+     * public job board, two submitted applications (one tied to a posting, via the
+     * real SubmitApplication path so applicant People are created), and a business
+     * contact lead.
+     */
+    private function seedRecruiting(Property $property, Person $recruiter): void
+    {
+        $housekeeperPosting = JobPosting::create([
+            'status' => JobPostingStatus::Published,
+            'title' => 'Housekeeper',
+            'slug' => 'housekeeper-phoenix',
+            'pay_range' => '$16 - $18 / hr',
+            'content' => 'Join our hospitality team cleaning guest rooms at a downtown Phoenix hotel. Reliable transportation a plus.',
+            'hour_start' => '08:00',
+            'hour_end' => '16:00',
+            'property_id' => $property->id,
+            'created_by' => $recruiter->id,
+        ]);
+
+        JobPosting::create([
+            'status' => JobPostingStatus::Published,
+            'title' => 'Banquet Server',
+            'slug' => 'banquet-server-phoenix',
+            'pay_range' => '$15 - $17 / hr',
+            'content' => 'Serve banquets and events; evening and weekend availability required.',
+            'hour_start' => '16:00',
+            'hour_end' => '23:00',
+            'property_id' => $property->id,
+            'created_by' => $recruiter->id,
+        ]);
+
+        JobPosting::create([
+            'status' => JobPostingStatus::Draft,
+            'title' => 'Public Area Attendant',
+            'slug' => 'public-area-attendant-phoenix',
+            'pay_range' => '$15 / hr',
+            'content' => 'Maintain lobby and public areas. (Draft — not yet published.)',
+            'location_label' => 'Phoenix, AZ',
+            'created_by' => $recruiter->id,
+        ]);
+
+        app(SubmitApplication::class)->handle([
+            'first_name' => 'Alex', 'last_name' => 'Applicant', 'email' => 'alex.applicant@example.com',
+            'phone' => '(602) 555-0301', 'address' => '500 W McDowell Rd', 'city' => 'Phoenix',
+            'state' => 'AZ', 'zip' => '85003', 'position' => 'Housekeeper', 'desired_salary' => '17',
+            'start_date' => now()->addWeek()->toDateString(), 'dob' => '1995-03-12',
+            'transportation' => '1', 'work_at_qcp' => '0', 'usa_citizen' => '1',
+            'another_staff_agency' => '0', 'convicted_felon' => '0',
+            'full_name' => 'Jordan Applicant', 'emergency_phone' => '(602) 555-0302',
+            'relationship' => 'Sibling', 'acknowledgement' => '1',
+        ], $housekeeperPosting);
+
+        app(SubmitApplication::class)->handle([
+            'first_name' => 'Taylor', 'last_name' => 'Seeker', 'email' => 'taylor.seeker@example.com',
+            'phone' => '(602) 555-0311', 'address' => '12 E Roosevelt St', 'city' => 'Phoenix',
+            'state' => 'AZ', 'zip' => '85004', 'position' => 'Banquet Server', 'desired_salary' => '16',
+            'start_date' => now()->addWeeks(2)->toDateString(), 'dob' => '1998-07-22',
+            'transportation' => '0', 'work_at_qcp' => '1', 'work_at_qcp_explain' => 'Summer 2024',
+            'usa_citizen' => '1', 'another_staff_agency' => '1', 'non_complete' => 'No',
+            'convicted_felon' => '0', 'acknowledgement' => '1',
+        ]);
+
+        ContactInquiry::create([
+            'type' => 'business',
+            'first_name' => 'Morgan', 'last_name' => 'Hotelier',
+            'email' => 'morgan@grandhotel.example', 'phone' => '(602) 555-0400',
+            'company' => 'Grand Hotel Phoenix', 'inquiry_type' => 'Looking to Hire for Team',
+            'message' => 'We need housekeeping coverage for the summer season.',
         ]);
     }
 

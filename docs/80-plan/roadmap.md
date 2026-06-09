@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Living document — updates as we build |
-| Last updated | 2026-06-08 (through Phase 08a) |
+| Last updated | 2026-06-08 (through Phase 08b-i) |
 | Owner | Product + Engineering |
 
 The phase sequence for building the new unified system. Each phase is a coherent deliverable. Phases ship in order — later phases depend on earlier ones.
@@ -21,7 +21,7 @@ Estimates are calendar-week ranges assuming one engineer working steadily. Adjus
 | 05 | Import flow | 1-2 weeks | ✅ Done (see `phase-05-import.md`) |
 | 06 | Dashboards | 2-3 weeks | ✅ Done (see `phase-06-dashboards.md`) |
 | 07 | Field check-in flows (recruiter + contractor QR) | 2-3 weeks | ✅ Done — 07a contractor QR (`phase-07a-contractor-clock-in.md`) + 07b recruiter visits (`phase-07b-recruiter-visits.md`) + 07c tablet/Sanctum device (`phase-07c-tablet-clock-in.md`) |
-| 08 | KB + Applicants + Job postings + PTO | 3-4 weeks | 🚧 08a PTO ✅ (`phase-08a-pto.md`); 08b applicants + job postings, 08c KB pending |
+| 08 | KB + Applicants + Job postings + PTO | 3-4 weeks | 🚧 08a PTO ✅ (`phase-08a-pto.md`); 08b-i marketing site + public job board + applications ✅ (`phase-08b-i-marketing-applications.md`); 08b-ii back-office recruiting (job-posting CRUD, applicant review, promote + onboarding) + 08c KB pending |
 | 09 | Reports + materialized rollups + exports | 2-3 weeks | Not started |
 | 10 | Cutover: data migration + parallel run + retire legacy | 3-4 weeks | Not started |
 
