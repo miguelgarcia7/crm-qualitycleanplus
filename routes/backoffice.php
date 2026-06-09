@@ -10,6 +10,7 @@ use App\Http\Controllers\FieldVisitController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\MoreStaffController;
 use App\Http\Controllers\PayIncreaseController;
 use App\Http\Controllers\PropertyAssignmentController;
@@ -101,6 +102,14 @@ Route::post('pto/adjust', [PtoController::class, 'adjust'])->middleware('can:pto
 Route::post('pto/{ptoRequest}/approve', [PtoController::class, 'approve'])->name('backoffice.pto.approve');
 Route::post('pto/{ptoRequest}/reject', [PtoController::class, 'reject'])->name('backoffice.pto.reject');
 Route::post('pto/{ptoRequest}/cancel', [PtoController::class, 'cancel'])->name('backoffice.pto.cancel');
+
+// Job postings — manage the public job board (Phase 08b-ii)
+Route::get('job-postings', [JobPostingController::class, 'index'])->name('backoffice.job-postings.index');
+Route::post('job-postings', [JobPostingController::class, 'store'])->name('backoffice.job-postings.store');
+Route::match(['put', 'patch'], 'job-postings/{posting}', [JobPostingController::class, 'update'])->name('backoffice.job-postings.update');
+Route::post('job-postings/{posting}/publish', [JobPostingController::class, 'publish'])->name('backoffice.job-postings.publish');
+Route::post('job-postings/{posting}/close', [JobPostingController::class, 'close'])->name('backoffice.job-postings.close');
+Route::delete('job-postings/{posting}', [JobPostingController::class, 'destroy'])->name('backoffice.job-postings.destroy');
 
 // Front-desk tablet devices — management (Phase 07c, ADR-0017)
 Route::get('devices', [DeviceController::class, 'index'])->middleware('can:devices.manage')->name('backoffice.devices.index');
