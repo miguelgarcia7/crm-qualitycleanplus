@@ -6,11 +6,13 @@ use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\Inventory\Models\ContractorChargeSchedule;
 use App\Domain\Inventory\Models\ContractorChargeScheduleEntry;
 use App\Domain\People\Concerns\HasLegalHold;
+use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,6 +32,10 @@ use Spatie\Permission\Traits\HasRoles;
  * independent of status. See ADR-0004 and 20-domain/people-lifecycle.md.
  *
  * @property PersonStatus $status
+ * @property BackgroundCheckStatus|null $background_check_status
+ * @property CarbonImmutable|null $background_check_completed_at
+ * @property CarbonImmutable|null $i9_verified_at
+ * @property array<int, string>|null $onboarding_waived_items
  */
 class Person extends Authenticatable
 {
@@ -65,6 +71,21 @@ class Person extends Authenticatable
         'emergency_contact_phone',
         'emergency_contact_relationship',
         'emergency_contact_address',
+        'id_front_file_id',
+        'id_front_uploaded_at',
+        'id_back_file_id',
+        'id_back_uploaded_at',
+        'i9_file_id',
+        'i9_uploaded_at',
+        'i9_verified_by',
+        'i9_verified_at',
+        'w9_file_id',
+        'w9_uploaded_at',
+        'contractor_agreement_file_id',
+        'contractor_agreement_signed_at',
+        'background_check_status',
+        'background_check_completed_at',
+        'onboarding_waived_items',
     ];
 
     /**
@@ -94,6 +115,15 @@ class Person extends Authenticatable
             'dob' => 'date',
             'usa_citizen' => 'boolean',
             'eligible_to_work' => 'boolean',
+            'id_front_uploaded_at' => 'datetime',
+            'id_back_uploaded_at' => 'datetime',
+            'i9_uploaded_at' => 'datetime',
+            'i9_verified_at' => 'datetime',
+            'w9_uploaded_at' => 'datetime',
+            'contractor_agreement_signed_at' => 'datetime',
+            'background_check_status' => BackgroundCheckStatus::class,
+            'background_check_completed_at' => 'datetime',
+            'onboarding_waived_items' => 'array',
             'legal_hold' => 'boolean',
             'legal_hold_set_at' => 'datetime',
             'is_anonymized' => 'boolean',

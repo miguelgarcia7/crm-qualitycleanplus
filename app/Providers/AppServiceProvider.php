@@ -15,6 +15,10 @@ use App\Domain\PropertyBible\Policies\ContractPolicy;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Pto\Models\PtoRequest;
 use App\Domain\Pto\Policies\PtoRequestPolicy;
+use App\Domain\Recruiting\Models\JobApplication;
+use App\Domain\Recruiting\Models\JobPosting;
+use App\Domain\Recruiting\Policies\JobApplicationPolicy;
+use App\Domain\Recruiting\Policies\JobPostingPolicy;
 use App\Domain\Workflows\Definitions\WorkflowRegistry;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
@@ -71,6 +75,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(WorkflowStep::class, WorkflowPolicy::class);
         Gate::policy(PtoRequest::class, PtoRequestPolicy::class);
+        Gate::policy(JobPosting::class, JobPostingPolicy::class);
+        Gate::policy(JobApplication::class, JobApplicationPolicy::class);
 
         $this->registerWorkflows();
 

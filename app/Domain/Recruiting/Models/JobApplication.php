@@ -47,6 +47,11 @@ class JobApplication extends Model
         'acknowledgement',
         'status',
         'submitted_at',
+        'reviewed_by',
+        'reviewed_at',
+        'rejected_reason',
+        'promoted_by',
+        'promoted_at',
     ];
 
     /**
@@ -58,6 +63,8 @@ class JobApplication extends Model
             'status' => JobApplicationStatus::class,
             'desired_start_date' => 'date',
             'submitted_at' => 'datetime',
+            'reviewed_at' => 'datetime',
+            'promoted_at' => 'datetime',
             'transportation' => 'boolean',
             'work_at_qcp' => 'boolean',
             'another_staff_agency' => 'boolean',
@@ -80,6 +87,14 @@ class JobApplication extends Model
     public function jobPosting(): BelongsTo
     {
         return $this->belongsTo(JobPosting::class);
+    }
+
+    /**
+     * @return BelongsTo<Person, $this>
+     */
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'reviewed_by');
     }
 
     /**
