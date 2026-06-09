@@ -9,6 +9,7 @@ use App\Domain\People\Concerns\HasLegalHold;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
+use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,6 +53,18 @@ class Person extends Authenticatable
         'terminated_at',
         'hire_date',
         'primary_recruiter_id',
+        'dob',
+        'address',
+        'apartment_number',
+        'city',
+        'state',
+        'zip',
+        'usa_citizen',
+        'eligible_to_work',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relationship',
+        'emergency_contact_address',
     ];
 
     /**
@@ -78,6 +91,9 @@ class Person extends Authenticatable
             'converted_to_contractor_at' => 'datetime',
             'terminated_at' => 'datetime',
             'hire_date' => 'date',
+            'dob' => 'date',
+            'usa_citizen' => 'boolean',
+            'eligible_to_work' => 'boolean',
             'legal_hold' => 'boolean',
             'legal_hold_set_at' => 'datetime',
             'is_anonymized' => 'boolean',
@@ -161,6 +177,16 @@ class Person extends Authenticatable
     public function externalIds(): HasMany
     {
         return $this->hasMany(PersonExternalId::class);
+    }
+
+    /**
+     * Job applications this person submitted (Phase 08b-i).
+     *
+     * @return HasMany<JobApplication, $this>
+     */
+    public function jobApplications(): HasMany
+    {
+        return $this->hasMany(JobApplication::class);
     }
 
     /**

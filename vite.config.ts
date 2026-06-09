@@ -8,7 +8,13 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/js/admin/app.tsx'],
+            input: [
+                'resources/js/admin/app.tsx',
+                // Marketing surface (qualitycleanplus.com "/") — its own Bootstrap
+                // bundle, separate from the admin Tailwind/React bundle (ADR-0023).
+                'resources/css/site/app.scss',
+                'resources/js/site/app.js',
+            ],
             ssr: 'resources/js/admin/ssr.tsx',
             refresh: true,
         }),

@@ -16,6 +16,12 @@ enum PersonStatus: string
     case StaffActive = 'staff_active';
     case StaffInactive = 'staff_inactive';
 
+    /** Has applied but not yet promoted to contractor. */
+    public function isApplicant(): bool
+    {
+        return $this === self::Applicant;
+    }
+
     /** Contractor-side statuses. */
     public function isContractor(): bool
     {

@@ -1,0 +1,5 @@
+// QCP marketing site styles (Phase 08b-i) — server-rendered Blade surface on
+// qualitycleanplus.com (ADR-0023). Its own bundle, separate from the admin
+// (Tailwind) bundle. Bootstrap 5 base; the legacy site partials (variables,
+// fonts, cards, page styles) are ported in Increment 1.
+@import "bootstrap/scss/bootstrap";
