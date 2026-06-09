@@ -28,6 +28,12 @@ Route::domain(config('domains.qcminute'))
     ->middleware('throttle:30,1')
     ->group(base_path('routes/clock-in.php'));
 
+// Front-desk tablet kiosk (Phase 07c) — paired via Sanctum device token; throttled.
+Route::domain(config('domains.qcminute'))
+    ->prefix('device')
+    ->middleware('throttle:60,1')
+    ->group(base_path('routes/device.php'));
+
 Route::domain(config('domains.qcminute'))
     ->middleware(['auth', AllowedOnQcMinute::class])
     ->group(base_path('routes/qcminute.php'));

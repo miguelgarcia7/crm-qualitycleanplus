@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Tablet kiosk clock APIs authenticate by Sanctum device token, not a
+        // session — exclude them from CSRF (Phase 07c).
+        $middleware->validateCsrfTokens(except: ['device/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

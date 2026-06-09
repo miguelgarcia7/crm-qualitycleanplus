@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\People\Models\Person;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,7 +36,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
+        // Only Person users carry roles/permissions; a tablet Device (device guard)
+        // authenticates the kiosk JSON APIs and must not be treated as an Inertia user.
+        $user = $request->user() instanceof Person ? $request->user() : null;
 
         return [
             ...parent::share($request),

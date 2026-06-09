@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Adjustments\Actions\CreateManualAdjustment;
+use App\Domain\Devices\Models\Device;
 use App\Domain\FieldVisits\Enums\FieldVisitStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\Imports\Actions\CommitImport;
@@ -210,6 +211,14 @@ class SampleDataSeeder extends Seeder
             'changes' => ['phone' => '(602) 555-0148'],
             'reason' => 'New cell number.',
             'requested_by' => $contractors[1]->id,
+        ]);
+
+        // A front-desk tablet for the property, ready to pair (Phase 07c).
+        Device::create([
+            'property_id' => $property->id,
+            'name' => 'Front Desk Tablet',
+            'activation_code' => 'QCP123',
+            'created_by' => $recruiter->id,
         ]);
 
         // An import-only property with one committed weekly hour import (Phase 05).

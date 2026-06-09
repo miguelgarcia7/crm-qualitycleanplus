@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Devices\Models\Device;
 use App\Domain\People\Models\Person;
 
 return [
@@ -42,6 +43,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Front-desk tablet kiosk — Sanctum token bound to a Device (Phase 07c).
+        'device' => [
+            'driver' => 'sanctum',
+            'provider' => 'devices',
+        ],
     ],
 
     /*
@@ -67,10 +74,10 @@ return [
             'model' => env('AUTH_MODEL', Person::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'devices' => [
+            'driver' => 'eloquent',
+            'model' => Device::class,
+        ],
     ],
 
     /*

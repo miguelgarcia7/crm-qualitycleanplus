@@ -35,6 +35,7 @@ export const menuItems: MenuItemType[] = [
       { url: '/admin/pay-increases', slug: 'pay-increases', label: 'Pay Increases', icon: 'trending-up', permission: 'workflows.pay_increase.initiate' },
       { url: '/admin/terminations', slug: 'terminations', label: 'Terminations', icon: 'user-circle', permission: 'workflows.termination.initiate' },
       { url: '/admin/field-visits', slug: 'field-visits', label: 'Field Visits', icon: 'map-pin', permission: 'field_visits.view_own' },
+      { url: '/admin/devices', slug: 'devices', label: 'Devices', icon: 'tablet', permission: 'devices.manage' },
       { url: '/admin/staffing-requests', slug: 'staffing-requests', label: 'Staffing Requests', icon: 'user-circle', permission: 'workflows.more_staff.fulfill' },
       { url: '/admin/info-changes', slug: 'info-changes', label: 'Info Changes', icon: 'user-circle', permission: 'workflows.change_personal_info.verify' },
       { url: '#', slug: 'workflows', label: 'Workflows', icon: 'sitemap', permission: 'workflows.pto.initiate', isDisabled: true, badge: soon },

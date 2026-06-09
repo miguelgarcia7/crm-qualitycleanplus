@@ -15,7 +15,7 @@ use Illuminate\Http\UploadedFile;
  * the now-billable hours flow into time summaries / invoicing. Geofence is not
  * enforced on clock-out (the contractor is leaving).
  *
- * @phpstan-type ClockData array{lat: float, lng: float, accuracy?: int|null, selfie: UploadedFile}
+ * @phpstan-type ClockData array{lat?: float|null, lng?: float|null, accuracy?: int|null, selfie?: UploadedFile|null}
  */
 class ClockOutContractor
 {
@@ -31,12 +31,14 @@ class ClockOutContractor
         $entry->update([
             'end_at_utc' => $end,
             'duration_minutes' => $duration,
-            'clock_out_gps_lat' => $data['lat'],
-            'clock_out_gps_lng' => $data['lng'],
+            'clock_out_gps_lat' => $data['lat'] ?? null,
+            'clock_out_gps_lng' => $data['lng'] ?? null,
             'clock_out_gps_accuracy_meters' => $data['accuracy'] ?? null,
         ]);
 
-        $entry->update(['clock_out_selfie_file_id' => StoreSelfie::for($data['selfie'], $entry, $entry->person_id)->id]);
+        if (isset($data['selfie'])) {
+            $entry->update(['clock_out_selfie_file_id' => StoreSelfie::for($data['selfie'], $entry, $entry->person_id)->id]);
+        }
 
         RecomputeTimeSummary::dispatchSync($entry->work_order_id, $entry->payroll_period_id);
 

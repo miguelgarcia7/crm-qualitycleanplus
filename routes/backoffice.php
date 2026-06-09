@@ -4,6 +4,7 @@ use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\EquipmentAssignmentController;
 use App\Http\Controllers\FieldVisitController;
 use App\Http\Controllers\ImportController;
@@ -91,6 +92,12 @@ Route::get('info-changes', [ChangePersonalInfoController::class, 'index'])->name
 Route::post('info-changes', [ChangePersonalInfoController::class, 'store'])->name('backoffice.info-changes.store');
 Route::post('info-changes/{workflow}/approve', [ChangePersonalInfoController::class, 'approve'])->name('backoffice.info-changes.approve');
 Route::post('info-changes/{workflow}/decline', [ChangePersonalInfoController::class, 'decline'])->name('backoffice.info-changes.decline');
+
+// Front-desk tablet devices — management (Phase 07c, ADR-0017)
+Route::get('devices', [DeviceController::class, 'index'])->middleware('can:devices.manage')->name('backoffice.devices.index');
+Route::post('devices', [DeviceController::class, 'store'])->middleware('can:devices.manage')->name('backoffice.devices.store');
+Route::post('devices/{device}/regenerate', [DeviceController::class, 'regenerate'])->middleware('can:devices.manage')->name('backoffice.devices.regenerate');
+Route::delete('devices/{device}', [DeviceController::class, 'destroy'])->middleware('can:devices.manage')->name('backoffice.devices.destroy');
 
 // Recruiter field visits — check-in/out + history (Phase 07b, ADR-0017)
 Route::get('field-visits', [FieldVisitController::class, 'index'])->name('backoffice.field-visits.index');

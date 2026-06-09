@@ -19,16 +19,18 @@ use Illuminate\Validation\ValidationException;
  * the property geofence (blocking — anti-fraud), requires a selfie, snapshots the
  * work order's rates, and leaves the entry open (no end / duration) until clock-out.
  *
- * @phpstan-type ClockData array{lat: float, lng: float, accuracy?: int|null, selfie: UploadedFile}
+ * @phpstan-type ClockData array{lat?: float|null, lng?: float|null, accuracy?: int|null, selfie: UploadedFile}
  */
 class ClockInContractor
 {
     /**
      * @param  ClockData  $data
      */
-    public function handle(WorkOrder $workOrder, array $data): TimeEntry
+    public function handle(WorkOrder $workOrder, array $data, string $clockMethod = 'qr', bool $enforceGeofence = true): TimeEntry
     {
         $property = $workOrder->property;
+        $lat = $data['lat'] ?? null;
+        $lng = $data['lng'] ?? null;
 
         if (TimeEntry::query()->where('person_id', $workOrder->person_id)->whereNull('end_at_utc')->exists()) {
             throw ValidationException::withMessages([
@@ -36,8 +38,8 @@ class ClockInContractor
             ]);
         }
 
-        if (! Geofence::contains($property, $data['lat'], $data['lng'])) {
-            $distance = Geofence::distanceToProperty($property, $data['lat'], $data['lng']);
+        if ($enforceGeofence && ($lat === null || $lng === null || ! Geofence::contains($property, $lat, $lng))) {
+            $distance = $lat !== null && $lng !== null ? Geofence::distanceToProperty($property, $lat, $lng) : null;
             throw ValidationException::withMessages([
                 'gps' => $distance === null
                     ? 'This property has no location configured yet — clock-in is unavailable.'
@@ -54,7 +56,7 @@ class ClockInContractor
             'property_id' => $workOrder->property_id,
             'payroll_period_id' => $period->id,
             'source' => TimeEntrySource::ClockEvent,
-            'clock_method' => 'qr',
+            'clock_method' => $clockMethod,
             'entry_type' => TimeEntryType::Work,
             'start_at_utc' => $now,
             'timezone' => $property->timezone,
@@ -62,8 +64,8 @@ class ClockInContractor
             'bill_rate_snapshot' => $workOrder->bill_rate,
             'ot_pay_rate_snapshot' => $workOrder->ot_pay_rate,
             'ot_bill_rate_snapshot' => $workOrder->ot_bill_rate,
-            'clock_in_gps_lat' => $data['lat'],
-            'clock_in_gps_lng' => $data['lng'],
+            'clock_in_gps_lat' => $lat,
+            'clock_in_gps_lng' => $lng,
             'clock_in_gps_accuracy_meters' => $data['accuracy'] ?? null,
         ]);
 
