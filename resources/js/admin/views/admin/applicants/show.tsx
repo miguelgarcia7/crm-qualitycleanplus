@@ -384,6 +384,9 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
             </div>
           </div>
 
+        </div>
+
+        <div className="space-y-6 xl:col-span-2">
           <div className="card">
             <div className="card-header">
               <h4 className="card-title">Onboarding Checklist</h4>
@@ -417,9 +420,7 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
               </p>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-6 xl:col-span-2">
           <div className="card">
             <div className="card-header">
               <h4 className="card-title">Application Details</h4>
