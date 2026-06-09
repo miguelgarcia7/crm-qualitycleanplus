@@ -13,6 +13,8 @@ use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\ContractPolicy;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Domain\Pto\Models\PtoRequest;
+use App\Domain\Pto\Policies\PtoRequestPolicy;
 use App\Domain\Workflows\Definitions\WorkflowRegistry;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
@@ -68,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Timesheet::class, TimesheetPolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(WorkflowStep::class, WorkflowPolicy::class);
+        Gate::policy(PtoRequest::class, PtoRequestPolicy::class);
 
         $this->registerWorkflows();
 

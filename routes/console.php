@@ -2,6 +2,7 @@
 
 use App\Console\Commands\ContractExpirationCheck;
 use App\Console\Commands\EnsurePayrollPeriods;
+use App\Console\Commands\ProcessPtoTenureCrossings;
 use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\WorkOrders\Jobs\ProcessTemporaryAssignmentEnds;
 use Illuminate\Foundation\Inspiring;
@@ -23,3 +24,6 @@ Schedule::job(new ApplyScheduledContractorCharges)->dailyAt('00:30');
 
 // Work orders — close temporary assignments when their window ends (ADR-0019).
 Schedule::job(new ProcessTemporaryAssignmentEnds)->dailyAt('00:45');
+
+// PTO — tier crossings + anniversary refreshes for active staff (ADR-0016).
+Schedule::command(ProcessPtoTenureCrossings::class)->dailyAt('01:00');

@@ -32,6 +32,7 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `Dashboards` | Role-aware dashboard read service (Phase 06): `DashboardMetrics` assembles property-scoped stat/list/chart widgets from across contexts for the back office + QC Minute PM landing pages |
 | `FieldVisits` | Recruiter visit check-in/out (Phase 07b, ADR-0017): `FieldVisit` + `CheckInRecruiter`/`CheckOutRecruiter` (GPS + selfie, informational geofence, forgot-to-check-out) — accountability logging, not billable time |
 | `Devices` | Front-desk tablet kiosk (Phase 07c, ADR-0017): `Device` (Sanctum-paired to a property) + `ActivateDevice`; the kiosk reuses the Time clock actions (`clock_method=tablet`, no geofence) |
+| `Pto` | W-2 PTO (Phase 08a, ADR-0016): tier-based accrual on hire-anniversary cycles, three buckets, deduct-on-submission, HR self-approval guardrail; `PtoYearAllotment`/`PtoGrant`/`PtoRequest`, `PtoTenure`, `ProcessPtoTenureCrossings` daily job |
 | `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model) |
 
 Added as their phases land: `Reporting`, …

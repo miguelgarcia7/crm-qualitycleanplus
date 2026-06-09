@@ -16,6 +16,7 @@ use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
 use App\Http\Controllers\PropertyPositionRateController;
+use App\Http\Controllers\PtoController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\StockController;
@@ -92,6 +93,14 @@ Route::get('info-changes', [ChangePersonalInfoController::class, 'index'])->name
 Route::post('info-changes', [ChangePersonalInfoController::class, 'store'])->name('backoffice.info-changes.store');
 Route::post('info-changes/{workflow}/approve', [ChangePersonalInfoController::class, 'approve'])->name('backoffice.info-changes.approve');
 Route::post('info-changes/{workflow}/decline', [ChangePersonalInfoController::class, 'decline'])->name('backoffice.info-changes.decline');
+
+// PTO — Time Off balances, requests, approval, adjustments (Phase 08a, ADR-0016)
+Route::get('pto', [PtoController::class, 'index'])->middleware('can:pto.balances.view_own')->name('backoffice.pto.index');
+Route::post('pto', [PtoController::class, 'store'])->middleware('can:workflows.pto.initiate')->name('backoffice.pto.store');
+Route::post('pto/adjust', [PtoController::class, 'adjust'])->middleware('can:pto.balances.adjust_manual')->name('backoffice.pto.adjust');
+Route::post('pto/{ptoRequest}/approve', [PtoController::class, 'approve'])->name('backoffice.pto.approve');
+Route::post('pto/{ptoRequest}/reject', [PtoController::class, 'reject'])->name('backoffice.pto.reject');
+Route::post('pto/{ptoRequest}/cancel', [PtoController::class, 'cancel'])->name('backoffice.pto.cancel');
 
 // Front-desk tablet devices — management (Phase 07c, ADR-0017)
 Route::get('devices', [DeviceController::class, 'index'])->middleware('can:devices.manage')->name('backoffice.devices.index');

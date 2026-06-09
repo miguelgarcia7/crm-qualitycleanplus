@@ -15,6 +15,9 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Domain\Pto\Enums\PtoBucket;
+use App\Domain\Pto\Models\PtoRequest;
+use App\Domain\Pto\Models\PtoYearAllotment;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeSummary;
@@ -53,6 +56,30 @@ class DashboardMetrics
             'icon' => 'checklist',
             'href' => '/admin/tasks',
         ];
+
+        if ($user->status->isStaff() && $user->can('pto.balances.view_own')) {
+            $allotment = PtoYearAllotment::query()->where('person_id', $user->id)
+                ->where('status', 'open')->latest('year_start')->first();
+            if ($allotment !== null) {
+                $stats[] = [
+                    'title' => 'PTO available (vacation)',
+                    'value' => $allotment->availableFor(PtoBucket::Vacation),
+                    'suffix' => 'h',
+                    'icon' => 'calendar',
+                    'href' => '/admin/pto',
+                ];
+            }
+        }
+
+        if ($user->can('workflows.pto.approve')) {
+            $stats[] = [
+                'title' => 'PTO to approve',
+                'value' => PtoRequest::query()->pending()->count(),
+                'icon' => 'checklist',
+                'href' => '/admin/pto',
+                'tone' => 'warning',
+            ];
+        }
 
         if ($user->hasRole('recruiter')) {
             $this->recruiterWidgets($user, $propertyIds, $stats, $lists, $charts);

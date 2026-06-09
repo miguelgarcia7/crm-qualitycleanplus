@@ -23,6 +23,8 @@ use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Pto\Actions\EnsurePtoYear;
+use App\Domain\Pto\Actions\SubmitPtoRequest;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
@@ -73,7 +75,7 @@ class SampleDataSeeder extends Seeder
         // Recruiter who owns this property.
         $recruiter = Person::firstOrCreate(
             ['email' => 'recruiter@example.com'],
-            ['name' => 'Rita Recruiter', 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now()],
+            ['name' => 'Rita Recruiter', 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now(), 'hire_date' => now()->subMonths(14)->toDateString()],
         );
         $recruiter->syncRoles('recruiter');
         $property->assignments()->firstOrCreate(
@@ -211,6 +213,16 @@ class SampleDataSeeder extends Seeder
             'changes' => ['phone' => '(602) 555-0148'],
             'reason' => 'New cell number.',
             'requested_by' => $contractors[1]->id,
+        ]);
+
+        // PTO — open allotment + one pending request for the recruiter (Phase 08a).
+        app(EnsurePtoYear::class)->handle($recruiter);
+        app(SubmitPtoRequest::class)->handle($recruiter, [
+            'bucket' => 'vacation',
+            'start_date' => now()->addWeeks(3)->toDateString(),
+            'end_date' => now()->addWeeks(3)->addDay()->toDateString(),
+            'hours' => 16,
+            'reason' => 'Family trip',
         ]);
 
         // A front-desk tablet for the property, ready to pair (Phase 07c).
