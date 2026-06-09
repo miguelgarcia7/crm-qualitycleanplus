@@ -141,11 +141,11 @@ const Page = ({ postings, properties }: Props) => {
           return (
             <div className="flex justify-center gap-1.5">
               {p.status !== 'published' ? (
-                <button className="btn btn-sm btn-soft-success" onClick={() => publish(p)}>
+                <button className="btn btn-sm bg-success/15 text-success hover:bg-success hover:text-white" onClick={() => publish(p)}>
                   Publish
                 </button>
               ) : (
-                <button className="btn btn-sm btn-soft-secondary" onClick={() => close(p)}>
+                <button className="btn btn-sm bg-secondary/15 text-secondary hover:bg-secondary hover:text-white" onClick={() => close(p)}>
                   Close
                 </button>
               )}

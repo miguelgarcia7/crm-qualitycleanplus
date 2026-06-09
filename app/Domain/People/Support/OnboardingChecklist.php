@@ -29,7 +29,7 @@ class OnboardingChecklist
     /**
      * Per-item status for the checklist UI.
      *
-     * @return list<array{key: string, label: string, complete: bool, waived: bool, completed_at: string|null, file_id: int|null, needs_verification: bool, verified: bool}>
+     * @return list<array{key: string, label: string, complete: bool, waived: bool, completed_at: string|null, file_id: int|null, needs_verification: bool, verified: bool, background_status: string|null}>
      */
     public static function status(Person $person): array
     {
@@ -51,6 +51,7 @@ class OnboardingChecklist
                 'file_id' => is_numeric($fileId) ? (int) $fileId : null,
                 'needs_verification' => $key === 'i9',
                 'verified' => $key === 'i9' && $person->i9_verified_at !== null,
+                'background_status' => null,
             ];
         }
 
@@ -64,6 +65,7 @@ class OnboardingChecklist
             'file_id' => null,
             'needs_verification' => false,
             'verified' => false,
+            'background_status' => $background?->value,
         ];
 
         return $items;

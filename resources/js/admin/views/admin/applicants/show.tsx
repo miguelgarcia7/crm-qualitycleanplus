@@ -13,6 +13,7 @@ type ChecklistItem = {
   file_id: number | null
   needs_verification: boolean
   verified: boolean
+  background_status: string | null
 }
 
 type Props = {
@@ -92,9 +93,32 @@ const FactRow = ({ icon, label, children }: { icon: string; label: string; child
   </div>
 )
 
+/** Status chip per checklist state — tint pattern from the theme's tables. */
+const checklistStatus = (item: ChecklistItem): { label: string; cls: string } => {
+  if (item.key === 'background_check') {
+    switch (item.background_status) {
+      case 'passed':
+        return { label: 'Passed', cls: 'bg-success/15 text-success' }
+      case 'failed':
+        return { label: 'Failed', cls: 'bg-danger/15 text-danger' }
+      case 'pending':
+        return { label: 'In progress', cls: 'bg-info/15 text-info' }
+      case 'not_required':
+        return { label: 'Not required', cls: 'bg-secondary/15 text-secondary' }
+    }
+  }
+  if (item.complete) return { label: 'Complete', cls: 'bg-success/15 text-success' }
+  if (item.waived) return { label: 'Waived', cls: 'bg-secondary/15 text-secondary' }
+  if (item.needs_verification && item.file_id !== null && !item.verified) {
+    return { label: 'Awaiting verification', cls: 'bg-info/15 text-info' }
+  }
+  return { label: 'Pending', cls: 'bg-warning/15 text-warning' }
+}
+
 const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number; can: Props['can'] }) => {
   const fileInput = useRef<HTMLInputElement>(null)
   const isDocument = item.key !== 'background_check'
+  const status = checklistStatus(item)
 
   const upload = (file: File | undefined) => {
     if (!file) return
@@ -103,61 +127,93 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
   const verify = () => router.post(`/admin/applicants/${appId}/onboarding/i9/verify`, {}, { preserveScroll: true })
   const toggleWaive = () =>
     router.post(`/admin/applicants/${appId}/onboarding/${item.key}/waive`, { waived: !item.waived }, { preserveScroll: true })
+  const setBackground = (value: string) =>
+    value && router.post(`/admin/applicants/${appId}/background-check`, { status: value }, { preserveScroll: true })
 
   return (
-    <li className="flex flex-wrap items-center gap-2 py-2.5">
-      <span className={`size-2.5 shrink-0 rounded-full ${item.complete ? 'bg-success' : item.waived ? 'bg-warning' : 'bg-default-300'}`} />
-      <span className="grow text-sm">
-        {item.label}
-        {item.needs_verification && item.file_id !== null && (
-          <span className={`ms-2 text-xs ${item.verified ? 'text-success' : 'text-warning'}`}>
-            {item.verified ? 'verified' : 'awaiting verification'}
-          </span>
-        )}
-        {item.waived && <span className="text-warning ms-2 text-xs">waived</span>}
+    <tr>
+      <td>
+        <span className="font-medium">{item.label}</span>
         {item.completed_at && <div className="text-default-400 text-xs">{item.completed_at}</div>}
-      </span>
-
-      <span className="flex shrink-0 items-center gap-1.5">
-        {isDocument && item.file_id !== null && (
-          <a
-            className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
-            href={`/admin/applicants/${appId}/onboarding/${item.key}/download`}
-            title="View document"
-          >
-            <Icon icon="eye" className="text-base" />
-          </a>
-        )}
-        {isDocument && can.edit_checklist && (
-          <>
-            <input
-              ref={fileInput}
-              type="file"
-              className="hidden"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
-              onChange={(e) => upload(e.target.files?.[0])}
-            />
-            <button
+      </td>
+      <td>
+        <span className={cn('badge badge-label', status.cls)}>{status.label}</span>
+      </td>
+      <td>
+        <div className="flex justify-end gap-1.5">
+          {isDocument && item.file_id !== null && (
+            <a
               className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
-              onClick={() => fileInput.current?.click()}
-              title={item.file_id ? 'Replace document' : 'Upload document'}
+              href={`/admin/applicants/${appId}/onboarding/${item.key}/download`}
+              title="View document"
             >
-              <Icon icon="cloud-upload" className="text-base" />
+              <Icon icon="eye" className="text-base" />
+            </a>
+          )}
+          {isDocument && can.edit_checklist && (
+            <>
+              <input
+                ref={fileInput}
+                type="file"
+                className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+                onChange={(e) => upload(e.target.files?.[0])}
+              />
+              {item.file_id === null ? (
+                <button
+                  className="btn btn-icon btn-sm bg-primary hover:bg-primary-hover size-8 rounded-full text-white"
+                  onClick={() => fileInput.current?.click()}
+                  title="Upload document"
+                >
+                  <Icon icon="cloud-upload" className="text-base" />
+                </button>
+              ) : (
+                <button
+                  className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                  onClick={() => fileInput.current?.click()}
+                  title="Replace document"
+                >
+                  <Icon icon="cloud-upload" className="text-base" />
+                </button>
+              )}
+            </>
+          )}
+          {item.key === 'i9' && can.edit_checklist && item.file_id !== null && !item.verified && (
+            <button
+              className="btn btn-icon btn-sm bg-success hover:bg-success-hover size-8 rounded-full text-white"
+              onClick={verify}
+              title="Verify I-9"
+            >
+              <Icon icon="check" className="text-base" />
             </button>
-          </>
-        )}
-        {item.key === 'i9' && can.edit_checklist && item.file_id !== null && !item.verified && (
-          <button className="btn btn-sm btn-soft-success" onClick={verify}>
-            Verify
-          </button>
-        )}
-        {can.waive && !item.complete && (
-          <button className="btn btn-sm btn-soft-warning" onClick={toggleWaive}>
-            {item.waived ? 'Unwaive' : 'Waive'}
-          </button>
-        )}
-      </span>
-    </li>
+          )}
+          {item.key === 'background_check' && can.edit_checklist && (
+            <select
+              className="form-select w-auto py-1 text-sm"
+              value={item.background_status ?? ''}
+              onChange={(e) => setBackground(e.target.value)}
+            >
+              <option value="" disabled>
+                Set status…
+              </option>
+              <option value="not_required">Not required</option>
+              <option value="pending">In progress</option>
+              <option value="passed">Passed</option>
+              <option value="failed">Failed</option>
+            </select>
+          )}
+          {can.waive && !item.complete && (
+            <button
+              className="btn btn-sm bg-warning/15 text-warning hover:bg-warning hover:text-white"
+              onClick={toggleWaive}
+              title={item.waived ? 'Remove the waiver' : 'Waive this requirement (HR)'}
+            >
+              {item.waived ? 'Unwaive' : 'Waive'}
+            </button>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }
 
@@ -216,12 +272,12 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
           </button>
         )}
         {can.reverse && app.status === 'promoted' && !person.has_work_orders && (
-          <button className="btn btn-sm btn-soft-danger" onClick={reverse}>
+          <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={reverse}>
             Reverse promotion
           </button>
         )}
         {can.review && isPending && (
-          <button className="btn btn-sm btn-soft-danger" onClick={() => setShowReject((v) => !v)}>
+          <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => setShowReject((v) => !v)}>
             Reject…
           </button>
         )}
@@ -337,34 +393,26 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
                 <span className="badge badge-label bg-warning/15 text-warning">Incomplete</span>
               )}
             </div>
-            <div className="card-body">
-              <ul className="divide-default-200 divide-y">
-                {checklist.map((item) => (
-                  <ChecklistRow key={item.key} item={item} appId={app.id} can={can} />
-                ))}
-              </ul>
 
-              {can.edit_checklist && (
-                <div className="border-default-200 mt-3 border-t pt-3">
-                  <label className="form-label">Background check status</label>
-                  <select
-                    className="form-select w-full"
-                    defaultValue={''}
-                    onChange={(e) =>
-                      e.target.value &&
-                      router.post(`/admin/applicants/${app.id}/background-check`, { status: e.target.value }, { preserveScroll: true })
-                    }
-                  >
-                    <option value="">Set status…</option>
-                    <option value="not_required">Not required</option>
-                    <option value="pending">Pending</option>
-                    <option value="passed">Passed</option>
-                    <option value="failed">Failed</option>
-                  </select>
-                </div>
-              )}
+            <div className="table-wrapper">
+              <table className="table">
+                <thead className="thead-sm">
+                  <tr className="bg-light/25 text-2xs uppercase">
+                    <th>Item</th>
+                    <th>Status</th>
+                    <th className="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {checklist.map((item) => (
+                    <ChecklistRow key={item.key} item={item} appId={app.id} can={can} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              <p className="text-default-400 mt-3 text-xs">
+            <div className="card-body border-default-200 border-t py-3">
+              <p className="text-default-400 text-xs">
                 Promotion requires every item complete or waived (waiving is an HR/admin power). Uniform issuance is tracked through Inventory.
               </p>
             </div>
