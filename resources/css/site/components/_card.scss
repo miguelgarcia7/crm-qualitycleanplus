@@ -1,0 +1,63 @@
+.qc-swiper {
+	padding: 0 15px 0px 15px!important;
+
+	// Large
+	@media (min-width: 992px) {
+		padding: 0 20px 20px 20px!important;
+	}
+}
+.qc-swiper .swiper-slide {
+	padding: 50px 10px 10px 10px;
+}
+.qc-card {
+	background-color: #fff;
+	box-shadow: 0px 0px 8px rgba(0,0,0,0.1);
+	padding: 40px 50px;
+	position: relative;
+	border-radius: 3px;
+	min-height: 330px;
+
+	.checked {
+		color: #ffa500;
+	}
+
+	.qc-image {
+		position: absolute;
+		top: -50px;
+		left: 20px;
+		width: 80px;
+		height: 80px;
+		border-radius: 50%;
+		background-color: #f5f5f5;
+		overflow: hidden;
+	}
+	.qc-source {
+		padding: 15px 0 25px 0;
+	}
+	.qc-media {
+		float: right;
+		margin: 5px 0 10px 15px;
+	}
+	.qc-name {
+		font-size: 22px;
+		font-weight: bold;
+	}
+
+	.qc-stars {
+		text-align: right;
+		padding: 5px 0 20px 0;
+		font-size: 18px;
+	}
+	.qc-quote {
+		border: none;
+		// border-bottom: 1px dashed #f5f5f5;
+		margin: 0;
+		font-size: 30px;
+	}
+	.qc-text {
+		font-size: 16px;
+		color: #6e6e6e;
+		font-style: italic;
+		padding: 10px 0 10px 0;
+	}
+}
