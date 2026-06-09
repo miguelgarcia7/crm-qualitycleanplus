@@ -1,4 +1,6 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
+import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react'
 import { useRef, useState } from 'react'
 
@@ -46,7 +48,10 @@ type Props = {
     address: string
     usa_citizen: boolean | null
     eligible_to_work: boolean | null
-    emergency_contact: string
+    emergency_contact_name: string | null
+    emergency_contact_phone: string | null
+    emergency_contact_relationship: string | null
+    emergency_contact_address: string | null
     application_date: string | null
     has_work_orders: boolean
   }
@@ -59,18 +64,33 @@ type Props = {
 const yesNo = (v: boolean | null) => (v === null ? '—' : v ? 'Yes' : 'No')
 
 const statusBadge: Record<string, string> = {
-  submitted: 'badge badge-soft-info',
-  reviewing: 'badge badge-soft-warning',
-  promoted: 'badge badge-soft-success',
-  rejected: 'badge badge-soft-danger',
+  submitted: 'bg-info/15 text-info',
+  reviewing: 'bg-warning/15 text-warning',
+  promoted: 'bg-success/15 text-success',
+  rejected: 'bg-danger/15 text-danger',
 }
 
-const BACKGROUND_OPTIONS = [
-  { value: 'not_required', label: 'Not required' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'passed', label: 'Passed' },
-  { value: 'failed', label: 'Failed' },
-]
+/** Label/value cell for the 3-column info grids (HRM staff-profile pattern). */
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div>
+    <p className="text-default-400 mb-1.25 font-medium">{label}</p>
+    <p>{children}</p>
+  </div>
+)
+
+/** Icon fact row for the identity card (HRM staff-profile pattern). */
+const FactRow = ({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) => (
+  <div className="flex items-center gap-3">
+    <div>
+      <div className="btn btn-icon bg-light size-8!">
+        <Icon icon={icon} className="text-secondary text-lg" />
+      </div>
+    </div>
+    <p className="text-sm">
+      {label} <span className="text-dark font-semibold">{children}</span>
+    </p>
+  </div>
+)
 
 const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number; can: Props['can'] }) => {
   const fileInput = useRef<HTMLInputElement>(null)
@@ -95,30 +115,44 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
           </span>
         )}
         {item.waived && <span className="text-warning ms-2 text-xs">waived</span>}
-        {item.completed_at && <div className="text-muted text-xs">{item.completed_at}</div>}
+        {item.completed_at && <div className="text-default-400 text-xs">{item.completed_at}</div>}
       </span>
 
       <span className="flex shrink-0 items-center gap-1.5">
         {isDocument && item.file_id !== null && (
-          <a className="btn btn-sm btn-light" href={`/admin/applicants/${appId}/onboarding/${item.key}/download`}>
-            View
+          <a
+            className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+            href={`/admin/applicants/${appId}/onboarding/${item.key}/download`}
+            title="View document"
+          >
+            <Icon icon="eye" className="text-base" />
           </a>
         )}
         {isDocument && can.edit_checklist && (
           <>
-            <input ref={fileInput} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onChange={(e) => upload(e.target.files?.[0])} />
-            <button className="btn btn-sm btn-light" onClick={() => fileInput.current?.click()}>
-              {item.file_id ? 'Replace' : 'Upload'}
+            <input
+              ref={fileInput}
+              type="file"
+              className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png,.webp,.heic"
+              onChange={(e) => upload(e.target.files?.[0])}
+            />
+            <button
+              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              onClick={() => fileInput.current?.click()}
+              title={item.file_id ? 'Replace document' : 'Upload document'}
+            >
+              <Icon icon="cloud-upload" className="text-base" />
             </button>
           </>
         )}
         {item.key === 'i9' && can.edit_checklist && item.file_id !== null && !item.verified && (
-          <button className="btn btn-sm btn-light text-success" onClick={verify}>
+          <button className="btn btn-sm btn-soft-success" onClick={verify}>
             Verify
           </button>
         )}
         {can.waive && !item.complete && (
-          <button className="btn btn-sm btn-light" onClick={toggleWaive}>
+          <button className="btn btn-sm btn-soft-warning" onClick={toggleWaive}>
             {item.waived ? 'Unwaive' : 'Waive'}
           </button>
         )}
@@ -149,7 +183,12 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
   }
 
   const isPending = app.status === 'submitted' || app.status === 'reviewing'
-  const backgroundItem = checklist.find((i) => i.key === 'background_check')
+  const initials = person.name
+    .split(' ')
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
 
   return (
     <>
@@ -160,13 +199,6 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
         <Link href="/admin/applicants" className="btn btn-sm btn-light">
           ← Queue
         </Link>
-        <span className={statusBadge[app.status] ?? 'badge'}>{app.status_label}</span>
-        <span className="text-muted text-sm">Submitted {app.submitted_at}</span>
-        {app.reviewed_by && (
-          <span className="text-muted text-sm">
-            · Reviewer: {app.reviewed_by} {app.reviewed_at && `(${app.reviewed_at})`}
-          </span>
-        )}
         <span className="grow" />
         {can.review && app.status === 'submitted' && (
           <button className="btn btn-sm bg-primary text-white" onClick={startReview}>
@@ -174,24 +206,29 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
           </button>
         )}
         {can.promote && isPending && (
-          <button className="btn btn-sm bg-success text-white" onClick={promote} disabled={!checklist_complete} title={checklist_complete ? '' : 'Complete or waive all checklist items first'}>
+          <button
+            className="btn btn-sm bg-success text-white"
+            onClick={promote}
+            disabled={!checklist_complete}
+            title={checklist_complete ? '' : 'Complete or waive all checklist items first'}
+          >
             Promote to contractor
           </button>
         )}
         {can.reverse && app.status === 'promoted' && !person.has_work_orders && (
-          <button className="btn btn-sm btn-light text-danger" onClick={reverse}>
+          <button className="btn btn-sm btn-soft-danger" onClick={reverse}>
             Reverse promotion
           </button>
         )}
         {can.review && isPending && (
-          <button className="btn btn-sm btn-light text-danger" onClick={() => setShowReject((v) => !v)}>
+          <button className="btn btn-sm btn-soft-danger" onClick={() => setShowReject((v) => !v)}>
             Reject…
           </button>
         )}
       </div>
 
       {Object.keys(errors).length > 0 && (
-        <div className="card border-danger mb-4 rounded-2xl border">
+        <div className="card border-danger mb-4 border">
           <div className="card-body text-danger p-4 text-sm">
             {Object.values(errors).map((message, i) => (
               <p key={i}>{message}</p>
@@ -201,18 +238,16 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
       )}
 
       {app.status === 'promoted' && (
-        <div className="card mb-4 rounded-2xl">
+        <div className="card mb-4">
           <div className="card-body p-4 text-sm">
             <span className="text-success font-medium">Promoted</span> {app.promoted_at && `on ${app.promoted_at}`}
-            {person.has_work_orders
-              ? ' — has work orders, so the promotion is permanent.'
-              : ' — reversible until work orders are created.'}
+            {person.has_work_orders ? ' — has work orders, so the promotion is permanent.' : ' — reversible until work orders are created.'}
           </div>
         </div>
       )}
 
       {showReject && (
-        <form onSubmit={submitReject} className="card mb-4 rounded-2xl">
+        <form onSubmit={submitReject} className="card mb-4">
           <div className="card-body flex flex-wrap items-end gap-3 p-4">
             <div className="grow">
               <label className="form-label">Rejection reason</label>
@@ -232,78 +267,188 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
       )}
 
       {app.rejected_reason && (
-        <div className="card mb-4 rounded-2xl">
+        <div className="card mb-4">
           <div className="card-body p-4">
             <span className="text-danger font-medium">Rejected:</span> {app.rejected_reason}
           </div>
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-4">
-          <div className="card rounded-2xl">
-            <div className="card-body p-5">
-              <h4 className="card-title mb-3">Application</h4>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <dt className="text-muted">Posting</dt>
-                <dd>{app.posting ?? '— (open application)'}</dd>
-                <dt className="text-muted">Desired position</dt>
-                <dd>{app.desired_position ?? '—'}</dd>
-                <dt className="text-muted">Desired salary</dt>
-                <dd>{app.desired_salary ?? '—'}</dd>
-                <dt className="text-muted">Can start</dt>
-                <dd>{app.desired_start_date ?? '—'}</dd>
-                <dt className="text-muted">Reliable transportation</dt>
-                <dd>{yesNo(app.transportation)}</dd>
-                <dt className="text-muted">Worked at QCP (6 mo)</dt>
-                <dd>
-                  {yesNo(app.work_at_qcp)}
-                  {app.work_at_qcp_explain && <span className="text-muted"> — {app.work_at_qcp_explain}</span>}
-                </dd>
-                <dt className="text-muted">Another staffing agency</dt>
-                <dd>
-                  {yesNo(app.another_staff_agency)}
-                  {app.non_complete && <span className="text-muted"> — non-compete: {app.non_complete}</span>}
-                </dd>
-                <dt className="text-muted">Felony conviction</dt>
-                <dd>
-                  {yesNo(app.convicted_felon)}
-                  {app.felony_conviction && <span className="text-muted"> — {app.felony_conviction}</span>}
-                </dd>
-                <dt className="text-muted">Certified true &amp; correct</dt>
-                <dd>{app.acknowledgement ? 'Yes' : 'No'}</dd>
-              </dl>
+      <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
+        <div className="space-y-6">
+          <div className="card">
+            <div className="card-body">
+              <div className="mb-7.5 flex items-center justify-between">
+                <div className="gap-base flex items-center">
+                  <div className="bg-primary/10 text-primary flex size-18 shrink-0 items-center justify-center rounded-full text-xl font-semibold">
+                    {initials}
+                  </div>
+                  <div>
+                    <h5 className="font-medium">{person.name}</h5>
+                    <p className="text-default-400 mb-3">{app.desired_position ?? 'Open application'}</p>
+                    <span className={cn('badge badge-label', statusBadge[app.status] ?? 'bg-light text-dark')}>{app.status_label}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-y-3">
+                {person.email && (
+                  <FactRow icon="mail" label="Email">
+                    <a href={`mailto:${person.email}`} className="text-primary font-semibold">
+                      {person.email}
+                    </a>
+                  </FactRow>
+                )}
+                {person.phone && (
+                  <FactRow icon="phone" label="Phone">
+                    {person.phone}
+                  </FactRow>
+                )}
+                {person.address && (
+                  <FactRow icon="map-pin" label="Lives at">
+                    {person.address}
+                  </FactRow>
+                )}
+                {person.dob && (
+                  <FactRow icon="calendar" label="Born">
+                    {person.dob}
+                  </FactRow>
+                )}
+                <FactRow icon="files" label="Applied via">
+                  {app.posting ?? 'Open application'}
+                </FactRow>
+                <FactRow icon="clock" label="Submitted">
+                  {app.submitted_at}
+                </FactRow>
+                {app.reviewed_by && (
+                  <FactRow icon="user-circle" label="Reviewer">
+                    {app.reviewed_by}
+                  </FactRow>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="card rounded-2xl">
-            <div className="card-body p-5">
-              <h4 className="card-title mb-3">Applicant</h4>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <dt className="text-muted">Email</dt>
-                <dd>{person.email ?? '—'}</dd>
-                <dt className="text-muted">Phone</dt>
-                <dd>{person.phone ?? '—'}</dd>
-                <dt className="text-muted">Date of birth</dt>
-                <dd>{person.dob ?? '—'}</dd>
-                <dt className="text-muted">Address</dt>
-                <dd>{person.address || '—'}</dd>
-                <dt className="text-muted">US citizen</dt>
-                <dd>{yesNo(person.usa_citizen)}</dd>
-                <dt className="text-muted">Eligible to work</dt>
-                <dd>{yesNo(person.eligible_to_work)}</dd>
-                <dt className="text-muted">Emergency contact</dt>
-                <dd>{person.emergency_contact || '—'}</dd>
-                <dt className="text-muted">First applied</dt>
-                <dd>{person.application_date ?? '—'}</dd>
-              </dl>
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title">Onboarding Checklist</h4>
+              {checklist_complete ? (
+                <span className="badge badge-label bg-success/15 text-success">Complete</span>
+              ) : (
+                <span className="badge badge-label bg-warning/15 text-warning">Incomplete</span>
+              )}
+            </div>
+            <div className="card-body">
+              <ul className="divide-default-200 divide-y">
+                {checklist.map((item) => (
+                  <ChecklistRow key={item.key} item={item} appId={app.id} can={can} />
+                ))}
+              </ul>
+
+              {can.edit_checklist && (
+                <div className="border-default-200 mt-3 border-t pt-3">
+                  <label className="form-label">Background check status</label>
+                  <select
+                    className="form-select w-full"
+                    defaultValue={''}
+                    onChange={(e) =>
+                      e.target.value &&
+                      router.post(`/admin/applicants/${app.id}/background-check`, { status: e.target.value }, { preserveScroll: true })
+                    }
+                  >
+                    <option value="">Set status…</option>
+                    <option value="not_required">Not required</option>
+                    <option value="pending">Pending</option>
+                    <option value="passed">Passed</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                </div>
+              )}
+
+              <p className="text-default-400 mt-3 text-xs">
+                Promotion requires every item complete or waived (waiving is an HR/admin power). Uniform issuance is tracked through Inventory.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6 xl:col-span-2">
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title">Application Details</h4>
+            </div>
+            <div className="card-body">
+              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
+                <Field label="Posting">{app.posting ?? '— (open application)'}</Field>
+                <Field label="Desired position">{app.desired_position ?? '—'}</Field>
+                <Field label="Desired salary">{app.desired_salary ?? '—'}</Field>
+                <Field label="Can start">{app.desired_start_date ?? '—'}</Field>
+                <Field label="Submitted">{app.submitted_at}</Field>
+                <Field label="Reviewer">{app.reviewed_by ? `${app.reviewed_by}${app.reviewed_at ? ` (${app.reviewed_at})` : ''}` : '—'}</Field>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title">Declarations</h4>
+            </div>
+            <div className="card-body">
+              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
+                <Field label="Reliable transportation">{yesNo(app.transportation)}</Field>
+                <Field label="Worked at QCP (last 6 months)">
+                  {yesNo(app.work_at_qcp)}
+                  {app.work_at_qcp_explain && <span className="text-default-400"> — {app.work_at_qcp_explain}</span>}
+                </Field>
+                <Field label="Another staffing agency">
+                  {yesNo(app.another_staff_agency)}
+                  {app.non_complete && <span className="text-default-400"> — non-compete: {app.non_complete}</span>}
+                </Field>
+                <Field label="Felony conviction">
+                  {yesNo(app.convicted_felon)}
+                  {app.felony_conviction && <span className="text-default-400"> — {app.felony_conviction}</span>}
+                </Field>
+                <Field label="Certified true & correct">{app.acknowledgement ? 'Yes' : 'No'}</Field>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title">Basic Information</h4>
+            </div>
+            <div className="card-body">
+              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
+                <Field label="Phone">{person.phone ?? '—'}</Field>
+                <Field label="Email">{person.email ?? '—'}</Field>
+                <Field label="Birthday">{person.dob ?? '—'}</Field>
+                <Field label="Address">{person.address || '—'}</Field>
+                <Field label="US citizen">{yesNo(person.usa_citizen)}</Field>
+                <Field label="Eligible to work">{yesNo(person.eligible_to_work)}</Field>
+                <Field label="First applied">{person.application_date ?? '—'}</Field>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <h4 className="card-title">Emergency Contact Details</h4>
+            </div>
+            <div className="card-body">
+              <div className="gap-x-base grid grid-cols-1 gap-y-5 md:grid-cols-3">
+                <Field label="Contact Name">{person.emergency_contact_name ?? '—'}</Field>
+                <Field label="Relationship">{person.emergency_contact_relationship ?? '—'}</Field>
+                <Field label="Phone">{person.emergency_contact_phone ?? '—'}</Field>
+                <Field label="Address">{person.emergency_contact_address ?? '—'}</Field>
+              </div>
             </div>
           </div>
 
           {other_applications.length > 0 && (
-            <div className="card rounded-2xl">
-              <div className="card-body p-5">
-                <h4 className="card-title mb-3">Other applications</h4>
+            <div className="card">
+              <div className="card-header">
+                <h4 className="card-title">Other Applications</h4>
+              </div>
+              <div className="card-body">
                 <ul className="space-y-1 text-sm">
                   {other_applications.map((a) => (
                     <li key={a.id}>
@@ -317,49 +462,6 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
               </div>
             </div>
           )}
-        </div>
-
-        <div className="space-y-4">
-          <div className="card rounded-2xl">
-            <div className="card-body p-5">
-              <div className="mb-2 flex items-center justify-between">
-                <h4 className="card-title">Onboarding checklist</h4>
-                {checklist_complete ? (
-                  <span className="badge badge-soft-success">Complete</span>
-                ) : (
-                  <span className="badge badge-soft-warning">Incomplete</span>
-                )}
-              </div>
-              <ul className="divide-default-100 divide-y">
-                {checklist.map((item) => (
-                  <ChecklistRow key={item.key} item={item} appId={app.id} can={can} />
-                ))}
-              </ul>
-
-              {can.edit_checklist && backgroundItem && (
-                <div className="border-default-200 mt-3 border-t pt-3">
-                  <label className="form-label">Background check status</label>
-                  <select
-                    className="form-select w-full"
-                    defaultValue={''}
-                    onChange={(e) => e.target.value && router.post(`/admin/applicants/${app.id}/background-check`, { status: e.target.value }, { preserveScroll: true })}
-                  >
-                    <option value="">Set status…</option>
-                    {BACKGROUND_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <p className="text-default-400 mt-3 text-xs">
-                Promotion requires every item complete or waived (waiving is an HR/admin power). Uniform issuance is tracked through
-                Inventory.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </>
