@@ -96,12 +96,12 @@ class SampleDataSeeder extends Seeder
             ['name' => 'Sample Marriott Downtown'],
             [
                 'pm_name' => 'Pat Manager',
-                'pm_phone' => '602-555-0100',
-                'city' => 'Phoenix',
-                'state' => 'AZ',
-                'timezone' => 'America/Phoenix',
-                'latitude' => 33.4484,   // enables the QR clock-in geofence (Phase 07a)
-                'longitude' => -112.0740,
+                'pm_phone' => '214-555-0100',
+                'city' => 'Dallas',
+                'state' => 'TX',
+                'timezone' => 'America/Chicago',
+                'latitude' => 32.7767,   // enables the QR clock-in geofence (Phase 07a)
+                'longitude' => -96.7970,
                 'tax_rate' => 0.0875,
                 'status' => PropertyStatus::Active,
             ],
@@ -169,7 +169,7 @@ class SampleDataSeeder extends Seeder
             $position = $positions[$i % $positions->count()];
             $rate = $property->currentRateFor($position->id);
 
-            $phone = '(602) 555-020'.$i;
+            $phone = '(214) 555-020'.$i;
             $contractor = Person::factory()->create([
                 'name' => $name,
                 'status' => PersonStatus::ContractorActive,
@@ -197,11 +197,11 @@ class SampleDataSeeder extends Seeder
 
         // A second active property so properties, grids and dashboards show more
         // than one row of everything.
-        [$tempe, $tempeWorkOrders] = $this->seedSecondProperty($recruiter, $pm, $positions);
+        [$plano, $planoWorkOrders] = $this->seedSecondProperty($recruiter, $pm, $positions);
 
         // Materialize payroll periods, then seed last week's hours (Mon–Fri 9h →
         // 45h = 40 regular + 5 OT). Hours arrive the way they do in production:
-        // QR clock events downtown, tablet punches at the Tempe kiosk — with ONE
+        // QR clock events downtown, tablet punches at the Plano kiosk — with ONE
         // manual entry as the missed-punch-correction example.
         Artisan::call('payroll:ensure-periods');
         $lastMonday = Carbon::now($property->timezone)->startOfWeek(Carbon::MONDAY)->subWeek();
@@ -220,9 +220,9 @@ class SampleDataSeeder extends Seeder
             }
         }
 
-        // Tempe ran straight 8h days last week (no OT — rate variety on reports),
+        // Plano ran straight 8h days last week (no OT — rate variety on reports),
         // punched on the front-desk tablet kiosk.
-        foreach ($tempeWorkOrders as $workOrder) {
+        foreach ($planoWorkOrders as $workOrder) {
             for ($day = 0; $day < 5; $day++) {
                 $this->clockEvent($workOrder, $lastMonday->copy()->addDays($day)->toDateString(), '09:00', '17:00', 'tablet');
             }
@@ -280,26 +280,26 @@ class SampleDataSeeder extends Seeder
 
         // A pending personal-info change request awaiting HR verification (Phase 04b-iii).
         app(StartWorkflow::class)->handle(WorkflowType::ChangePersonalInfo, $contractors[1], $contractors[1], [
-            'changes' => ['phone' => '(602) 555-0148'],
+            'changes' => ['phone' => '(214) 555-0148'],
             'reason' => 'New cell number.',
             'requested_by' => $contractors[1]->id,
         ]);
 
-        // A pending transfer to the Tempe property awaiting approval (Phase 04b).
+        // A pending transfer to the Plano property awaiting approval (Phase 04b).
         app(StartWorkflow::class)->handle(WorkflowType::Transfer, $contractors[1], $recruiter, [
             'work_order_id' => $workOrders[1]->id,
             'effective_date' => now()->addWeek()->toDateString(),
-            'new_property_id' => $tempe->id,
+            'new_property_id' => $plano->id,
             'new_position_id' => $positions->last()->id,
             'new_recruiter_id' => null,
             'pay_rate' => 1950, 'bill_rate' => 3050, 'ot_pay_rate' => 2925, 'ot_bill_rate' => 4575,
-            'reason' => 'Closer to home; Tempe needs banquet coverage.',
+            'reason' => 'Closer to home; Plano needs banquet coverage.',
             'notes' => null,
         ]);
 
         // A pending temporary assignment covering downtown for a week (Phase 04b).
-        app(StartWorkflow::class)->handle(WorkflowType::TemporaryAssignment, $tempeWorkOrders[0]->person, $recruiter, [
-            'home_work_order_id' => $tempeWorkOrders[0]->id,
+        app(StartWorkflow::class)->handle(WorkflowType::TemporaryAssignment, $planoWorkOrders[0]->person, $recruiter, [
+            'home_work_order_id' => $planoWorkOrders[0]->id,
             'new_property_id' => $property->id,
             'position_id' => $positions->first()->id,
             'start_date' => now()->addDays(3)->toDateString(),
@@ -343,7 +343,7 @@ class SampleDataSeeder extends Seeder
         app(RejectPtoRequest::class)->handle($frontDeskDay, $superAdmin, 'Coverage gap that week — please pick another day.');
 
         // A front-desk tablet for the property, ready to pair (Phase 07c),
-        // plus an already-activated kiosk at Tempe.
+        // plus an already-activated kiosk at Plano.
         Device::create([
             'property_id' => $property->id,
             'name' => 'Front Desk Tablet',
@@ -351,7 +351,7 @@ class SampleDataSeeder extends Seeder
             'created_by' => $recruiter->id,
         ]);
         Device::create([
-            'property_id' => $tempe->id,
+            'property_id' => $plano->id,
             'name' => 'Lobby Kiosk',
             'activation_code' => 'QCP456',
             'is_activated' => true,
@@ -367,19 +367,19 @@ class SampleDataSeeder extends Seeder
         FieldVisit::create([
             'person_id' => $recruiter->id, 'property_id' => $property->id, 'status' => FieldVisitStatus::Closed,
             'check_in_at' => now()->subDay()->setTime(9, 0), 'check_out_at' => now()->subDay()->setTime(10, 15),
-            'check_in_gps_lat' => 33.4484, 'check_in_gps_lng' => -112.0740, 'check_in_gps_status' => 'ok',
+            'check_in_gps_lat' => 32.7767, 'check_in_gps_lng' => -96.7970, 'check_in_gps_status' => 'ok',
             'was_inside_geofence' => true, 'check_out_gps_status' => 'ok',
         ]);
         FieldVisit::create([
             'person_id' => $recruiter->id, 'property_id' => $property->id, 'status' => FieldVisitStatus::Open,
             'check_in_at' => now()->subMinutes(20),
-            'check_in_gps_lat' => 33.4484, 'check_in_gps_lng' => -112.0740, 'check_in_gps_status' => 'ok',
+            'check_in_gps_lat' => 32.7767, 'check_in_gps_lng' => -96.7970, 'check_in_gps_status' => 'ok',
             'was_inside_geofence' => true,
         ]);
         FieldVisit::create([
-            'person_id' => $recruiter->id, 'property_id' => $tempe->id, 'status' => FieldVisitStatus::Closed,
+            'person_id' => $recruiter->id, 'property_id' => $plano->id, 'status' => FieldVisitStatus::Closed,
             'check_in_at' => now()->subDays(2)->setTime(14, 0), 'check_out_at' => now()->subDays(2)->setTime(15, 30),
-            'check_in_gps_lat' => 33.4255, 'check_in_gps_lng' => -111.9400, 'check_in_gps_status' => 'ok',
+            'check_in_gps_lat' => 33.0198, 'check_in_gps_lng' => -96.6989, 'check_in_gps_status' => 'ok',
             'was_inside_geofence' => true, 'check_out_gps_status' => 'ok',
         ]);
 
@@ -402,17 +402,17 @@ class SampleDataSeeder extends Seeder
             'created_by' => $recruiter->id,
         ]);
 
-        $this->seedContracts($property, $tempe);
-        $this->seedPropertyDepartments($property, $tempe);
+        $this->seedContracts($property, $plano);
+        $this->seedPropertyDepartments($property, $plano);
         $this->seedPurchaseOrders($frontDesk);
 
-        $this->seedRecruiting($property, $tempe, $recruiter);
+        $this->seedRecruiting($property, $plano, $recruiter);
 
         $this->seedKnowledgeBase($frontDesk, $contractors);
     }
 
     /**
-     * The second active property (Tempe): PM + recruiter assignments, Bible
+     * The second active property (Plano): PM + recruiter assignments, Bible
      * rates for both demo positions, and two contractors on active work orders.
      *
      * @param  Collection<int, Position>  $positions
@@ -421,14 +421,14 @@ class SampleDataSeeder extends Seeder
     private function seedSecondProperty(Person $recruiter, Person $pm, $positions): array
     {
         $property = Property::create([
-            'name' => 'Sample Hilton Tempe',
+            'name' => 'Sample Hilton Plano',
             'pm_name' => 'Paula PM',
-            'pm_phone' => '480-555-0190',
-            'city' => 'Tempe',
-            'state' => 'AZ',
-            'timezone' => 'America/Phoenix',
-            'latitude' => 33.4255,
-            'longitude' => -111.9400,
+            'pm_phone' => '469-555-0190',
+            'city' => 'Plano',
+            'state' => 'TX',
+            'timezone' => 'America/Chicago',
+            'latitude' => 33.0198,
+            'longitude' => -96.6989,
             'tax_rate' => 0.081,
             'status' => PropertyStatus::Active,
         ]);
@@ -451,7 +451,7 @@ class SampleDataSeeder extends Seeder
             $position = $positions[$i % $positions->count()];
             $rate = $property->currentRateFor($position->id);
 
-            $phone = '(480) 555-021'.$i;
+            $phone = '(469) 555-021'.$i;
             $contractor = Person::factory()->create([
                 'name' => $name,
                 'status' => PersonStatus::ContractorActive,
@@ -526,17 +526,17 @@ class SampleDataSeeder extends Seeder
     }
 
     /**
-     * Property contracts (Phase 02): an active MSA downtown and a Tempe SOW that
+     * Property contracts (Phase 02): an active MSA downtown and a Plano SOW that
      * expires within the 30-day alert window, each with a stored document.
      */
-    private function seedContracts(Property $downtown, Property $tempe): void
+    private function seedContracts(Property $downtown, Property $plano): void
     {
         $payroll = Person::query()->where('email', 'payroll@example.com')->firstOrFail();
         $disk = (string) config('filesystems.default');
 
         $contracts = [
             [$downtown, 'Master Service Agreement 2026', ContractType::Msa, now()->subMonths(5), now()->addMonths(7)],
-            [$tempe, 'Housekeeping SOW — Summer 2026', ContractType::Sow, now()->subMonth(), now()->addDays(20)],
+            [$plano, 'Housekeeping SOW — Summer 2026', ContractType::Sow, now()->subMonth(), now()->addDays(20)],
         ];
 
         foreach ($contracts as [$property, $name, $type, $effective, $expires]) {
@@ -565,12 +565,12 @@ class SampleDataSeeder extends Seeder
     }
 
     /** Department assignments with on-site manager contacts (Property Bible §2). */
-    private function seedPropertyDepartments(Property $downtown, Property $tempe): void
+    private function seedPropertyDepartments(Property $downtown, Property $plano): void
     {
         $assignments = [
-            [$downtown, 'housekeeping', 'Hank Houser', '602-555-0150'],
-            [$downtown, 'banquets', 'Bonnie Banks', '602-555-0151'],
-            [$tempe, 'housekeeping', 'Helen Hosk', '480-555-0152'],
+            [$downtown, 'housekeeping', 'Hank Houser', '214-555-0150'],
+            [$downtown, 'banquets', 'Bonnie Banks', '214-555-0151'],
+            [$plano, 'housekeeping', 'Helen Hosk', '469-555-0152'],
         ];
 
         foreach ($assignments as [$property, $slug, $manager, $phone]) {
@@ -604,7 +604,7 @@ class SampleDataSeeder extends Seeder
         $vacuum = ItemVariant::query()->whereHas('item', fn ($q) => $q->where('name', 'Backpack Vacuum'))->first();
         if ($vacuum !== null) {
             $po = $create->handle([
-                'notes' => 'Two more backpack vacuums for Tempe',
+                'notes' => 'Two more backpack vacuums for Plano',
                 'items' => [['item_variant_id' => $vacuum->id, 'quantity' => 2, 'estimated_unit_cost' => 28900]],
             ], $actor);
             $po->update(['status' => PurchaseOrderStatus::Ordered, 'ordered_at' => now()->subDays(2)]);
@@ -753,14 +753,14 @@ class SampleDataSeeder extends Seeder
      * promoted to a working contractor — all via the real SubmitApplication path
      * so applicant People are created), and contact leads of both types.
      */
-    private function seedRecruiting(Property $property, Property $tempe, Person $recruiter): void
+    private function seedRecruiting(Property $property, Property $plano, Person $recruiter): void
     {
         $housekeeperPosting = JobPosting::create([
             'status' => JobPostingStatus::Published,
             'title' => 'Housekeeper',
-            'slug' => 'housekeeper-phoenix',
+            'slug' => 'housekeeper-dallas',
             'pay_range' => '$16 - $18 / hr',
-            'content' => 'Join our hospitality team cleaning guest rooms at a downtown Phoenix hotel. Reliable transportation a plus.',
+            'content' => 'Join our hospitality team cleaning guest rooms at a downtown Dallas hotel. Reliable transportation a plus.',
             'hour_start' => '08:00',
             'hour_end' => '16:00',
             'property_id' => $property->id,
@@ -770,7 +770,7 @@ class SampleDataSeeder extends Seeder
         JobPosting::create([
             'status' => JobPostingStatus::Published,
             'title' => 'Banquet Server',
-            'slug' => 'banquet-server-phoenix',
+            'slug' => 'banquet-server-dallas',
             'pay_range' => '$15 - $17 / hr',
             'content' => 'Serve banquets and events; evening and weekend availability required.',
             'hour_start' => '16:00',
@@ -782,21 +782,21 @@ class SampleDataSeeder extends Seeder
         JobPosting::create([
             'status' => JobPostingStatus::Draft,
             'title' => 'Public Area Attendant',
-            'slug' => 'public-area-attendant-phoenix',
+            'slug' => 'public-area-attendant-dallas',
             'pay_range' => '$15 / hr',
             'content' => 'Maintain lobby and public areas. (Draft — not yet published.)',
-            'location_label' => 'Phoenix, AZ',
+            'location_label' => 'Dallas, TX',
             'created_by' => $recruiter->id,
         ]);
 
         $alexApplication = app(SubmitApplication::class)->handle([
             'first_name' => 'Alex', 'last_name' => 'Applicant', 'email' => 'alex.applicant@example.com',
-            'phone' => '(602) 555-0301', 'address' => '500 W McDowell Rd', 'city' => 'Phoenix',
-            'state' => 'AZ', 'zip' => '85003', 'position' => 'Housekeeper', 'desired_salary' => '17',
+            'phone' => '(214) 555-0301', 'address' => '500 Commerce St', 'city' => 'Dallas',
+            'state' => 'TX', 'zip' => '75201', 'position' => 'Housekeeper', 'desired_salary' => '17',
             'start_date' => now()->addWeek()->toDateString(), 'dob' => '1995-03-12',
             'transportation' => '1', 'work_at_qcp' => '0', 'usa_citizen' => '1',
             'another_staff_agency' => '0', 'convicted_felon' => '0',
-            'full_name' => 'Jordan Applicant', 'emergency_phone' => '(602) 555-0302',
+            'full_name' => 'Jordan Applicant', 'emergency_phone' => '(214) 555-0302',
             'relationship' => 'Sibling', 'acknowledgement' => '1',
         ], $housekeeperPosting);
 
@@ -812,8 +812,8 @@ class SampleDataSeeder extends Seeder
 
         app(SubmitApplication::class)->handle([
             'first_name' => 'Taylor', 'last_name' => 'Seeker', 'email' => 'taylor.seeker@example.com',
-            'phone' => '(602) 555-0311', 'address' => '12 E Roosevelt St', 'city' => 'Phoenix',
-            'state' => 'AZ', 'zip' => '85004', 'position' => 'Banquet Server', 'desired_salary' => '16',
+            'phone' => '(972) 555-0311', 'address' => '1200 Elm St', 'city' => 'Dallas',
+            'state' => 'TX', 'zip' => '75202', 'position' => 'Banquet Server', 'desired_salary' => '16',
             'start_date' => now()->addWeeks(2)->toDateString(), 'dob' => '1998-07-22',
             'transportation' => '0', 'work_at_qcp' => '1', 'work_at_qcp_explain' => 'Summer 2024',
             'usa_citizen' => '1', 'another_staff_agency' => '1', 'non_complete' => 'No',
@@ -824,18 +824,18 @@ class SampleDataSeeder extends Seeder
         JobPosting::create([
             'status' => JobPostingStatus::Closed,
             'title' => 'Overnight Cleaner',
-            'slug' => 'overnight-cleaner-tempe',
+            'slug' => 'overnight-cleaner-plano',
             'pay_range' => '$17 / hr',
             'content' => 'Filled — kept for history.',
-            'property_id' => $tempe->id,
+            'property_id' => $plano->id,
             'created_by' => $recruiter->id,
         ]);
 
         // A rejected application (Rejected tab + decided history).
         $rejected = app(SubmitApplication::class)->handle([
             'first_name' => 'Riley', 'last_name' => 'Rushed', 'email' => 'riley.rushed@example.com',
-            'phone' => '(602) 555-0321', 'address' => '88 N Central Ave', 'city' => 'Phoenix',
-            'state' => 'AZ', 'zip' => '85004', 'position' => 'Housekeeper', 'desired_salary' => '18',
+            'phone' => '(214) 555-0321', 'address' => '88 Griffin St W', 'city' => 'Dallas',
+            'state' => 'TX', 'zip' => '75202', 'position' => 'Housekeeper', 'desired_salary' => '18',
             'start_date' => now()->addDays(3)->toDateString(), 'dob' => '2000-01-30',
             'transportation' => '1', 'work_at_qcp' => '0', 'usa_citizen' => '1',
             'another_staff_agency' => '0', 'convicted_felon' => '0', 'acknowledgement' => '1',
@@ -848,11 +848,11 @@ class SampleDataSeeder extends Seeder
         ]);
 
         // A promoted application: the applicant became a contractor and is now
-        // on a fresh work order at Tempe (full lifecycle in one record).
+        // on a fresh work order at Plano (full lifecycle in one record).
         $promoted = app(SubmitApplication::class)->handle([
             'first_name' => 'Pat', 'last_name' => 'Promoted', 'email' => 'pat.promoted@example.com',
-            'phone' => '(480) 555-0331', 'address' => '700 S Mill Ave', 'city' => 'Tempe',
-            'state' => 'AZ', 'zip' => '85281', 'position' => 'Banquet Server', 'desired_salary' => '17',
+            'phone' => '(469) 555-0331', 'address' => '700 Legacy Dr', 'city' => 'Plano',
+            'state' => 'TX', 'zip' => '75024', 'position' => 'Banquet Server', 'desired_salary' => '17',
             'start_date' => now()->subDays(2)->toDateString(), 'dob' => '1992-11-05',
             'transportation' => '1', 'work_at_qcp' => '0', 'usa_citizen' => '1',
             'another_staff_agency' => '0', 'convicted_felon' => '0', 'acknowledgement' => '1',
@@ -872,15 +872,15 @@ class SampleDataSeeder extends Seeder
             'promoted_at' => now()->subDays(3),
         ]);
         $serverPosition = Position::query()->where('slug', 'banquet-server')->firstOrFail();
-        $tempeRate = $tempe->currentRateFor($serverPosition->id);
+        $planoRate = $plano->currentRateFor($serverPosition->id);
         WorkOrder::create([
             'person_id' => $hired->id,
-            'property_id' => $tempe->id,
+            'property_id' => $plano->id,
             'position_id' => $serverPosition->id,
-            'pay_rate' => $tempeRate->pay_rate,
-            'bill_rate' => $tempeRate->bill_rate,
-            'ot_pay_rate' => $tempeRate->ot_pay_rate,
-            'ot_bill_rate' => $tempeRate->ot_bill_rate,
+            'pay_rate' => $planoRate->pay_rate,
+            'bill_rate' => $planoRate->bill_rate,
+            'ot_pay_rate' => $planoRate->ot_pay_rate,
+            'ot_bill_rate' => $planoRate->ot_bill_rate,
             'start_date' => now()->subDays(2)->toDateString(),
             'status' => WorkOrderStatus::Active,
             'source' => WorkOrderSource::RecruiterCreated,
@@ -890,14 +890,14 @@ class SampleDataSeeder extends Seeder
         ContactInquiry::create([
             'type' => 'business',
             'first_name' => 'Morgan', 'last_name' => 'Hotelier',
-            'email' => 'morgan@grandhotel.example', 'phone' => '(602) 555-0400',
-            'company' => 'Grand Hotel Phoenix', 'inquiry_type' => 'Looking to Hire for Team',
+            'email' => 'morgan@grandhotel.example', 'phone' => '(214) 555-0400',
+            'company' => 'Grand Hotel Dallas', 'inquiry_type' => 'Looking to Hire for Team',
             'message' => 'We need housekeeping coverage for the summer season.',
         ]);
         ContactInquiry::create([
             'type' => 'job_seeker',
             'first_name' => 'Casey', 'last_name' => 'Curious',
-            'email' => 'casey.curious@example.com', 'phone' => '(602) 555-0410',
+            'email' => 'casey.curious@example.com', 'phone' => '(972) 555-0410',
             'message' => 'Do you have weekend-only housekeeping shifts?',
         ]);
     }
@@ -910,11 +910,11 @@ class SampleDataSeeder extends Seeder
     private function seedImport(Person $actor, Position $position): void
     {
         $property = Property::create([
-            'name' => 'Imported Inn (Mesa)',
+            'name' => 'Imported Inn (Irving)',
             'pm_name' => 'Mona Manager',
-            'city' => 'Mesa',
-            'state' => 'AZ',
-            'timezone' => 'America/Phoenix',
+            'city' => 'Irving',
+            'state' => 'TX',
+            'timezone' => 'America/Chicago',
             'tax_rate' => 0.0875,
             'status' => PropertyStatus::Active,
             'time_source' => PropertyTimeSource::Import,
