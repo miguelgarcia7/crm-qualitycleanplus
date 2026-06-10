@@ -12,6 +12,10 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\JobPostingController;
+use App\Http\Controllers\Kb\KbArticleController;
+use App\Http\Controllers\Kb\KbCategoryController;
+use App\Http\Controllers\Kb\KbFeedbackController;
+use App\Http\Controllers\Kb\KbTagController;
 use App\Http\Controllers\MoreStaffController;
 use App\Http\Controllers\PayIncreaseController;
 use App\Http\Controllers\PropertyAssignmentController;
@@ -124,6 +128,37 @@ Route::match(['put', 'patch'], 'job-postings/{posting}', [JobPostingController::
 Route::post('job-postings/{posting}/publish', [JobPostingController::class, 'publish'])->name('backoffice.job-postings.publish');
 Route::post('job-postings/{posting}/close', [JobPostingController::class, 'close'])->name('backoffice.job-postings.close');
 Route::delete('job-postings/{posting}', [JobPostingController::class, 'destroy'])->name('backoffice.job-postings.destroy');
+
+// Knowledge base — authoring, taxonomy, feedback queue (Phase 08c)
+Route::get('kb/articles', [KbArticleController::class, 'index'])->name('backoffice.kb.articles.index');
+Route::get('kb/articles/create', [KbArticleController::class, 'create'])->name('backoffice.kb.articles.create');
+Route::post('kb/articles', [KbArticleController::class, 'store'])->name('backoffice.kb.articles.store');
+Route::get('kb/articles/{article}', [KbArticleController::class, 'show'])->name('backoffice.kb.articles.show');
+Route::get('kb/articles/{article}/edit', [KbArticleController::class, 'edit'])->name('backoffice.kb.articles.edit');
+Route::match(['put', 'patch'], 'kb/articles/{article}', [KbArticleController::class, 'update'])->name('backoffice.kb.articles.update');
+Route::post('kb/articles/{article}/publish', [KbArticleController::class, 'publish'])->name('backoffice.kb.articles.publish');
+Route::post('kb/articles/{article}/unpublish', [KbArticleController::class, 'unpublish'])->name('backoffice.kb.articles.unpublish');
+Route::post('kb/articles/{article}/archive', [KbArticleController::class, 'archive'])->name('backoffice.kb.articles.archive');
+Route::delete('kb/articles/{article}', [KbArticleController::class, 'destroy'])->name('backoffice.kb.articles.destroy');
+Route::get('kb/articles/{article}/versions/{version}', [KbArticleController::class, 'version'])->whereNumber('version')->name('backoffice.kb.articles.version');
+Route::post('kb/articles/{article}/attachments', [KbArticleController::class, 'storeAttachment'])->name('backoffice.kb.attachments.store');
+Route::get('kb/attachments/{file}', [KbArticleController::class, 'downloadAttachment'])->name('backoffice.kb.attachments.download');
+Route::delete('kb/attachments/{file}', [KbArticleController::class, 'destroyAttachment'])->name('backoffice.kb.attachments.destroy');
+
+Route::get('kb/categories', [KbCategoryController::class, 'index'])->middleware('can:kb.categories.manage')->name('backoffice.kb.categories.index');
+Route::post('kb/categories', [KbCategoryController::class, 'store'])->middleware('can:kb.categories.manage')->name('backoffice.kb.categories.store');
+Route::match(['put', 'patch'], 'kb/categories/{category}', [KbCategoryController::class, 'update'])->middleware('can:kb.categories.manage')->name('backoffice.kb.categories.update');
+Route::delete('kb/categories/{category}', [KbCategoryController::class, 'destroy'])->middleware('can:kb.categories.manage')->name('backoffice.kb.categories.destroy');
+
+Route::get('kb/tags/search', [KbTagController::class, 'search'])->middleware('can:kb.articles.edit')->name('backoffice.kb.tags.search');
+Route::get('kb/tags', [KbTagController::class, 'index'])->middleware('can:kb.categories.manage')->name('backoffice.kb.tags.index');
+Route::post('kb/tags', [KbTagController::class, 'store'])->middleware('can:kb.categories.manage')->name('backoffice.kb.tags.store');
+Route::match(['put', 'patch'], 'kb/tags/{tag}', [KbTagController::class, 'update'])->middleware('can:kb.categories.manage')->name('backoffice.kb.tags.update');
+Route::delete('kb/tags/{tag}', [KbTagController::class, 'destroy'])->middleware('can:kb.categories.manage')->name('backoffice.kb.tags.destroy');
+
+Route::get('kb/feedback', [KbFeedbackController::class, 'index'])->middleware('can:kb.feedback.manage')->name('backoffice.kb.feedback.index');
+Route::match(['put', 'patch'], 'kb/feedback/{feedback}', [KbFeedbackController::class, 'update'])->middleware('can:kb.feedback.manage')->name('backoffice.kb.feedback.update');
+Route::delete('kb/feedback/{feedback}', [KbFeedbackController::class, 'destroy'])->middleware('can:kb.feedback.manage')->name('backoffice.kb.feedback.destroy');
 
 // Front-desk tablet devices — management (Phase 07c, ADR-0017)
 Route::get('devices', [DeviceController::class, 'index'])->middleware('can:devices.manage')->name('backoffice.devices.index');
