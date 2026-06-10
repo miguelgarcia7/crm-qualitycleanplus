@@ -55,7 +55,11 @@ use App\Domain\Recruiting\Models\JobPosting;
 use App\Domain\Shared\Enums\FeedbackType;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
+use App\Domain\Time\Enums\TimeEntrySource;
+use App\Domain\Time\Enums\TimeEntryType;
+use App\Domain\Time\Jobs\RecomputeTimeSummary;
 use App\Domain\Time\Models\PayrollPeriod;
+use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Workflows\Actions\CompleteStep;
 use App\Domain\Workflows\Actions\StartWorkflow;
 use App\Domain\Workflows\Enums\WorkflowType;
@@ -196,31 +200,31 @@ class SampleDataSeeder extends Seeder
         [$tempe, $tempeWorkOrders] = $this->seedSecondProperty($recruiter, $pm, $positions);
 
         // Materialize payroll periods, then seed last week's hours (Mon–Fri 9h →
-        // 45h = 40 regular + 5 OT) via the real entry path so summaries compute.
+        // 45h = 40 regular + 5 OT). Hours arrive the way they do in production:
+        // QR clock events downtown, tablet punches at the Tempe kiosk — with ONE
+        // manual entry as the missed-punch-correction example.
         Artisan::call('payroll:ensure-periods');
         $lastMonday = Carbon::now($property->timezone)->startOfWeek(Carbon::MONDAY)->subWeek();
-        $createEntry = app(CreateManualTimeEntry::class);
 
-        foreach ($workOrders as $workOrder) {
+        foreach ($workOrders as $i => $workOrder) {
             for ($day = 0; $day < 5; $day++) {
-                $createEntry->handle($workOrder, [
-                    'date' => $lastMonday->copy()->addDays($day)->toDateString(),
-                    'start_time' => '09:00',
-                    'end_time' => '18:00',
-                    'entry_type' => 'work',
-                ], $recruiter);
+                $date = $lastMonday->copy()->addDays($day)->toDateString();
+                if ($i === 2 && $day === 4) {
+                    // Sam forgot to scan on Friday — the recruiter keyed it in.
+                    app(CreateManualTimeEntry::class)->handle($workOrder, [
+                        'date' => $date, 'start_time' => '09:00', 'end_time' => '18:00', 'entry_type' => 'work',
+                    ], $recruiter);
+                } else {
+                    $this->clockEvent($workOrder, $date, '09:00', '18:00');
+                }
             }
         }
 
-        // Tempe ran straight 8h days last week (no OT — rate variety on reports).
+        // Tempe ran straight 8h days last week (no OT — rate variety on reports),
+        // punched on the front-desk tablet kiosk.
         foreach ($tempeWorkOrders as $workOrder) {
             for ($day = 0; $day < 5; $day++) {
-                $createEntry->handle($workOrder, [
-                    'date' => $lastMonday->copy()->addDays($day)->toDateString(),
-                    'start_time' => '09:00',
-                    'end_time' => '17:00',
-                    'entry_type' => 'work',
-                ], $recruiter);
+                $this->clockEvent($workOrder, $lastMonday->copy()->addDays($day)->toDateString(), '09:00', '17:00', 'tablet');
             }
         }
 
@@ -234,12 +238,7 @@ class SampleDataSeeder extends Seeder
         $daysSoFar = (int) min(3, $thisMonday->diffInDays(Carbon::now($property->timezone), false));
         foreach ($workOrders as $workOrder) {
             for ($day = 0; $day < $daysSoFar; $day++) {
-                $createEntry->handle($workOrder, [
-                    'date' => $thisMonday->copy()->addDays($day)->toDateString(),
-                    'start_time' => '09:00',
-                    'end_time' => '17:00',
-                    'entry_type' => 'work',
-                ], $recruiter);
+                $this->clockEvent($workOrder, $thisMonday->copy()->addDays($day)->toDateString(), '09:00', '17:00');
             }
         }
 
@@ -489,7 +488,6 @@ class SampleDataSeeder extends Seeder
      */
     private function seedBilledHistory(Property $property, array $workOrders, Person $recruiter, Person $pm, Carbon $lastMonday): void
     {
-        $createEntry = app(CreateManualTimeEntry::class);
         $submit = app(SubmitTimesheetForApproval::class);
         $approve = app(ApproveTimesheet::class);
 
@@ -509,12 +507,12 @@ class SampleDataSeeder extends Seeder
 
             foreach ($workOrders as $i => $workOrder) {
                 for ($day = 0; $day < 5; $day++) {
-                    $createEntry->handle($workOrder, [
-                        'date' => $weekStart->copy()->addDays($day)->toDateString(),
-                        'start_time' => '09:00',
-                        'end_time' => $i === 0 ? '18:00' : '17:00', // first contractor pulls OT
-                        'entry_type' => 'work',
-                    ], $recruiter);
+                    $this->clockEvent(
+                        $workOrder,
+                        $weekStart->copy()->addDays($day)->toDateString(),
+                        '09:00',
+                        $i === 0 ? '18:00' : '17:00', // first contractor pulls OT
+                    );
                 }
             }
 
@@ -1110,6 +1108,60 @@ class SampleDataSeeder extends Seeder
                 'notes' => 'Lost polo replacement',
             ], $recruiter);
         }
+    }
+
+    /**
+     * A completed contractor punch (clock-in + clock-out the same local day),
+     * written the way ClockInContractor/ClockOutContractor write it: QR events
+     * carry GPS inside the property geofence, tablet punches don't. Punch times
+     * get a few minutes of human jitter so grids don't look machine-generated.
+     */
+    private function clockEvent(WorkOrder $workOrder, string $date, string $start, string $end, string $method = 'qr'): void
+    {
+        $property = $workOrder->property;
+        $tz = $property->timezone;
+
+        $startAt = Carbon::parse("{$date} {$start}", $tz)->addMinutes(random_int(-4, 7))->setTimezone('UTC');
+        $endAt = Carbon::parse("{$date} {$end}", $tz)->addMinutes(random_int(-3, 9))->setTimezone('UTC');
+
+        $period = PayrollPeriod::query()
+            ->where('property_id', $property->id)
+            ->whereDate('week_start', '<=', $date)
+            ->whereDate('week_end', '>=', $date)
+            ->firstOrFail();
+
+        $gps = $method === 'qr' && $property->latitude !== null
+            ? [
+                'lat' => (float) $property->latitude + random_int(-15, 15) / 100000,
+                'lng' => (float) $property->longitude + random_int(-15, 15) / 100000,
+            ]
+            : null;
+
+        TimeEntry::create([
+            'person_id' => $workOrder->person_id,
+            'work_order_id' => $workOrder->id,
+            'property_id' => $property->id,
+            'payroll_period_id' => $period->id,
+            'source' => TimeEntrySource::ClockEvent,
+            'clock_method' => $method,
+            'entry_type' => TimeEntryType::Work,
+            'start_at_utc' => $startAt,
+            'end_at_utc' => $endAt,
+            'duration_minutes' => (int) $startAt->diffInMinutes($endAt),
+            'timezone' => $tz,
+            'pay_rate_snapshot' => $workOrder->pay_rate,
+            'bill_rate_snapshot' => $workOrder->bill_rate,
+            'ot_pay_rate_snapshot' => $workOrder->ot_pay_rate,
+            'ot_bill_rate_snapshot' => $workOrder->ot_bill_rate,
+            'clock_in_gps_lat' => $gps['lat'] ?? null,
+            'clock_in_gps_lng' => $gps['lng'] ?? null,
+            'clock_in_gps_accuracy_meters' => $gps !== null ? random_int(5, 20) : null,
+            'clock_out_gps_lat' => $gps['lat'] ?? null,
+            'clock_out_gps_lng' => $gps['lng'] ?? null,
+            'clock_out_gps_accuracy_meters' => $gps !== null ? random_int(5, 20) : null,
+        ]);
+
+        RecomputeTimeSummary::dispatchSync($workOrder->id, $period->id);
     }
 
     /** Create a supply request and start its workflow (leaves it pending). */
