@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
@@ -206,7 +207,7 @@ const DepartmentsTab = ({ property, departments, catalogs, can }: Pick<Props, 'p
             <input className="form-input" value={data.manager_phone} onChange={(e) => setData('manager_phone', e.target.value)} />
           </div>
           <div className="flex items-end">
-            <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>
+            <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>
               Add
             </button>
           </div>
@@ -258,7 +259,7 @@ const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | '
                   <td>{money(r.ot_pay_rate)}</td>
                   <td>{money(r.ot_bill_rate)}</td>
                   <td>{r.effective_date}</td>
-                  <td>{r.end_date ?? <span className="badge badge-soft-success">current</span>}</td>
+                  <td>{r.end_date ?? <span className="badge badge-label bg-success/15 text-success">current</span>}</td>
                   {can.editRates && (
                     <td className="text-end">
                       <button className="text-danger text-sm hover:underline" onClick={() => confirmDelete(`/admin/properties/${property.id}/rates/${r.id}`)}>
@@ -315,7 +316,7 @@ const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | '
             {errors.effective_date && <p className="text-danger mt-1 text-sm">{errors.effective_date}</p>}
           </div>
           <div className="flex items-end">
-            <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>
+            <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>
               Add Rate
             </button>
           </div>
@@ -372,8 +373,12 @@ const ContractsTab = ({ property, contracts, catalogs, can }: Pick<Props, 'prope
                   <td>{c.uploaded_by ?? '—'}</td>
                   <td className="text-end space-x-3">
                     {can.downloadContracts && (
-                      <a href={`/admin/properties/${property.id}/contracts/${c.id}/download`} className="text-primary text-sm hover:underline">
-                        Download
+                      <a
+                        href={`/admin/properties/${property.id}/contracts/${c.id}/download`}
+                        className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                        title="Download contract"
+                      >
+                        <Icon icon="eye" className="text-base" />
                       </a>
                     )}
                     {can.editContracts && (
@@ -427,7 +432,7 @@ const ContractsTab = ({ property, contracts, catalogs, can }: Pick<Props, 'prope
             {errors.document && <p className="text-danger mt-1 text-sm">{errors.document}</p>}
           </div>
           <div>
-            <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>
+            <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>
               Upload Contract
             </button>
           </div>
@@ -511,7 +516,7 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
             {errors.role && <p className="text-danger mt-1 text-sm">{errors.role}</p>}
           </div>
           <div className="flex items-end">
-            <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>
+            <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>
               Assign
             </button>
           </div>
@@ -571,14 +576,14 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
       <Head title={property.name} />
       <PageBreadcrumb title={property.name} subtitle="Property Bible" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card">
+        <div className="card-header">
           <div className="flex items-center gap-3">
             <h4 className="card-title">{property.name}</h4>
-            <span className={`badge ${property.status === 'active' ? 'badge-soft-success' : 'badge-soft-secondary'} capitalize`}>{property.status}</span>
+            <span className={`badge badge-label ${property.status === 'active' ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary'} capitalize`}>{property.status}</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href={`/admin/properties/${property.id}/grid`} className="btn bg-primary px-4 py-1.5 font-semibold text-white">
+            <Link href={`/admin/properties/${property.id}/grid`} className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white">
               Weekly Timesheet
             </Link>
             <Link href={`/admin/properties/${property.id}/qr`} className="btn btn-light px-4 py-1.5 font-semibold">

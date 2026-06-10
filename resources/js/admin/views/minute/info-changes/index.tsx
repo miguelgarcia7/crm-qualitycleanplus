@@ -12,7 +12,7 @@ type Props = {
 
 const FIELDS: Array<keyof Changes> = ['name', 'email', 'phone']
 const statusBadge = (s: string) =>
-  s === 'completed' ? 'badge-soft-success' : s === 'rejected' || s === 'cancelled' ? 'badge-soft-danger' : 'badge-soft-primary'
+  s === 'completed' ? 'bg-success/15 text-success' : s === 'rejected' || s === 'cancelled' ? 'bg-danger/15 text-danger' : 'bg-primary/15 text-primary'
 
 const Page = ({ current, mine, can }: Props) => {
   const { data, setData, post, processing, errors } = useForm<{ name: string; email: string; phone: string; reason: string }>({
@@ -30,8 +30,8 @@ const Page = ({ current, mine, can }: Props) => {
       <PageBreadcrumb title="My Info" subtitle="QC Minute" />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="card rounded-2xl">
-          <div className="card-header p-6"><h4 className="card-title">Request a Change</h4></div>
+        <div className="card">
+          <div className="card-header"><h4 className="card-title">Request a Change</h4></div>
           <div className="card-body p-6">
             <div className="bg-light/40 mb-4 rounded-lg p-3 text-sm">
               <div><span className="text-default-400">Name:</span> {current.name}</div>
@@ -45,14 +45,14 @@ const Page = ({ current, mine, can }: Props) => {
                 <div><label className="form-label">New email</label><input type="email" className="form-input" value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder={current.email} />{errors.email && <p className="text-danger mt-1 text-sm">{errors.email}</p>}</div>
                 <div><label className="form-label">New phone</label><input className="form-input" value={data.phone} onChange={(e) => setData('phone', e.target.value)} placeholder={current.phone ?? ''} /></div>
                 <div><label className="form-label">Reason</label><textarea className="form-input" rows={2} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />{errors.reason && <p className="text-danger mt-1 text-sm">{errors.reason}</p>}</div>
-                <button type="submit" className="btn w-full bg-primary py-2 font-semibold text-white" disabled={processing}>Submit for verification</button>
+                <button type="submit" className="btn bg-primary hover:bg-primary-hover w-full py-2 font-semibold text-white" disabled={processing}>Submit for verification</button>
               </form>
             ) : <p className="text-default-500 text-sm">You don't have permission to request profile changes.</p>}
           </div>
         </div>
 
-        <div className="card rounded-2xl">
-          <div className="card-header p-6"><h4 className="card-title">My Requests</h4></div>
+        <div className="card">
+          <div className="card-header"><h4 className="card-title">My Requests</h4></div>
           <div className="table-wrapper">
             <table className="table table-hover text-sm">
               <thead className="thead-sm"><tr className="bg-light/25 text-2xs uppercase"><th>Change</th><th>Submitted</th><th>Status</th></tr></thead>
@@ -61,7 +61,7 @@ const Page = ({ current, mine, can }: Props) => {
                   <tr key={m.id}>
                     <td>{FIELDS.filter((f) => m.changes[f] !== undefined).map((f) => `${f}→${m.changes[f]}`).join(', ')}</td>
                     <td>{m.created_at}</td>
-                    <td><span className={`badge ${statusBadge(m.status)}`}>{m.status_label}</span></td>
+                    <td><span className={`badge badge-label ${statusBadge(m.status)}`}>{m.status_label}</span></td>
                   </tr>
                 )) : <tr><td colSpan={3} className="text-default-400 py-4 text-center">No requests yet.</td></tr>}
               </tbody>

@@ -34,8 +34,8 @@ const Page = ({ tasks }: Props) => {
       <Head title="My Tasks" />
       <PageBreadcrumb title="My Tasks" subtitle="Workflows" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header p-6"><h4 className="card-title">Tasks assigned to me</h4></div>
+      <div className="card">
+        <div className="card-header"><h4 className="card-title">Tasks assigned to me</h4></div>
         <div className="table-wrapper">
           <table className="table table-hover">
             <thead className="thead-sm">
@@ -54,16 +54,16 @@ const Page = ({ tasks }: Props) => {
                   <tr key={t.id}>
                     <td className="font-medium">{t.workflow_type}</td>
                     <td>{t.name}</td>
-                    <td><span className="badge badge-soft-secondary">{t.step_type}</span></td>
+                    <td><span className="badge badge-label bg-secondary/15 text-secondary">{t.step_type}</span></td>
                     <td>{t.initiator ?? '—'}</td>
                     <td>{t.created_at}</td>
                     <td className="text-end">
                       {t.can_act ? (
                         <div className="inline-flex gap-2">
-                          <button className="btn btn-sm btn-primary" disabled={busy === t.id} onClick={() => complete(t)}>
+                          <button className="btn btn-sm bg-primary hover:bg-primary-hover text-white" disabled={busy === t.id} onClick={() => complete(t)}>
                             Complete
                           </button>
-                          <button className="btn btn-sm btn-soft-danger" disabled={busy === t.id} onClick={() => reject(t)}>
+                          <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white" disabled={busy === t.id} onClick={() => reject(t)}>
                             Reject
                           </button>
                         </div>

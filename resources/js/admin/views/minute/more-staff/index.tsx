@@ -13,7 +13,7 @@ type Req = {
 type Props = { properties: Property[]; requests: Req[]; urgencies: Option[]; can: { initiate: boolean } }
 
 const statusBadge = (s: string) =>
-  s === 'fulfilled' ? 'badge-soft-success' : s === 'declined' || s === 'cancelled' ? 'badge-soft-danger' : 'badge-soft-primary'
+  s === 'fulfilled' ? 'bg-success/15 text-success' : s === 'declined' || s === 'cancelled' ? 'bg-danger/15 text-danger' : 'bg-primary/15 text-primary'
 
 const Page = ({ properties, requests, urgencies, can }: Props) => {
   const [create, setCreate] = useState(false)
@@ -23,11 +23,11 @@ const Page = ({ properties, requests, urgencies, can }: Props) => {
       <Head title="Staffing Requests" />
       <PageBreadcrumb title="Staffing Requests" subtitle="QC Minute" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card">
+        <div className="card-header">
           <h4 className="card-title">My Requests</h4>
           {can.initiate && properties.length > 0 && (
-            <button className="btn bg-primary px-4 py-1.5 font-semibold text-white" onClick={() => setCreate(true)}>+ Request Staff</button>
+            <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setCreate(true)}>+ Request Staff</button>
           )}
         </div>
         <div className="table-wrapper">
@@ -43,8 +43,8 @@ const Page = ({ properties, requests, urgencies, can }: Props) => {
                   <td className="font-medium">{r.property}</td>
                   <td>{r.position}</td>
                   <td className="text-center">{r.quantity_fulfilled} / {r.quantity_requested}</td>
-                  <td>{r.by_date}{r.is_overdue && <span className="badge badge-soft-danger ms-2">Overdue</span>}</td>
-                  <td><span className={`badge ${statusBadge(r.status)}`}>{r.status_label}</span></td>
+                  <td>{r.by_date}{r.is_overdue && <span className="badge badge-label bg-danger/15 text-danger ms-2">Overdue</span>}</td>
+                  <td><span className={`badge badge-label ${statusBadge(r.status)}`}>{r.status_label}</span></td>
                   <td className="text-end">
                     {(r.status === 'submitted' || r.status === 'in_progress') && (
                       <button
@@ -86,8 +86,8 @@ const CreateModal = ({ properties, urgencies, onClose }: { properties: Property[
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-lg rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">Request More Staff</h4></div>
+      <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">Request More Staff</h4></div>
         <div className="card-body max-h-[75vh] overflow-y-auto p-5">
           <form onSubmit={submit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -137,7 +137,7 @@ const CreateModal = ({ properties, urgencies, onClose }: { properties: Property[
 
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Submit</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Submit</button>
             </div>
           </form>
         </div>

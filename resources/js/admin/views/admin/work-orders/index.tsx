@@ -1,6 +1,21 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import { Head, Link, router, useForm } from '@inertiajs/react'
-import { FormEvent, useState } from 'react'
+import DataTable from '@/components/table/DataTable'
+import TablePagination from '@/components/table/TablePagination'
+import Icon from '@/components/wrappers/Icon'
+import { cn } from '@/utils/helpers'
+import { Head, Link, useForm } from '@inertiajs/react'
+import {
+  ColumnFiltersState,
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  Row as TableRow,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table'
+import { FormEvent, useMemo, useState } from 'react'
 
 type WorkOrderRow = {
   id: number
@@ -27,75 +42,184 @@ type Props = {
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
-const statusClass = (s: string) => (s === 'active' ? 'badge-soft-success' : s === 'closed' ? 'badge-soft-secondary' : 'badge-soft-warning')
+const statusBadge = (s: string) =>
+  s === 'active' ? 'bg-success/15 text-success' : s === 'closed' ? 'bg-secondary/15 text-secondary' : 'bg-warning/15 text-warning'
 
 type ModalState = { kind: 'transfer' | 'temp'; wo: WorkOrderRow } | null
 
+const columnHelper = createColumnHelper<WorkOrderRow>()
+
 const Page = ({ workOrders, catalogs, can }: Props) => {
   const [modal, setModal] = useState<ModalState>(null)
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+
+  const statuses = useMemo(() => [...new Set(workOrders.map((w) => w.status))].sort(), [workOrders])
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('contractor', {
+        header: 'Contractor',
+        cell: ({ row }) => <span className="font-medium">{row.original.contractor}</span>,
+      }),
+      columnHelper.accessor('property', {
+        header: 'Property',
+      }),
+      columnHelper.accessor('position', {
+        header: 'Position',
+      }),
+      columnHelper.accessor('pay_rate', {
+        header: 'Pay',
+        cell: ({ row }) => money(row.original.pay_rate),
+      }),
+      columnHelper.accessor('bill_rate', {
+        header: 'Bill',
+        cell: ({ row }) => money(row.original.bill_rate),
+      }),
+      columnHelper.accessor('start_date', {
+        header: 'Start',
+      }),
+      columnHelper.accessor('status', {
+        header: 'Status',
+        filterFn: 'equalsString',
+        enableColumnFilter: true,
+        cell: ({ row }) => (
+          <>
+            <span className={cn('badge badge-label capitalize', statusBadge(row.original.status))}>{row.original.status}</span>
+            {row.original.is_temporary_assignment && <span className="badge badge-label bg-info/15 text-info ms-1">temp</span>}
+          </>
+        ),
+      }),
+      {
+        header: 'Actions',
+        cell: ({ row }: { row: TableRow<WorkOrderRow> }) => {
+          const w = row.original
+          return (
+            <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+              <Link
+                href={`/admin/work-orders/${w.id}/edit`}
+                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                title="Edit work order"
+              >
+                <Icon icon="edit" className="text-base" />
+              </Link>
+              {w.status === 'active' && can.transfer && (
+                <button
+                  className="btn btn-sm bg-primary/15 text-primary hover:bg-primary hover:text-white"
+                  onClick={() => setModal({ kind: 'transfer', wo: w })}
+                >
+                  Transfer
+                </button>
+              )}
+              {w.status === 'active' && can.temp && !w.is_temporary_assignment && (
+                <button
+                  className="btn btn-sm bg-info/15 text-info hover:bg-info hover:text-white"
+                  onClick={() => setModal({ kind: 'temp', wo: w })}
+                >
+                  Temp
+                </button>
+              )}
+            </div>
+          )
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [can.transfer, can.temp],
+  )
+
+  const table = useReactTable({
+    data: workOrders,
+    columns,
+    state: { sorting, globalFilter, columnFilters, pagination },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+    enableColumnFilters: true,
+  })
+
+  const pageIndex = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+  const totalItems = table.getFilteredRowModel().rows.length
+  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
+  const end = Math.min(start + pageSize - 1, totalItems)
 
   return (
     <>
       <Head title="Work Orders" />
       <PageBreadcrumb title="Work Orders" subtitle="Operations" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
-          <h4 className="card-title">Work Orders</h4>
-          {can.create && (
-            <Link href="/admin/work-orders/create" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white">
-              Add Work Order
-            </Link>
-          )}
+      <div className="card">
+        <div className="card-header">
+          <div className="flex flex-wrap gap-3">
+            <div className="input-icon-group">
+              <Icon icon="search" className="input-icon" />
+              <input
+                className="form-input"
+                placeholder="Search work orders..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+              />
+            </div>
+
+            {can.create && (
+              <Link href="/admin/work-orders/create" className="btn bg-primary hover:bg-primary-hover text-white">
+                <Icon icon="plus" />
+                Add Work Order
+              </Link>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
+            <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+            <select
+              className="form-select w-auto"
+              value={(table.getColumn('status')?.getFilterValue() as string) ?? 'All'}
+              onChange={(e) => table.getColumn('status')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}
+            >
+              <option value="All">Status</option>
+              {statuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+            <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+              {[10, 25, 50].map((size) => (
+                <option key={size}>{size}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="table-wrapper">
-          <table className="table table-hover">
-            <thead className="thead-sm">
-              <tr className="bg-light/25 text-2xs uppercase">
-                <th>Contractor</th>
-                <th>Property</th>
-                <th>Position</th>
-                <th>Pay</th>
-                <th>Bill</th>
-                <th>Start</th>
-                <th>Status</th>
-                <th className="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workOrders.length ? (
-                workOrders.map((w) => (
-                  <tr key={w.id}>
-                    <td className="font-medium">{w.contractor}</td>
-                    <td>{w.property}</td>
-                    <td>{w.position}</td>
-                    <td>{money(w.pay_rate)}</td>
-                    <td>{money(w.bill_rate)}</td>
-                    <td>{w.start_date}</td>
-                    <td>
-                      <span className={`badge ${statusClass(w.status)} capitalize`}>{w.status}</span>
-                      {w.is_temporary_assignment && <span className="badge badge-soft-info ms-1">temp</span>}
-                    </td>
-                    <td className="text-end whitespace-nowrap">
-                      <Link href={`/admin/work-orders/${w.id}/edit`} className="text-primary text-sm hover:underline">Edit</Link>
-                      {w.status === 'active' && can.transfer && (
-                        <button className="text-default-500 ms-3 text-sm hover:underline" onClick={() => setModal({ kind: 'transfer', wo: w })}>Transfer</button>
-                      )}
-                      {w.status === 'active' && can.temp && !w.is_temporary_assignment && (
-                        <button className="text-default-500 ms-3 text-sm hover:underline" onClick={() => setModal({ kind: 'temp', wo: w })}>Temp</button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={8} className="text-default-400 py-4 text-center">No work orders yet.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable table={table} emptyMessage="No work orders yet." />
+
+        {table.getRowModel().rows.length > 0 && (
+          <div className="card-footer">
+            <TablePagination
+              totalItems={totalItems}
+              start={start}
+              end={end}
+              itemsName="work orders"
+              pageIndex={pageIndex}
+              pageCount={table.getPageCount()}
+              canPreviousPage={table.getCanPreviousPage()}
+              canNextPage={table.getCanNextPage()}
+              previousPage={table.previousPage}
+              nextPage={table.nextPage}
+              setPageIndex={table.setPageIndex}
+              showInfo
+            />
+          </div>
+        )}
       </div>
 
       {modal?.kind === 'transfer' && <TransferModal wo={modal.wo} catalogs={catalogs} onClose={() => setModal(null)} />}
@@ -134,9 +258,14 @@ const RateFields = ({ data, setData }: { data: any; setData: (k: any, v: any) =>
 
 const Shell = ({ title, subtitle, onClose, children }: { title: string; subtitle: string; onClose: () => void; children: React.ReactNode }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-    <div className="card w-full max-w-lg rounded-2xl" onClick={(e) => e.stopPropagation()}>
-      <div className="card-header p-5"><h4 className="card-title">{title}</h4><p className="text-default-400 text-sm">{subtitle}</p></div>
-      <div className="card-body max-h-[75vh] overflow-y-auto p-5">{children}</div>
+    <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="card-header">
+        <div>
+          <h4 className="card-title">{title}</h4>
+          <p className="text-default-400 text-sm">{subtitle}</p>
+        </div>
+      </div>
+      <div className="card-body max-h-[75vh] overflow-y-auto">{children}</div>
     </div>
   </div>
 )
@@ -199,7 +328,7 @@ const TransferModal = ({ wo, catalogs, onClose }: { wo: WorkOrderRow; catalogs: 
         </div>
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Apply Transfer</button>
+          <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Apply Transfer</button>
         </div>
       </form>
     </Shell>
@@ -263,7 +392,7 @@ const TempModal = ({ wo, catalogs, onClose }: { wo: WorkOrderRow; catalogs: Cata
         </div>
         <div className="flex justify-end gap-2">
           <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Create Temp Assignment</button>
+          <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Create Temp Assignment</button>
         </div>
       </form>
     </Shell>

@@ -81,19 +81,19 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
       <Head title={`Timesheet — ${property.name}`} />
       <PageBreadcrumb title={property.name} subtitle="Weekly Timesheet" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card">
+        <div className="card-header">
           <div className="flex items-center gap-3">
             <h4 className="card-title">
               Week of {week.start}
-              {timesheet && <span className="badge badge-soft-secondary ms-2">{timesheet.status_label}</span>}
+              {timesheet && <span className="badge badge-label bg-secondary/15 text-secondary ms-2">{timesheet.status_label}</span>}
             </h4>
           </div>
           <div className="flex items-center gap-2">
             <button className="btn btn-light px-3 py-1.5" onClick={() => shiftWeek(-1)}>← Prev</button>
             <button className="btn btn-light px-3 py-1.5" onClick={() => shiftWeek(1)}>Next →</button>
             {can.submit && (
-              <button className="btn bg-primary px-4 py-1.5 font-semibold text-white" onClick={submitForApproval}>
+              <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={submitForApproval}>
                 Send for Approval
               </button>
             )}
@@ -167,8 +167,8 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
       </div>
 
       {period && (
-        <div className="card mt-4 rounded-2xl">
-          <div className="card-header flex items-center justify-between p-6">
+        <div className="card mt-4">
+          <div className="card-header">
             <h4 className="card-title">Adjustments</h4>
             {can.adjust && (
               <button className="btn btn-light px-3 py-1.5" onClick={() => setAdjustModal(true)}>+ Add adjustment</button>
@@ -193,7 +193,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                     <tr key={a.id}>
                       <td>{a.person}</td>
                       <td>
-                        <span className={`badge ${a.type === 'incentive' ? 'badge-soft-success' : 'badge-soft-danger'}`}>{a.type}</span>
+                        <span className={`badge badge-label ${a.type === 'incentive' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger'}`}>{a.type}</span>
                       </td>
                       <td className="text-end whitespace-nowrap">{a.type === 'deduction' ? '−' : '+'}{money(a.value)}</td>
                       <td>{a.is_billable ? 'Yes' : 'No'}</td>
@@ -239,8 +239,8 @@ const AddEntryModal = ({ workOrderId, date, onClose }: { workOrderId: number; da
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">Add Time Entry</h4></div>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">Add Time Entry</h4></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -267,7 +267,7 @@ const AddEntryModal = ({ workOrderId, date, onClose }: { workOrderId: number; da
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Add</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Add</button>
             </div>
           </form>
         </div>
@@ -306,8 +306,8 @@ const AddAdjustmentModal = ({ periodId, rows, onClose }: { periodId: number; row
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">Add Adjustment</h4></div>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">Add Adjustment</h4></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -344,7 +344,7 @@ const AddAdjustmentModal = ({ periodId, rows, onClose }: { periodId: number; row
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Add</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Add</button>
             </div>
           </form>
         </div>

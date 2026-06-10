@@ -8,7 +8,7 @@ type Props = { requests: Req[]; workOrders: WoOption[]; can: { initiate: boolean
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`
 const statusClass = (s: string) =>
-  s === 'completed' ? 'badge-soft-success' : s === 'rejected' ? 'badge-soft-danger' : 'badge-soft-secondary'
+  s === 'completed' ? 'bg-success/15 text-success' : s === 'rejected' ? 'bg-danger/15 text-danger' : 'bg-secondary/15 text-secondary'
 
 const Page = ({ requests, workOrders, can }: Props) => {
   const [creating, setCreating] = useState(false)
@@ -18,11 +18,11 @@ const Page = ({ requests, workOrders, can }: Props) => {
       <Head title="Pay Increases" />
       <PageBreadcrumb title="Pay Increases" subtitle="QC Minute" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card">
+        <div className="card-header">
           <h4 className="card-title">My requests</h4>
           {can.initiate && workOrders.length > 0 && (
-            <button className="btn bg-primary px-4 py-1.5 font-semibold text-white" onClick={() => setCreating(true)}>+ Request pay increase</button>
+            <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setCreating(true)}>+ Request pay increase</button>
           )}
         </div>
         <div className="table-wrapper">
@@ -36,7 +36,7 @@ const Page = ({ requests, workOrders, can }: Props) => {
                   <td>{r.created_at}</td>
                   <td className="text-end">{money(r.increase)}/hr</td>
                   <td className="text-default-400">{r.reason}</td>
-                  <td><span className={`badge ${statusClass(r.status)} capitalize`}>{r.status.replaceAll('_', ' ')}</span></td>
+                  <td><span className={`badge badge-label ${statusClass(r.status)} capitalize`}>{r.status.replaceAll('_', ' ')}</span></td>
                 </tr>
               )) : <tr><td colSpan={4} className="text-default-400 py-4 text-center">No requests yet.</td></tr>}
             </tbody>
@@ -65,8 +65,8 @@ const CreateModal = ({ workOrders, onClose }: { workOrders: WoOption[]; onClose:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">Request pay increase</h4></div>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">Request pay increase</h4></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -88,7 +88,7 @@ const CreateModal = ({ workOrders, onClose }: { workOrders: WoOption[]; onClose:
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Submit</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Submit</button>
             </div>
           </form>
         </div>

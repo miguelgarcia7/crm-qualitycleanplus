@@ -13,9 +13,9 @@ type Props = {
 }
 
 const statusBadge = (s: string) =>
-  s === 'in_stock' ? 'badge-soft-success'
-    : s === 'low_stock' ? 'badge-soft-warning'
-      : s === 'out_of_stock' ? 'badge-soft-danger' : 'badge-soft-secondary'
+  s === 'in_stock' ? 'bg-success/15 text-success'
+    : s === 'low_stock' ? 'bg-warning/15 text-warning'
+      : s === 'out_of_stock' ? 'bg-danger/15 text-danger' : 'bg-secondary/15 text-secondary'
 const statusLabel = (s: string) => ({ in_stock: 'In Stock', low_stock: 'Low', out_of_stock: 'Out', not_tracked: 'Untracked' }[s] ?? s)
 
 type MoveMode = { variant: Variant; mode: 'receive' | 'manual-out' | 'return' } | null
@@ -30,18 +30,18 @@ const Page = ({ categories, items, stats, can }: Props) => {
       <PageBreadcrumb title="Inventory" subtitle="Browse Items" />
 
       <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card rounded-2xl"><div className="card-body p-5"><p className="text-default-400 text-sm">Low stock</p><h3 className="text-warning text-2xl font-bold">{stats.low_stock}</h3></div></div>
-        <div className="card rounded-2xl"><div className="card-body p-5"><p className="text-default-400 text-sm">Out of stock</p><h3 className="text-danger text-2xl font-bold">{stats.out_of_stock}</h3></div></div>
+        <div className="card"><div className="card-body p-5"><p className="text-default-400 text-sm">Low stock</p><h3 className="text-warning text-2xl font-bold">{stats.low_stock}</h3></div></div>
+        <div className="card"><div className="card-body p-5"><p className="text-default-400 text-sm">Out of stock</p><h3 className="text-danger text-2xl font-bold">{stats.out_of_stock}</h3></div></div>
       </div>
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card">
+        <div className="card-header">
           <div className="flex items-center gap-4">
             <h4 className="card-title">Items</h4>
             <Link href="/admin/inventory/purchase-orders" className="text-default-500 text-sm hover:underline">Purchase Orders</Link>
             <Link href="/admin/inventory/equipment" className="text-default-500 text-sm hover:underline">Equipment</Link>
           </div>
-          {can.create && <button className="btn bg-primary px-4 py-1.5 font-semibold text-white" onClick={() => setNewItem(true)}>+ New Item</button>}
+          {can.create && <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setNewItem(true)}>+ New Item</button>}
         </div>
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
@@ -62,7 +62,7 @@ const Page = ({ categories, items, stats, can }: Props) => {
                       <td>{idx === 0 ? <div><div className="font-medium">{item.name}</div><div className="text-default-400 text-xs">{item.category}</div></div> : ''}</td>
                       <td>{v.label}{v.sku && <span className="text-default-400 text-xs"> · {v.sku}</span>}</td>
                       <td className="text-end">{v.current_stock}</td>
-                      <td><span className={`badge ${statusBadge(v.status)}`}>{statusLabel(v.status)}</span></td>
+                      <td><span className={`badge badge-label ${statusBadge(v.status)}`}>{statusLabel(v.status)}</span></td>
                       <td className="text-end whitespace-nowrap">
                         {can.receive && <button className="text-primary text-xs hover:underline" onClick={() => setMove({ variant: v, mode: 'receive' })}>receive</button>}
                         {can.manual_out && <button className="text-default-500 ms-3 text-xs hover:underline" onClick={() => setMove({ variant: v, mode: 'manual-out' })}>take out</button>}
@@ -107,8 +107,8 @@ const NewItemModal = ({ categories, onClose }: { categories: Category[]; onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-lg rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">New Item</h4></div>
+      <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">New Item</h4></div>
         <div className="card-body max-h-[70vh] overflow-y-auto p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -150,7 +150,7 @@ const NewItemModal = ({ categories, onClose }: { categories: Category[]; onClose
             )}
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Create</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Create</button>
             </div>
           </form>
         </div>
@@ -170,8 +170,8 @@ const MovementModal = ({ variant, mode, onClose }: { variant: Variant; mode: 're
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">{title}</h4><p className="text-default-400 text-sm">{variant.label} — {variant.current_stock} on hand</p></div>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">{title}</h4><p className="text-default-400 text-sm">{variant.label} — {variant.current_stock} on hand</p></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -186,7 +186,7 @@ const MovementModal = ({ variant, mode, onClose }: { variant: Variant; mode: 're
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Save</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Save</button>
             </div>
           </form>
         </div>

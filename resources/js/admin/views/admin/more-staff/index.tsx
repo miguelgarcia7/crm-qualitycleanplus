@@ -1,5 +1,21 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import DataTable from '@/components/table/DataTable'
+import TablePagination from '@/components/table/TablePagination'
+import Icon from '@/components/wrappers/Icon'
+import { cn } from '@/utils/helpers'
 import { Head, Link, router } from '@inertiajs/react'
+import {
+  ColumnFiltersState,
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  Row as TableRow,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table'
+import { useMemo, useState } from 'react'
 
 type Req = {
   id: number; property: string; position: string; quantity_requested: number
@@ -9,58 +25,196 @@ type Req = {
 type Props = { requests: Req[]; can: { decline: boolean; cancel: boolean } }
 
 const urgencyBadge = (u: string) =>
-  u === 'urgent' ? 'badge-soft-danger' : u === 'high' ? 'badge-soft-warning' : u === 'normal' ? 'badge-soft-primary' : 'badge-soft-secondary'
+  u === 'urgent'
+    ? 'bg-danger/15 text-danger'
+    : u === 'high'
+      ? 'bg-warning/15 text-warning'
+      : u === 'normal'
+        ? 'bg-primary/15 text-primary'
+        : 'bg-secondary/15 text-secondary'
 
-const Page = ({ requests, can }: Props) => (
-  <>
-    <Head title="Staffing Requests" />
-    <PageBreadcrumb title="Staffing Requests" subtitle="Recruiting" />
+const columnHelper = createColumnHelper<Req>()
 
-    <div className="card rounded-2xl">
-      <div className="card-header flex items-center justify-between p-6">
-        <h4 className="card-title">Open Requests</h4>
-        <Link href="/admin/work-orders/create" className="btn btn-soft-primary px-4 py-1.5">+ Place a contractor</Link>
+const Page = ({ requests, can }: Props) => {
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+
+  const urgencies = useMemo(() => [...new Set(requests.map((r) => r.urgency))], [requests])
+
+  const decline = (id: number) => {
+    const reason = window.prompt('Reason for declining?')
+    if (reason) router.post(`/admin/staffing-requests/${id}/decline`, { reason }, { preserveScroll: true })
+  }
+  const cancel = (id: number) => {
+    const reason = window.prompt('Reason for cancelling?')
+    if (reason) router.post(`/admin/staffing-requests/${id}/cancel`, { reason }, { preserveScroll: true })
+  }
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('property', {
+        header: 'Property',
+        cell: ({ row }) => <span className="font-medium">{row.original.property}</span>,
+      }),
+      columnHelper.accessor('position', {
+        header: 'Position',
+        cell: ({ row }) => (
+          <div>
+            {row.original.position}
+            <p className="text-default-400 text-xs">{row.original.reason}</p>
+          </div>
+        ),
+      }),
+      columnHelper.accessor('urgency', {
+        header: 'Urgency',
+        filterFn: 'equalsString',
+        enableColumnFilter: true,
+        cell: ({ row }) => <span className={cn('badge badge-label capitalize', urgencyBadge(row.original.urgency))}>{row.original.urgency}</span>,
+      }),
+      columnHelper.accessor('quantity_fulfilled', {
+        header: 'Progress',
+        cell: ({ row }) => `${row.original.quantity_fulfilled} / ${row.original.quantity_requested}`,
+      }),
+      columnHelper.accessor('by_date', {
+        header: 'By Date',
+        cell: ({ row }) => (
+          <>
+            {row.original.by_date}
+            {row.original.is_overdue && <span className="badge badge-label bg-danger/15 text-danger ms-2">Overdue</span>}
+          </>
+        ),
+      }),
+      columnHelper.accessor('requested_by', {
+        header: 'Requested By',
+        cell: ({ row }) => row.original.requested_by ?? '—',
+      }),
+      {
+        header: 'Actions',
+        cell: ({ row }: { row: TableRow<Req> }) => (
+          <div className="flex justify-center gap-1.5">
+            {can.decline && (
+              <button
+                className="btn btn-icon btn-sm bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
+                onClick={() => decline(row.original.id)}
+                title="Decline"
+              >
+                <Icon icon="x" className="text-base" />
+              </button>
+            )}
+            {can.cancel && (
+              <button
+                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                onClick={() => cancel(row.original.id)}
+                title="Cancel request"
+              >
+                <Icon icon="x" className="text-base" />
+              </button>
+            )}
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [can.decline, can.cancel],
+  )
+
+  const table = useReactTable({
+    data: requests,
+    columns,
+    state: { sorting, globalFilter, columnFilters, pagination },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+    enableColumnFilters: true,
+  })
+
+  const pageIndex = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+  const totalItems = table.getFilteredRowModel().rows.length
+  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
+  const end = Math.min(start + pageSize - 1, totalItems)
+
+  return (
+    <>
+      <Head title="Staffing Requests" />
+      <PageBreadcrumb title="Staffing Requests" subtitle="Recruiting" />
+
+      <div className="card">
+        <div className="card-header">
+          <div className="flex flex-wrap gap-3">
+            <div className="input-icon-group">
+              <Icon icon="search" className="input-icon" />
+              <input
+                className="form-input"
+                placeholder="Search requests..."
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+              />
+            </div>
+
+            <Link href="/admin/work-orders/create" className="btn bg-primary hover:bg-primary-hover text-white">
+              <Icon icon="plus" />
+              Place a contractor
+            </Link>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
+            <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+            <select
+              className="form-select w-auto"
+              value={(table.getColumn('urgency')?.getFilterValue() as string) ?? 'All'}
+              onChange={(e) => table.getColumn('urgency')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}
+            >
+              <option value="All">Urgency</option>
+              {urgencies.map((urgency) => (
+                <option key={urgency} value={urgency}>
+                  {urgency}
+                </option>
+              ))}
+            </select>
+            <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+              {[10, 25, 50].map((size) => (
+                <option key={size}>{size}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <DataTable table={table} emptyMessage="No open staffing requests." />
+
+        <div className="text-default-400 px-5 py-3 text-xs">
+          Fulfill a request by creating a work order at the property and linking it to the request.
+        </div>
+
+        {table.getRowModel().rows.length > 0 && (
+          <div className="card-footer">
+            <TablePagination
+              totalItems={totalItems}
+              start={start}
+              end={end}
+              itemsName="requests"
+              pageIndex={pageIndex}
+              pageCount={table.getPageCount()}
+              canPreviousPage={table.getCanPreviousPage()}
+              canNextPage={table.getCanNextPage()}
+              previousPage={table.previousPage}
+              nextPage={table.nextPage}
+              setPageIndex={table.setPageIndex}
+              showInfo
+            />
+          </div>
+        )}
       </div>
-      <div className="table-wrapper">
-        <table className="table table-hover text-sm">
-          <thead className="thead-sm">
-            <tr className="bg-light/25 text-2xs uppercase">
-              <th>Property</th><th>Position</th><th>Urgency</th><th className="text-center">Progress</th><th>By date</th><th>Requested by</th><th className="text-end">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.length ? requests.map((r) => (
-              <tr key={r.id}>
-                <td className="font-medium">{r.property}</td>
-                <td>{r.position}<div className="text-default-400 text-xs">{r.reason}</div></td>
-                <td><span className={`badge ${urgencyBadge(r.urgency)}`}>{r.urgency}</span></td>
-                <td className="text-center">{r.quantity_fulfilled} / {r.quantity_requested}</td>
-                <td>{r.by_date}{r.is_overdue && <span className="badge badge-soft-danger ms-2">Overdue</span>}</td>
-                <td>{r.requested_by ?? '—'}</td>
-                <td className="text-end whitespace-nowrap">
-                  {can.decline && (
-                    <button
-                      className="btn btn-sm btn-soft-danger"
-                      onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/staffing-requests/${r.id}/decline`, { reason }, { preserveScroll: true }) }}
-                    >Decline</button>
-                  )}
-                  {can.cancel && (
-                    <button
-                      className="btn btn-sm btn-light ms-2"
-                      onClick={() => { const reason = window.prompt('Reason for cancelling?'); if (reason) router.post(`/admin/staffing-requests/${r.id}/cancel`, { reason }, { preserveScroll: true }) }}
-                    >Cancel</button>
-                  )}
-                </td>
-              </tr>
-            )) : <tr><td colSpan={7} className="text-default-400 py-4 text-center">No open staffing requests.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-      <div className="text-default-400 px-6 py-4 text-xs">
-        Fulfill a request by creating a work order at the property and linking it to the request.
-      </div>
-    </div>
-  </>
-)
+    </>
+  )
+}
 
 export default Page

@@ -33,16 +33,16 @@ const Page = ({ invoice, can }: Props) => {
       <Head title={invoice.invoice_number} />
       <PageBreadcrumb title={invoice.invoice_number} subtitle="Invoice" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card">
+        <div className="card-header">
           <div className="flex items-center gap-3">
             <h4 className="card-title">{invoice.invoice_number}</h4>
-            <span className="badge badge-soft-secondary">{invoice.status_label}</span>
+            <span className="badge badge-label bg-secondary/15 text-secondary">{invoice.status_label}</span>
           </div>
           <div className="flex items-center gap-2">
             <a href={`/admin/invoices/${invoice.id}/pdf`} className="btn btn-light px-4 py-1.5">Download PDF</a>
             {can.send && (
-              <button className="btn bg-primary px-4 py-1.5 font-semibold text-white" onClick={() => setSending(true)}>Send to Property</button>
+              <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setSending(true)}>Send to Property</button>
             )}
             <Link href="/admin/invoices" className="text-default-500 ms-2 text-sm hover:underline">All</Link>
           </div>
@@ -121,8 +121,8 @@ const SendModal = ({ invoiceId, defaultEmail, onClose }: { invoiceId: number; de
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">Send Invoice to Property</h4></div>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">Send Invoice to Property</h4></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -132,7 +132,7 @@ const SendModal = ({ invoiceId, defaultEmail, onClose }: { invoiceId: number; de
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Send</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Send</button>
             </div>
           </form>
         </div>

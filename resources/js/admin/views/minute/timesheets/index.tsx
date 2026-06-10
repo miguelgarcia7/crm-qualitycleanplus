@@ -6,15 +6,21 @@ type Row = { id: number; property: string | null; week_start: string | null; sta
 type Props = { timesheets: Row[] }
 
 const statusClass = (s: string) =>
-  s === 'pending_approval' ? 'badge-soft-warning' : s === 'approved' || s === 'invoiced' || s === 'invoice_sent' ? 'badge-soft-success' : s === 'declined' ? 'badge-soft-danger' : 'badge-soft-secondary'
+  s === 'pending_approval'
+    ? 'bg-warning/15 text-warning'
+    : s === 'approved' || s === 'invoiced' || s === 'invoice_sent'
+      ? 'bg-success/15 text-success'
+      : s === 'declined'
+        ? 'bg-danger/15 text-danger'
+        : 'bg-secondary/15 text-secondary'
 
 const Page = ({ timesheets }: Props) => (
   <>
     <Head title="Timesheets" />
     <PageBreadcrumb title="Timesheets" subtitle="Approvals" />
 
-    <div className="card rounded-2xl">
-      <div className="card-header p-6">
+    <div className="card">
+      <div className="card-header">
         <h4 className="card-title">Timesheets for Approval</h4>
       </div>
       <div className="table-wrapper">
@@ -33,7 +39,7 @@ const Page = ({ timesheets }: Props) => (
                 <tr key={t.id}>
                   <td className="font-medium">{t.property}</td>
                   <td>{t.week_start}</td>
-                  <td><span className={`badge ${statusClass(t.status)}`}>{t.status_label}</span></td>
+                  <td><span className={`badge badge-label ${statusClass(t.status)}`}>{t.status_label}</span></td>
                   <td className="text-end">
                     <Link href={`/timesheets/${t.id}`} className="text-primary text-sm hover:underline">Review</Link>
                   </td>

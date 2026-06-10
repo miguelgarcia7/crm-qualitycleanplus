@@ -33,10 +33,10 @@ const Page = ({ queue, mine, people, can }: Props) => {
       <PageBreadcrumb title="Info Changes" subtitle="People" />
 
       {can.verify && (
-        <div className="card rounded-2xl">
-          <div className="card-header flex items-center justify-between p-6">
+        <div className="card">
+          <div className="card-header">
             <h4 className="card-title">Pending Verification</h4>
-            {can.initiate && <button className="btn btn-soft-primary px-4 py-1.5" onClick={() => setOnBehalf(true)}>+ Request on behalf</button>}
+            {can.initiate && <button className="btn bg-primary/15 text-primary hover:bg-primary hover:text-white px-4 py-1.5" onClick={() => setOnBehalf(true)}>+ Request on behalf</button>}
           </div>
           <div className="table-wrapper">
             <table className="table table-hover text-sm">
@@ -50,8 +50,8 @@ const Page = ({ queue, mine, people, can }: Props) => {
                     <td>{changeList(q.current, q.changes)}{q.reason && <div className="text-default-400 mt-1 text-xs italic">{q.reason}</div>}</td>
                     <td>{q.requested_by ?? '—'}</td>
                     <td className="text-end whitespace-nowrap">
-                      <button className="btn btn-sm btn-primary" onClick={() => router.post(`/admin/info-changes/${q.id}/approve`, {}, { preserveScroll: true })}>Approve</button>
-                      <button className="btn btn-sm btn-soft-danger ms-2" onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }) }}>Decline</button>
+                      <button className="btn btn-sm bg-primary hover:bg-primary-hover text-white" onClick={() => router.post(`/admin/info-changes/${q.id}/approve`, {}, { preserveScroll: true })}>Approve</button>
+                      <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white ms-2" onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }) }}>Decline</button>
                     </td>
                   </tr>
                 )) : <tr><td colSpan={4} className="text-default-400 py-4 text-center">Nothing awaiting verification.</td></tr>}
@@ -61,10 +61,10 @@ const Page = ({ queue, mine, people, can }: Props) => {
         </div>
       )}
 
-      <div className="card mt-4 rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card mt-4">
+        <div className="card-header">
           <h4 className="card-title">My Requests</h4>
-          {!can.verify && can.initiate && <button className="btn btn-soft-primary px-4 py-1.5" onClick={() => setOnBehalf(true)}>+ New request</button>}
+          {!can.verify && can.initiate && <button className="btn bg-primary/15 text-primary hover:bg-primary hover:text-white px-4 py-1.5" onClick={() => setOnBehalf(true)}>+ New request</button>}
         </div>
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
@@ -74,7 +74,7 @@ const Page = ({ queue, mine, people, can }: Props) => {
                 <tr key={m.id}>
                   <td>{FIELDS.filter((f) => m.changes[f] !== undefined).map((f) => `${f}→${m.changes[f]}`).join(', ')}</td>
                   <td>{m.created_at}</td>
-                  <td><span className="badge badge-soft-secondary">{m.status}</span></td>
+                  <td><span className="badge badge-label bg-secondary/15 text-secondary">{m.status}</span></td>
                 </tr>
               )) : <tr><td colSpan={3} className="text-default-400 py-4 text-center">No requests yet.</td></tr>}
             </tbody>
@@ -99,8 +99,8 @@ const OnBehalfModal = ({ people, onClose }: { people: PersonOption[]; onClose: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">Request Info Change</h4></div>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">Request Info Change</h4></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -118,7 +118,7 @@ const OnBehalfModal = ({ people, onClose }: { people: PersonOption[]; onClose: (
             <div><label className="form-label">Reason</label><textarea className="form-input" rows={2} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />{errors.reason && <p className="text-danger mt-1 text-sm">{errors.reason}</p>}</div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary px-4 py-2 font-semibold text-white" disabled={processing}>Submit</button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Submit</button>
             </div>
           </form>
         </div>

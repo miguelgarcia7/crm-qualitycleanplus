@@ -15,10 +15,12 @@ const Page = ({ assignments, can }: Props) => {
       <Head title="Equipment" />
       <PageBreadcrumb title="Equipment" subtitle="Inventory" />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center gap-4 p-6">
-          <h4 className="card-title">Assigned Equipment</h4>
-          <Link href="/admin/inventory" className="text-default-500 text-sm hover:underline">← Inventory</Link>
+      <div className="card">
+        <div className="card-header">
+          <div className="flex items-center gap-4">
+            <h4 className="card-title">Assigned Equipment</h4>
+            <Link href="/admin/inventory" className="text-default-500 text-sm hover:underline">← Inventory</Link>
+          </div>
         </div>
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
@@ -35,8 +37,8 @@ const Page = ({ assignments, can }: Props) => {
                   <td className="text-end whitespace-nowrap">
                     {can.return && (
                       <div className="inline-flex gap-2">
-                        <button className="btn btn-sm btn-primary" onClick={() => resolve(a, true)}>Returned</button>
-                        <button className="btn btn-sm btn-soft-danger" onClick={() => resolve(a, false)}>Lost</button>
+                        <button className="btn btn-sm bg-primary hover:bg-primary-hover text-white" onClick={() => resolve(a, true)}>Returned</button>
+                        <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => resolve(a, false)}>Lost</button>
                       </div>
                     )}
                   </td>

@@ -35,17 +35,17 @@ const Page = ({ timesheet, property, week, rows, entries, summaries, can }: Prop
       <Head title={`Timesheet — ${property.name}`} />
       <PageBreadcrumb title={property.name} subtitle={`Week of ${week.start}`} />
 
-      <div className="card rounded-2xl">
-        <div className="card-header flex items-center justify-between p-6">
+      <div className="card">
+        <div className="card-header">
           <div className="flex items-center gap-3">
             <h4 className="card-title">Week of {week.start}</h4>
-            <span className="badge badge-soft-secondary">{timesheet.status_label}</span>
+            <span className="badge badge-label bg-secondary/15 text-secondary">{timesheet.status_label}</span>
           </div>
           <div className="flex items-center gap-2">
             {can.decide && (
               <>
-                <button className="btn bg-success px-4 py-1.5 font-semibold text-white" onClick={approve}>Approve</button>
-                <button className="btn bg-danger px-4 py-1.5 font-semibold text-white" onClick={() => setDeclining(true)}>Decline</button>
+                <button className="btn bg-success hover:bg-success-hover px-4 py-1.5 font-semibold text-white" onClick={approve}>Approve</button>
+                <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white px-4 py-1.5 font-semibold" onClick={() => setDeclining(true)}>Decline</button>
               </>
             )}
             <Link href="/timesheets" className="text-default-500 ms-2 text-sm hover:underline">All</Link>
@@ -103,8 +103,8 @@ const DeclineModal = ({ timesheetId, onClose }: { timesheetId: number; onClose: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header p-5"><h4 className="card-title">Decline Timesheet</h4></div>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header"><h4 className="card-title">Decline Timesheet</h4></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
@@ -124,7 +124,7 @@ const DeclineModal = ({ timesheetId, onClose }: { timesheetId: number; onClose: 
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-danger px-4 py-2 font-semibold text-white" disabled={processing}>Decline</button>
+              <button type="submit" className="btn bg-danger hover:bg-danger-hover px-4 py-2 font-semibold text-white" disabled={processing}>Decline</button>
             </div>
           </form>
         </div>
