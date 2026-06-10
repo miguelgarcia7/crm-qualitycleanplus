@@ -1,7 +1,7 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 
 // --- Types -----------------------------------------------------------------
 
@@ -569,7 +569,25 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
     { key: 'history', label: 'History', show: true },
   ].filter((t) => t.show)
 
-  const [active, setActive] = useState('profile')
+  // Active tab lives in the URL hash (#rates, #team, …) so tabs are
+  // deep-linkable and survive refresh. Invalid/missing hash → first tab.
+  const tabFromHash = () => {
+    const hash = typeof window === 'undefined' ? '' : window.location.hash.slice(1)
+    return tabs.some((t) => t.key === hash) ? hash : 'profile'
+  }
+  const [active, setActive] = useState(tabFromHash)
+
+  useEffect(() => {
+    const onHashChange = () => setActive(tabFromHash())
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const selectTab = (key: string) => {
+    setActive(key)
+    window.history.replaceState(null, '', `#${key}`)
+  }
 
   return (
     <>
@@ -595,26 +613,21 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
           </div>
         </div>
 
-        <div className="border-default-300 border-b px-6">
-          <nav className="-mb-px flex flex-wrap" aria-label="Tabs" role="tablist">
-            {tabs.map((t) => {
-              const isActive = active === t.key
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setActive(t.key)}
-                  className={`hover:text-primary inline-flex items-center rounded-t border-b px-4 py-2 text-center font-medium focus:outline-hidden ${
-                    isActive ? 'border-default-300 text-primary border border-b-transparent bg-white' : 'border-default-300 text-default-500'
-                  }`}>
-                  {t.label}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
+        <nav className="border-default-300 flex flex-wrap border-b px-4" aria-label="Tabs" role="tablist">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={active === t.key}
+              onClick={() => selectTab(t.key)}
+              className={`hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden ${
+                active === t.key ? 'border-primary text-primary border-b' : ''
+              }`}>
+              {t.label}
+            </button>
+          ))}
+        </nav>
 
         <div className="card-body p-6">
           {active === 'profile' && <ProfileTab property={property} can={can} />}
