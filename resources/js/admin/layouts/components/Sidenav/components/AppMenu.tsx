@@ -104,8 +104,12 @@ const filterByPermission = (items: MenuItemType[], permissions: string[]): MenuI
 
 const AppMenu = () => {
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null)
-  const permissions = ((usePage().props as { auth?: { permissions?: string[] } }).auth?.permissions) ?? []
-  const items = filterByPermission(menuItems, permissions)
+  const page = usePage()
+  const permissions = ((page.props as { auth?: { permissions?: string[] } }).auth?.permissions) ?? []
+  // The menu is back-office navigation (/admin/*). On QC Minute (root paths,
+  // other domain) those links would 404 — hide them; minute navigates via
+  // dashboard cards.
+  const items = page.url.startsWith('/admin') ? filterByPermission(menuItems, permissions) : []
   const scrollToActiveLink = () => {
     const activeItem: HTMLAnchorElement | null = document.querySelector('.menu-link.active')
     if (activeItem) {

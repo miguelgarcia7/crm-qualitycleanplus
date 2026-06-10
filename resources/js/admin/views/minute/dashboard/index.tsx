@@ -15,7 +15,9 @@ const cards = [
 ]
 
 const Page = ({ widgets }: Props) => {
-  const user = (usePage().props as { auth?: { user?: { name?: string } } }).auth?.user
+  const props = usePage().props as { auth?: { user?: { name?: string }; permissions?: string[] } }
+  const user = props.auth?.user
+  const canReadKb = (props.auth?.permissions ?? []).includes('kb.articles.view')
 
   return (
     <>
@@ -56,7 +58,7 @@ const Page = ({ widgets }: Props) => {
       )}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {cards.map((card) => (
+        {(canReadKb ? [...cards, { href: '/kb', title: 'Knowledge Base', desc: 'Guides and answers for day-to-day work.' }] : cards).map((card) => (
           <Link key={card.href} href={card.href} className="card rounded-2xl transition hover:shadow-lg">
             <div className="card-body p-6">
               <h5 className="font-semibold">{card.title}</h5>

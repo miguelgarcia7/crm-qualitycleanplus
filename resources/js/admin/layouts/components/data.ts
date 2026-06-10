@@ -53,6 +53,7 @@ export const menuItems: MenuItemType[] = [
     label: 'Knowledge Base',
     isTitle: true,
     children: [
+      { url: '/admin/kb', slug: 'kb-browse', label: 'Browse KB', icon: 'book', permission: 'kb.articles.view' },
       { url: '/admin/kb/articles', slug: 'kb-articles', label: 'Articles', icon: 'files', permission: 'kb.articles.edit' },
       { url: '/admin/kb/categories', slug: 'kb-categories', label: 'Categories', icon: 'category', permission: 'kb.categories.manage' },
       { url: '/admin/kb/tags', slug: 'kb-tags', label: 'Tags', icon: 'tag', permission: 'kb.categories.manage' },

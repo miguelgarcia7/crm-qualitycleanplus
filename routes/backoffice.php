@@ -15,6 +15,7 @@ use App\Http\Controllers\JobPostingController;
 use App\Http\Controllers\Kb\KbArticleController;
 use App\Http\Controllers\Kb\KbCategoryController;
 use App\Http\Controllers\Kb\KbFeedbackController;
+use App\Http\Controllers\Kb\KbReaderController;
 use App\Http\Controllers\Kb\KbTagController;
 use App\Http\Controllers\MoreStaffController;
 use App\Http\Controllers\PayIncreaseController;
@@ -128,6 +129,15 @@ Route::match(['put', 'patch'], 'job-postings/{posting}', [JobPostingController::
 Route::post('job-postings/{posting}/publish', [JobPostingController::class, 'publish'])->name('backoffice.job-postings.publish');
 Route::post('job-postings/{posting}/close', [JobPostingController::class, 'close'])->name('backoffice.job-postings.close');
 Route::delete('job-postings/{posting}', [JobPostingController::class, 'destroy'])->name('backoffice.job-postings.destroy');
+
+// Knowledge base — reader surface for all staff roles (Phase 08c)
+Route::get('kb', [KbReaderController::class, 'home'])->middleware('can:kb.articles.view')->name('backoffice.kb.home');
+Route::get('kb/search', [KbReaderController::class, 'search'])->middleware('can:kb.articles.view')->name('backoffice.kb.search');
+Route::get('kb/suggest', [KbReaderController::class, 'suggest'])->middleware('can:kb.articles.view')->name('backoffice.kb.suggest');
+Route::get('kb/article/{article}', [KbReaderController::class, 'read'])->middleware('can:kb.articles.view')->name('backoffice.kb.read');
+Route::post('kb/article/{article}/feedback', [KbReaderController::class, 'feedback'])->middleware('can:kb.articles.view')->name('backoffice.kb.read.feedback');
+Route::get('kb/category/{category}', [KbReaderController::class, 'category'])->middleware('can:kb.articles.view')->name('backoffice.kb.category');
+Route::get('kb/tag/{tag}', [KbReaderController::class, 'tag'])->middleware('can:kb.articles.view')->name('backoffice.kb.tag');
 
 // Knowledge base — authoring, taxonomy, feedback queue (Phase 08c)
 Route::get('kb/articles', [KbArticleController::class, 'index'])->name('backoffice.kb.articles.index');

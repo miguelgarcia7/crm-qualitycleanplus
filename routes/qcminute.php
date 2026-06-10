@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Minute\ChangePersonalInfoController;
 use App\Http\Controllers\Minute\DashboardController;
+use App\Http\Controllers\Minute\KbController;
 use App\Http\Controllers\Minute\MoreStaffController;
 use App\Http\Controllers\Minute\PayIncreaseController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
@@ -34,3 +35,9 @@ Route::post('staffing-requests/{moreStaffRequest}/cancel', [MoreStaffController:
 // Self-service personal-info change requests (Phase 04b-iii)
 Route::get('my-info', [ChangePersonalInfoController::class, 'index'])->name('qcminute.info-changes.index');
 Route::post('my-info', [ChangePersonalInfoController::class, 'store'])->name('qcminute.info-changes.store');
+
+// Contractor knowledge base — simplified reader (Phase 08c)
+Route::get('kb', [KbController::class, 'index'])->middleware('can:kb.articles.view')->name('qcminute.kb.index');
+Route::get('kb/attachments/{file}', [KbController::class, 'downloadAttachment'])->middleware('can:kb.articles.view')->name('qcminute.kb.attachments.download');
+Route::get('kb/{article}', [KbController::class, 'show'])->middleware('can:kb.articles.view')->name('qcminute.kb.show');
+Route::post('kb/{article}/feedback', [KbController::class, 'feedback'])->middleware('can:kb.articles.view')->name('qcminute.kb.feedback');
