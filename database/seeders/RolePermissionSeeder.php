@@ -144,6 +144,8 @@ class RolePermissionSeeder extends Seeder
             'kb.articles.edit' => ['admin', 'office_manager', 'hr'],
             'kb.articles.publish' => ['admin', 'office_manager'],
             'kb.articles.delete' => ['admin', 'office_manager'],
+            'kb.categories.manage' => ['admin', 'office_manager'],
+            'kb.feedback.manage' => ['admin', 'office_manager'],
 
             // Inventory (ADR-0012)
             'inventory.items.view' => ['admin', 'office_manager', 'front_desk'],

@@ -172,6 +172,10 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | `kb.articles.edit` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `kb.articles.publish` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `kb.articles.delete` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| `kb.categories.manage` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| `kb.feedback.manage` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+
+> `kb.categories.manage` covers both categories and tags (Phase 08c). Role-visibility management on an article rides with `kb.articles.publish`.
 
 ## Inventory
 
