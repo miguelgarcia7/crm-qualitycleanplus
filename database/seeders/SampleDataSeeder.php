@@ -3,13 +3,23 @@
 namespace Database\Seeders;
 
 use App\Domain\Adjustments\Actions\CreateManualAdjustment;
+use App\Domain\Adjustments\Enums\AdjustmentType;
+use App\Domain\Adjustments\Models\AdjustmentItem;
+use App\Domain\Billing\Actions\ApproveTimesheet;
+use App\Domain\Billing\Actions\SendInvoice;
+use App\Domain\Billing\Actions\SubmitTimesheetForApproval;
+use App\Domain\Billing\Enums\TimesheetStatus;
+use App\Domain\Billing\Models\Invoice;
 use App\Domain\Devices\Models\Device;
 use App\Domain\FieldVisits\Enums\FieldVisitStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\Imports\Actions\CommitImport;
 use App\Domain\Imports\Actions\CreateImportBatch;
 use App\Domain\Inventory\Actions\CreateItem;
+use App\Domain\Inventory\Actions\CreatePurchaseOrder;
+use App\Domain\Inventory\Actions\ReceivePurchaseOrder;
 use App\Domain\Inventory\Actions\ReceiveStock;
+use App\Domain\Inventory\Enums\PurchaseOrderStatus;
 use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\Inventory\Models\Category;
 use App\Domain\Inventory\Models\Item;
@@ -25,12 +35,18 @@ use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Models\PersonExternalId;
+use App\Domain\PropertyBible\Enums\ContractType;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
+use App\Domain\PropertyBible\Models\Contract;
+use App\Domain\PropertyBible\Models\Department;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\PropertyBible\Models\PropertyDepartment;
+use App\Domain\Pto\Actions\ApprovePtoRequest;
 use App\Domain\Pto\Actions\EnsurePtoYear;
+use App\Domain\Pto\Actions\RejectPtoRequest;
 use App\Domain\Pto\Actions\SubmitPtoRequest;
 use App\Domain\Recruiting\Actions\SubmitApplication;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
@@ -49,18 +65,24 @@ use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Spatie\Permission\Models\Role;
 
 /**
- * Local/dev demo data: one property with Bible rates, a recruiter assigned to it,
- * and a few contractors on active work orders — enough to exercise the Phase 03
- * pipeline. Idempotent. Never run in production.
+ * Local/dev demo data: two active properties with Bible rates, contracts and
+ * department contacts, contractors on active work orders with several weeks of
+ * hours (two of them fully billed into invoices), inventory with purchase
+ * orders, workflows of every type in flight, PTO across tenure tiers, the
+ * recruiting pipeline end-to-end, and a knowledge base with feedback.
+ * Idempotent. Never run in production.
  */
 class SampleDataSeeder extends Seeder
 {
@@ -108,15 +130,16 @@ class SampleDataSeeder extends Seeder
         // A front-desk user who fulfills supply requests (Phase 04 My Tasks queue).
         $frontDesk = Person::firstOrCreate(
             ['email' => 'front-desk@example.com'],
-            ['name' => 'Fred Front Desk', 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now()],
+            ['name' => 'Fred Front Desk', 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now(), 'hire_date' => now()->subMonths(2)->toDateString()],
         );
         $frontDesk->syncRoles('front_desk');
 
         // Office-staff logins so each role's dashboard is testable (Phase 06).
-        foreach (['office_manager', 'payroll', 'hr', 'super_admin'] as $role) {
+        // Hire dates spread across the PTO tenure tiers (Phase 08a).
+        foreach (['office_manager' => 8, 'payroll' => 3, 'hr' => 26, 'super_admin' => 30] as $role => $monthsEmployed) {
             Person::firstOrCreate(
                 ['email' => "{$role}@example.com"],
-                ['name' => ucwords(str_replace('_', ' ', $role)), 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now()],
+                ['name' => ucwords(str_replace('_', ' ', $role)), 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now(), 'hire_date' => now()->subMonths($monthsEmployed)->toDateString()],
             )->syncRoles($role);
         }
 
@@ -168,6 +191,10 @@ class SampleDataSeeder extends Seeder
             ]);
         }
 
+        // A second active property so properties, grids and dashboards show more
+        // than one row of everything.
+        [$tempe, $tempeWorkOrders] = $this->seedSecondProperty($recruiter, $pm, $positions);
+
         // Materialize payroll periods, then seed last week's hours (Mon–Fri 9h →
         // 45h = 40 regular + 5 OT) via the real entry path so summaries compute.
         Artisan::call('payroll:ensure-periods');
@@ -180,6 +207,37 @@ class SampleDataSeeder extends Seeder
                     'date' => $lastMonday->copy()->addDays($day)->toDateString(),
                     'start_time' => '09:00',
                     'end_time' => '18:00',
+                    'entry_type' => 'work',
+                ], $recruiter);
+            }
+        }
+
+        // Tempe ran straight 8h days last week (no OT — rate variety on reports).
+        foreach ($tempeWorkOrders as $workOrder) {
+            for ($day = 0; $day < 5; $day++) {
+                $createEntry->handle($workOrder, [
+                    'date' => $lastMonday->copy()->addDays($day)->toDateString(),
+                    'start_time' => '09:00',
+                    'end_time' => '17:00',
+                    'entry_type' => 'work',
+                ], $recruiter);
+            }
+        }
+
+        // Two fully billed weeks at the downtown property (entries → submit → PM
+        // approval → frozen invoice; the oldest invoice also sent) so timesheet
+        // and invoice lists have real history.
+        $this->seedBilledHistory($property, $workOrders, $recruiter, $pm, $lastMonday);
+
+        // Hours already on the clock this week so the live grid shows activity.
+        $thisMonday = $lastMonday->copy()->addWeek();
+        $daysSoFar = (int) min(3, $thisMonday->diffInDays(Carbon::now($property->timezone), false));
+        foreach ($workOrders as $workOrder) {
+            for ($day = 0; $day < $daysSoFar; $day++) {
+                $createEntry->handle($workOrder, [
+                    'date' => $thisMonday->copy()->addDays($day)->toDateString(),
+                    'start_time' => '09:00',
+                    'end_time' => '17:00',
                     'entry_type' => 'work',
                 ], $recruiter);
             }
@@ -228,6 +286,29 @@ class SampleDataSeeder extends Seeder
             'requested_by' => $contractors[1]->id,
         ]);
 
+        // A pending transfer to the Tempe property awaiting approval (Phase 04b).
+        app(StartWorkflow::class)->handle(WorkflowType::Transfer, $contractors[1], $recruiter, [
+            'work_order_id' => $workOrders[1]->id,
+            'effective_date' => now()->addWeek()->toDateString(),
+            'new_property_id' => $tempe->id,
+            'new_position_id' => $positions->last()->id,
+            'new_recruiter_id' => null,
+            'pay_rate' => 1950, 'bill_rate' => 3050, 'ot_pay_rate' => 2925, 'ot_bill_rate' => 4575,
+            'reason' => 'Closer to home; Tempe needs banquet coverage.',
+            'notes' => null,
+        ]);
+
+        // A pending temporary assignment covering downtown for a week (Phase 04b).
+        app(StartWorkflow::class)->handle(WorkflowType::TemporaryAssignment, $tempeWorkOrders[0]->person, $recruiter, [
+            'home_work_order_id' => $tempeWorkOrders[0]->id,
+            'new_property_id' => $property->id,
+            'position_id' => $positions->first()->id,
+            'start_date' => now()->addDays(3)->toDateString(),
+            'end_date' => now()->addDays(10)->toDateString(),
+            'pay_rate' => 1800, 'bill_rate' => 3000, 'ot_pay_rate' => 2700, 'ot_bill_rate' => 4500,
+            'reason' => 'Banquet week coverage downtown.',
+        ]);
+
         // PTO — open allotment + one pending request for the recruiter (Phase 08a).
         app(EnsurePtoYear::class)->handle($recruiter);
         app(SubmitPtoRequest::class)->handle($recruiter, [
@@ -238,11 +319,45 @@ class SampleDataSeeder extends Seeder
             'reason' => 'Family trip',
         ]);
 
-        // A front-desk tablet for the property, ready to pair (Phase 07c).
+        // PTO across the tiers: hr (tier 3) has an approved request, front desk
+        // (tier 1) a rejected one; office manager + payroll get open allotments.
+        $superAdmin = Person::query()->where('email', 'super-admin@example.com')->firstOrFail();
+        $hr = Person::query()->where('email', 'hr@example.com')->firstOrFail();
+        foreach (['office_manager@example.com', 'payroll@example.com'] as $email) {
+            app(EnsurePtoYear::class)->handle(Person::query()->where('email', $email)->firstOrFail());
+        }
+        $hrVacation = app(SubmitPtoRequest::class)->handle($hr, [
+            'bucket' => 'vacation',
+            'start_date' => now()->addMonth()->toDateString(),
+            'end_date' => now()->addMonth()->addDays(2)->toDateString(),
+            'hours' => 24,
+            'reason' => 'Cruise',
+        ]);
+        app(ApprovePtoRequest::class)->handle($hrVacation, $superAdmin);
+        $frontDeskDay = app(SubmitPtoRequest::class)->handle($frontDesk, [
+            'bucket' => 'scheduled',
+            'start_date' => now()->addWeeks(2)->toDateString(),
+            'end_date' => now()->addWeeks(2)->toDateString(),
+            'hours' => 8,
+            'reason' => 'DMV appointment',
+        ]);
+        app(RejectPtoRequest::class)->handle($frontDeskDay, $superAdmin, 'Coverage gap that week — please pick another day.');
+
+        // A front-desk tablet for the property, ready to pair (Phase 07c),
+        // plus an already-activated kiosk at Tempe.
         Device::create([
             'property_id' => $property->id,
             'name' => 'Front Desk Tablet',
             'activation_code' => 'QCP123',
+            'created_by' => $recruiter->id,
+        ]);
+        Device::create([
+            'property_id' => $tempe->id,
+            'name' => 'Lobby Kiosk',
+            'activation_code' => 'QCP456',
+            'is_activated' => true,
+            'app_version' => '1.0.0',
+            'last_seen_at' => now()->subHours(2),
             'created_by' => $recruiter->id,
         ]);
 
@@ -262,20 +377,253 @@ class SampleDataSeeder extends Seeder
             'check_in_gps_lat' => 33.4484, 'check_in_gps_lng' => -112.0740, 'check_in_gps_status' => 'ok',
             'was_inside_geofence' => true,
         ]);
+        FieldVisit::create([
+            'person_id' => $recruiter->id, 'property_id' => $tempe->id, 'status' => FieldVisitStatus::Closed,
+            'check_in_at' => now()->subDays(2)->setTime(14, 0), 'check_out_at' => now()->subDays(2)->setTime(15, 30),
+            'check_in_gps_lat' => 33.4255, 'check_in_gps_lng' => -111.9400, 'check_in_gps_status' => 'ok',
+            'was_inside_geofence' => true, 'check_out_gps_status' => 'ok',
+        ]);
 
-        $this->seedRecruiting($property, $recruiter);
+        // A past contractor with a closed work order, terminated two months ago.
+        $former = Person::factory()->create([
+            'name' => 'Tina Past',
+            'status' => PersonStatus::Terminated,
+            'primary_recruiter_id' => $recruiter->id,
+        ]);
+        $former->syncRoles('contractor');
+        WorkOrder::create([
+            'person_id' => $former->id,
+            'property_id' => $property->id,
+            'position_id' => $positions->first()->id,
+            'pay_rate' => 1800, 'bill_rate' => 3000, 'ot_pay_rate' => 2700, 'ot_bill_rate' => 4500,
+            'start_date' => now()->subMonths(8)->toDateString(),
+            'end_date' => now()->subMonths(2)->toDateString(),
+            'status' => WorkOrderStatus::Closed,
+            'source' => WorkOrderSource::RecruiterCreated,
+            'created_by' => $recruiter->id,
+        ]);
 
-        $this->seedKnowledgeBase($frontDesk);
+        $this->seedContracts($property, $tempe);
+        $this->seedPropertyDepartments($property, $tempe);
+        $this->seedPurchaseOrders($frontDesk);
+
+        $this->seedRecruiting($property, $tempe, $recruiter);
+
+        $this->seedKnowledgeBase($frontDesk, $contractors);
     }
 
     /**
-     * Knowledge base (Phase 08c): a small category tree, published articles
-     * (one contractor-gated, one with version history), a draft, and reader
-     * feedback (a vote + an open suggestion).
+     * The second active property (Tempe): PM + recruiter assignments, Bible
+     * rates for both demo positions, and two contractors on active work orders.
+     *
+     * @param  Collection<int, Position>  $positions
+     * @return array{Property, array<int, WorkOrder>}
      */
-    private function seedKnowledgeBase(Person $reader): void
+    private function seedSecondProperty(Person $recruiter, Person $pm, $positions): array
+    {
+        $property = Property::create([
+            'name' => 'Sample Hilton Tempe',
+            'pm_name' => 'Paula PM',
+            'pm_phone' => '480-555-0190',
+            'city' => 'Tempe',
+            'state' => 'AZ',
+            'timezone' => 'America/Phoenix',
+            'latitude' => 33.4255,
+            'longitude' => -111.9400,
+            'tax_rate' => 0.081,
+            'status' => PropertyStatus::Active,
+        ]);
+        $property->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+        $property->assignments()->create(['person_id' => $pm->id, 'role' => PropertyAssignmentRole::PropertyManager->value]);
+
+        foreach ($positions as $i => $position) {
+            $pay = 1700 + $i * 250;
+            $bill = $pay + 1100;
+            $property->positionRates()->create([
+                'position_id' => $position->id, 'effective_date' => now()->subMonths(2)->toDateString(),
+                'pay_rate' => $pay, 'bill_rate' => $bill,
+                'ot_pay_rate' => (int) round($pay * 1.5), 'ot_bill_rate' => (int) round($bill * 1.5),
+                'is_active' => true, 'created_by' => $recruiter->id,
+            ]);
+        }
+
+        $workOrders = [];
+        foreach (['Eddie Evenings', 'Fiona Floater'] as $i => $name) {
+            $position = $positions[$i % $positions->count()];
+            $rate = $property->currentRateFor($position->id);
+
+            $phone = '(480) 555-021'.$i;
+            $contractor = Person::factory()->create([
+                'name' => $name,
+                'status' => PersonStatus::ContractorActive,
+                'primary_recruiter_id' => $recruiter->id,
+                'phone' => $phone,
+                'normalized_phone' => preg_replace('/\D/', '', $phone),
+            ]);
+            $contractor->syncRoles('contractor');
+
+            $workOrders[] = WorkOrder::create([
+                'person_id' => $contractor->id,
+                'property_id' => $property->id,
+                'position_id' => $position->id,
+                'pay_rate' => $rate->pay_rate,
+                'bill_rate' => $rate->bill_rate,
+                'ot_pay_rate' => $rate->ot_pay_rate,
+                'ot_bill_rate' => $rate->ot_bill_rate,
+                'start_date' => now()->subWeeks(3)->toDateString(),
+                'status' => WorkOrderStatus::Active,
+                'source' => WorkOrderSource::RecruiterCreated,
+                'created_by' => $recruiter->id,
+            ]);
+        }
+
+        return [$property, $workOrders];
+    }
+
+    /**
+     * Two past weeks at the downtown property pushed through the real billing
+     * pipeline: manual entries → recruiter submits → PM approves (which freezes
+     * an invoice) — and the oldest invoice is also marked sent.
+     *
+     * @param  array<int, WorkOrder>  $workOrders
+     */
+    private function seedBilledHistory(Property $property, array $workOrders, Person $recruiter, Person $pm, Carbon $lastMonday): void
+    {
+        $createEntry = app(CreateManualTimeEntry::class);
+        $submit = app(SubmitTimesheetForApproval::class);
+        $approve = app(ApproveTimesheet::class);
+
+        foreach ([2, 1] as $weeksBefore) { // weeks -3 and -2 (lastMonday is week -1)
+            $weekStart = $lastMonday->copy()->subWeeks($weeksBefore);
+            $period = PayrollPeriod::create([
+                'property_id' => $property->id,
+                'week_start' => $weekStart->toDateString(),
+                'week_end' => $weekStart->copy()->addDays(6)->toDateString(),
+                'status' => PayrollPeriodStatus::Open,
+            ]);
+            $timesheet = $period->timesheet()->create([
+                'property_id' => $property->id,
+                'source' => 'clock_in',
+                'status' => TimesheetStatus::Draft,
+            ]);
+
+            foreach ($workOrders as $i => $workOrder) {
+                for ($day = 0; $day < 5; $day++) {
+                    $createEntry->handle($workOrder, [
+                        'date' => $weekStart->copy()->addDays($day)->toDateString(),
+                        'start_time' => '09:00',
+                        'end_time' => $i === 0 ? '18:00' : '17:00', // first contractor pulls OT
+                        'entry_type' => 'work',
+                    ], $recruiter);
+                }
+            }
+
+            $approve->handle($submit->handle($timesheet, $recruiter), $pm);
+        }
+
+        $oldestInvoice = Invoice::query()->where('property_id', $property->id)->orderBy('id')->first();
+        if ($oldestInvoice !== null) {
+            app(SendInvoice::class)->handle($oldestInvoice, $recruiter, 'pat.manager@example.com');
+        }
+    }
+
+    /**
+     * Property contracts (Phase 02): an active MSA downtown and a Tempe SOW that
+     * expires within the 30-day alert window, each with a stored document.
+     */
+    private function seedContracts(Property $downtown, Property $tempe): void
+    {
+        $payroll = Person::query()->where('email', 'payroll@example.com')->firstOrFail();
+        $disk = (string) config('filesystems.default');
+
+        $contracts = [
+            [$downtown, 'Master Service Agreement 2026', ContractType::Msa, now()->subMonths(5), now()->addMonths(7)],
+            [$tempe, 'Housekeeping SOW — Summer 2026', ContractType::Sow, now()->subMonth(), now()->addDays(20)],
+        ];
+
+        foreach ($contracts as [$property, $name, $type, $effective, $expires]) {
+            $contract = Contract::create([
+                'property_id' => $property->id,
+                'name' => $name,
+                'type' => $type,
+                'effective_date' => $effective->toDateString(),
+                'expiration_date' => $expires->toDateString(),
+                'uploaded_by' => $payroll->id,
+                'notes' => 'Demo contract (seeded).',
+                'is_active' => true,
+            ]);
+
+            $path = 'contracts/'.Str::slug($name).'.txt';
+            Storage::disk($disk)->put($path, "Placeholder contract document for {$property->name}.");
+            $contract->file()->create([
+                'disk' => $disk,
+                'path' => $path,
+                'original_name' => Str::slug($name).'.txt',
+                'mime_type' => 'text/plain',
+                'size' => Storage::disk($disk)->size($path),
+                'uploaded_by' => $payroll->id,
+            ]);
+        }
+    }
+
+    /** Department assignments with on-site manager contacts (Property Bible §2). */
+    private function seedPropertyDepartments(Property $downtown, Property $tempe): void
+    {
+        $assignments = [
+            [$downtown, 'housekeeping', 'Hank Houser', '602-555-0150'],
+            [$downtown, 'banquets', 'Bonnie Banks', '602-555-0151'],
+            [$tempe, 'housekeeping', 'Helen Hosk', '480-555-0152'],
+        ];
+
+        foreach ($assignments as [$property, $slug, $manager, $phone]) {
+            $department = Department::query()->where('slug', $slug)->first();
+            if ($department !== null) {
+                PropertyDepartment::firstOrCreate(
+                    ['property_id' => $property->id, 'department_id' => $department->id],
+                    ['manager_name' => $manager, 'manager_phone' => $phone, 'is_active' => true],
+                );
+            }
+        }
+    }
+
+    /** One received polo restock and one order still with the vendor (ADR-0012). */
+    private function seedPurchaseOrders(Person $actor): void
+    {
+        $create = app(CreatePurchaseOrder::class);
+
+        $polos = ItemVariant::query()->whereHas('item', fn ($q) => $q->where('name', 'Housekeeping Polo'))->get();
+        if ($polos->isNotEmpty()) {
+            $po = $create->handle([
+                'notes' => 'Quarterly polo restock',
+                'items' => $polos->map(fn (ItemVariant $v): array => [
+                    'item_variant_id' => $v->id, 'quantity' => 10, 'estimated_unit_cost' => 1500,
+                ])->all(),
+            ], $actor);
+            $po->update(['status' => PurchaseOrderStatus::Ordered, 'ordered_at' => now()->subDays(7)]);
+            app(ReceivePurchaseOrder::class)->handle($po->refresh(), $actor);
+        }
+
+        $vacuum = ItemVariant::query()->whereHas('item', fn ($q) => $q->where('name', 'Backpack Vacuum'))->first();
+        if ($vacuum !== null) {
+            $po = $create->handle([
+                'notes' => 'Two more backpack vacuums for Tempe',
+                'items' => [['item_variant_id' => $vacuum->id, 'quantity' => 2, 'estimated_unit_cost' => 28900]],
+            ], $actor);
+            $po->update(['status' => PurchaseOrderStatus::Ordered, 'ordered_at' => now()->subDays(2)]);
+        }
+    }
+
+    /**
+     * Knowledge base (Phase 08c): a category tree, published articles (one
+     * contractor-gated, one with version history, one with an attachment), a
+     * draft, an archived article, and reader feedback in several states.
+     *
+     * @param  array<int, Person>  $contractors
+     */
+    private function seedKnowledgeBase(Person $reader, array $contractors): void
     {
         $hr = Person::query()->where('email', 'hr@example.com')->firstOrFail();
+        $officeManager = Person::query()->where('email', 'office_manager@example.com')->firstOrFail();
 
         $operations = KbCategory::create(['name' => 'Operations', 'slug' => 'operations', 'description' => 'Day-to-day procedures.', 'sort_order' => 1]);
         $timeClock = KbCategory::create(['name' => 'Time Clock', 'slug' => 'time-clock', 'parent_id' => $operations->id, 'sort_order' => 1]);
@@ -332,15 +680,82 @@ class SampleDataSeeder extends Seeder
             'message' => 'Could we add an example of a partial-day request?',
             'url' => '/admin/kb/article/pto-policy-overview',
         ]);
+
+        // Billing: how hours become invoices (office-manager authored).
+        $billing = KbCategory::create(['name' => 'Billing & Invoices', 'slug' => 'billing-invoices', 'description' => 'How hours become invoices.', 'sort_order' => 3]);
+        $invoicing = KbArticle::create([
+            'title' => 'How weekly invoices are generated',
+            'slug' => 'how-weekly-invoices-are-generated',
+            'summary' => 'From approved timesheet to frozen invoice, step by step.',
+            'content' => '<p>Each property runs Monday–Sunday payroll periods. When the recruiter submits the week and the property manager approves it, the system freezes an invoice with the rates in effect that week.</p><ul><li>Submitting locks the period.</li><li>Approval generates the invoice.</li><li>Voiding requires a reason and reopens nothing — re-import or adjust next week.</li></ul>',
+            'author_id' => $officeManager->id,
+            'status' => KbArticleStatus::Published,
+            'published_at' => now()->subDays(3),
+        ]);
+        $invoicing->categories()->attach($billing->id);
+        $invoicing->tags()->attach([KbTag::findOrCreateByName('Billing')->id, KbTag::findOrCreateByName('Payroll')->id]);
+
+        // Supplies: published with a stored attachment (sizing chart).
+        $supplies = KbArticle::create([
+            'title' => 'Requesting supplies and uniforms',
+            'slug' => 'requesting-supplies-and-uniforms',
+            'summary' => 'Where supply requests go and who fulfills them.',
+            'content' => '<ol><li>Open Inventory → Supply Requests and pick the item (or propose a new one).</li><li>Uniform charges can be split across paychecks.</li><li>Front desk fulfills from stock; new items go to admin approval first.</li></ol>',
+            'author_id' => $hr->id,
+            'status' => KbArticleStatus::Published,
+            'published_at' => now()->subDays(7),
+        ]);
+        $supplies->categories()->attach($operations->id);
+        $supplies->tags()->attach([KbTag::findOrCreateByName('Inventory')->id, KbTag::findOrCreateByName('Uniforms')->id]);
+
+        $disk = (string) config('filesystems.default');
+        $chartPath = 'kb/polo-sizing-chart.txt';
+        Storage::disk($disk)->put($chartPath, "Housekeeping polo sizing chart\nS: chest 34-36\nM: chest 38-40\nL: chest 42-44");
+        $supplies->files()->create([
+            'disk' => $disk,
+            'path' => $chartPath,
+            'original_name' => 'polo-sizing-chart.txt',
+            'mime_type' => 'text/plain',
+            'size' => Storage::disk($disk)->size($chartPath),
+            'uploaded_by' => $hr->id,
+        ]);
+
+        // An archived article (Archived tab; hidden from readers).
+        $superseded = KbArticle::create([
+            'title' => '2024 uniform policy (superseded)',
+            'slug' => '2024-uniform-policy',
+            'summary' => 'Old uniform policy kept for reference.',
+            'content' => '<p>Replaced by the supply-request flow — see "Requesting supplies and uniforms".</p>',
+            'author_id' => $hr->id,
+            'status' => KbArticleStatus::Archived,
+            'published_at' => now()->subMonths(6),
+        ]);
+        $superseded->categories()->attach($operations->id);
+
+        // Contractor votes on the clock-in guide + a resolved issue report.
+        $clockIn->feedback()->create(['person_id' => $contractors[0]->id, 'type' => FeedbackType::Helpful, 'url' => '/kb/how-to-clock-in-with-the-qr-code']);
+        $clockIn->feedback()->create(['person_id' => $contractors[1]->id, 'type' => FeedbackType::NotHelpful, 'url' => '/kb/how-to-clock-in-with-the-qr-code']);
+        $clockIn->feedback()->create([
+            'person_id' => $contractors[0]->id,
+            'type' => FeedbackType::Issue,
+            'message' => 'QR poster missing at the loading dock entrance.',
+            'url' => '/kb/how-to-clock-in-with-the-qr-code',
+        ])->markResolved($hr, 'Printed and posted a new QR sign.');
+
+        // Some read activity so view counts aren't all zero.
+        $clockIn->forceFill(['view_count' => 34])->save();
+        $pto->forceFill(['view_count' => 21])->save();
+        $invoicing->forceFill(['view_count' => 9])->save();
+        $supplies->forceFill(['view_count' => 15])->save();
     }
 
     /**
-     * Marketing recruiting (Phase 08b-i): published + draft job postings on the
-     * public job board, two submitted applications (one tied to a posting, via the
-     * real SubmitApplication path so applicant People are created), and a business
-     * contact lead.
+     * Marketing recruiting (Phase 08b-i/ii): job postings in every status,
+     * applications across the pipeline (submitted, reviewing, rejected, and one
+     * promoted to a working contractor — all via the real SubmitApplication path
+     * so applicant People are created), and contact leads of both types.
      */
-    private function seedRecruiting(Property $property, Person $recruiter): void
+    private function seedRecruiting(Property $property, Property $tempe, Person $recruiter): void
     {
         $housekeeperPosting = JobPosting::create([
             'status' => JobPostingStatus::Published,
@@ -407,12 +822,85 @@ class SampleDataSeeder extends Seeder
             'convicted_felon' => '0', 'acknowledgement' => '1',
         ]);
 
+        // A posting that ran its course (history on the postings list).
+        JobPosting::create([
+            'status' => JobPostingStatus::Closed,
+            'title' => 'Overnight Cleaner',
+            'slug' => 'overnight-cleaner-tempe',
+            'pay_range' => '$17 / hr',
+            'content' => 'Filled — kept for history.',
+            'property_id' => $tempe->id,
+            'created_by' => $recruiter->id,
+        ]);
+
+        // A rejected application (Rejected tab + decided history).
+        $rejected = app(SubmitApplication::class)->handle([
+            'first_name' => 'Riley', 'last_name' => 'Rushed', 'email' => 'riley.rushed@example.com',
+            'phone' => '(602) 555-0321', 'address' => '88 N Central Ave', 'city' => 'Phoenix',
+            'state' => 'AZ', 'zip' => '85004', 'position' => 'Housekeeper', 'desired_salary' => '18',
+            'start_date' => now()->addDays(3)->toDateString(), 'dob' => '2000-01-30',
+            'transportation' => '1', 'work_at_qcp' => '0', 'usa_citizen' => '1',
+            'another_staff_agency' => '0', 'convicted_felon' => '0', 'acknowledgement' => '1',
+        ], $housekeeperPosting);
+        $rejected->update([
+            'status' => JobApplicationStatus::Rejected,
+            'reviewed_by' => $recruiter->id,
+            'reviewed_at' => now()->subDays(2),
+            'rejected_reason' => 'No weekend availability.',
+        ]);
+
+        // A promoted application: the applicant became a contractor and is now
+        // on a fresh work order at Tempe (full lifecycle in one record).
+        $promoted = app(SubmitApplication::class)->handle([
+            'first_name' => 'Pat', 'last_name' => 'Promoted', 'email' => 'pat.promoted@example.com',
+            'phone' => '(480) 555-0331', 'address' => '700 S Mill Ave', 'city' => 'Tempe',
+            'state' => 'AZ', 'zip' => '85281', 'position' => 'Banquet Server', 'desired_salary' => '17',
+            'start_date' => now()->subDays(2)->toDateString(), 'dob' => '1992-11-05',
+            'transportation' => '1', 'work_at_qcp' => '0', 'usa_citizen' => '1',
+            'another_staff_agency' => '0', 'convicted_felon' => '0', 'acknowledgement' => '1',
+        ]);
+        $hired = $promoted->person;
+        $hired->forceFill([
+            'status' => PersonStatus::ContractorActive,
+            'converted_to_contractor_at' => now()->subDays(3),
+            'primary_recruiter_id' => $recruiter->id,
+        ])->save();
+        $hired->syncRoles('contractor');
+        $promoted->update([
+            'status' => JobApplicationStatus::Promoted,
+            'reviewed_by' => $recruiter->id,
+            'reviewed_at' => now()->subDays(5),
+            'promoted_by' => $recruiter->id,
+            'promoted_at' => now()->subDays(3),
+        ]);
+        $serverPosition = Position::query()->where('slug', 'banquet-server')->firstOrFail();
+        $tempeRate = $tempe->currentRateFor($serverPosition->id);
+        WorkOrder::create([
+            'person_id' => $hired->id,
+            'property_id' => $tempe->id,
+            'position_id' => $serverPosition->id,
+            'pay_rate' => $tempeRate->pay_rate,
+            'bill_rate' => $tempeRate->bill_rate,
+            'ot_pay_rate' => $tempeRate->ot_pay_rate,
+            'ot_bill_rate' => $tempeRate->ot_bill_rate,
+            'start_date' => now()->subDays(2)->toDateString(),
+            'status' => WorkOrderStatus::Active,
+            'source' => WorkOrderSource::RecruiterCreated,
+            'created_by' => $recruiter->id,
+        ]);
+
         ContactInquiry::create([
             'type' => 'business',
             'first_name' => 'Morgan', 'last_name' => 'Hotelier',
             'email' => 'morgan@grandhotel.example', 'phone' => '(602) 555-0400',
             'company' => 'Grand Hotel Phoenix', 'inquiry_type' => 'Looking to Hire for Team',
             'message' => 'We need housekeeping coverage for the summer season.',
+        ]);
+        ContactInquiry::create([
+            'type' => 'job_seeker',
+            'first_name' => 'Casey', 'last_name' => 'Curious',
+            'email' => 'casey.curious@example.com', 'phone' => '(602) 555-0410',
+            'message' => 'Do you have weekend-only housekeeping shifts?',
         ]);
     }
 
@@ -595,7 +1083,13 @@ class SampleDataSeeder extends Seeder
             ]);
         }
 
-        // A manual incentive on the current open period → shows on the grid.
+        // A reusable adjustment catalog (Phase 04 Inc 2).
+        AdjustmentItem::create(['name' => 'Attendance Bonus', 'default_value' => 2500, 'type' => AdjustmentType::Incentive, 'is_billable' => false, 'active' => true]);
+        AdjustmentItem::create(['name' => 'Mileage Reimbursement', 'default_value' => 1500, 'type' => AdjustmentType::Incentive, 'is_billable' => false, 'active' => true]);
+        $uniformFee = AdjustmentItem::create(['name' => 'Uniform Replacement Fee', 'default_value' => 2000, 'type' => AdjustmentType::Deduction, 'is_billable' => false, 'active' => true]);
+
+        // Manual adjustments on the current open period → show on the grid:
+        // a free-form incentive and a catalog-backed deduction.
         $openPeriod = PayrollPeriod::query()
             ->where('property_id', $property->id)
             ->where('status', 'open')
@@ -607,6 +1101,13 @@ class SampleDataSeeder extends Seeder
                 'work_order_id' => $workOrders[0]->id,
                 'value' => 2500, 'type' => 'incentive', 'is_billable' => false,
                 'notes' => 'Perfect attendance bonus',
+            ], $recruiter);
+            app(CreateManualAdjustment::class)->handle($openPeriod, [
+                'person_id' => $contractors[1]->id,
+                'work_order_id' => $workOrders[1]->id,
+                'adjustment_item_id' => $uniformFee->id,
+                'value' => 2000, 'type' => 'deduction',
+                'notes' => 'Lost polo replacement',
             ], $recruiter);
         }
     }
