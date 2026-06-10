@@ -2,6 +2,7 @@
 
 namespace App\Domain\Time\Jobs;
 
+use App\Domain\Reports\Actions\RefreshWeeklyRollup;
 use App\Domain\Time\Enums\TimeEntryType;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
@@ -107,6 +108,9 @@ class RecomputeTimeSummary implements ShouldQueue
                 'last_recomputed_at' => now(),
             ],
         );
+
+        // Keep the report rollup's weekly cell in step (ADR-0028).
+        app(RefreshWeeklyRollup::class)->handle($workOrder->property_id, $period->week_start->toDateString());
     }
 
     /** minutes × rate(cents/hour) → cents. */

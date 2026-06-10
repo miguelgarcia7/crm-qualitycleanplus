@@ -7,6 +7,7 @@ use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\People\Models\Person;
+use App\Domain\Reports\Actions\RefreshMonthlyRevenue;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class VoidInvoice
             return $invoice;
         }
 
-        return DB::transaction(function () use ($invoice, $actor, $reason): Invoice {
+        $voided = DB::transaction(function () use ($invoice, $actor, $reason): Invoice {
             $invoice->update([
                 'status' => InvoiceStatus::Voided,
                 'voided_at' => now(),
@@ -46,5 +47,13 @@ class VoidInvoice
 
             return $invoice;
         });
+
+        // Voiding retracts billed truth — refresh the month's revenue cell (ADR-0028).
+        $weekStart = PayrollPeriod::query()->whereKey($voided->payroll_period_id)->value('week_start');
+        if ($weekStart !== null) {
+            app(RefreshMonthlyRevenue::class)->handle($voided->property_id, (string) $weekStart);
+        }
+
+        return $voided;
     }
 }

@@ -9,6 +9,7 @@ use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\InvoiceItem;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Reports\Actions\RefreshMonthlyRevenue;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\TimeSummary;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,7 @@ class GenerateInvoice
             return Invoice::findOrFail($timesheet->invoice_id);
         }
 
-        return DB::transaction(function () use ($timesheet): Invoice {
+        $invoice = DB::transaction(function () use ($timesheet): Invoice {
             $locked = Timesheet::query()->whereKey($timesheet->id)->lockForUpdate()->firstOrFail();
             if ($locked->invoice_id !== null) {
                 return Invoice::findOrFail($locked->invoice_id);
@@ -115,6 +116,14 @@ class GenerateInvoice
 
             return $invoice;
         });
+
+        // Freezing changes billed truth — refresh the month's revenue cell (ADR-0028).
+        app(RefreshMonthlyRevenue::class)->handle(
+            $invoice->property_id,
+            $timesheet->payrollPeriod->week_start->toDateString(),
+        );
+
+        return $invoice;
     }
 
     private function nextNumber(): string

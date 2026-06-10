@@ -3,6 +3,7 @@
 use App\Console\Commands\ContractExpirationCheck;
 use App\Console\Commands\EnsurePayrollPeriods;
 use App\Console\Commands\ProcessPtoTenureCrossings;
+use App\Console\Commands\RefreshReportRollups;
 use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\WorkOrders\Jobs\ProcessTemporaryAssignmentEnds;
 use Illuminate\Foundation\Inspiring;
@@ -27,3 +28,6 @@ Schedule::job(new ProcessTemporaryAssignmentEnds)->dailyAt('00:45');
 
 // PTO — tier crossings + anniversary refreshes for active staff (ADR-0016).
 Schedule::command(ProcessPtoTenureCrossings::class)->dailyAt('01:00');
+
+// Reports — nightly rollup backstop over the trailing 90 days (ADR-0028).
+Schedule::command(RefreshReportRollups::class)->dailyAt('01:30');
