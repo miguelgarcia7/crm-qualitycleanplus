@@ -10,11 +10,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Weekly approval wrapper for a property's billable activity (ADR-0007).
  *
  * @property TimesheetStatus $status
+ * @property Carbon|null $sent_for_approval_at
+ * @property Carbon|null $declined_at
+ * @property Carbon|null $approved_at
  */
 class Timesheet extends Model
 {
@@ -77,5 +81,13 @@ class Timesheet extends Model
     public function payrollPeriod(): BelongsTo
     {
         return $this->belongsTo(PayrollPeriod::class);
+    }
+
+    /**
+     * @return BelongsTo<Invoice, $this>
+     */
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
     }
 }

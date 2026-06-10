@@ -4,18 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Reports\Exports\ArrayReportExport;
 use App\Domain\Reports\Models\ReportMonthlyRevenue;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Report catalog + the standard reports (Phase 09, ADR-0028). Financial reads
  * report_monthly_revenue / report_weekly_rollups; payroll reads time_summaries
  * (already materialized per ADR-0008). Each report is gated by its permission
- * at the route layer; the catalog only lists what the viewer may open.
+ * at the route layer; the catalog only lists what the viewer may open. Excel
+ * exports reuse the page's data builder, so the download always matches the
+ * screen.
  */
 class ReportController extends Controller
 {
@@ -65,6 +72,106 @@ class ReportController extends Controller
     /** Revenue by property by month — billed truth from report_monthly_revenue. */
     public function revenue(Request $request): Response
     {
+        return Inertia::render('admin/reports/revenue', $this->revenueData($request) + [
+            'properties' => $this->propertyOptions(),
+        ]);
+    }
+
+    public function revenueExport(Request $request): BinaryFileResponse
+    {
+        $data = $this->revenueData($request);
+
+        return Excel::download(new ArrayReportExport(
+            ['Month', 'Property', 'Invoices', 'Work ($)', 'Adjustments ($)', 'Tax ($)', 'Invoiced Total ($)', 'Payouts ($)'],
+            collect($data['rows'])->map(fn (array $row): array => [
+                $row['month'], $row['property'], $row['invoice_count'],
+                $row['work_subtotal'] / 100, $row['adjustment_total'] / 100, $row['tax_amount'] / 100,
+                $row['invoiced_total'] / 100, $row['payout_total'] / 100,
+            ])->all(),
+        ), "revenue-by-property-{$data['filters']['from']}-{$data['filters']['to']}.xlsx");
+    }
+
+    /** Gross income vs payouts (margin) by property — from report_weekly_rollups. */
+    public function incomeVsPayouts(Request $request): Response
+    {
+        return Inertia::render('admin/reports/income-vs-payouts', $this->incomeVsPayoutsData($request) + [
+            'properties' => $this->propertyOptions(),
+        ]);
+    }
+
+    public function incomeVsPayoutsExport(Request $request): BinaryFileResponse
+    {
+        $data = $this->incomeVsPayoutsData($request);
+
+        return Excel::download(new ArrayReportExport(
+            ['Property', 'Hours', 'Billed ($)', 'Paid Out ($)', 'Margin ($)'],
+            collect($data['rows'])->map(fn (array $row): array => [
+                $row['property'], round($row['total_minutes'] / 60, 1),
+                $row['total_bill'] / 100, $row['total_pay'] / 100, $row['margin'] / 100,
+            ])->all(),
+        ), "income-vs-payouts-{$data['filters']['from']}-{$data['filters']['to']}.xlsx");
+    }
+
+    /** Hours by position — from report_weekly_rollups. */
+    public function hoursByPosition(Request $request): Response
+    {
+        return Inertia::render('admin/reports/hours-by-position', $this->hoursByPositionData($request) + [
+            'properties' => $this->propertyOptions(),
+        ]);
+    }
+
+    public function hoursByPositionExport(Request $request): BinaryFileResponse
+    {
+        $data = $this->hoursByPositionData($request);
+
+        return Excel::download(new ArrayReportExport(
+            ['Position', 'Regular (h)', 'Overtime (h)', 'Training (h)', 'Total (h)', 'Weeks'],
+            collect($data['rows'])->map(fn (array $row): array => [
+                $row['position'], round($row['regular_minutes'] / 60, 1), round($row['overtime_minutes'] / 60, 1),
+                round($row['training_minutes'] / 60, 1), round($row['total_minutes'] / 60, 1), $row['weeks'],
+            ])->all(),
+        ), "hours-by-position-{$data['filters']['from']}-{$data['filters']['to']}.xlsx");
+    }
+
+    /** Payouts by contractor for one payroll week — from time_summaries. */
+    public function payouts(Request $request): Response
+    {
+        return Inertia::render('admin/reports/payouts', $this->payoutsData($request) + [
+            'properties' => $this->propertyOptions(),
+        ]);
+    }
+
+    public function payoutsExport(Request $request): BinaryFileResponse
+    {
+        $data = $this->payoutsData($request);
+
+        return Excel::download(new ArrayReportExport(
+            ['Contractor', 'Property', 'Position', 'Regular (h)', 'Overtime (h)', 'Training (h)', 'Total Pay ($)'],
+            collect($data['rows'])->map(fn (array $row): array => [
+                $row['contractor'], $row['property'], $row['position'],
+                round($row['regular_minutes'] / 60, 1), round($row['overtime_minutes'] / 60, 1),
+                round($row['training_minutes'] / 60, 1), $row['total_pay'] / 100,
+            ])->all(),
+        ), 'payouts-'.($data['filters']['week'] ?? 'none').'.xlsx');
+    }
+
+    public function payoutsPdf(Request $request): HttpResponse
+    {
+        $data = $this->payoutsData($request);
+
+        return Pdf::loadView('pdf.payouts', [
+            'week' => $data['filters']['week'],
+            'rows' => $data['rows'],
+            'totals' => $data['totals'],
+            'generatedAt' => now(),
+        ])->download('payouts-'.($data['filters']['week'] ?? 'none').'.pdf');
+    }
+
+    /**
+     * @return array{filters: array<string, mixed>, rows: list<array<string, mixed>>, totals: array<string, int>}
+     */
+    private function revenueData(Request $request): array
+    {
         $validated = $request->validate([
             'from' => ['nullable', 'date_format:Y-m'],
             'to' => ['nullable', 'date_format:Y-m'],
@@ -82,13 +189,12 @@ class ReportController extends Controller
             ->orderBy('property_id')
             ->get();
 
-        return Inertia::render('admin/reports/revenue', [
+        return [
             'filters' => [
                 'from' => $from->format('Y-m'),
                 'to' => $to->format('Y-m'),
                 'property_id' => $validated['property_id'] ?? null,
             ],
-            'properties' => $this->propertyOptions(),
             'rows' => $cells->map(fn (ReportMonthlyRevenue $cell): array => [
                 'month' => $cell->month_start->format('M Y'),
                 'property' => $cell->property->name ?? '—',
@@ -107,18 +213,20 @@ class ReportController extends Controller
                 'invoiced_total' => (int) $cells->sum('invoiced_total'),
                 'payout_total' => (int) $cells->sum('payout_total'),
             ],
-        ]);
+        ];
     }
 
-    /** Gross income vs payouts (margin) by property — from report_weekly_rollups. */
-    public function incomeVsPayouts(Request $request): Response
+    /**
+     * @return array{filters: array<string, mixed>, rows: list<array<string, mixed>>, totals: array<string, int>}
+     */
+    private function incomeVsPayoutsData(Request $request): array
     {
         [$from, $to, $propertyId] = $this->weekRangeFilters($request);
 
         $rows = DB::table('report_weekly_rollups')
             ->join('properties', 'properties.id', '=', 'report_weekly_rollups.property_id')
             ->whereBetween('week_start', [$from->toDateString(), $to->toDateString()])
-            ->when($propertyId, fn ($q, $id) => $q->where('property_id', $id))
+            ->when($propertyId, fn ($q, $id) => $q->where('report_weekly_rollups.property_id', $id))
             ->groupBy('report_weekly_rollups.property_id', 'properties.name')
             ->select([
                 'properties.name as property',
@@ -136,9 +244,8 @@ class ReportController extends Controller
                 'margin' => (int) $row->total_bill - (int) $row->total_pay,
             ]);
 
-        return Inertia::render('admin/reports/income-vs-payouts', [
+        return [
             'filters' => ['from' => $from->toDateString(), 'to' => $to->toDateString(), 'property_id' => $propertyId],
-            'properties' => $this->propertyOptions(),
             'rows' => $rows->all(),
             'totals' => [
                 'total_minutes' => (int) $rows->sum('total_minutes'),
@@ -146,18 +253,20 @@ class ReportController extends Controller
                 'total_pay' => (int) $rows->sum('total_pay'),
                 'margin' => (int) $rows->sum('margin'),
             ],
-        ]);
+        ];
     }
 
-    /** Hours by position — from report_weekly_rollups. */
-    public function hoursByPosition(Request $request): Response
+    /**
+     * @return array{filters: array<string, mixed>, rows: list<array<string, mixed>>, totals: array<string, int>}
+     */
+    private function hoursByPositionData(Request $request): array
     {
         [$from, $to, $propertyId] = $this->weekRangeFilters($request);
 
         $rows = DB::table('report_weekly_rollups')
             ->join('positions', 'positions.id', '=', 'report_weekly_rollups.position_id')
             ->whereBetween('week_start', [$from->toDateString(), $to->toDateString()])
-            ->when($propertyId, fn ($q, $id) => $q->where('property_id', $id))
+            ->when($propertyId, fn ($q, $id) => $q->where('report_weekly_rollups.property_id', $id))
             ->groupBy('report_weekly_rollups.position_id', 'positions.name')
             ->select([
                 'positions.name as position',
@@ -178,9 +287,8 @@ class ReportController extends Controller
                 'weeks' => (int) $row->weeks,
             ]);
 
-        return Inertia::render('admin/reports/hours-by-position', [
+        return [
             'filters' => ['from' => $from->toDateString(), 'to' => $to->toDateString(), 'property_id' => $propertyId],
-            'properties' => $this->propertyOptions(),
             'rows' => $rows->all(),
             'totals' => [
                 'regular_minutes' => (int) $rows->sum('regular_minutes'),
@@ -188,11 +296,13 @@ class ReportController extends Controller
                 'training_minutes' => (int) $rows->sum('training_minutes'),
                 'total_minutes' => (int) $rows->sum('total_minutes'),
             ],
-        ]);
+        ];
     }
 
-    /** Payouts by contractor for one payroll week — from time_summaries. */
-    public function payouts(Request $request): Response
+    /**
+     * @return array{filters: array<string, mixed>, weeks: list<string>, rows: list<array<string, mixed>>, totals: array<string, int>}
+     */
+    private function payoutsData(Request $request): array
     {
         $validated = $request->validate([
             'week' => ['nullable', 'date_format:Y-m-d'],
@@ -208,7 +318,7 @@ class ReportController extends Controller
             ->map(fn ($week): string => CarbonImmutable::parse((string) $week)->toDateString());
 
         $week = $validated['week'] ?? $weeks->first();
-        $propertyId = $validated['property_id'] ?? null;
+        $propertyId = isset($validated['property_id']) ? (int) $validated['property_id'] : null;
 
         $rows = collect();
         if ($week !== null) {
@@ -241,10 +351,9 @@ class ReportController extends Controller
                 ]);
         }
 
-        return Inertia::render('admin/reports/payouts', [
+        return [
             'filters' => ['week' => $week, 'property_id' => $propertyId],
             'weeks' => $weeks->all(),
-            'properties' => $this->propertyOptions(),
             'rows' => $rows->all(),
             'totals' => [
                 'regular_minutes' => (int) $rows->sum('regular_minutes'),
@@ -252,7 +361,7 @@ class ReportController extends Controller
                 'training_minutes' => (int) $rows->sum('training_minutes'),
                 'total_pay' => (int) $rows->sum('total_pay'),
             ],
-        ]);
+        ];
     }
 
     /**

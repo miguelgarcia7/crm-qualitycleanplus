@@ -202,7 +202,9 @@ Route::delete('time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'
 Route::post('payroll-periods/{period}/adjustments', [AdjustmentController::class, 'store'])->name('adjustments.store');
 Route::delete('adjustments/{adjustment}', [AdjustmentController::class, 'destroy'])->name('adjustments.destroy');
 
-// Timesheets — recruiter submits for PM approval (Phase 03)
+// Timesheets — history list + export (Phase 09) and recruiter submit (Phase 03)
+Route::get('timesheets', [TimesheetController::class, 'index'])->middleware('can:timesheets.view_history')->name('timesheets.index');
+Route::get('timesheets/export', [TimesheetController::class, 'export'])->middleware('can:timesheets.export')->name('timesheets.export');
 Route::post('timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
 
 // Reports — catalog + standard reports on rollups (Phase 09, ADR-0028)
@@ -211,6 +213,11 @@ Route::get('reports/revenue', [ReportController::class, 'revenue'])->middleware(
 Route::get('reports/income-vs-payouts', [ReportController::class, 'incomeVsPayouts'])->middleware('can:reports.financial.view')->name('reports.income-vs-payouts');
 Route::get('reports/hours-by-position', [ReportController::class, 'hoursByPosition'])->middleware('can:reports.operational.view')->name('reports.hours-by-position');
 Route::get('reports/payouts', [ReportController::class, 'payouts'])->middleware('can:reports.payroll.view')->name('reports.payouts');
+Route::get('reports/revenue/export', [ReportController::class, 'revenueExport'])->middleware('can:reports.financial.view')->name('reports.revenue.export');
+Route::get('reports/income-vs-payouts/export', [ReportController::class, 'incomeVsPayoutsExport'])->middleware('can:reports.financial.view')->name('reports.income-vs-payouts.export');
+Route::get('reports/hours-by-position/export', [ReportController::class, 'hoursByPositionExport'])->middleware('can:reports.operational.view')->name('reports.hours-by-position.export');
+Route::get('reports/payouts/export', [ReportController::class, 'payoutsExport'])->middleware('can:reports.payroll.view')->name('reports.payouts.export');
+Route::get('reports/payouts/pdf', [ReportController::class, 'payoutsPdf'])->middleware('can:reports.payroll.view')->name('reports.payouts.pdf');
 
 // Invoices (Phase 03)
 Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
