@@ -2,11 +2,27 @@
 
 | Field | Value |
 |---|---|
-| Status | Accepted (port from legacy CRM, mostly unchanged) |
-| Last updated | 2026-05-21 |
+| Status | ✅ Built (Phase 08c — see `80-plan/phase-08c-knowledge-base.md`) |
+| Last updated | 2026-06-09 |
 | Owner | Product + Engineering |
 
 The Knowledge Base (KB) is the strongest module in the legacy QCP CRM and we port it forward with minor adjustments. Articles are written by editors, versioned automatically, organized by categories and tags, and made visible based on role.
+
+> **As built (Phase 08c) — deltas from the spec below:**
+> - **No `kb_attachments` table** — attachments use the shared polymorphic `files`
+>   table (`KbArticle::files()` morphMany), streamed through authenticated routes
+>   so role-gated articles keep their attachments gated.
+> - **`feedback.user_id` → `person_id`** (our auth model is `Person`).
+> - **Editor is Quill** (theme-supported wrapper; the legacy KB used Quill too) —
+>   the spec's "Tiptap or similar". No image/video embeds in the body; images
+>   travel as attachments.
+> - **FULLTEXT index is MySQL-only**; `KbSearch` falls back to LIKE elsewhere
+>   (tests run on SQLite; legacy queried with LIKE in production anyway).
+> - **Publish notifications deferred** (no notification UI exists yet) — the
+>   per-article "notify on publish" toggle ships with a future notifications phase.
+> - Permissions as seeded: `kb.articles.{view,create,edit,publish,delete}` +
+>   `kb.categories.manage` (categories **and** tags) + `kb.feedback.manage`;
+>   role-visibility management rides with `kb.articles.publish`.
 
 ## Shape
 

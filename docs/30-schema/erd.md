@@ -117,7 +117,7 @@ erDiagram
 ### Knowledge base
 - `kb_articles`, `kb_article_versions`, `kb_categories`, `kb_tags`
 - `kb_article_category`, `kb_article_tag`, `kb_article_role` (pivots)
-- `kb_attachments`
+- attachments live on the polymorphic `files` table (no `kb_attachments` — see `phase-08c-knowledge-base.md`)
 
 ### Inventory
 - `products`, `product_variants`
