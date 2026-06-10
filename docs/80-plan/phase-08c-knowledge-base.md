@@ -2,9 +2,43 @@
 
 | Field | Value |
 |---|---|
-| Status | 🚧 In progress |
+| Status | ✅ Done (Pest green — 23 new KnowledgeBase tests; Pint + Larastan + types + build clean; `migrate:fresh --seed` clean). |
 | Last updated | 2026-06-09 |
 | Owner | Engineering |
+
+## As built
+
+- **Inc 0:** six migrations (kb_categories / kb_articles w/ MySQL-only FULLTEXT
+  / kb_article_versions UNIQUE(article, version) / kb_tags / pivots incl.
+  `kb_article_role` / polymorphic `feedback`); `KbArticleStatus` +
+  `Shared\FeedbackType`; models + factories; `kb.categories.manage` +
+  `kb.feedback.manage` seeded.
+- **Inc 1:** `KbArticlePolicy` (manage/read split; publish covers transitions +
+  visibility); `UpdateKbArticle` (snapshot → bump version → apply →
+  `last_edited_by`); controllers `Kb\{KbArticle,KbCategory,KbTag,KbFeedback}` —
+  CRUD, explicit publish/unpublish/archive, version viewer, attachments on the
+  shared `files` table (streamed downloads), tag autosuggest, feedback queue;
+  `backoffice.kb.*` routes.
+- **Inc 2:** **Quill** editor (theme wrapper + quill core/snow CSS; deps
+  `quill` + `react-quill-new`, same pins as the design reference — the spec's
+  "Tiptap or similar"); `views/admin/kb/*`: articles index (status tabs +
+  DataTable), form (editor, category tree, tag chips w/ datalist suggestions,
+  publisher-only role visibility, attachments), show (action bar + details/
+  feedback/version cards), version snapshot page; categories + tags
+  (DataTable + side form); feedback queue (Open/Resolved/Votes tabs); sidebar
+  "Knowledge Base" section.
+- **Inc 3:** back-office reader (`KbReaderController`): hub (`/admin/kb` —
+  search w/ AJAX autosuggest, featured, category tree), search/category/tag
+  browse, article page (view counter, related articles, attachments inline/
+  download, `FeedbackWidget` w/ one-flippable-vote); QC Minute contractor
+  reader (`Minute\KbController`: `/kb` list + search, article + votes,
+  attachment streaming) + dashboard card; `KbSearch` (FULLTEXT vs LIKE) +
+  `SubmitKbFeedback` (vote dedupe/flip); sidebar "Browse KB"; the admin menu
+  no longer renders on QC Minute (it's /admin-only navigation).
+- **Inc 4:** tests (visibility/versioning/transitions/slugs/tags/search/
+  feedback/attachments/permission gates/contractor surface); seed (category
+  tree, contractor-gated + versioned + draft articles, vote + open
+  suggestion); docs (this file, roadmap, Domain README, permissions matrix).
 
 ## Goal
 

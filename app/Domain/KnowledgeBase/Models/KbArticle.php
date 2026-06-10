@@ -37,6 +37,19 @@ class KbArticle extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * Mirrors the column defaults so a freshly created (un-refreshed) model
+     * can snapshot/bump `version` safely.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'status' => 'draft',
+        'view_count' => 0,
+        'is_featured' => false,
+        'version' => 1,
+    ];
+
+    /**
      * @var list<string>
      */
     protected $fillable = [

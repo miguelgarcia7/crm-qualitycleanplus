@@ -35,7 +35,8 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `Pto` | W-2 PTO (Phase 08a, ADR-0016): tier-based accrual on hire-anniversary cycles, three buckets, deduct-on-submission, HR self-approval guardrail; `PtoYearAllotment`/`PtoGrant`/`PtoRequest`, `PtoTenure`, `ProcessPtoTenureCrossings` daily job |
 | `Recruiting` | Job board + applications (Phase 08b, ADR-0023): `JobPosting` (advertised openings — distinct from the Property-Bible `positions` catalog) and `JobApplication` (one immutable submission per applicant, with at-the-time legal attestations + review/promotion trail); `SubmitApplication` writes durable facts to a `Person(status=applicant)`; back office manages postings + the review queue, and `People` actions promote/reverse (onboarding-checklist gated) |
 | `Marketing` | Marketing-site data (Phase 08b-i): `ContactInquiry` — Job Seeker + Business leads from the public contact forms |
-| `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model) |
+| `KnowledgeBase` | Versioned KB articles (Phase 08c): `KbArticle` (immutable `KbArticleVersion` snapshot before every edit), hierarchical `KbCategory`, auto-created `KbTag`, role-based visibility via `kb_article_role` (zero roles = all authed readers; super_admin bypass), `KbSearch` (FULLTEXT/LIKE), `SubmitKbFeedback` vote dedupe; readers on both surfaces |
+| `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model, the polymorphic `Feedback` model + `FeedbackType`) |
 
 Added as their phases land: `Reporting`, …
 

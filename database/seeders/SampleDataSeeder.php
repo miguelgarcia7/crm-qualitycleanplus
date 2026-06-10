@@ -15,6 +15,11 @@ use App\Domain\Inventory\Models\Category;
 use App\Domain\Inventory\Models\Item;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\SupplyRequest;
+use App\Domain\KnowledgeBase\Actions\UpdateKbArticle;
+use App\Domain\KnowledgeBase\Enums\KbArticleStatus;
+use App\Domain\KnowledgeBase\Models\KbArticle;
+use App\Domain\KnowledgeBase\Models\KbCategory;
+use App\Domain\KnowledgeBase\Models\KbTag;
 use App\Domain\Marketing\Models\ContactInquiry;
 use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Enums\PersonStatus;
@@ -31,6 +36,7 @@ use App\Domain\Recruiting\Actions\SubmitApplication;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Enums\JobPostingStatus;
 use App\Domain\Recruiting\Models\JobPosting;
+use App\Domain\Shared\Enums\FeedbackType;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
@@ -49,6 +55,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Spatie\Permission\Models\Role;
 
 /**
  * Local/dev demo data: one property with Bible rates, a recruiter assigned to it,
@@ -257,6 +264,74 @@ class SampleDataSeeder extends Seeder
         ]);
 
         $this->seedRecruiting($property, $recruiter);
+
+        $this->seedKnowledgeBase($frontDesk);
+    }
+
+    /**
+     * Knowledge base (Phase 08c): a small category tree, published articles
+     * (one contractor-gated, one with version history), a draft, and reader
+     * feedback (a vote + an open suggestion).
+     */
+    private function seedKnowledgeBase(Person $reader): void
+    {
+        $hr = Person::query()->where('email', 'hr@example.com')->firstOrFail();
+
+        $operations = KbCategory::create(['name' => 'Operations', 'slug' => 'operations', 'description' => 'Day-to-day procedures.', 'sort_order' => 1]);
+        $timeClock = KbCategory::create(['name' => 'Time Clock', 'slug' => 'time-clock', 'parent_id' => $operations->id, 'sort_order' => 1]);
+        $hrPolicies = KbCategory::create(['name' => 'HR Policies', 'slug' => 'hr-policies', 'description' => 'Policies for W-2 staff.', 'sort_order' => 2]);
+
+        $clockIn = KbArticle::create([
+            'title' => 'How to clock in with the QR code',
+            'slug' => 'how-to-clock-in-with-the-qr-code',
+            'summary' => 'Scan the property QR code, take the selfie, and you are on the clock.',
+            'content' => '<h2>Steps</h2><ol><li>Open your phone camera and scan the QR code at the entrance.</li><li>Confirm your name.</li><li>Take the selfie when prompted.</li></ol><p>If the page says you are outside the property, move closer to the building and try again.</p>',
+            'author_id' => $hr->id,
+            'status' => KbArticleStatus::Published,
+            'published_at' => now()->subDays(10),
+            'is_featured' => true,
+        ]);
+        $clockIn->categories()->attach([$operations->id, $timeClock->id]);
+        $clockIn->tags()->attach(KbTag::findOrCreateByName('Time Clock')->id);
+        $contractorRole = Role::findByName('contractor');
+        $clockIn->roles()->attach($contractorRole->id);
+
+        $pto = KbArticle::create([
+            'title' => 'PTO policy overview',
+            'slug' => 'pto-policy-overview',
+            'summary' => 'Tiers, buckets, and how to request time off.',
+            'content' => '<p>PTO accrues by tenure tier across three buckets: vacation, scheduled, and unscheduled. Submit requests from the Time Off page; hours deduct when you submit.</p>',
+            'author_id' => $hr->id,
+            'status' => KbArticleStatus::Published,
+            'published_at' => now()->subDays(5),
+        ]);
+        $pto->categories()->attach($hrPolicies->id);
+        $pto->tags()->attach(KbTag::findOrCreateByName('Benefits')->id);
+
+        // One edit so the version history has a snapshot.
+        app(UpdateKbArticle::class)->handle($pto, [
+            'title' => $pto->title,
+            'summary' => $pto->summary,
+            'content' => $pto->content.'<p>Unused hours are forfeited at your hire anniversary — no rollover.</p>',
+            'is_featured' => false,
+        ], $hr, 'Added the no-rollover note');
+
+        $draft = KbArticle::create([
+            'title' => 'Uniform request flow (in progress)',
+            'slug' => 'uniform-request-flow',
+            'summary' => 'Draft — how uniform requests will move through inventory.',
+            'content' => '<p>Outline only.</p>',
+            'author_id' => $hr->id,
+        ]);
+        $draft->categories()->attach($operations->id);
+
+        $pto->feedback()->create(['person_id' => $reader->id, 'type' => FeedbackType::Helpful, 'url' => '/admin/kb/article/pto-policy-overview']);
+        $pto->feedback()->create([
+            'person_id' => $reader->id,
+            'type' => FeedbackType::Suggestion,
+            'message' => 'Could we add an example of a partial-day request?',
+            'url' => '/admin/kb/article/pto-policy-overview',
+        ]);
     }
 
     /**
