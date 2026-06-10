@@ -51,7 +51,7 @@ const Page = ({ properties, prefill }: Props) => {
       <div className="card mx-auto max-w-2xl rounded-2xl">
         <div className="card-body p-6">
           {properties.length === 0 ? (
-            <p className="text-muted">
+            <p className="text-default-400">
               No import-only properties are available to you. Set a property's <strong>Time Source</strong> to
               “Import” in the Property Bible first.
             </p>

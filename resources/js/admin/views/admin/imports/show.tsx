@@ -92,7 +92,7 @@ const RowActions = ({ batchId, row, positions, people }: { batchId: number; row:
   const [positionId, setPositionId] = useState('')
 
   if (row.status === 'skipped') {
-    return <span className="text-muted text-sm">Skipped</span>
+    return <span className="text-default-400 text-sm">Skipped</span>
   }
 
   return (
@@ -227,7 +227,7 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
         <div className="card-body flex flex-wrap items-center justify-between gap-3 p-5">
           <div>
             <div className="font-semibold">{batch.property}</div>
-            <div className="text-muted text-sm">
+            <div className="text-default-400 text-sm">
               {batch.period} · {batch.file_name} · <StatusBadge status={batch.status} label={batch.status_label} />
             </div>
           </div>
@@ -284,7 +284,7 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
           <div className="card-body p-0">
             <table className="w-full text-sm">
               <thead className="border-default-200 border-b text-left">
-                <tr className="text-muted">
+                <tr className="text-default-400">
                   <th className="p-3">#</th>
                   <th className="p-3">Name / ID</th>
                   <th className="p-3">Hours</th>
@@ -299,7 +299,7 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
                     <td className="p-3">{row.row_number}</td>
                     <td className="p-3">
                       <div className="font-medium">{row.name}</div>
-                      <div className="text-muted text-xs">
+                      <div className="text-default-400 text-xs">
                         {row.external_id}
                         {row.position ? ` · ${row.position}` : ''}
                       </div>
@@ -325,7 +325,7 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
       {step === 'adjustments' && !readOnly && (
         <div className="card rounded-2xl">
           <div className="card-body space-y-4 p-5">
-            <p className="text-muted text-sm">Optionally add incentives or deductions per contractor. Applied when you commit.</p>
+            <p className="text-default-400 text-sm">Optionally add incentives or deductions per contractor. Applied when you commit.</p>
             {adjustments.map((a, i) => (
               <div key={i} className="border-default-200 grid grid-cols-1 gap-2 rounded-lg border p-3 md:grid-cols-6">
                 <select className="form-select form-select-sm" value={a.row_id} onChange={(e) => updateAdjustment(i, { row_id: Number(e.target.value) })}>
@@ -428,7 +428,7 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
 
 const Stat = ({ label, value }: { label: string; value: string | number }) => (
   <div className="border-default-200 rounded-lg border p-3">
-    <div className="text-muted text-xs">{label}</div>
+    <div className="text-default-400 text-xs">{label}</div>
     <div className="text-lg font-semibold">{value}</div>
   </div>
 )

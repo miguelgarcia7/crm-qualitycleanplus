@@ -156,7 +156,7 @@ const Page = ({ property, statuses, timeSources }: Props) => {
                     </option>
                   ))}
                 </select>
-                <p className="text-muted mt-1 text-xs">Import = no clock-in; hours arrive via the weekly Excel import.</p>
+                <p className="text-default-400 mt-1 text-xs">Import = no clock-in; hours arrive via the weekly Excel import.</p>
               </Field>
             </div>
 

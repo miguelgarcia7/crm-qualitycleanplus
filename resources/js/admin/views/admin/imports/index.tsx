@@ -50,10 +50,10 @@ const Page = ({ batches, can }: Props) => {
       <div className="card rounded-2xl">
         <div className="card-body p-0">
           {batches.length === 0 ? (
-            <p className="text-muted p-6">No imports yet.</p>
+            <p className="text-default-400 p-6">No imports yet.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="border-default-200 text-muted border-b text-left">
+              <thead className="border-default-200 text-default-400 border-b text-left">
                 <tr>
                   <th className="p-3">#</th>
                   <th className="p-3">Property / Week</th>
@@ -70,7 +70,7 @@ const Page = ({ batches, can }: Props) => {
                     <td className="p-3">{b.id}</td>
                     <td className="p-3">
                       <div className="font-medium">{b.property}</div>
-                      <div className="text-muted text-xs">{b.period}</div>
+                      <div className="text-default-400 text-xs">{b.period}</div>
                     </td>
                     <td className="p-3">{b.file_name}</td>
                     <td className="p-3">
@@ -78,7 +78,7 @@ const Page = ({ batches, can }: Props) => {
                     </td>
                     <td className="p-3">
                       <div>{b.uploaded_by}</div>
-                      <div className="text-muted text-xs">{b.created_at}</div>
+                      <div className="text-default-400 text-xs">{b.created_at}</div>
                     </td>
                     <td className="p-3">
                       {b.invoice ? (
@@ -86,7 +86,7 @@ const Page = ({ batches, can }: Props) => {
                           {b.invoice.number}
                         </Link>
                       ) : (
-                        <span className="text-muted">—</span>
+                        <span className="text-default-400">—</span>
                       )}
                     </td>
                     <td className="space-x-2 p-3 text-right">
