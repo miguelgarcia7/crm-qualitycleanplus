@@ -1,5 +1,6 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
+import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useEffect, useState } from 'react'
 
@@ -22,6 +23,7 @@ type Property = {
   closing_day: number | null
   tax_rate: string | null
   status: string
+  time_source: string
 }
 
 type Dept = { id: number; department_id: number; name: string | null; manager_name: string | null; manager_phone: string | null; is_active: boolean }
@@ -91,44 +93,143 @@ const confirmDelete = (url: string) => {
   }
 }
 
-// --- Tab sections ----------------------------------------------------------
+const RemoveButton = ({ url, title }: { url: string; title: string }) => (
+  <button
+    type="button"
+    className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+    onClick={() => confirmDelete(url)}
+    title={title}
+  >
+    <Icon icon="trash" className="text-base" />
+  </button>
+)
 
-const ProfileTab = ({ property, can }: { property: Property; can: Can }) => {
-  const rows: [string, string | number | null][] = [
-    ['PM Name', property.pm_name],
-    ['PM Phone', property.pm_phone],
-    ['Hotel Main Phone', property.main_phone],
-    ['Address', property.address],
-    ['City', property.city],
-    ['State', property.state],
-    ['Zip', property.zip],
-    ['Timezone', property.timezone],
-    ['Latitude', property.latitude],
-    ['Longitude', property.longitude],
-    ['Geofence Radius (m)', property.geofence_radius_meters],
-    ['Closing Day', property.closing_day],
-    ['Tax Rate', property.tax_rate],
-  ]
-  return (
+/** Icon fact row for the identity card (HRM staff-profile pattern). */
+const FactRow = ({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) => (
+  <div className="flex items-center gap-3">
     <div>
-      {can.editProfile && (
-        <div className="mb-4 flex justify-end">
-          <Link href={`/admin/properties/${property.id}/edit`} className="btn btn-light px-4 py-2">
-            Edit Profile
-          </Link>
-        </div>
-      )}
-      <dl className="grid grid-cols-1 gap-x-8 gap-y-3 md:grid-cols-2">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between border-b border-dashed py-2">
-            <dt className="text-default-500">{label}</dt>
-            <dd className="font-medium">{value ?? '—'}</dd>
+      <div className="btn btn-icon bg-light size-8!">
+        <Icon icon={icon} className="text-secondary text-lg" />
+      </div>
+    </div>
+    <p className="text-sm">
+      {label} <span className="text-dark font-semibold">{children}</span>
+    </p>
+  </div>
+)
+
+// --- Identity card (left column) --------------------------------------------
+
+const IdentityCard = ({ property, can }: { property: Property; can: Can }) => {
+  const initials = property.name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+
+  const cityState = [property.city, property.state].filter(Boolean).join(', ')
+  const fullAddress = [property.address, cityState, property.zip].filter(Boolean).join(', ')
+  const taxRate = property.tax_rate !== null ? `${(parseFloat(property.tax_rate) * 100).toFixed(2)}%` : null
+  const hasGeofence = property.latitude !== null && property.longitude !== null
+
+  return (
+    <div className="card">
+      <div className="card-body">
+        <div className="mb-7.5 flex items-center justify-between">
+          <div className="gap-base flex items-center">
+            <div className="bg-primary/10 text-primary flex size-18 shrink-0 items-center justify-center rounded-full text-xl font-semibold">
+              {initials}
+            </div>
+            <div>
+              <h5 className="font-medium">{property.name}</h5>
+              <p className="text-default-400 mb-3">{cityState || 'No location set'}</p>
+              <div className="flex flex-wrap gap-1.5">
+                <span
+                  className={cn(
+                    'badge badge-label capitalize',
+                    property.status === 'active' ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary',
+                  )}
+                >
+                  {property.status}
+                </span>
+                <span
+                  className={cn(
+                    'badge badge-label',
+                    property.time_source === 'import' ? 'bg-info/15 text-info' : 'bg-primary/15 text-primary',
+                  )}
+                >
+                  {property.time_source === 'import' ? 'Hour import' : 'Clock-in'}
+                </span>
+              </div>
+            </div>
           </div>
-        ))}
-      </dl>
+        </div>
+
+        <div className="flex flex-col gap-y-3">
+          {fullAddress && (
+            <FactRow icon="map-pin" label="Address">
+              {fullAddress}
+            </FactRow>
+          )}
+          {property.pm_name && (
+            <FactRow icon="user-circle" label="PM">
+              {property.pm_name}
+            </FactRow>
+          )}
+          {property.pm_phone && (
+            <FactRow icon="phone" label="PM phone">
+              {property.pm_phone}
+            </FactRow>
+          )}
+          {property.main_phone && (
+            <FactRow icon="phone-call" label="Hotel phone">
+              {property.main_phone}
+            </FactRow>
+          )}
+          <FactRow icon="clock" label="Timezone">
+            {property.timezone}
+          </FactRow>
+          {taxRate && (
+            <FactRow icon="receipt-tax" label="Tax rate">
+              {taxRate}
+            </FactRow>
+          )}
+          {property.closing_day !== null && (
+            <FactRow icon="calendar" label="Closing day">
+              {property.closing_day}
+            </FactRow>
+          )}
+          <FactRow icon="map-pin-check" label="Geofence">
+            {hasGeofence ? `Set (${property.geofence_radius_meters} m radius)` : 'Not set — QR clock-in disabled'}
+          </FactRow>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-2">
+          <Link
+            href={`/admin/properties/${property.id}/grid`}
+            className="btn bg-primary hover:bg-primary-hover justify-center font-semibold text-white"
+          >
+            <Icon icon="layout" className="me-1.5 size-4" /> Weekly Timesheet
+          </Link>
+          <div className="flex gap-2">
+            <Link href={`/admin/properties/${property.id}/qr`} className="btn btn-light flex-1 justify-center">
+              <Icon icon="qrcode" className="me-1.5 size-4" /> Clock-In QR
+            </Link>
+            {can.editProfile && (
+              <Link href={`/admin/properties/${property.id}/edit`} className="btn btn-light flex-1 justify-center">
+                <Icon icon="edit" className="me-1.5 size-4" /> Edit
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
+
+// --- Tab sections ----------------------------------------------------------
 
 const DepartmentsTab = ({ property, departments, catalogs, can }: Pick<Props, 'property' | 'departments' | 'catalogs' | 'can'>) => {
   const { data, setData, post, processing, errors, reset } = useForm({
@@ -163,12 +264,14 @@ const DepartmentsTab = ({ property, departments, catalogs, can }: Pick<Props, 'p
                   <td className="font-medium">{d.name}</td>
                   <td>{d.manager_name ?? '—'}</td>
                   <td>{d.manager_phone ?? '—'}</td>
-                  <td>{d.is_active ? 'Yes' : 'No'}</td>
+                  <td>
+                    <span className={cn('badge badge-label', d.is_active ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary')}>
+                      {d.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
                   {can.editDepartments && (
                     <td className="text-end">
-                      <button className="text-danger text-sm hover:underline" onClick={() => confirmDelete(`/admin/properties/${property.id}/departments/${d.id}`)}>
-                        Remove
-                      </button>
+                      <RemoveButton url={`/admin/properties/${property.id}/departments/${d.id}`} title="Remove department" />
                     </td>
                   )}
                 </tr>
@@ -262,9 +365,7 @@ const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | '
                   <td>{r.end_date ?? <span className="badge badge-label bg-success/15 text-success">current</span>}</td>
                   {can.editRates && (
                     <td className="text-end">
-                      <button className="text-danger text-sm hover:underline" onClick={() => confirmDelete(`/admin/properties/${property.id}/rates/${r.id}`)}>
-                        Remove
-                      </button>
+                      <RemoveButton url={`/admin/properties/${property.id}/rates/${r.id}`} title="Remove rate" />
                     </td>
                   )}
                 </tr>
@@ -371,21 +472,21 @@ const ContractsTab = ({ property, contracts, catalogs, can }: Pick<Props, 'prope
                   <td>{c.effective_date ?? '—'}</td>
                   <td>{c.expiration_date ?? '—'}</td>
                   <td>{c.uploaded_by ?? '—'}</td>
-                  <td className="text-end space-x-3">
-                    {can.downloadContracts && (
-                      <a
-                        href={`/admin/properties/${property.id}/contracts/${c.id}/download`}
-                        className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
-                        title="Download contract"
-                      >
-                        <Icon icon="eye" className="text-base" />
-                      </a>
-                    )}
-                    {can.editContracts && (
-                      <button className="text-danger text-sm hover:underline" onClick={() => confirmDelete(`/admin/properties/${property.id}/contracts/${c.id}`)}>
-                        Delete
-                      </button>
-                    )}
+                  <td className="text-end">
+                    <div className="flex justify-end gap-1.5">
+                      {can.downloadContracts && (
+                        <a
+                          href={`/admin/properties/${property.id}/contracts/${c.id}/download`}
+                          className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                          title="Download contract"
+                        >
+                          <Icon icon="download" className="text-base" />
+                        </a>
+                      )}
+                      {can.editContracts && (
+                        <RemoveButton url={`/admin/properties/${property.id}/contracts/${c.id}`} title="Delete contract" />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -472,9 +573,7 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
                   <td>{a.role_label}</td>
                   {can.manageAssignments && (
                     <td className="text-end">
-                      <button className="text-danger text-sm hover:underline" onClick={() => confirmDelete(`/admin/properties/${property.id}/assignments/${a.id}`)}>
-                        Remove
-                      </button>
+                      <RemoveButton url={`/admin/properties/${property.id}/assignments/${a.id}`} title="Remove assignment" />
                     </td>
                   )}
                 </tr>
@@ -561,11 +660,10 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
 
 const Page = ({ property, departments, rates, assignments, contracts, history, catalogs, can }: Props) => {
   const tabs = [
-    { key: 'profile', label: 'Profile', show: true },
-    { key: 'departments', label: 'Departments', show: true },
     { key: 'rates', label: 'Positions & Rates', show: true },
-    { key: 'contracts', label: 'Contracts', show: can.viewContracts },
+    { key: 'departments', label: 'Departments', show: true },
     { key: 'team', label: 'Team', show: true },
+    { key: 'contracts', label: 'Contracts', show: can.viewContracts },
     { key: 'history', label: 'History', show: true },
   ].filter((t) => t.show)
 
@@ -573,7 +671,7 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
   // deep-linkable and survive refresh. Invalid/missing hash → first tab.
   const tabFromHash = () => {
     const hash = typeof window === 'undefined' ? '' : window.location.hash.slice(1)
-    return tabs.some((t) => t.key === hash) ? hash : 'profile'
+    return tabs.some((t) => t.key === hash) ? hash : tabs[0].key
   }
   const [active, setActive] = useState(tabFromHash)
 
@@ -594,48 +692,39 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
       <Head title={property.name} />
       <PageBreadcrumb title={property.name} subtitle="Property Bible" />
 
-      <div className="card">
-        <div className="card-header">
-          <div className="flex items-center gap-3">
-            <h4 className="card-title">{property.name}</h4>
-            <span className={`badge badge-label ${property.status === 'active' ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary'} capitalize`}>{property.status}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href={`/admin/properties/${property.id}/grid`} className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white">
-              Weekly Timesheet
-            </Link>
-            <Link href={`/admin/properties/${property.id}/qr`} className="btn btn-light px-4 py-1.5 font-semibold">
-              Clock-In QR
-            </Link>
-            <Link href="/admin/properties" className="text-default-500 text-sm hover:underline">
-              ← All Properties
-            </Link>
-          </div>
+      <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
+        <div className="space-y-6">
+          <IdentityCard property={property} can={can} />
         </div>
 
-        <nav className="border-default-300 flex flex-wrap border-b px-4" aria-label="Tabs" role="tablist">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={active === t.key}
-              onClick={() => selectTab(t.key)}
-              className={`hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden ${
-                active === t.key ? 'border-primary text-primary border-b' : ''
-              }`}>
-              {t.label}
-            </button>
-          ))}
-        </nav>
+        <div className="space-y-6 xl:col-span-2">
+          <div className="card">
+            <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
+              {tabs.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active === t.key}
+                  onClick={() => selectTab(t.key)}
+                  className={cn(
+                    'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
+                    active === t.key ? 'border-primary text-primary border-b' : '',
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
 
-        <div className="card-body p-6">
-          {active === 'profile' && <ProfileTab property={property} can={can} />}
-          {active === 'departments' && <DepartmentsTab property={property} departments={departments} catalogs={catalogs} can={can} />}
-          {active === 'rates' && <RatesTab property={property} rates={rates} catalogs={catalogs} can={can} />}
-          {active === 'contracts' && can.viewContracts && <ContractsTab property={property} contracts={contracts} catalogs={catalogs} can={can} />}
-          {active === 'team' && <TeamTab property={property} assignments={assignments} catalogs={catalogs} can={can} />}
-          {active === 'history' && <HistoryTab history={history} />}
+            <div className="card-body p-6">
+              {active === 'rates' && <RatesTab property={property} rates={rates} catalogs={catalogs} can={can} />}
+              {active === 'departments' && <DepartmentsTab property={property} departments={departments} catalogs={catalogs} can={can} />}
+              {active === 'team' && <TeamTab property={property} assignments={assignments} catalogs={catalogs} can={can} />}
+              {active === 'contracts' && can.viewContracts && <ContractsTab property={property} contracts={contracts} catalogs={catalogs} can={can} />}
+              {active === 'history' && <HistoryTab history={history} />}
+            </div>
+          </div>
         </div>
       </div>
     </>
