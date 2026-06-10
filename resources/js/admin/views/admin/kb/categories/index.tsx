@@ -261,7 +261,7 @@ const Page = ({ categories }: Props) => {
                     onChange={(e) => setData('sort_order', e.target.value)}
                   />
                 </div>
-                <div className="form-check">
+                <div className="flex items-center gap-2">
                   <input
                     id="cat-active"
                     type="checkbox"
@@ -269,9 +269,7 @@ const Page = ({ categories }: Props) => {
                     checked={data.is_active}
                     onChange={(e) => setData('is_active', e.target.checked)}
                   />
-                  <label htmlFor="cat-active" className="form-check-label ms-2">
-                    Active (shown to readers)
-                  </label>
+                  <label htmlFor="cat-active">Active (shown to readers)</label>
                 </div>
                 <div className="flex gap-2">
                   <button className="btn bg-primary hover:bg-primary-hover flex-1 py-2 font-semibold text-white" disabled={processing}>

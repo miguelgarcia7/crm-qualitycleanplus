@@ -235,7 +235,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                 <h4 className="card-title">Publish</h4>
               </div>
               <div className="card-body space-y-4">
-                <div className="form-check">
+                <div className="flex items-center gap-2">
                   <input
                     id="is_featured"
                     type="checkbox"
@@ -243,9 +243,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                     checked={data.is_featured}
                     onChange={(e) => setData('is_featured', e.target.checked)}
                   />
-                  <label htmlFor="is_featured" className="form-check-label ms-2">
-                    Featured article
-                  </label>
+                  <label htmlFor="is_featured">Featured article</label>
                 </div>
                 <div className="flex gap-2">
                   <button className="btn bg-primary hover:bg-primary-hover flex-1 py-2 font-semibold text-white" disabled={processing}>
@@ -275,7 +273,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                 ) : (
                   <div className="max-h-56 space-y-1.5 overflow-y-auto">
                     {categoryOptions.map((c) => (
-                      <div key={c.id} className="form-check" style={{ marginInlineStart: `${c.depth * 1.25}rem` }}>
+                      <div key={c.id} className="flex items-center gap-2" style={{ marginInlineStart: `${c.depth * 1.25}rem` }}>
                         <input
                           id={`cat-${c.id}`}
                           type="checkbox"
@@ -283,9 +281,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                           checked={data.categories.includes(c.id)}
                           onChange={() => toggleId('categories', c.id)}
                         />
-                        <label htmlFor={`cat-${c.id}`} className="form-check-label ms-2">
-                          {c.name}
-                        </label>
+                        <label htmlFor={`cat-${c.id}`}>{c.name}</label>
                       </div>
                     ))}
                   </div>
@@ -340,7 +336,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                   <p className="text-default-400 mb-2 text-sm">No roles selected = visible to everyone who can read the KB.</p>
                   <div className="space-y-1.5">
                     {roleOptions.map((r) => (
-                      <div key={r.id} className="form-check">
+                      <div key={r.id} className="flex items-center gap-2">
                         <input
                           id={`role-${r.id}`}
                           type="checkbox"
@@ -348,9 +344,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                           checked={data.roles.includes(r.id)}
                           onChange={() => toggleId('roles', r.id)}
                         />
-                        <label htmlFor={`role-${r.id}`} className="form-check-label ms-2">
-                          {roleLabel(r.name)}
-                        </label>
+                        <label htmlFor={`role-${r.id}`}>{roleLabel(r.name)}</label>
                       </div>
                     ))}
                   </div>

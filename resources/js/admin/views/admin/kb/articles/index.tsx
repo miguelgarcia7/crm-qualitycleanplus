@@ -209,7 +209,7 @@ const Page = ({ articles }: Props) => {
                 <option key={size}>{size}</option>
               ))}
             </select>
-            <Link href="/admin/kb/articles/create" className="btn bg-primary hover:bg-primary-hover text-white">
+            <Link href="/admin/kb/articles/create" className="btn bg-primary hover:bg-primary-hover text-nowrap text-white">
               <Icon icon="plus" className="me-1 size-4" /> New article
             </Link>
           </div>
