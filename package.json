@@ -46,10 +46,12 @@
     "preline": "4.0.1",
     "pusher-js": "^8.5.0",
     "qrcode.react": "^4.2.0",
+    "quill": "^2.0.3",
     "react": "^19.2.5",
     "react-apexcharts": "^2.1.0",
     "react-countup": "^6.5.3",
     "react-dom": "^19.2.5",
+    "react-quill-new": "^3.8.3",
     "simplebar-react": "^3.3.2",
     "tailwind-merge": "^3.5.0",
     "usehooks-ts": "^3.1.1"

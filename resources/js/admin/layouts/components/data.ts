@@ -48,6 +48,18 @@ export const menuItems: MenuItemType[] = [
     ],
   },
   {
+    icon: 'book',
+    slug: 'knowledge',
+    label: 'Knowledge Base',
+    isTitle: true,
+    children: [
+      { url: '/admin/kb/articles', slug: 'kb-articles', label: 'Articles', icon: 'files', permission: 'kb.articles.edit' },
+      { url: '/admin/kb/categories', slug: 'kb-categories', label: 'Categories', icon: 'category', permission: 'kb.categories.manage' },
+      { url: '/admin/kb/tags', slug: 'kb-tags', label: 'Tags', icon: 'tag', permission: 'kb.categories.manage' },
+      { url: '/admin/kb/feedback', slug: 'kb-feedback', label: 'Feedback', icon: 'message-circle', permission: 'kb.feedback.manage' },
+    ],
+  },
+  {
     icon: 'password-user',
     slug: 'administration',
     label: 'Administration',
