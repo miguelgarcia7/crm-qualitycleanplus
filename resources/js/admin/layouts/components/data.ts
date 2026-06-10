@@ -44,7 +44,13 @@ export const menuItems: MenuItemType[] = [
       { url: '#', slug: 'workflows', label: 'Workflows', icon: 'sitemap', permission: 'workflows.pto.initiate', isDisabled: true, badge: soon },
       { url: '/admin/inventory', slug: 'inventory', label: 'Inventory', icon: 'components', permission: 'inventory.items.view' },
       { url: '/admin/requests', slug: 'requests', label: 'Requests', icon: 'package', permission: 'workflows.supply_request.initiate' },
-      { url: '#', slug: 'reports', label: 'Reports', icon: 'table-column', permission: 'reports.operational.view', isDisabled: true, badge: soon },
+      {
+        url: '/admin/reports',
+        slug: 'reports',
+        label: 'Reports',
+        icon: 'table-column',
+        permission: ['reports.operational.view', 'reports.financial.view', 'reports.payroll.view'],
+      },
     ],
   },
   {

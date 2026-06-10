@@ -25,6 +25,7 @@ use App\Http\Controllers\PropertyDepartmentController;
 use App\Http\Controllers\PropertyPositionRateController;
 use App\Http\Controllers\PtoController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SupplyRequestController;
@@ -203,6 +204,13 @@ Route::delete('adjustments/{adjustment}', [AdjustmentController::class, 'destroy
 
 // Timesheets — recruiter submits for PM approval (Phase 03)
 Route::post('timesheets/{timesheet}/submit', [TimesheetController::class, 'submit'])->name('timesheets.submit');
+
+// Reports — catalog + standard reports on rollups (Phase 09, ADR-0028)
+Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+Route::get('reports/revenue', [ReportController::class, 'revenue'])->middleware('can:reports.financial.view')->name('reports.revenue');
+Route::get('reports/income-vs-payouts', [ReportController::class, 'incomeVsPayouts'])->middleware('can:reports.financial.view')->name('reports.income-vs-payouts');
+Route::get('reports/hours-by-position', [ReportController::class, 'hoursByPosition'])->middleware('can:reports.operational.view')->name('reports.hours-by-position');
+Route::get('reports/payouts', [ReportController::class, 'payouts'])->middleware('can:reports.payroll.view')->name('reports.payouts');
 
 // Invoices (Phase 03)
 Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');

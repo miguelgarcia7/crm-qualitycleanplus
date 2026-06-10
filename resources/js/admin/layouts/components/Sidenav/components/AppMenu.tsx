@@ -90,7 +90,13 @@ const MenuItem = ({ item, level = 0 }: { item: MenuItemType; level?: number }) =
 }
 
 // Keep only items the current user may see. An item with a `permission` is
-// hidden unless the user holds it; a group is dropped once it has no children.
+// hidden unless the user holds it (any of them, when an array); a group is
+// dropped once it has no children.
+const hasPermission = (required: string | string[] | undefined, permissions: string[]): boolean => {
+  if (!required) return true
+  return Array.isArray(required) ? required.some((p) => permissions.includes(p)) : permissions.includes(required)
+}
+
 const filterByPermission = (items: MenuItemType[], permissions: string[]): MenuItemType[] =>
   items
     .map((item): MenuItemType | null => {
@@ -98,7 +104,7 @@ const filterByPermission = (items: MenuItemType[], permissions: string[]): MenuI
         const children = filterByPermission(item.children, permissions)
         return children.length ? { ...item, children } : null
       }
-      return !item.permission || permissions.includes(item.permission) ? item : null
+      return hasPermission(item.permission, permissions) ? item : null
     })
     .filter((item): item is MenuItemType => item !== null)
 
