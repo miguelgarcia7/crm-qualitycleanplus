@@ -91,6 +91,7 @@ erDiagram
 - `time_entry_adjustments` (applied; with `source_type` discriminator per ADR-0014)
 - `devices` (tablets — backup flow) + token authentication
 - `field_visits` (recruiter check-ins per ADR-0017 — separate from time_entries; not billable)
+- `report_weekly_rollups` + `report_monthly_revenue` (derived report cells per ADR-0028 — rebuilt by triggers + the nightly `reports:refresh-rollups` backstop; never migrated, never a source of truth)
 
 ### Workflows + denormalized records
 - `workflows` and `workflow_steps` (generalized engine)

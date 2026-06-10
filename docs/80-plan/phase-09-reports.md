@@ -2,11 +2,33 @@
 
 | Field | Value |
 |---|---|
-| Status | 🚧 In progress |
+| Status | ✅ Built (all increments) |
 | Branch | `phase-09-reports` |
 | Last updated | 2026-06-10 |
 | Depends on | Phase 03 (summaries/invoices), 05 (imports), 06 (dashboards), 08 complete |
 | Spec | roadmap §Phase 09 · ADR-0028 (rollups) · ADR-0008 (time summaries) · ADR-0006 (invoice freeze) |
+
+## As built
+
+- **Inc 1** — `report_weekly_rollups` + `report_monthly_revenue` (one combined
+  migration), `app/Domain/Reports/{Models,Actions}`, triggers wired inside
+  `RecomputeTimeSummary` (weekly cell) and after the `GenerateInvoice` /
+  `VoidInvoice` transactions (monthly cell — covers the import commit path,
+  which freezes through `GenerateInvoice`), `reports:refresh-rollups` nightly
+  at 01:30. The seeder populates rollups purely through the real triggers — no
+  seeder-side refresh call needed.
+- **Inc 2** — `ReportController` + `/admin/reports` catalog (cards grouped by
+  permission), four standard reports with shared `ReportTable` component.
+  Sidebar `MenuItemType.permission` extended to accept `string[]` (any-of) so
+  the Reports entry serves financial/operational/payroll holders.
+- **Inc 3** — Excel exports share each report's data builder (one generic
+  `ArrayReportExport`), payouts PDF via dompdf (`pdf/payouts.blade.php`),
+  `/admin/timesheets` history (status tabs, hours/billed per week from
+  summaries, invoice links, Excel export). `Timesheet::invoice()` relation +
+  timestamp `@property` docblocks added.
+- **Inc 4** — 15 Pest tests (rollup math incl. void retraction + cell deletion,
+  backstop rebuild, catalog/report/export permission gates, xlsx/pdf downloads,
+  history page) — suite 236 passing. Docs + roadmap synced.
 
 **Goal:** best-in-class reporting on pre-aggregated data. Office manager pulls
 "revenue by property by month" → loads <1s → Excel export works. Payroll pulls

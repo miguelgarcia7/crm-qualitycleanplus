@@ -36,9 +36,8 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `Recruiting` | Job board + applications (Phase 08b, ADR-0023): `JobPosting` (advertised openings — distinct from the Property-Bible `positions` catalog) and `JobApplication` (one immutable submission per applicant, with at-the-time legal attestations + review/promotion trail); `SubmitApplication` writes durable facts to a `Person(status=applicant)`; back office manages postings + the review queue, and `People` actions promote/reverse (onboarding-checklist gated) |
 | `Marketing` | Marketing-site data (Phase 08b-i): `ContactInquiry` — Job Seeker + Business leads from the public contact forms |
 | `KnowledgeBase` | Versioned KB articles (Phase 08c): `KbArticle` (immutable `KbArticleVersion` snapshot before every edit), hierarchical `KbCategory`, auto-created `KbTag`, role-based visibility via `kb_article_role` (zero roles = all authed readers; super_admin bypass), `KbSearch` (FULLTEXT/LIKE), `SubmitKbFeedback` vote dedupe; readers on both surfaces |
+| `Reports` | Report rollups + exports (Phase 09, ADR-0028): `ReportWeeklyRollup` (operational, week × property × position from `time_summaries`) and `ReportMonthlyRevenue` (financial, month × property from non-voided invoices), `RefreshWeeklyRollup`/`RefreshMonthlyRevenue` cell rebuilds (triggered by summary recompute + invoice freeze/void; nightly `reports:refresh-rollups` backstop), `ArrayReportExport` (generic Excel sheet) |
 | `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model, the polymorphic `Feedback` model + `FeedbackType`) |
-
-Added as their phases land: `Reporting`, …
 
 ## Wiring notes
 
