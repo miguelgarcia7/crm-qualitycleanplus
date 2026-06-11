@@ -228,17 +228,26 @@ class SampleDataSeeder extends Seeder
             }
         }
 
-        // Two fully billed weeks at the downtown property (entries → submit → PM
-        // approval → frozen invoice; the oldest invoice also sent) so timesheet
-        // and invoice lists have real history.
+        // Billed history (entries → submit → PM approval → frozen invoice):
+        // two weeks downtown (the oldest invoice also sent) and one in Plano,
+        // so timesheet/invoice lists and the revenue report span properties.
         $this->seedBilledHistory($property, $workOrders, $recruiter, $pm, $lastMonday);
+        $this->seedBilledHistory($plano, $planoWorkOrders, $recruiter, $pm, $lastMonday, [1], 'tablet', false);
+        $oldestInvoice = Invoice::query()->where('property_id', $property->id)->orderBy('id')->first();
+        if ($oldestInvoice !== null) {
+            app(SendInvoice::class)->handle($oldestInvoice, $recruiter, 'pat.manager@example.com');
+        }
 
-        // Hours already on the clock this week so the live grid shows activity.
+        // Hours already on the clock this week so the live grids show activity.
         $thisMonday = $lastMonday->copy()->addWeek();
         $daysSoFar = (int) min(3, $thisMonday->diffInDays(Carbon::now($property->timezone), false));
-        foreach ($workOrders as $workOrder) {
-            for ($day = 0; $day < $daysSoFar; $day++) {
-                $this->clockEvent($workOrder, $thisMonday->copy()->addDays($day)->toDateString(), '09:00', '17:00');
+        for ($day = 0; $day < $daysSoFar; $day++) {
+            $date = $thisMonday->copy()->addDays($day)->toDateString();
+            foreach ($workOrders as $workOrder) {
+                $this->clockEvent($workOrder, $date, '09:00', '17:00');
+            }
+            foreach ($planoWorkOrders as $workOrder) {
+                $this->clockEvent($workOrder, $date, '09:00', '17:00', 'tablet');
             }
         }
 
@@ -480,18 +489,27 @@ class SampleDataSeeder extends Seeder
     }
 
     /**
-     * Two past weeks at the downtown property pushed through the real billing
-     * pipeline: manual entries → recruiter submits → PM approves (which freezes
-     * an invoice) — and the oldest invoice is also marked sent.
+     * Past weeks pushed through the real billing pipeline: clock events →
+     * recruiter submits → PM approves (which freezes an invoice) — and the
+     * property's oldest invoice is also marked sent.
      *
      * @param  array<int, WorkOrder>  $workOrders
+     * @param  array<int, int>  $weeks  weeks back from week -1 (lastMonday)
      */
-    private function seedBilledHistory(Property $property, array $workOrders, Person $recruiter, Person $pm, Carbon $lastMonday): void
-    {
+    private function seedBilledHistory(
+        Property $property,
+        array $workOrders,
+        Person $recruiter,
+        Person $pm,
+        Carbon $lastMonday,
+        array $weeks = [2, 1],
+        string $method = 'qr',
+        bool $firstPullsOvertime = true,
+    ): void {
         $submit = app(SubmitTimesheetForApproval::class);
         $approve = app(ApproveTimesheet::class);
 
-        foreach ([2, 1] as $weeksBefore) { // weeks -3 and -2 (lastMonday is week -1)
+        foreach ($weeks as $weeksBefore) { // weeks back from week -1 (lastMonday)
             $weekStart = $lastMonday->copy()->subWeeks($weeksBefore);
             $period = PayrollPeriod::create([
                 'property_id' => $property->id,
@@ -511,7 +529,8 @@ class SampleDataSeeder extends Seeder
                         $workOrder,
                         $weekStart->copy()->addDays($day)->toDateString(),
                         '09:00',
-                        $i === 0 ? '18:00' : '17:00', // first contractor pulls OT
+                        $i === 0 && $firstPullsOvertime ? '18:00' : '17:00',
+                        $method,
                     );
                 }
             }
@@ -519,10 +538,6 @@ class SampleDataSeeder extends Seeder
             $approve->handle($submit->handle($timesheet, $recruiter), $pm);
         }
 
-        $oldestInvoice = Invoice::query()->where('property_id', $property->id)->orderBy('id')->first();
-        if ($oldestInvoice !== null) {
-            app(SendInvoice::class)->handle($oldestInvoice, $recruiter, 'pat.manager@example.com');
-        }
     }
 
     /**
