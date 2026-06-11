@@ -3,11 +3,7 @@ import { type MenuItemType } from '@/types'
 /*
 | Back office sidebar menu. Items with a `permission` only render for users who
 | have it (gated in Sidenav/AppMenu against the shared auth.permissions).
-| Built sections have a real `url`; not-yet-built sections are `isDisabled`
-| placeholders (url '#', "Soon" badge) and become real routes as phases land.
 */
-
-const soon = { className: 'bg-primary', text: 'Soon' }
 
 export const menuItems: MenuItemType[] = [
   {
@@ -41,7 +37,6 @@ export const menuItems: MenuItemType[] = [
       { url: '/admin/pto', slug: 'pto', label: 'Time Off', icon: 'calendar', permission: 'pto.balances.view_own' },
       { url: '/admin/staffing-requests', slug: 'staffing-requests', label: 'Staffing Requests', icon: 'user-circle', permission: 'workflows.more_staff.fulfill' },
       { url: '/admin/info-changes', slug: 'info-changes', label: 'Info Changes', icon: 'user-circle', permission: 'workflows.change_personal_info.verify' },
-      { url: '#', slug: 'workflows', label: 'Workflows', icon: 'sitemap', permission: 'workflows.pto.initiate', isDisabled: true, badge: soon },
       { url: '/admin/inventory', slug: 'inventory', label: 'Inventory', icon: 'components', permission: 'inventory.items.view' },
       { url: '/admin/requests', slug: 'requests', label: 'Requests', icon: 'package', permission: 'workflows.supply_request.initiate' },
       {
