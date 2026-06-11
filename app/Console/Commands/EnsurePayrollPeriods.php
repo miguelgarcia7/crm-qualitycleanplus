@@ -12,7 +12,8 @@ use Illuminate\Support\Carbon;
 /**
  * Materializes payroll periods ahead of time (ADR-0009) so manual entry always
  * has a period to attach to. Idempotent: one row per (property, week_start).
- * Weeks are Monday–Sunday in the property's timezone.
+ * Weeks anchor on each property's closing day in its timezone (ADR-0009
+ * amendment): ends Wednesday → Thu–Wed weeks; unset = Mon–Sun.
  */
 class EnsurePayrollPeriods extends Command
 {
