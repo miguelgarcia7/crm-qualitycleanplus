@@ -72,7 +72,7 @@ export const menuItems: MenuItemType[] = [
     label: 'Administration',
     isTitle: true,
     children: [
-      { url: '#', slug: 'audit', label: 'Audit Log', icon: 'password-user', permission: 'audit.activity_log.view', isDisabled: true, badge: soon },
+      { url: '/admin/audit', slug: 'audit', label: 'Audit Log', icon: 'password-user', permission: 'audit.activity_log.view' },
     ],
   },
   {

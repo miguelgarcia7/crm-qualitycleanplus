@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\ApplicantController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
@@ -259,6 +260,11 @@ Route::patch('/settings/profile', [ProfileController::class, 'update'])->name('p
 Route::post('/settings/avatar', [ProfileController::class, 'updateAvatar'])->name('settings.avatar.update');
 Route::delete('/settings/avatar', [ProfileController::class, 'destroyAvatar'])->name('settings.avatar.destroy');
 Route::put('/settings/password', [PasswordController::class, 'update'])->name('settings.password.update');
+
+// Audit log viewer (Phase 09c)
+Route::get('audit', [AuditLogController::class, 'index'])
+    ->middleware('can:audit.activity_log.view')
+    ->name('backoffice.audit.index');
 
 // People directory (Phase 09b) — policy-gated (contractors/staff tabs, recruiter own-scoping)
 Route::get('people', [PeopleController::class, 'index'])->name('backoffice.people.index');

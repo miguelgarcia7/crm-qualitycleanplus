@@ -24,6 +24,7 @@ Estimates are calendar-week ranges assuming one engineer working steadily. Adjus
 | 08 | KB + Applicants + Job postings + PTO | 3-4 weeks | ✅ 08a PTO (`phase-08a-pto.md`); 08b-i marketing + public job board + applications (`phase-08b-i-marketing-applications.md`); 08b-ii back-office recruiting (`phase-08b-ii-backoffice-recruiting.md`); 08c knowledge base (`phase-08c-knowledge-base.md`) |
 | 09 | Reports + materialized rollups + exports | 2-3 weeks | ✅ Done — `phase-09-reports.md` (rollup layer per ADR-0028, report catalog, Excel/PDF exports, timesheet history; subscriptions deferred) |
 | 09b | People directory + person profiles | 1 week | ✅ Done — `phase-09b-people-directory.md` (contractor/staff directory, person profile w/ work orders, hours, adjustments, PTO, history; recruiter own-scoping via PersonPolicy) |
+| 09c | Audit log viewer | days | ✅ Done — `phase-09c-audit-log.md` (server-side paginated/filtered viewer over the Spatie activity log at /admin/audit) |
 | 10 | Cutover: data migration + parallel run + retire legacy | 3-4 weeks | Not started |
 
 **Total estimate: 25-35 weeks** (~6-8 months solo, much less with team).
