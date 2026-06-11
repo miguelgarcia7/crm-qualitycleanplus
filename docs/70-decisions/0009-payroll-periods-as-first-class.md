@@ -97,3 +97,18 @@ Rejected. A view computed from dates doesn't give us a stable ID to reference fr
 - ADR-0007 — Staged timesheet approval (period status drives gates)
 - `20-domain/time-tracking.md` — periods in context
 - `30-schema/time-tables.md`
+
+## Amendment — 2026-06-10: per-property week anchors
+
+Hotels do not share a week boundary: some close their work week on Sunday,
+others mid-week (e.g. Wednesday → Thursday-to-Wednesday timesheets). The
+Property Bible's `closing_day` is therefore the **ISO day-of-week the
+property's week ends on** (1 = Mon … 7 = Sun; unset = Sunday, preserving the
+original Monday-to-Sunday default) — *not* a day of month as in the legacy
+billing-cycle sense.
+
+All week math flows through one helper, `Property::weekStartFor($date)`:
+`payroll:ensure-periods` materializes anchored periods, and clock-in, manual
+entry, the weekly grid, and import validation resolve a date to its period via
+the same anchor. Report rollup cells inherit the anchor through
+`time_summaries.week_start`, so "weekly" rollups are property-local weeks.

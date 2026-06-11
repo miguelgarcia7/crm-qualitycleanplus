@@ -69,6 +69,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -103,6 +104,7 @@ class SampleDataSeeder extends Seeder
                 'latitude' => 32.7767,   // enables the QR clock-in geofence (Phase 07a)
                 'longitude' => -96.7970,
                 'tax_rate' => 0.0875,
+                'closing_day' => 1, // week ends Monday → Tue–Mon timesheets
                 'status' => PropertyStatus::Active,
             ],
         );
@@ -204,11 +206,13 @@ class SampleDataSeeder extends Seeder
         // QR clock events downtown, tablet punches at the Plano kiosk — with ONE
         // manual entry as the missed-punch-correction example.
         Artisan::call('payroll:ensure-periods');
-        $lastMonday = Carbon::now($property->timezone)->startOfWeek(Carbon::MONDAY)->subWeek();
+
+        // Downtown's week ends Monday (closing day) → its weeks run Tue–Mon.
+        $mainLastWeekStart = $property->weekStartFor(Carbon::now($property->timezone))->subWeek();
 
         foreach ($workOrders as $i => $workOrder) {
             for ($day = 0; $day < 5; $day++) {
-                $date = $lastMonday->copy()->addDays($day)->toDateString();
+                $date = $mainLastWeekStart->addDays($day)->toDateString();
                 if ($i === 2 && $day === 4) {
                     // Sam forgot to scan on Friday — the recruiter keyed it in.
                     app(CreateManualTimeEntry::class)->handle($workOrder, [
@@ -220,34 +224,40 @@ class SampleDataSeeder extends Seeder
             }
         }
 
-        // Plano ran straight 8h days last week (no OT — rate variety on reports),
-        // punched on the front-desk tablet kiosk.
+        // Plano's week ends Wednesday (closing day) — its timesheets run
+        // Thu→Wed, so all its dates anchor on its own week start. Straight 8h
+        // days punched on the front-desk tablet kiosk (no OT — rate variety).
+        $planoLastWeekStart = $plano->weekStartFor(Carbon::now($plano->timezone))->subWeek();
         foreach ($planoWorkOrders as $workOrder) {
             for ($day = 0; $day < 5; $day++) {
-                $this->clockEvent($workOrder, $lastMonday->copy()->addDays($day)->toDateString(), '09:00', '17:00', 'tablet');
+                $this->clockEvent($workOrder, $planoLastWeekStart->addDays($day)->toDateString(), '09:00', '17:00', 'tablet');
             }
         }
 
         // Billed history (entries → submit → PM approval → frozen invoice):
         // two weeks downtown (the oldest invoice also sent) and one in Plano,
         // so timesheet/invoice lists and the revenue report span properties.
-        $this->seedBilledHistory($property, $workOrders, $recruiter, $pm, $lastMonday);
-        $this->seedBilledHistory($plano, $planoWorkOrders, $recruiter, $pm, $lastMonday, [1], 'tablet', false);
+        $this->seedBilledHistory($property, $workOrders, $recruiter, $pm, $mainLastWeekStart);
+        $this->seedBilledHistory($plano, $planoWorkOrders, $recruiter, $pm, $planoLastWeekStart, [1], 'tablet', false);
         $oldestInvoice = Invoice::query()->where('property_id', $property->id)->orderBy('id')->first();
         if ($oldestInvoice !== null) {
             app(SendInvoice::class)->handle($oldestInvoice, $recruiter, 'pat.manager@example.com');
         }
 
-        // Hours already on the clock this week so the live grids show activity.
-        $thisMonday = $lastMonday->copy()->addWeek();
-        $daysSoFar = (int) min(3, $thisMonday->diffInDays(Carbon::now($property->timezone), false));
-        for ($day = 0; $day < $daysSoFar; $day++) {
-            $date = $thisMonday->copy()->addDays($day)->toDateString();
-            foreach ($workOrders as $workOrder) {
-                $this->clockEvent($workOrder, $date, '09:00', '17:00');
+        // Hours already on the clock this week so the live grids show activity —
+        // each property against its own current week.
+        $mainThisWeekStart = $mainLastWeekStart->addWeek();
+        $daysSoFar = (int) min(3, $mainThisWeekStart->diffInDays(Carbon::now($property->timezone), false));
+        foreach ($workOrders as $workOrder) {
+            for ($day = 0; $day < $daysSoFar; $day++) {
+                $this->clockEvent($workOrder, $mainThisWeekStart->addDays($day)->toDateString(), '09:00', '17:00');
             }
-            foreach ($planoWorkOrders as $workOrder) {
-                $this->clockEvent($workOrder, $date, '09:00', '17:00', 'tablet');
+        }
+        $planoThisWeekStart = $planoLastWeekStart->addWeek();
+        $planoDaysSoFar = (int) min(3, $planoThisWeekStart->diffInDays(Carbon::now($plano->timezone), false));
+        foreach ($planoWorkOrders as $workOrder) {
+            for ($day = 0; $day < $planoDaysSoFar; $day++) {
+                $this->clockEvent($workOrder, $planoThisWeekStart->addDays($day)->toDateString(), '09:00', '17:00', 'tablet');
             }
         }
 
@@ -439,6 +449,7 @@ class SampleDataSeeder extends Seeder
             'latitude' => 33.0198,
             'longitude' => -96.6989,
             'tax_rate' => 0.081,
+            'closing_day' => 3, // week ends Wednesday → Thu–Wed timesheets
             'status' => PropertyStatus::Active,
         ]);
         $property->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
@@ -501,7 +512,7 @@ class SampleDataSeeder extends Seeder
         array $workOrders,
         Person $recruiter,
         Person $pm,
-        Carbon $lastMonday,
+        CarbonInterface $lastWeekStart,
         array $weeks = [2, 1],
         string $method = 'qr',
         bool $firstPullsOvertime = true,
@@ -509,8 +520,8 @@ class SampleDataSeeder extends Seeder
         $submit = app(SubmitTimesheetForApproval::class);
         $approve = app(ApproveTimesheet::class);
 
-        foreach ($weeks as $weeksBefore) { // weeks back from week -1 (lastMonday)
-            $weekStart = $lastMonday->copy()->subWeeks($weeksBefore);
+        foreach ($weeks as $weeksBefore) { // weeks back from week -1 ($lastWeekStart)
+            $weekStart = $lastWeekStart->copy()->subWeeks($weeksBefore);
             $period = PayrollPeriod::create([
                 'property_id' => $property->id,
                 'week_start' => $weekStart->toDateString(),
@@ -931,6 +942,7 @@ class SampleDataSeeder extends Seeder
             'state' => 'TX',
             'timezone' => 'America/Chicago',
             'tax_rate' => 0.0875,
+            'closing_day' => 5, // week ends Friday → Sat–Fri import sheets
             'status' => PropertyStatus::Active,
             'time_source' => PropertyTimeSource::Import,
         ]);
@@ -941,11 +953,11 @@ class SampleDataSeeder extends Seeder
             'is_active' => true, 'created_by' => $actor->id,
         ]);
 
-        $weekStart = Carbon::now($property->timezone)->startOfWeek(Carbon::MONDAY)->subWeeks(2);
+        $weekStart = $property->weekStartFor(Carbon::now($property->timezone))->subWeeks(2);
         $period = PayrollPeriod::create([
             'property_id' => $property->id,
             'week_start' => $weekStart->toDateString(),
-            'week_end' => $weekStart->copy()->addDays(6)->toDateString(),
+            'week_end' => $weekStart->addDays(6)->toDateString(),
             'status' => PayrollPeriodStatus::Open,
         ]);
 

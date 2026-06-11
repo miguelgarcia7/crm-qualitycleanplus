@@ -142,8 +142,20 @@ const Page = ({ property, statuses, timeSources }: Props) => {
                   onChange={(e) => setData('geofence_radius_meters', Number(e.target.value))}
                 />
               </Field>
-              <Field label="Closing Day (1–31)" error={errors.closing_day}>
-                <input type="number" min={1} max={31} className="form-input" value={data.closing_day} onChange={(e) => setData('closing_day', e.target.value)} />
+              <Field label="Week Ends On" error={errors.closing_day}>
+                <select className="form-select" value={data.closing_day} onChange={(e) => setData('closing_day', e.target.value)}>
+                  <option value="">Sunday (default — Mon–Sun week)</option>
+                  <option value="1">Monday</option>
+                  <option value="2">Tuesday</option>
+                  <option value="3">Wednesday</option>
+                  <option value="4">Thursday</option>
+                  <option value="5">Friday</option>
+                  <option value="6">Saturday</option>
+                  <option value="7">Sunday</option>
+                </select>
+                <p className="text-default-400 mt-1 text-xs">
+                  The property's closing day. Timesheet weeks start the next day — ends Wednesday → Thursday-to-Wednesday weeks.
+                </p>
               </Field>
               <Field label="Tax Rate (e.g. 0.0875)" error={errors.tax_rate}>
                 <input className="form-input" value={data.tax_rate} onChange={(e) => setData('tax_rate', e.target.value)} />

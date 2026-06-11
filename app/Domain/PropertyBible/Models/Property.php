@@ -7,6 +7,8 @@ use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -112,6 +114,32 @@ class Property extends Model
     public function payrollPeriods(): HasMany
     {
         return $this->hasMany(PayrollPeriod::class);
+    }
+
+    /**
+     * ISO day-of-week (1 = Monday … 7 = Sunday) this property's work week ends
+     * on — the Bible's "closing day". Unset = Sunday, i.e. a Monday–Sunday week.
+     */
+    public function weekEndsOnIso(): int
+    {
+        return $this->closing_day ?? 7;
+    }
+
+    /**
+     * The first day of this property's work week containing $date. A week ends
+     * on `closing_day` and starts the day after (ends Wednesday → starts
+     * Thursday). Single source of week math — payroll periods, the grid,
+     * clock-in and imports all anchor through here (ADR-0009).
+     */
+    public function weekStartFor(CarbonInterface|string $date): CarbonImmutable
+    {
+        $day = $date instanceof CarbonInterface
+            ? CarbonImmutable::instance($date)->startOfDay()
+            : CarbonImmutable::parse($date, $this->timezone)->startOfDay();
+
+        $startIso = $this->weekEndsOnIso() % 7 + 1;
+
+        return $day->subDays(($day->dayOfWeekIso - $startIso + 7) % 7);
     }
 
     /**

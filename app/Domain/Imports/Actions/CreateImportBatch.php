@@ -10,7 +10,6 @@ use App\Domain\Imports\Support\ImportRowMatcher;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -111,9 +110,7 @@ class CreateImportBatch
         $periodWeek = $period->week_start->toDateString();
 
         foreach ($rows as $row) {
-            $rowWeek = CarbonImmutable::parse((string) $row['start_date'], $timezone)
-                ->startOfWeek(CarbonImmutable::MONDAY)
-                ->toDateString();
+            $rowWeek = $period->property->weekStartFor((string) $row['start_date'])->toDateString();
 
             if ($rowWeek !== $periodWeek) {
                 throw ValidationException::withMessages([

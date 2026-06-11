@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qcp-admin",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DOMAIN_MAIN=localhost",
+        "/Users/miguelgarcia/Library/Application Support/Herd/bin/php84",
+        "artisan",
+        "serve",
+        "--port=8090"
+      ],
+      "port": 8090
+    }
+  ]
+}

@@ -28,15 +28,17 @@ class EnsurePayrollPeriods extends Command
         Property::query()
             ->where('status', PropertyStatus::Active->value)
             ->each(function (Property $property) use ($ahead, &$created): void {
-                $monday = Carbon::now($property->timezone)->startOfWeek(Carbon::MONDAY)->startOfDay();
+                // Weeks anchor on the property's closing day (ends Wednesday →
+                // Thursday-to-Wednesday weeks); unset closing day = Mon–Sun.
+                $anchor = $property->weekStartFor(Carbon::now($property->timezone));
 
                 for ($i = -1; $i <= $ahead; $i++) {
-                    $weekStart = $monday->copy()->addWeeks($i);
+                    $weekStart = $anchor->addWeeks($i);
 
                     $period = $property->payrollPeriods()->firstOrCreate(
                         ['week_start' => $weekStart->toDateString()],
                         [
-                            'week_end' => $weekStart->copy()->addDays(6)->toDateString(),
+                            'week_end' => $weekStart->addDays(6)->toDateString(),
                             'status' => PayrollPeriodStatus::Open,
                         ],
                     );

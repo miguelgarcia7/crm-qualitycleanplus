@@ -375,8 +375,9 @@ class ReportController extends Controller
             'property_id' => ['nullable', 'integer', 'exists:properties,id'],
         ]);
 
-        $from = CarbonImmutable::parse($validated['from'] ?? now()->subWeeks(12)->toDateString())
-            ->startOfWeek(CarbonImmutable::MONDAY);
+        // Rollup rows carry property-anchored week_starts (closing day, ADR-0009),
+        // so the range filters on raw dates rather than normalizing to a weekday.
+        $from = CarbonImmutable::parse($validated['from'] ?? now()->subWeeks(12)->toDateString())->startOfDay();
         $to = CarbonImmutable::parse($validated['to'] ?? now()->toDateString());
 
         return [$from, $to, isset($validated['property_id']) ? (int) $validated['property_id'] : null];

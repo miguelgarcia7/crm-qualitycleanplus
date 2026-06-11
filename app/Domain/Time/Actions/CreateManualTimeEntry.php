@@ -61,7 +61,7 @@ class CreateManualTimeEntry
 
     private function openPeriodForDate(WorkOrder $workOrder, string $date, string $tz): PayrollPeriod
     {
-        $weekStart = CarbonImmutable::parse($date, $tz)->startOfWeek(CarbonImmutable::MONDAY)->toDateString();
+        $weekStart = $workOrder->property->weekStartFor($date)->toDateString();
 
         $period = PayrollPeriod::query()
             ->where('property_id', $workOrder->property_id)

@@ -87,6 +87,17 @@ type Props = {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 
+/** closing_day is the ISO weekday (1 = Mon … 7 = Sun) the property's work week ends on. */
+const WEEKDAYS: Record<number, string> = {
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+  6: 'Saturday',
+  7: 'Sunday',
+}
+
 const confirmDelete = (url: string) => {
   if (confirm('Are you sure?')) {
     router.delete(url, { preserveScroll: true })
@@ -196,11 +207,9 @@ const IdentityCard = ({ property, can }: { property: Property; can: Can }) => {
               {taxRate}
             </FactRow>
           )}
-          {property.closing_day !== null && (
-            <FactRow icon="calendar" label="Closing day">
-              {property.closing_day}
-            </FactRow>
-          )}
+          <FactRow icon="calendar" label="Week ends">
+            {WEEKDAYS[property.closing_day ?? 7]}
+          </FactRow>
           <FactRow icon="map-pin-check" label="Geofence">
             {hasGeofence ? `Set (${property.geofence_radius_meters} m radius)` : 'Not set — QR clock-in disabled'}
           </FactRow>

@@ -78,7 +78,7 @@ class ClockInContractor
 
     private function openPeriodForDate(WorkOrder $workOrder, string $date): PayrollPeriod
     {
-        $weekStart = CarbonImmutable::parse($date)->startOfWeek(CarbonImmutable::MONDAY)->toDateString();
+        $weekStart = $workOrder->property->weekStartFor($date)->toDateString();
 
         $period = PayrollPeriod::query()
             ->where('property_id', $workOrder->property_id)

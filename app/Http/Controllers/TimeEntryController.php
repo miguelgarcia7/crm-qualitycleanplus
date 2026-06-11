@@ -30,9 +30,9 @@ class TimeEntryController extends Controller
         $this->authorizeProperty($property, 'time_entries.view');
 
         $tz = $property->timezone;
-        $weekStart = $request->filled('week')
-            ? CarbonImmutable::parse($request->string('week')->value(), $tz)->startOfWeek(CarbonImmutable::MONDAY)
-            : CarbonImmutable::now($tz)->startOfWeek(CarbonImmutable::MONDAY);
+        $weekStart = $property->weekStartFor(
+            $request->filled('week') ? $request->string('week')->value() : CarbonImmutable::now($tz),
+        );
 
         $days = collect(range(0, 6))->map(fn (int $i): string => $weekStart->addDays($i)->toDateString());
 

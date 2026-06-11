@@ -33,19 +33,17 @@ class RefreshReportRollups extends Command
             return self::FAILURE;
         }
 
-        $weeks = [];
-        for ($week = $from->startOfWeek(CarbonImmutable::MONDAY); $week->lessThanOrEqualTo($to); $week = $week->addWeek()) {
-            $weeks[] = $week->toDateString();
-        }
         $months = [];
         for ($month = $from->startOfMonth(); $month->lessThanOrEqualTo($to); $month = $month->addMonth()) {
             $months[] = $month->toDateString();
         }
 
         $cells = 0;
-        Property::query()->each(function (Property $property) use ($weekly, $monthly, $weeks, $months, &$cells): void {
-            foreach ($weeks as $weekStart) {
-                $weekly->handle($property->id, $weekStart);
+        Property::query()->each(function (Property $property) use ($weekly, $monthly, $from, $to, $months, &$cells): void {
+            // Weeks are property-anchored (closing day, ADR-0009) — walk each
+            // property's own week sequence across the window.
+            for ($week = $property->weekStartFor($from); $week->lessThanOrEqualTo($to); $week = $week->addWeek()) {
+                $weekly->handle($property->id, $week->toDateString());
                 $cells++;
             }
             foreach ($months as $monthStart) {

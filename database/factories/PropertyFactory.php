@@ -31,7 +31,7 @@ class PropertyFactory extends Factory
             'latitude' => fake()->latitude(),
             'longitude' => fake()->longitude(),
             'geofence_radius_meters' => 300,
-            'closing_day' => fake()->numberBetween(1, 28),
+            'closing_day' => null, // ISO weekday the week ends on; null = Sunday (Mon–Sun week)
             'tax_rate' => 0.0875,
             'status' => PropertyStatus::Active,
         ];
