@@ -74,6 +74,14 @@ class TimeEntryAdjustment extends Model
     }
 
     /**
+     * @return BelongsTo<AdjustmentItem, $this>
+     */
+    public function adjustmentItem(): BelongsTo
+    {
+        return $this->belongsTo(AdjustmentItem::class);
+    }
+
+    /**
      * @return BelongsTo<Person, $this>
      */
     public function person(): BelongsTo

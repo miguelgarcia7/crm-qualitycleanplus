@@ -578,7 +578,11 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
             {assignments.length ? (
               assignments.map((a) => (
                 <tr key={a.id}>
-                  <td className="font-medium">{a.person}</td>
+                  <td className="font-medium">
+                    <Link href={`/admin/people/${a.person_id}`} className="hover:text-primary">
+                      {a.person}
+                    </Link>
+                  </td>
                   <td>{a.role_label}</td>
                   {can.manageAssignments && (
                     <td className="text-end">

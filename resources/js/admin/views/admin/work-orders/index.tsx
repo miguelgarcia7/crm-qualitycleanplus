@@ -62,7 +62,11 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
     () => [
       columnHelper.accessor('contractor', {
         header: 'Contractor',
-        cell: ({ row }) => <span className="font-medium">{row.original.contractor}</span>,
+        cell: ({ row }) => (
+          <Link href={`/admin/people/${row.original.person_id}`} className="hover:text-primary font-medium">
+            {row.original.contractor}
+          </Link>
+        ),
       }),
       columnHelper.accessor('property', {
         header: 'Property',

@@ -35,6 +35,8 @@ use Spatie\Permission\Traits\HasRoles;
  * @property PersonStatus $status
  * @property CarbonImmutable|null $application_date
  * @property CarbonImmutable|null $hire_date
+ * @property CarbonImmutable|null $converted_to_contractor_at
+ * @property CarbonImmutable|null $terminated_at
  * @property CarbonImmutable|null $dob
  * @property BackgroundCheckStatus|null $background_check_status
  * @property CarbonImmutable|null $background_check_completed_at
@@ -147,7 +149,11 @@ class Person extends Authenticatable
         });
     }
 
-    /** The recruiter who "owns" this contractor (ADR-0019). */
+    /**
+     * The recruiter who "owns" this contractor (ADR-0019).
+     *
+     * @return BelongsTo<Person, $this>
+     */
     public function primaryRecruiter(): BelongsTo
     {
         return $this->belongsTo(self::class, 'primary_recruiter_id');

@@ -11,6 +11,8 @@ use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\KnowledgeBase\Policies\KbArticlePolicy;
 use App\Domain\People\Definitions\ChangePersonalInfoDefinition;
 use App\Domain\People\Definitions\TerminationDefinition;
+use App\Domain\People\Models\Person;
+use App\Domain\People\Policies\PersonPolicy;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\ContractPolicy;
@@ -80,6 +82,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(JobPosting::class, JobPostingPolicy::class);
         Gate::policy(JobApplication::class, JobApplicationPolicy::class);
         Gate::policy(KbArticle::class, KbArticlePolicy::class);
+        Gate::policy(Person::class, PersonPolicy::class);
 
         $this->registerWorkflows();
 
