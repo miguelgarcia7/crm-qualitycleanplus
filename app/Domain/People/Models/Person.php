@@ -11,6 +11,7 @@ use App\Domain\People\Enums\PersonStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
 use App\Domain\Recruiting\Models\JobApplication;
+use App\Domain\Shared\Models\File;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
@@ -33,6 +34,7 @@ use Spatie\Permission\Traits\HasRoles;
  *
  * @property PersonStatus $status
  * @property CarbonImmutable|null $application_date
+ * @property CarbonImmutable|null $hire_date
  * @property CarbonImmutable|null $dob
  * @property BackgroundCheckStatus|null $background_check_status
  * @property CarbonImmutable|null $background_check_completed_at
@@ -73,6 +75,7 @@ class Person extends Authenticatable
         'emergency_contact_phone',
         'emergency_contact_relationship',
         'emergency_contact_address',
+        'avatar_file_id',
         'id_front_file_id',
         'id_front_uploaded_at',
         'id_back_file_id',
@@ -148,6 +151,25 @@ class Person extends Authenticatable
     public function primaryRecruiter(): BelongsTo
     {
         return $this->belongsTo(self::class, 'primary_recruiter_id');
+    }
+
+    /**
+     * Profile photo, stored as a private {@see File} and streamed through
+     * an authenticated route — never a public storage URL.
+     *
+     * @return BelongsTo<File, $this>
+     */
+    public function avatarFile(): BelongsTo
+    {
+        return $this->belongsTo(File::class, 'avatar_file_id');
+    }
+
+    /** Authenticated avatar URL (versioned for cache busting), or null. */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_file_id === null
+            ? null
+            : "/admin/people/{$this->id}/avatar?v={$this->avatar_file_id}";
     }
 
     /**

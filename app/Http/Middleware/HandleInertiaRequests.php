@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $user,
+                'avatar' => $user?->avatarUrl(),
                 // Shared so the UI (e.g. sidebar) can gate by permission/role.
                 'permissions' => $user ? $user->getAllPermissions()->pluck('name')->values()->all() : [],
                 'roles' => $user ? $user->getRoleNames()->values()->all() : [],

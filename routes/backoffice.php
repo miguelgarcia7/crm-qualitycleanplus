@@ -19,6 +19,7 @@ use App\Http\Controllers\Kb\KbReaderController;
 use App\Http\Controllers\Kb\KbTagController;
 use App\Http\Controllers\MoreStaffController;
 use App\Http\Controllers\PayIncreaseController;
+use App\Http\Controllers\PersonAvatarController;
 use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\PropertyPositionRateController;
 use App\Http\Controllers\PtoController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SupplyRequestController;
@@ -253,3 +255,9 @@ Route::post('workflow-steps/{step}/reject', [WorkflowTaskController::class, 'rej
 Route::redirect('/settings', '/admin/settings/profile');
 Route::get('/settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
 Route::patch('/settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+Route::post('/settings/avatar', [ProfileController::class, 'updateAvatar'])->name('settings.avatar.update');
+Route::delete('/settings/avatar', [ProfileController::class, 'destroyAvatar'])->name('settings.avatar.destroy');
+Route::put('/settings/password', [PasswordController::class, 'update'])->name('settings.password.update');
+
+// Profile photos (any authenticated back-office user; streamed from the private disk)
+Route::get('people/{person}/avatar', PersonAvatarController::class)->name('people.avatar');

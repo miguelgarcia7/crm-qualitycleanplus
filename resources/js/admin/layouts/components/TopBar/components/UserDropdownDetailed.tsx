@@ -1,14 +1,23 @@
-import User1 from '@/images/admin/users/user-1.jpg'
 import Icon from '@/components/wrappers/Icon'
 import { Link, usePage } from '@inertiajs/react'
 
 type Auth = {
   user?: { name?: string; email?: string }
+  avatar?: string | null
   roles?: string[]
 }
 
 const prettyRole = (role?: string) =>
   role ? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Member'
+
+const initialsOf = (name: string) =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
 
 const UserDropdown = () => {
   const auth = (usePage().props as { auth?: Auth }).auth ?? {}
@@ -18,7 +27,13 @@ const UserDropdown = () => {
   return (
     <div className="topbar-item hs-dropdown before:bg-default-700/35 relative inline-flex before:h-4.5 before:w-px before:content-['']">
       <button className="hs-dropdown-toggle topbar-link ms-2.5 cursor-pointer items-center px-3! flex" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
-        <img src={User1} alt="user-image" className="size-8 rounded-full lg:me-3" />
+        {auth.avatar ? (
+          <img src={auth.avatar} alt={name} className="size-8 rounded-full object-cover lg:me-3" />
+        ) : (
+          <span className="bg-primary/15 text-primary flex size-8 items-center justify-center rounded-full text-xs font-semibold lg:me-3">
+            {initialsOf(name)}
+          </span>
+        )}
         <div className="hidden lg:flex items-center gap-1.5">
           <span className="flex flex-col items-start">
             <h5 className="pro-username">{name}</h5>

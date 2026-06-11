@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Domain\People\Actions\UpdatePersonAvatar;
+use App\Domain\People\Models\Person;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,9 +20,24 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        /** @var Person $person */
+        $person = $request->user();
+
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => $request->session()->get('status'),
+            'person' => [
+                'name' => $person->name,
+                'email' => $person->email,
+                'phone' => $person->phone,
+                'status' => Str::headline($person->status->value),
+                'is_active' => $person->status->isActive(),
+                'hire_date' => $person->hire_date?->format('M j, Y'),
+                'joined' => $person->created_at?->format('M j, Y'),
+                'avatar' => $person->avatarUrl(),
+            ],
+            'roles' => $person->getRoleNames()
+                ->map(fn (string $role): string => Str::headline($role))
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -42,19 +58,34 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's profile.
+     * Set the user's profile photo.
      */
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function updateAvatar(Request $request, UpdatePersonAvatar $action): RedirectResponse
     {
-        $user = $request->user();
+        $request->validate([
+            'avatar' => ['required', 'image', 'max:5120'],
+        ]);
 
-        Auth::logout();
+        /** @var Person $person */
+        $person = $request->user();
+        /** @var UploadedFile $photo */
+        $photo = $request->file('avatar');
 
-        $user->delete();
+        $action->handle($person, $photo);
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        return to_route('profile.edit');
+    }
 
-        return redirect('/');
+    /**
+     * Remove the user's profile photo.
+     */
+    public function destroyAvatar(Request $request, UpdatePersonAvatar $action): RedirectResponse
+    {
+        /** @var Person $person */
+        $person = $request->user();
+
+        $action->remove($person);
+
+        return to_route('profile.edit');
     }
 }

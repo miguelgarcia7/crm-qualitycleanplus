@@ -81,7 +81,7 @@ export const menuItems: MenuItemType[] = [
     label: 'Account',
     isTitle: true,
     children: [
-      { url: '/admin/settings/profile', slug: 'settings-profile', label: 'Profile', icon: 'user-circle' },
+      { url: '/admin/settings/profile', slug: 'settings-profile', label: 'My Profile', icon: 'user-circle' },
     ],
   },
 ]
