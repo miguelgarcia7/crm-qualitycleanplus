@@ -4,13 +4,12 @@ namespace App\Notifications;
 
 use App\Domain\PropertyBible\Models\Contract;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 
 /**
  * Alerts ownership + payroll that a contract is approaching expiration
  * (20-domain/property-bible.md §4). Database channel for now; email later.
  */
-class ContractExpiringNotification extends Notification
+class ContractExpiringNotification extends AppNotification
 {
     use Queueable;
 
@@ -19,12 +18,9 @@ class ContractExpiringNotification extends Notification
         public int $daysUntilExpiration,
     ) {}
 
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
+    public function category(): NotificationCategory
     {
-        return ['database'];
+        return NotificationCategory::Contracts;
     }
 
     /**
@@ -34,6 +30,7 @@ class ContractExpiringNotification extends Notification
     {
         return [
             'type' => 'contract_expiring',
+            'category' => $this->category()->value,
             'contract_id' => $this->contract->id,
             'property_id' => $this->contract->property_id,
             'contract_name' => $this->contract->name,

@@ -4,13 +4,12 @@ namespace App\Notifications;
 
 use App\Domain\Billing\Models\Timesheet;
 use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 
 /**
  * In-app notice that a timesheet moved through its approval lifecycle
  * (submitted / approved / declined). Database channel for now.
  */
-class TimesheetStatusChanged extends Notification
+class TimesheetStatusChanged extends AppNotification
 {
     use Queueable;
 
@@ -20,12 +19,9 @@ class TimesheetStatusChanged extends Notification
         public string $message,
     ) {}
 
-    /**
-     * @return list<string>
-     */
-    public function via(object $notifiable): array
+    public function category(): NotificationCategory
     {
-        return ['database'];
+        return NotificationCategory::Timesheets;
     }
 
     /**
@@ -35,6 +31,7 @@ class TimesheetStatusChanged extends Notification
     {
         return [
             'type' => 'timesheet_'.$this->event,
+            'category' => $this->category()->value,
             'timesheet_id' => $this->timesheet->id,
             'property_id' => $this->timesheet->property_id,
             'message' => $this->message,

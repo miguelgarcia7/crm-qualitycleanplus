@@ -13,6 +13,7 @@ use App\Domain\PropertyBible\Models\PropertyAssignment;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Shared\Models\File;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Notifications\NotificationCategory;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -42,6 +43,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property CarbonImmutable|null $background_check_completed_at
  * @property CarbonImmutable|null $i9_verified_at
  * @property array<int, string>|null $onboarding_waived_items
+ * @property array<int, string>|null $muted_notifications
  */
 class Person extends Authenticatable
 {
@@ -78,6 +80,7 @@ class Person extends Authenticatable
         'emergency_contact_relationship',
         'emergency_contact_address',
         'avatar_file_id',
+        'muted_notifications',
         'id_front_file_id',
         'id_front_uploaded_at',
         'id_back_file_id',
@@ -131,6 +134,7 @@ class Person extends Authenticatable
             'background_check_status' => BackgroundCheckStatus::class,
             'background_check_completed_at' => 'datetime',
             'onboarding_waived_items' => 'array',
+            'muted_notifications' => 'array',
             'legal_hold' => 'boolean',
             'legal_hold_set_at' => 'datetime',
             'is_anonymized' => 'boolean',
@@ -168,6 +172,12 @@ class Person extends Authenticatable
     public function avatarFile(): BelongsTo
     {
         return $this->belongsTo(File::class, 'avatar_file_id');
+    }
+
+    /** Whether this person opted out of a notification category (My Profile → Notifications). */
+    public function hasMutedNotifications(NotificationCategory $category): bool
+    {
+        return in_array($category->value, $this->muted_notifications ?? [], true);
     }
 
     /** Authenticated avatar URL (versioned for cache busting), or null. */

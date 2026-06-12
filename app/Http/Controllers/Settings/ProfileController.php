@@ -6,10 +6,12 @@ use App\Domain\People\Actions\UpdatePersonAvatar;
 use App\Domain\People\Models\Person;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Notifications\NotificationCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,7 +40,32 @@ class ProfileController extends Controller
                 ->map(fn (string $role): string => Str::headline($role))
                 ->values()
                 ->all(),
+            'notificationSettings' => [
+                'muted' => $person->muted_notifications ?? [],
+                'categories' => array_map(fn (NotificationCategory $category): array => [
+                    'value' => $category->value,
+                    'label' => $category->label(),
+                    'description' => $category->description(),
+                ], NotificationCategory::cases()),
+            ],
         ]);
+    }
+
+    /**
+     * Save which notification categories the user muted.
+     */
+    public function updateNotifications(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'muted' => ['present', 'array'],
+            'muted.*' => ['string', Rule::enum(NotificationCategory::class)],
+        ]);
+
+        /** @var Person $person */
+        $person = $request->user();
+        $person->update(['muted_notifications' => array_values(array_unique($validated['muted']))]);
+
+        return to_route('profile.edit');
     }
 
     /**

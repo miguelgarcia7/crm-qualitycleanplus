@@ -19,6 +19,7 @@ use App\Http\Controllers\Kb\KbFeedbackController;
 use App\Http\Controllers\Kb\KbReaderController;
 use App\Http\Controllers\Kb\KbTagController;
 use App\Http\Controllers\MoreStaffController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayIncreaseController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PersonAvatarController;
@@ -260,6 +261,13 @@ Route::patch('/settings/profile', [ProfileController::class, 'update'])->name('p
 Route::post('/settings/avatar', [ProfileController::class, 'updateAvatar'])->name('settings.avatar.update');
 Route::delete('/settings/avatar', [ProfileController::class, 'destroyAvatar'])->name('settings.avatar.destroy');
 Route::put('/settings/password', [PasswordController::class, 'update'])->name('settings.password.update');
+Route::patch('/settings/notifications', [ProfileController::class, 'updateNotifications'])->name('settings.notifications.update');
+
+// Notification center (Phase 09d) — the bell dropdown + full history
+Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+Route::get('notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
+Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
 
 // Audit log viewer (Phase 09c)
 Route::get('audit', [AuditLogController::class, 'index'])

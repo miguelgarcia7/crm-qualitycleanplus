@@ -6,6 +6,7 @@ use App\Http\Controllers\Minute\KbController;
 use App\Http\Controllers\Minute\MoreStaffController;
 use App\Http\Controllers\Minute\PayIncreaseController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -41,3 +42,10 @@ Route::get('kb', [KbController::class, 'index'])->middleware('can:kb.articles.vi
 Route::get('kb/attachments/{file}', [KbController::class, 'downloadAttachment'])->middleware('can:kb.articles.view')->name('qcminute.kb.attachments.download');
 Route::get('kb/{article}', [KbController::class, 'show'])->middleware('can:kb.articles.view')->name('qcminute.kb.show');
 Route::post('kb/{article}/feedback', [KbController::class, 'feedback'])->middleware('can:kb.articles.view')->name('qcminute.kb.feedback');
+
+// Notification center (Phase 09d) — same controller as the back office; the
+// shared TopBar bell posts to surface-relative paths.
+Route::get('notifications', [NotificationController::class, 'index'])->name('qcminute.notifications.index');
+Route::get('notifications/{id}/open', [NotificationController::class, 'open'])->name('qcminute.notifications.open');
+Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('qcminute.notifications.read');
+Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('qcminute.notifications.read-all');

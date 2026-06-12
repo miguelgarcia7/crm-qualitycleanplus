@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import FullscreenToggler from './components/FullscreenToggler'
 import MenuToggler from './components/MenuToggler'
 import MonochromeToggler from './components/MonochromeToggler'
-import NotificationDropdownPeople from './components/NotificationDropdownPeople'
+import NotificationDropdown from './components/NotificationDropdown'
 import ThemeDropdown from './components/ThemeDropdown'
 import UserDropdownDetailed from './components/UserDropdownDetailed'
 
@@ -17,7 +17,7 @@ const TopBar = () => {
           <MenuToggler />
         </div>
         <div className="flex items-center gap-3">
-          <NotificationDropdownPeople />
+          <NotificationDropdown />
 
           <ThemeDropdown />
 

@@ -17,9 +17,21 @@ type PersonInfo = {
   avatar: string | null
 }
 
+type NotificationCategory = {
+  value: string
+  label: string
+  description: string
+}
+
+type NotificationSettings = {
+  muted: string[]
+  categories: NotificationCategory[]
+}
+
 type Props = {
   person: PersonInfo
   roles: string[]
+  notificationSettings: NotificationSettings
 }
 
 // --- Shared bits (HRM identity-card pattern, as on property detail) ----------
@@ -112,7 +124,7 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
 
 // --- Identity card (left column) ----------------------------------------------
 
-const IdentityCard = ({ person, roles }: Props) => (
+const IdentityCard = ({ person, roles }: { person: PersonInfo; roles: string[] }) => (
   <div className="card">
     <div className="card-body">
       <div className="mb-7.5 flex items-center">
@@ -311,15 +323,76 @@ const SecurityTab = () => {
   )
 }
 
+// --- Notifications tab -----------------------------------------------------------
+
+const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
+  const { data, setData, patch, processing, recentlySuccessful } = useForm({
+    muted: settings.muted,
+  })
+
+  const toggle = (value: string, receive: boolean) =>
+    setData('muted', receive ? data.muted.filter((v) => v !== value) : [...data.muted, value])
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    patch('/admin/settings/notifications', { preserveScroll: true })
+  }
+
+  return (
+    <form onSubmit={submit} className="max-w-lg">
+      <p className="text-default-400 mb-5 text-sm">
+        Choose which in-app notifications you receive. Switching one off only mutes the bell — anything that
+        needs your action still shows up in My Tasks and on your dashboard.
+      </p>
+
+      <div className="space-y-5">
+        {settings.categories.map((category) => {
+          const receive = !data.muted.includes(category.value)
+          return (
+            <label key={category.value} className="flex cursor-pointer items-start justify-between gap-4">
+              <span>
+                <span className="text-dark block font-medium">{category.label}</span>
+                <span className="text-default-400 text-sm">{category.description}</span>
+              </span>
+              <input
+                type="checkbox"
+                className="form-switch mt-1 shrink-0"
+                checked={receive}
+                onChange={(e) => toggle(category.value, e.target.checked)}
+              />
+            </label>
+          )
+        })}
+      </div>
+
+      <div className="mt-6 flex items-center gap-3">
+        <button
+          type="submit"
+          className="btn bg-primary hover:bg-primary-hover px-6 py-2.5 font-semibold text-white"
+          disabled={processing}
+        >
+          Save Preferences
+        </button>
+        {recentlySuccessful && (
+          <span className="text-success flex items-center gap-1 text-sm">
+            <Icon icon="circle-check" className="size-4" /> Saved
+          </span>
+        )}
+      </div>
+    </form>
+  )
+}
+
 // --- Page ----------------------------------------------------------------------
 
 const TABS = [
   { key: 'profile', label: 'Profile' },
   { key: 'security', label: 'Security' },
+  { key: 'notifications', label: 'Notifications' },
 ]
 
 const Page = () => {
-  const { person, roles } = usePage().props as unknown as Props
+  const { person, roles, notificationSettings } = usePage().props as unknown as Props
 
   // Active tab lives in the URL hash (#profile / #security) so tabs are
   // deep-linkable and survive refresh. Invalid/missing hash → first tab.
@@ -373,6 +446,7 @@ const Page = () => {
             <div className="card-body p-6">
               {active === 'profile' && <ProfileTab person={person} />}
               {active === 'security' && <SecurityTab />}
+              {active === 'notifications' && <NotificationsTab settings={notificationSettings} />}
             </div>
           </div>
         </div>

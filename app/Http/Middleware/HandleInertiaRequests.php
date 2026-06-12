@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Domain\People\Models\Person;
+use App\Notifications\NotificationLink;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -50,7 +51,40 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user ? $user->getAllPermissions()->pluck('name')->values()->all() : [],
                 'roles' => $user ? $user->getRoleNames()->values()->all() : [],
             ],
+            'notifications' => fn () => $this->notifications($request, $user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+        ];
+    }
+
+    /**
+     * The notification-bell payload: unread count + the most recent items for
+     * the dropdown, plus the URL base for this surface (`/admin/notifications`
+     * on the back office, `/notifications` on QC Minute) so the bell can post
+     * mark-read actions to the right domain.
+     *
+     * @return array{unread: int, items: array<int, array<string, mixed>>, base: string}|null
+     */
+    protected function notifications(Request $request, ?Person $user): ?array
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        $onMinute = $request->getHost() === config('domains.qcminute');
+
+        $items = $user->notifications()->latest()->limit(8)->get()->map(fn ($n) => [
+            'id' => $n->id,
+            'category' => $n->data['category'] ?? null,
+            'message' => $n->data['message'] ?? null,
+            'url' => NotificationLink::resolve($n->data, $onMinute),
+            'read' => $n->read_at !== null,
+            'ago' => $n->created_at?->diffForHumans(short: true),
+        ])->all();
+
+        return [
+            'unread' => $user->unreadNotifications()->count(),
+            'items' => $items,
+            'base' => $onMinute ? '/notifications' : '/admin/notifications',
         ];
     }
 }
