@@ -78,6 +78,27 @@ Contractor dashboard (Phase 08); materialized rollups + report catalog (Phase 09
 "currently clocked in" live widget (Phase 07); dashboard-initiated mutations; per-widget
 filtering/customization.
 
+## Second pass — 2026-06-11 (after Phase 09)
+
+The back-office dashboard grew into a role-aware command center, modeled on the
+Coderthemes dashboard variants (CRM/projects/analytics) and now powered by data from
+later phases:
+
+- **Quick actions** — permission-gated shortcut buttons under the greeting (max 6, priority
+  order: new work order, upload hours, timesheets, invoices, people, reports…).
+- **Hours this week** stat with %-change vs all of last week — per-property anchored
+  weeks (ADR-0009): "this week" = each property's summary week containing today.
+- **On the clock now** — live open clock entries (the Phase 07 deferral, finally),
+  avatars + elapsed time, deep-linking to People profiles; `timesheets.view_live` gated.
+- **This week by property** donut (top 5 + Other) beside the hero chart.
+- **Revenue vs payouts (6 months)** — margin chart straight from the Phase 09
+  `report_monthly_revenue` rollup (admin/payroll/super_admin).
+- **Recent activity** — audit-log timeline for `audit.activity_log.view` holders.
+- New widget primitives: `DonutCard`, `ClockedInCard`, `ActivityCard`, `QuickActions`;
+  `StatCard` gained change/changeLabel. Payload keys are additive
+  (`actions`/`clockedIn`/`donut`/`activity`), so Phase 06 widget contracts are unchanged.
+- Seed: two open clock entries so the live widget demos populated.
+
 ## Related
 
 `80-plan/roadmap.md`; ADR-0025 (domain contexts); `phase-05-import.md`.

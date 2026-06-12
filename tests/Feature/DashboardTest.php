@@ -95,6 +95,53 @@ it('gives super admin cross-cutting widgets', function () {
         );
 });
 
+it('includes the live ops widgets for timesheet-live viewers', function () {
+    $this->actingAs(person('office_manager'))->get(main('/admin/dashboard'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('widgets', function ($widgets) {
+                $titles = widgetTitles($widgets);
+
+                return is_array($widgets['clockedIn'])              // live clock-ins (empty array is fine)
+                    && is_array($widgets['actions'])
+                    && count($widgets['actions']) > 0
+                    && $titles->contains('Hours this week');
+            }),
+        );
+});
+
+it('withholds live ops + activity widgets from roles without those permissions', function () {
+    // HR has neither timesheets.view_live nor audit.activity_log.view.
+    $this->actingAs(person('hr'))->get(main('/admin/dashboard'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('widgets.clockedIn', null)
+            ->where('widgets.activity', null),
+        );
+});
+
+it('only sends recent activity to audit viewers', function () {
+    activity('testing')->log('Dashboard activity entry');
+
+    $this->actingAs(person('admin'))->get(main('/admin/dashboard'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('widgets', fn ($widgets) => is_array($widgets['activity'])
+                && collect($widgets['activity'])->pluck('description')->contains('Dashboard activity entry')),
+        );
+});
+
+it('scopes quick actions to the role permissions', function () {
+    $this->actingAs(person('front_desk'))->get(main('/admin/dashboard'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('widgets', function ($widgets) {
+                $labels = collect($widgets['actions'])->pluck('label');
+
+                // Front desk can browse people but cannot create work orders or upload hours.
+                return $labels->contains('People')
+                    && ! $labels->contains('New Work Order')
+                    && ! $labels->contains('Upload Hours');
+            }),
+        );
+});
+
 it('gives a property manager the QC Minute PM dashboard', function () {
     $this->actingAs(person('property_manager'))->get(qcminute('/'))
         ->assertInertia(fn (AssertableInertia $page) => $page

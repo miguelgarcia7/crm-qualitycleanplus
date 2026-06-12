@@ -21,8 +21,10 @@ use App\Domain\Pto\Models\PtoRequest;
 use App\Domain\Pto\Models\PtoYearAllotment;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Models\JobApplication;
+use App\Domain\Reports\Models\ReportMonthlyRevenue;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
+use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Workflows\Enums\WorkflowStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
@@ -33,6 +35,8 @@ use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Spatie\Activitylog\Models\Activity;
 
 /**
  * Cross-context read service that assembles role-aware dashboard widgets (Phase 06).
@@ -59,6 +63,19 @@ class DashboardMetrics
             'icon' => 'checklist',
             'href' => '/admin/tasks',
         ];
+
+        if ($user->can('timesheets.view_live')) {
+            [$current, $previous] = $this->hoursThisWeek($propertyIds);
+            $stats[] = [
+                'title' => 'Hours this week',
+                'value' => $current,
+                'suffix' => 'h',
+                'icon' => 'clock',
+                'href' => '/admin/timesheets',
+                'change' => $previous > 0 ? (int) round((($current - $previous) / $previous) * 100) : null,
+                'changeLabel' => 'vs all of last week',
+            ];
+        }
 
         if ($user->status->isStaff() && $user->can('pto.balances.view_own')) {
             $allotment = PtoYearAllotment::query()->where('person_id', $user->id)
@@ -141,7 +158,15 @@ class DashboardMetrics
             ];
         }
 
-        return ['stats' => $stats, 'lists' => $lists, 'charts' => $charts];
+        return [
+            'stats' => $stats,
+            'lists' => $lists,
+            'charts' => $charts,
+            'actions' => $this->quickActions($user),
+            'clockedIn' => $user->can('timesheets.view_live') ? $this->clockedInNow($propertyIds) : null,
+            'donut' => $user->can('timesheets.view_live') ? $this->hoursByPropertyDonut($propertyIds) : null,
+            'activity' => $user->can('audit.activity_log.view') ? $this->recentActivity() : null,
+        ];
     }
 
     /**
@@ -311,6 +336,7 @@ class DashboardMetrics
 
         $lists[] = $this->expiringContractsList(null);
         $charts[] = $this->weeklyRevenueChart();
+        $charts[] = $this->revenueVsPayoutsChart();
     }
 
     /**
@@ -356,21 +382,30 @@ class DashboardMetrics
      */
     private function superAdminWidgets(array &$stats, array &$charts): void
     {
-        $monthStart = CarbonImmutable::now()->startOfMonth()->toDateString();
+        $monthStart = CarbonImmutable::now()->startOfMonth();
+        $invoicedSince = fn (CarbonImmutable $from, CarbonImmutable $until): int => (int) Invoice::query()
+            ->where('status', '!=', InvoiceStatus::Voided->value)
+            ->whereDate('issue_date', '>=', $from->toDateString())
+            ->whereDate('issue_date', '<', $until->toDateString())
+            ->sum('total');
+
+        $thisMonth = $invoicedSince($monthStart, $monthStart->addMonth());
+        $lastMonth = $invoicedSince($monthStart->subMonth(), $monthStart);
 
         $stats[] = ['title' => 'Active work orders', 'value' => WorkOrder::query()->active()->count(), 'icon' => 'files'];
-        $stats[] = ['title' => 'People', 'value' => Person::query()->count(), 'icon' => 'user-circle'];
+        $stats[] = ['title' => 'People', 'value' => Person::query()->count(), 'icon' => 'user-circle', 'href' => '/admin/people'];
         $stats[] = ['title' => 'Open workflows', 'value' => Workflow::query()->where('status', WorkflowStatus::InProgress->value)->count(), 'icon' => 'sitemap'];
         $stats[] = [
             'title' => 'Invoiced this month',
-            'value' => $this->dollars((int) Invoice::query()
-                ->where('status', '!=', InvoiceStatus::Voided->value)
-                ->whereDate('issue_date', '>=', $monthStart)->sum('total')),
+            'value' => $this->dollars($thisMonth),
             'prefix' => '$',
             'icon' => 'files',
+            'change' => $lastMonth > 0 ? (int) round((($thisMonth - $lastMonth) / $lastMonth) * 100) : null,
+            'changeLabel' => 'vs last month',
         ];
 
         $charts[] = $this->weeklyRevenueChart();
+        $charts[] = $this->revenueVsPayoutsChart();
     }
 
     /**
@@ -477,6 +512,192 @@ class DashboardMetrics
         }
 
         return [$weeks, $labels];
+    }
+
+    /**
+     * Total worked hours in each property's CURRENT week vs the week before
+     * (weeks are per-property anchored, ADR-0009 — "this week" = the summary
+     * week containing today, "last week" = the one containing today − 7d).
+     *
+     * @param  list<int>|null  $propertyIds
+     * @return array{0: int, 1: int}
+     */
+    private function hoursThisWeek(?array $propertyIds): array
+    {
+        $sumFor = function (CarbonImmutable $day) use ($propertyIds): int {
+            $minutes = TimeSummary::query()
+                ->whereDate('week_start', '<=', $day->toDateString())
+                ->whereDate('week_end', '>=', $day->toDateString())
+                ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
+                ->sum(DB::raw('regular_minutes + overtime_minutes + holiday_minutes + training_minutes'));
+
+            return (int) round(((int) $minutes) / 60);
+        };
+
+        $today = CarbonImmutable::now();
+
+        return [$sumFor($today), $sumFor($today->subWeek())];
+    }
+
+    /**
+     * Live ops pulse: contractors with an open clock entry right now.
+     *
+     * @param  list<int>|null  $propertyIds
+     * @return list<array<string, mixed>>
+     */
+    private function clockedInNow(?array $propertyIds): array
+    {
+        $now = CarbonImmutable::now();
+
+        return TimeEntry::query()
+            ->whereNotNull('start_at_utc')
+            ->whereNull('end_at_utc')
+            ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
+            ->with(['person:id,name,avatar_file_id', 'property:id,name'])
+            ->orderBy('start_at_utc')
+            ->limit(12)
+            ->get()
+            ->map(fn (TimeEntry $e): array => [
+                'person' => $e->person?->name,
+                'person_id' => $e->person_id,
+                'avatar' => $e->person?->avatarUrl(),
+                'property' => $e->property?->name,
+                'property_id' => $e->property_id,
+                'minutes' => $e->start_at_utc !== null ? (int) $e->start_at_utc->diffInMinutes($now) : 0,
+            ])
+            ->all();
+    }
+
+    /**
+     * Current-week hours split by property (top 5 + Other) for the donut.
+     *
+     * @param  list<int>|null  $propertyIds
+     * @return array<string, mixed>|null
+     */
+    private function hoursByPropertyDonut(?array $propertyIds): ?array
+    {
+        $today = CarbonImmutable::now()->toDateString();
+
+        $rows = TimeSummary::query()
+            ->whereDate('week_start', '<=', $today)
+            ->whereDate('week_end', '>=', $today)
+            ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
+            ->with('property:id,name')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        $byProperty = $rows
+            ->groupBy(fn (TimeSummary $s): string => $s->property->name)
+            ->map(fn ($group): float => round($group->sum(fn (TimeSummary $s): int => $s->regular_minutes + $s->overtime_minutes + $s->holiday_minutes + $s->training_minutes) / 60, 1))
+            ->sortDesc();
+
+        $top = $byProperty->take(5);
+        $other = $byProperty->skip(5)->sum();
+        if ($other > 0) {
+            $top->put('Other', round($other, 1));
+        }
+
+        return [
+            'title' => 'This week by property',
+            'labels' => $top->keys()->values()->all(),
+            'series' => $top->values()->all(),
+            'suffix' => 'h',
+        ];
+    }
+
+    /**
+     * Latest audit-log entries (only sent to audit.activity_log.view holders).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function recentActivity(): array
+    {
+        return Activity::query()
+            ->with('causer')
+            ->latest()
+            ->latest('id')
+            ->limit(8)
+            ->get()
+            ->map(fn (Activity $a): array => [
+                'description' => $a->description,
+                'event' => $a->event,
+                'causer' => $a->causer instanceof Person ? $a->causer->name : null,
+                'when' => $a->created_at?->diffForHumans(),
+            ])
+            ->all();
+    }
+
+    /**
+     * Permission-gated shortcut buttons, in priority order (max 6).
+     *
+     * @return list<array<string, string>>
+     */
+    private function quickActions(Person $user): array
+    {
+        $candidates = [
+            ['label' => 'New Work Order', 'href' => '/admin/work-orders/create', 'icon' => 'plus', 'permission' => 'work_orders.create'],
+            ['label' => 'Upload Hours', 'href' => '/admin/imports/create', 'icon' => 'cloud-upload', 'permission' => 'imports.upload'],
+            ['label' => 'Timesheets', 'href' => '/admin/timesheets', 'icon' => 'layout', 'permission' => 'timesheets.view_history'],
+            ['label' => 'Invoices', 'href' => '/admin/invoices', 'icon' => 'files', 'permission' => 'invoices.view'],
+            ['label' => 'People', 'href' => '/admin/people', 'icon' => 'user-circle', 'permission' => 'people.contractors.view'],
+            ['label' => 'Reports', 'href' => '/admin/reports', 'icon' => 'chart-bar', 'permission' => 'reports.operational.view'],
+            ['label' => 'Applicants', 'href' => '/admin/applicants', 'icon' => 'user-plus', 'permission' => 'people.applicants.view'],
+            ['label' => 'Inventory', 'href' => '/admin/inventory', 'icon' => 'components', 'permission' => 'inventory.items.view'],
+            ['label' => 'Request Time Off', 'href' => '/admin/pto', 'icon' => 'calendar', 'permission' => 'pto.balances.view_own'],
+        ];
+
+        return collect($candidates)
+            ->filter(fn (array $action): bool => $user->can($action['permission']))
+            ->map(fn (array $action): array => collect($action)->except('permission')->all())
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Monthly revenue vs contractor payouts (last 6 months) from the Phase 09
+     * financial rollup — the margin picture at a glance.
+     *
+     * @return array<string, mixed>
+     */
+    private function revenueVsPayoutsChart(): array
+    {
+        $start = CarbonImmutable::now()->startOfMonth()->subMonths(5);
+        $months = [];
+        $labels = [];
+        for ($i = 0; $i < 6; $i++) {
+            $month = $start->addMonths($i);
+            $months[] = $month->toDateString();
+            $labels[] = $month->format('M');
+        }
+
+        $rows = ReportMonthlyRevenue::query()
+            ->whereDate('month_start', '>=', $months[0])
+            ->get(['month_start', 'invoiced_total', 'payout_total']);
+
+        $revenue = array_fill_keys($months, 0);
+        $payouts = array_fill_keys($months, 0);
+        foreach ($rows as $row) {
+            $key = CarbonImmutable::parse($row->month_start)->startOfMonth()->toDateString();
+            if (isset($revenue[$key])) {
+                $revenue[$key] += (int) $row->invoiced_total;
+                $payouts[$key] += (int) $row->payout_total;
+            }
+        }
+
+        return [
+            'title' => 'Revenue vs payouts (6 months)',
+            'categories' => $labels,
+            'series' => [
+                ['name' => 'Revenue', 'data' => array_map($this->dollars(...), array_values($revenue))],
+                ['name' => 'Payouts', 'data' => array_map($this->dollars(...), array_values($payouts))],
+            ],
+            'type' => 'bar',
+            'valuePrefix' => '$',
+        ];
     }
 
     private function openWorkflowCount(WorkflowType $type): int

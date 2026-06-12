@@ -261,6 +261,11 @@ class SampleDataSeeder extends Seeder
             }
         }
 
+        // Two contractors are on the clock RIGHT NOW (open entries — no end yet)
+        // so the dashboard's live "On the clock" widget has something to show.
+        $this->openClockEntry($workOrders[0], 130);
+        $this->openClockEntry($planoWorkOrders[0], 45, 'tablet');
+
         $this->seedInventory($recruiter);
         $this->seedRequestsAndCharges($property, $recruiter, $frontDesk, $contractors, $workOrders);
 
@@ -1189,6 +1194,44 @@ class SampleDataSeeder extends Seeder
         ]);
 
         RecomputeTimeSummary::dispatchSync($workOrder->id, $period->id);
+    }
+
+    /**
+     * An in-progress clock entry (started, not ended) — feeds the live
+     * "On the clock now" dashboard widget. No summary recompute: summaries
+     * only materialize completed entries (clock-out does that in real life).
+     */
+    private function openClockEntry(WorkOrder $workOrder, int $minutesAgo, string $method = 'qr'): void
+    {
+        $property = $workOrder->property;
+        $startAt = Carbon::now()->subMinutes($minutesAgo);
+
+        $period = PayrollPeriod::query()
+            ->where('property_id', $property->id)
+            ->whereDate('week_start', '<=', $startAt->copy()->setTimezone($property->timezone)->toDateString())
+            ->whereDate('week_end', '>=', $startAt->copy()->setTimezone($property->timezone)->toDateString())
+            ->firstOrFail();
+
+        TimeEntry::create([
+            'person_id' => $workOrder->person_id,
+            'work_order_id' => $workOrder->id,
+            'property_id' => $property->id,
+            'payroll_period_id' => $period->id,
+            'source' => TimeEntrySource::ClockEvent,
+            'clock_method' => $method,
+            'entry_type' => TimeEntryType::Work,
+            'start_at_utc' => $startAt,
+            'end_at_utc' => null,
+            'duration_minutes' => null,
+            'timezone' => $property->timezone,
+            'pay_rate_snapshot' => $workOrder->pay_rate,
+            'bill_rate_snapshot' => $workOrder->bill_rate,
+            'ot_pay_rate_snapshot' => $workOrder->ot_pay_rate,
+            'ot_bill_rate_snapshot' => $workOrder->ot_bill_rate,
+            'clock_in_gps_lat' => $method === 'qr' && $property->latitude !== null ? (float) $property->latitude + random_int(-15, 15) / 100000 : null,
+            'clock_in_gps_lng' => $method === 'qr' && $property->longitude !== null ? (float) $property->longitude + random_int(-15, 15) / 100000 : null,
+            'clock_in_gps_accuracy_meters' => $method === 'qr' ? random_int(5, 20) : null,
+        ]);
     }
 
     /** Create a supply request and start its workflow (leaves it pending). */

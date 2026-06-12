@@ -11,6 +11,8 @@ export type Stat = {
   sublabel?: string
   href?: string
   tone?: 'default' | 'warning' | 'danger' | 'success'
+  change?: number | null
+  changeLabel?: string
 }
 
 const toneClasses: Record<NonNullable<Stat['tone']>, string> = {
@@ -38,7 +40,16 @@ const StatCard = ({ stat }: { stat: Stat }) => {
             )}
           </h3>
           {stat.sublabel && <p className="text-default-400 mt-2 text-sm">{stat.sublabel}</p>}
-          {stat.href && <p className="text-primary mt-2 text-sm">View →</p>}
+          {typeof stat.change === 'number' && (
+            <p className="text-default-400 mt-2 flex items-center gap-1.5 text-sm">
+              <span className={`flex items-center gap-0.5 font-medium ${stat.change >= 0 ? 'text-success' : 'text-danger'}`}>
+                <Icon icon={stat.change >= 0 ? 'arrow-up' : 'arrow-down'} className="size-3.5" />
+                {Math.abs(stat.change)}%
+              </span>
+              {stat.changeLabel}
+            </p>
+          )}
+          {stat.href && stat.change == null && <p className="text-primary mt-2 text-sm">View →</p>}
         </div>
         {stat.icon && (
           <div className={`flex size-9 items-center justify-center rounded-full ${toneClasses[stat.tone ?? 'default']}`}>
