@@ -138,6 +138,23 @@ Why this matters:
 - Audit trails stay clean (you can see "recruiter Jane did X" without it confusing the "contractor Jane did Y" trail)
 - If the contractor work ends, only that record's status changes, not the recruiter identity
 
+## Email & soft deletes
+
+`people.email` is **unique across soft-deleted rows too** — a deliberate decision, not an
+accident. One identity per human: a rehire or re-application must reuse the original row
+(preserving `application_date` and history), never create a second row with the same email.
+Consequences:
+
+- Validation (`Rule::unique(Person::class)`) checks the whole table, matching the DB
+  constraint — a live user can't claim a soft-deleted person's email; they get a clean
+  validation error.
+- Public application intake (`SubmitApplication::resolvePerson`) looks up email
+  `withTrashed()` and **restores** a soft-deleted match, so a returning person resurfaces
+  their original record instead of hitting the unique constraint.
+- Anonymized rows clear the email entirely (audit-and-pii.md), freeing it for reuse.
+  NB: when the anonymization flow is built, `people.email` must become nullable —
+  it is currently `NOT NULL`.
+
 ## Profile editing
 
 Most fields on a person record are editable by:

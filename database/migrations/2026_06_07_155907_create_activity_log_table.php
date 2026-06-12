@@ -18,6 +18,9 @@ return new class extends Migration
             $table->json('attribute_changes')->nullable();
             $table->json('properties')->nullable();
             $table->timestamps();
+
+            // Hot path: the audit viewer pages newest-first over an ever-growing log.
+            $table->index('created_at');
         });
     }
 };

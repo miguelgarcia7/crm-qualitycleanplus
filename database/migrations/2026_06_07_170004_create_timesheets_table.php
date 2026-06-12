@@ -9,7 +9,8 @@ return new class extends Migration
     /**
      * Weekly per-(property, period) aggregation with an approval lifecycle that
      * gates invoice generation (ADR-0007). One timesheet per payroll period.
-     * `invoice_id` becomes a real FK in the invoicing increment.
+     * `invoice_id` is unconstrained here — timesheets ↔ invoices is circular;
+     * the FK is promoted in create_invoices.
      */
     public function up(): void
     {
@@ -31,7 +32,7 @@ return new class extends Migration
             $table->timestamp('approved_at')->nullable();
             $table->foreignId('approved_by')->nullable()->constrained('people')->nullOnDelete();
 
-            $table->unsignedBigInteger('invoice_id')->nullable(); // FK added with invoices table
+            $table->unsignedBigInteger('invoice_id')->nullable(); // FK promoted in create_invoices
             $table->timestamps();
         });
     }

@@ -51,6 +51,9 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user ? $user->getAllPermissions()->pluck('name')->values()->all() : [],
                 'roles' => $user ? $user->getRoleNames()->values()->all() : [],
             ],
+            // Which surface this request is on — shared components (TopBar) use it
+            // to render surface-appropriate links instead of hardcoded /admin paths.
+            'surface' => $request->getHost() === config('domains.qcminute') ? 'qcminute' : 'backoffice',
             'notifications' => fn () => $this->notifications($request, $user),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

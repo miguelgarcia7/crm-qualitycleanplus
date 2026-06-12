@@ -25,10 +25,34 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
         });
+
+        // people ↔ files is circular (files.uploaded_by → people). The file-pointer
+        // columns on people are declared unconstrained in create_people; promote
+        // them to real FKs now that files exists.
+        Schema::table('people', function (Blueprint $table) {
+            foreach (self::PEOPLE_FILE_POINTERS as $column) {
+                $table->foreign($column)->references('id')->on('files')->nullOnDelete();
+            }
+        });
     }
 
     public function down(): void
     {
+        Schema::table('people', function (Blueprint $table) {
+            foreach (self::PEOPLE_FILE_POINTERS as $column) {
+                $table->dropForeign([$column]);
+            }
+        });
+
         Schema::dropIfExists('files');
     }
+
+    private const PEOPLE_FILE_POINTERS = [
+        'avatar_file_id',
+        'id_front_file_id',
+        'id_back_file_id',
+        'i9_file_id',
+        'w9_file_id',
+        'contractor_agreement_file_id',
+    ];
 };

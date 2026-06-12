@@ -17,7 +17,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('property_id')->constrained('properties')->restrictOnDelete();
             $table->foreignId('payroll_period_id')->constrained('payroll_periods')->restrictOnDelete();
-            $table->foreignId('timesheet_id')->unique()->constrained('timesheets')->cascadeOnDelete();
+            // restrict: an invoice is an immutable financial record — voiding is the
+            // flow (ADR-0006); a timesheet hard-delete must never silently take an
+            // invoice with it.
+            $table->foreignId('timesheet_id')->unique()->constrained('timesheets')->restrictOnDelete();
             $table->string('invoice_number')->unique();
             $table->date('issue_date');
             $table->date('due_date');
@@ -54,11 +57,24 @@ return new class extends Migration
 
             $table->softDeletes();
             $table->timestamps();
+
+            // Hot path: property invoice lists filtered by status.
+            $table->index(['property_id', 'status']);
+        });
+
+        // timesheets ↔ invoices is circular; timesheets.invoice_id was declared
+        // unconstrained in create_timesheets — promote it now that invoices exists.
+        Schema::table('timesheets', function (Blueprint $table) {
+            $table->foreign('invoice_id')->references('id')->on('invoices')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
+        Schema::table('timesheets', function (Blueprint $table) {
+            $table->dropForeign(['invoice_id']);
+        });
+
         Schema::dropIfExists('invoices');
     }
 };

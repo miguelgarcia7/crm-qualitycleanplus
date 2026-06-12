@@ -32,6 +32,17 @@ return new class extends Migration
             $table->integer('duration_minutes')->nullable();
             $table->string('timezone')->nullable();
 
+            // GPS + selfies captured on QR clock in/out (Phase 07a, ADR-0017).
+            // Only the `clock_method = qr` path populates these.
+            $table->decimal('clock_in_gps_lat', 10, 7)->nullable();
+            $table->decimal('clock_in_gps_lng', 10, 7)->nullable();
+            $table->unsignedInteger('clock_in_gps_accuracy_meters')->nullable();
+            $table->foreignId('clock_in_selfie_file_id')->nullable()->constrained('files')->nullOnDelete();
+            $table->decimal('clock_out_gps_lat', 10, 7)->nullable();
+            $table->decimal('clock_out_gps_lng', 10, 7)->nullable();
+            $table->unsignedInteger('clock_out_gps_accuracy_meters')->nullable();
+            $table->foreignId('clock_out_selfie_file_id')->nullable()->constrained('files')->nullOnDelete();
+
             // Rate snapshots from the work order (cents).
             $table->bigInteger('pay_rate_snapshot');
             $table->bigInteger('bill_rate_snapshot');
@@ -47,6 +58,9 @@ return new class extends Migration
 
             $table->index(['work_order_id', 'start_at_utc']);
             $table->index(['payroll_period_id']);
+            // Hot paths: per-person and per-property period rollups (timesheets, payroll).
+            $table->index(['person_id', 'payroll_period_id']);
+            $table->index(['property_id', 'payroll_period_id']);
         });
     }
 

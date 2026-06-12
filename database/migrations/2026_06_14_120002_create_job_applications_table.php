@@ -43,6 +43,15 @@ return new class extends Migration
 
             $table->string('status')->default('submitted')->index();
             $table->timestamp('submitted_at');
+
+            // Review + promotion trail (Phase 08b-ii): who moved it out of
+            // `submitted` and when, the reason when rejected, and who promoted it.
+            $table->foreignId('reviewed_by')->nullable()->constrained('people')->nullOnDelete();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->string('rejected_reason')->nullable();
+            $table->foreignId('promoted_by')->nullable()->constrained('people')->nullOnDelete();
+            $table->timestamp('promoted_at')->nullable();
+
             $table->timestamps();
 
             $table->index(['person_id', 'status']);

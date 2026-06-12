@@ -10,9 +10,11 @@ return new class extends Migration
      * One `people` table holds every human in the system, with a `status`
      * enum tracking lifecycle position (ADR-0004). Roles (Spatie) are separate.
      *
-     * Phase 01 creates the SPINE only — identity, auth, status, lifecycle
-     * dates, PII/legal-hold, primary recruiter. The bulk application-data and
-     * onboarding-checklist columns arrive with their phases (02/08).
+     * Identity, auth, lifecycle, applicant intake facts, the onboarding
+     * checklist, and PII/legal-hold all live here. The file-pointer columns
+     * (avatar, IDs, I-9, W-9, agreement) are declared UNCONSTRAINED because
+     * `files` is created later and itself references people (circular); the
+     * real FKs are promoted in the create_files migration.
      */
     public function up(): void
     {
@@ -21,14 +23,42 @@ return new class extends Migration
 
             // Identity
             $table->string('name');
+            // Unique across soft-deleted rows too — deliberate: one identity per human
+            // (rehire reuses the row; see people-lifecycle.md "Email & soft deletes").
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('phone', 32)->nullable();
             $table->string('normalized_phone', 15)->nullable()->index();
 
+            // Durable applicant intake facts (Phase 08b-i) — stay true once the
+            // applicant becomes a contractor, so they live on the identity spine.
+            $table->date('dob')->nullable();
+            $table->string('address')->nullable();
+            $table->string('apartment_number')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('zip', 10)->nullable();
+
+            // Work-eligibility declarations (feed I-9 onboarding).
+            $table->boolean('usa_citizen')->nullable();
+            $table->boolean('eligible_to_work')->nullable();
+
+            // Emergency contact — durable, useful throughout the contractor lifecycle.
+            $table->string('emergency_contact_name')->nullable();
+            $table->string('emergency_contact_phone', 32)->nullable();
+            $table->string('emergency_contact_relationship')->nullable();
+            $table->string('emergency_contact_address')->nullable();
+
             // Authentication (nullable — applicants/contractors may never log in)
             $table->string('password')->nullable();
+            $table->text('two_factor_secret')->nullable();
+            $table->text('two_factor_recovery_codes')->nullable();
+            $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->rememberToken();
+
+            // Profile photo + notification mutes (Phase 09b/09d).
+            $table->foreignId('avatar_file_id')->nullable(); // FK in create_files
+            $table->json('muted_notifications')->nullable();
 
             // Lifecycle (see 20-domain/people-lifecycle.md)
             $table->enum('status', [
@@ -50,6 +80,26 @@ return new class extends Migration
             // Ownership — the recruiter who "owns" this contractor (ADR-0019)
             $table->foreignId('primary_recruiter_id')->nullable()
                 ->constrained('people')->nullOnDelete();
+
+            // Onboarding checklist (Phase 08b-ii, people-lifecycle.md): per-item
+            // document file + timestamp, HR verification for the I-9, a background
+            // check status, and HR-waived item keys. Promotion to contractor is
+            // gated on completion. File FKs promoted in create_files.
+            $table->foreignId('id_front_file_id')->nullable();
+            $table->timestamp('id_front_uploaded_at')->nullable();
+            $table->foreignId('id_back_file_id')->nullable();
+            $table->timestamp('id_back_uploaded_at')->nullable();
+            $table->foreignId('i9_file_id')->nullable();
+            $table->timestamp('i9_uploaded_at')->nullable();
+            $table->foreignId('i9_verified_by')->nullable()->constrained('people')->nullOnDelete();
+            $table->timestamp('i9_verified_at')->nullable();
+            $table->foreignId('w9_file_id')->nullable();
+            $table->timestamp('w9_uploaded_at')->nullable();
+            $table->foreignId('contractor_agreement_file_id')->nullable();
+            $table->timestamp('contractor_agreement_signed_at')->nullable();
+            $table->string('background_check_status')->nullable(); // not_required|pending|passed|failed
+            $table->timestamp('background_check_completed_at')->nullable();
+            $table->json('onboarding_waived_items')->nullable(); // item keys waived by HR
 
             // PII / legal hold (ADR-0010, 30-schema/conventions.md)
             $table->boolean('legal_hold')->default(false);

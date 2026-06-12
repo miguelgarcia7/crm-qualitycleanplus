@@ -20,9 +20,10 @@ const initialsOf = (name: string) =>
     .toUpperCase()
 
 const UserDropdown = () => {
-  const auth = (usePage().props as { auth?: Auth }).auth ?? {}
+  const { auth = {}, surface } = usePage().props as { auth?: Auth; surface?: string }
   const name = auth.user?.name ?? 'Account'
   const role = prettyRole(auth.roles?.[0])
+  const onMinute = surface === 'qcminute'
 
   return (
     <div className="topbar-item hs-dropdown before:bg-default-700/35 relative inline-flex before:h-4.5 before:w-px before:content-['']">
@@ -48,9 +49,10 @@ const UserDropdown = () => {
           {auth.user?.email && <p className="text-default-400 truncate text-xs">{auth.user.email}</p>}
         </div>
 
-        <Link href="/admin/settings/profile" className="dropdown-item">
+        {/* QC Minute has no settings area — its self-service page is My Info. */}
+        <Link href={onMinute ? '/my-info' : '/admin/settings/profile'} className="dropdown-item">
           <Icon icon="user-circle" className="me-1 fs-lg align-middle" />
-          <span className="align-middle">Profile</span>
+          <span className="align-middle">{onMinute ? 'My Info' : 'Profile'}</span>
         </Link>
 
         <div className="dropdown-divider"></div>

@@ -16,7 +16,9 @@ return new class extends Migration
     {
         Schema::create('termination_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('workflow_id')->constrained('workflows')->cascadeOnDelete();
+            // restrict: the termination record is the durable audit trail — deleting
+            // the workflow must never take the record (and its reason/notes) with it.
+            $table->foreignId('workflow_id')->constrained('workflows')->restrictOnDelete();
             $table->foreignId('person_id')->constrained('people')->restrictOnDelete();
             $table->foreignId('initiated_by')->nullable()->constrained('people')->nullOnDelete();
 

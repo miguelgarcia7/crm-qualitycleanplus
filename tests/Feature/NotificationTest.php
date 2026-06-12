@@ -39,6 +39,7 @@ it('shares the bell payload with unread count and recent items', function () {
 
     $this->actingAs($admin)->get(main('/admin/dashboard'))
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('surface', 'backoffice')
             ->where('notifications.unread', 1)
             ->where('notifications.base', '/admin/notifications')
             ->has('notifications.items', 2),
@@ -173,6 +174,7 @@ it('serves the bell and history on QC Minute with surface-relative links', funct
 
     $this->actingAs($pm)->get(qcminute('/'))
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('surface', 'qcminute')
             ->where('notifications.unread', 1)
             ->where('notifications.base', '/notifications'),
         );

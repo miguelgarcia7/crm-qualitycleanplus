@@ -60,9 +60,17 @@ class SubmitApplication
         $email = isset($data['email']) && $data['email'] !== '' ? (string) $data['email'] : null;
 
         if ($email !== null) {
-            $existing = Person::query()->where('email', $email)->first();
+            // Include soft-deleted rows: email is unique across them by design (one
+            // identity per human — rehire reuses the row, people-lifecycle.md), so a
+            // returning person resurfaces their original record instead of colliding
+            // with it at the database constraint.
+            $existing = Person::withTrashed()->where('email', $email)->first();
 
             if ($existing !== null) {
+                if ($existing->trashed()) {
+                    $existing->restore();
+                }
+
                 return $existing;
             }
         }

@@ -37,7 +37,12 @@ return new class extends Migration
                 'transfer',
                 'temporary_assignment',
             ])->default('recruiter_created');
+            // Fixed-window child WO at another property while the home WO stays open
+            // (ADR-0019) — excluded from roster counts, auto-closed by the daily job.
+            $table->boolean('is_temporary_assignment')->default(false)->index();
             $table->foreignId('parent_wo_id')->nullable()->constrained('work_orders')->nullOnDelete();
+            // more_staff_request_id (ADR-0021) is added in create_more_staff_requests —
+            // that table is created later.
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('people')->nullOnDelete();
 

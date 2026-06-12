@@ -19,6 +19,9 @@ return new class extends Migration
             $table->text('data');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
+
+            // Hot path: the topbar bell's per-user unread count.
+            $table->index(['notifiable_type', 'notifiable_id', 'read_at']);
         });
     }
 

@@ -90,6 +90,20 @@ it('links a repeat applicant to the existing person', function () {
         ->and(JobApplication::query()->count())->toBe(2);
 });
 
+it('restores a soft-deleted person who re-applies with the same email', function () {
+    $person = Person::factory()->create(['email' => 'maria@example.com', 'status' => PersonStatus::Applicant]);
+    $person->delete();
+
+    // Email stays unique across soft-deleted rows (one identity per human), so the
+    // intake must resurface the original row, not collide with it.
+    $this->post(main('/application'), applicationPayload())->assertRedirect();
+
+    $person->refresh();
+    expect($person->deleted_at)->toBeNull()
+        ->and(Person::withTrashed()->where('email', 'maria@example.com')->count())->toBe(1)
+        ->and(JobApplication::query()->firstOrFail()->person_id)->toBe($person->id);
+});
+
 it('rejects an application missing required fields', function () {
     $this->post(main('/application'), ['first_name' => 'X'])
         ->assertSessionHasErrors(['last_name', 'phone', 'address', 'dob', 'transportation', 'acknowledgement']);

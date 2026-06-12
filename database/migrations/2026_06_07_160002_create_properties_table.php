@@ -42,6 +42,10 @@ return new class extends Migration
             // Status
             $table->enum('status', ['active', 'inactive'])->default('active')->index();
 
+            // How billable hours arrive (ADR-0007): clock_in (device/QR events) or
+            // import (weekly Excel through the import wizard, no clock-in).
+            $table->enum('time_source', ['clock_in', 'import'])->default('clock_in')->index();
+
             $table->foreignId('created_by')->nullable()
                 ->constrained('people')->nullOnDelete();
 
