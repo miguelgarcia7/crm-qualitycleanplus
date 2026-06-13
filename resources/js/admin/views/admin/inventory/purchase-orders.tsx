@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
@@ -19,11 +20,17 @@ const Page = ({ orders, variants, can }: Props) => {
 
       <div className="card">
         <div className="card-header">
-          <div className="flex items-center gap-4">
-            <h4 className="card-title">Purchase Orders</h4>
-            <Link href="/admin/inventory" className="text-default-500 text-sm hover:underline">← Inventory</Link>
+          <h4 className="card-title">Purchase Orders</h4>
+          <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+            <Link href="/admin/inventory" className="btn btn-light text-nowrap">
+              <Icon icon="arrow-left" className="me-1 size-4" /> Inventory
+            </Link>
+            {can.create && variants.length > 0 && (
+              <button className="btn bg-primary hover:bg-primary-hover text-nowrap font-semibold text-white" onClick={() => setCreate(true)}>
+                <Icon icon="plus" className="me-1 size-4" /> New PO
+              </button>
+            )}
           </div>
-          {can.create && variants.length > 0 && <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setCreate(true)}>+ New PO</button>}
         </div>
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
@@ -38,7 +45,7 @@ const Page = ({ orders, variants, can }: Props) => {
                   <td><span className={`badge badge-label ${statusBadge(o.status)}`}>{o.status_label}</span></td>
                   <td className="text-end">
                     {can.receive && o.can_receive && (
-                      <button className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => router.post(`/admin/inventory/purchase-orders/${o.id}/receive`, {}, { preserveScroll: true })}>Receive</button>
+                      <button className="btn bg-success/15 text-success hover:bg-success hover:text-white" onClick={() => router.post(`/admin/inventory/purchase-orders/${o.id}/receive`, {}, { preserveScroll: true })}>Receive</button>
                     )}
                   </td>
                 </tr>

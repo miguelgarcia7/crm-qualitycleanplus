@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
@@ -23,6 +24,9 @@ type MoveMode = { variant: Variant; mode: 'receive' | 'manual-out' | 'return' } 
 const Page = ({ categories, items, stats, can }: Props) => {
   const [newItem, setNewItem] = useState(false)
   const [move, setMove] = useState<MoveMode>(null)
+  const [category, setCategory] = useState('all')
+
+  const visibleItems = category === 'all' ? items : items.filter((i) => i.category === category)
 
   return (
     <>
@@ -30,18 +34,57 @@ const Page = ({ categories, items, stats, can }: Props) => {
       <PageBreadcrumb title="Inventory" subtitle="Browse Items" />
 
       <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card"><div className="card-body p-5"><p className="text-default-400 text-sm">Low stock</p><h3 className="text-warning text-2xl font-bold">{stats.low_stock}</h3></div></div>
-        <div className="card"><div className="card-body p-5"><p className="text-default-400 text-sm">Out of stock</p><h3 className="text-danger text-2xl font-bold">{stats.out_of_stock}</h3></div></div>
+        <div className="card">
+          <div className="card-body p-5">
+            <h5 className="card-title text-sm">Low stock</h5>
+            <div className="mt-5 flex items-center gap-2.5">
+              <div className="bg-warning flex size-9 items-center justify-center rounded-full">
+                <Icon icon="alert-triangle" className="size-5.5 text-white" />
+              </div>
+              <h3 className="text-xl">{stats.low_stock}</h3>
+            </div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-body p-5">
+            <h5 className="card-title text-sm">Out of stock</h5>
+            <div className="mt-5 flex items-center gap-2.5">
+              <div className="bg-danger flex size-9 items-center justify-center rounded-full">
+                <Icon icon="alert-octagon" className="size-5.5 text-white" />
+              </div>
+              <h3 className="text-xl">{stats.out_of_stock}</h3>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <h4 className="card-title">Items</h4>
-            <Link href="/admin/inventory/purchase-orders" className="text-default-500 text-sm hover:underline">Purchase Orders</Link>
-            <Link href="/admin/inventory/equipment" className="text-default-500 text-sm hover:underline">Equipment</Link>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-nowrap">Filter By:</span>
+              <select className="form-select w-auto min-w-44" value={category} onChange={(e) => setCategory(e.target.value)}>
+                <option value="all">All categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          {can.create && <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setNewItem(true)}>+ New Item</button>}
+          <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
+            <Link href="/admin/inventory/purchase-orders" className="btn btn-light text-nowrap">
+              <Icon icon="file-invoice" className="me-1 size-4" /> Purchase Orders
+            </Link>
+            <Link href="/admin/inventory/equipment" className="btn btn-light text-nowrap">
+              <Icon icon="tool" className="me-1 size-4" /> Equipment
+            </Link>
+            {can.create && (
+              <button className="btn bg-primary hover:bg-primary-hover text-nowrap font-semibold text-white" onClick={() => setNewItem(true)}>
+                <Icon icon="plus" className="me-1 size-4" /> New Item
+              </button>
+            )}
+          </div>
         </div>
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
@@ -55,8 +98,8 @@ const Page = ({ categories, items, stats, can }: Props) => {
               </tr>
             </thead>
             <tbody>
-              {items.length ? (
-                items.flatMap((item) =>
+              {visibleItems.length ? (
+                visibleItems.flatMap((item) =>
                   item.variants.map((v, idx) => (
                     <tr key={v.id}>
                       <td>{idx === 0 ? <div><div className="font-medium">{item.name}</div><div className="text-default-400 text-xs">{item.category}</div></div> : ''}</td>
@@ -64,15 +107,17 @@ const Page = ({ categories, items, stats, can }: Props) => {
                       <td className="text-end">{v.current_stock}</td>
                       <td><span className={`badge badge-label ${statusBadge(v.status)}`}>{statusLabel(v.status)}</span></td>
                       <td className="text-end whitespace-nowrap">
-                        {can.receive && <button className="text-primary hover:underline" onClick={() => setMove({ variant: v, mode: 'receive' })}>receive</button>}
-                        {can.manual_out && <button className="text-default-500 ms-3 hover:underline" onClick={() => setMove({ variant: v, mode: 'manual-out' })}>take out</button>}
-                        {can.return && <button className="text-default-500 ms-3 hover:underline" onClick={() => setMove({ variant: v, mode: 'return' })}>return</button>}
+                        <div className="flex justify-end gap-1.5">
+                          {can.receive && <button className="btn bg-success/15 text-success hover:bg-success hover:text-white" onClick={() => setMove({ variant: v, mode: 'receive' })}>Receive</button>}
+                          {can.manual_out && <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => setMove({ variant: v, mode: 'manual-out' })}>Take out</button>}
+                          {can.return && <button className="btn bg-info/15 text-info hover:bg-info hover:text-white" onClick={() => setMove({ variant: v, mode: 'return' })}>Return</button>}
+                        </div>
                       </td>
                     </tr>
                   )),
                 )
               ) : (
-                <tr><td colSpan={5} className="text-default-400 py-4 text-center">No items yet.</td></tr>
+                <tr><td colSpan={5} className="text-default-400 py-4 text-center">{category === 'all' ? 'No items yet.' : 'No items in this category.'}</td></tr>
               )}
             </tbody>
           </table>

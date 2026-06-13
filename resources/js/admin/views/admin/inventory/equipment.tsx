@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router } from '@inertiajs/react'
 
 type Assignment = { id: number; person: string; item: string; quantity: number; assigned_at: string | null }
@@ -17,10 +18,10 @@ const Page = ({ assignments, can }: Props) => {
 
       <div className="card">
         <div className="card-header">
-          <div className="flex items-center gap-4">
-            <h4 className="card-title">Assigned Equipment</h4>
-            <Link href="/admin/inventory" className="text-default-500 text-sm hover:underline">← Inventory</Link>
-          </div>
+          <h4 className="card-title">Assigned Equipment</h4>
+          <Link href="/admin/inventory" className="btn btn-light text-nowrap">
+            <Icon icon="arrow-left" className="me-1 size-4" /> Inventory
+          </Link>
         </div>
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
@@ -37,7 +38,7 @@ const Page = ({ assignments, can }: Props) => {
                   <td className="text-end whitespace-nowrap">
                     {can.return && (
                       <div className="inline-flex gap-2">
-                        <button className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => resolve(a, true)}>Returned</button>
+                        <button className="btn bg-info/15 text-info hover:bg-info hover:text-white" onClick={() => resolve(a, true)}>Returned</button>
                         <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => resolve(a, false)}>Lost</button>
                       </div>
                     )}
