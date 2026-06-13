@@ -28,7 +28,7 @@ const Page = ({ orders, variants, can }: Props) => {
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
             <thead className="thead-sm">
-              <tr className="bg-light/25 text-2xs uppercase"><th>#</th><th>Items</th><th>Status</th><th className="text-end">Action</th></tr>
+              <tr className="bg-light/25 text-xs uppercase"><th>#</th><th>Items</th><th>Status</th><th className="text-end">Action</th></tr>
             </thead>
             <tbody>
               {orders.length ? orders.map((o) => (
@@ -38,7 +38,7 @@ const Page = ({ orders, variants, can }: Props) => {
                   <td><span className={`badge badge-label ${statusBadge(o.status)}`}>{o.status_label}</span></td>
                   <td className="text-end">
                     {can.receive && o.can_receive && (
-                      <button className="btn btn-sm bg-primary hover:bg-primary-hover text-white" onClick={() => router.post(`/admin/inventory/purchase-orders/${o.id}/receive`, {}, { preserveScroll: true })}>Receive</button>
+                      <button className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => router.post(`/admin/inventory/purchase-orders/${o.id}/receive`, {}, { preserveScroll: true })}>Receive</button>
                     )}
                   </td>
                 </tr>

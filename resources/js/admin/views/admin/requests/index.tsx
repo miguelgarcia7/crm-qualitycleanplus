@@ -191,7 +191,7 @@ const Page = ({ categories, variants, contractors, mine, queue, can }: Props) =>
             <div className="table-wrapper">
               <table className="table table-hover">
                 <thead className="thead-sm">
-                  <tr className="bg-light/25 text-2xs uppercase">
+                  <tr className="bg-light/25 text-xs uppercase">
                     <th>Item</th>
                     <th>Beneficiary</th>
                     <th>Requested by</th>
@@ -220,14 +220,14 @@ const Page = ({ categories, variants, contractors, mine, queue, can }: Props) =>
                           {r.step_key === 'approve_new_item' && can.approve && (
                             <>
                               <button
-                                className="btn btn-icon btn-sm bg-success hover:bg-success-hover size-8 rounded-full text-white"
+                                className="btn btn-icon bg-success hover:bg-success-hover size-8 rounded-full text-white"
                                 onClick={() => approve(r)}
                                 title="Approve"
                               >
                                 <Icon icon="check" className="text-base" />
                               </button>
                               <button
-                                className="btn btn-icon btn-sm bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
+                                className="btn btn-icon bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
                                 onClick={() => deny(r)}
                                 title="Deny"
                               >
@@ -237,7 +237,7 @@ const Page = ({ categories, variants, contractors, mine, queue, can }: Props) =>
                           )}
                           {r.step_key === 'fulfill' && can.fulfill && (
                             <button
-                              className="btn btn-sm bg-success/15 text-success hover:bg-success hover:text-white"
+                              className="btn bg-success/15 text-success hover:bg-success hover:text-white"
                               onClick={() => setFulfilling(r)}
                             >
                               Fulfill

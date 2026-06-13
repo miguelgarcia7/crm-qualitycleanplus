@@ -139,18 +139,18 @@ const Page = ({ postings, properties }: Props) => {
         cell: ({ row }: { row: TableRow<Posting> }) => {
           const p = row.original
           return (
-            <div className="flex justify-center gap-1.5">
+            <div className="flex justify-end gap-1.5">
               {p.status !== 'published' ? (
-                <button className="btn btn-sm bg-success/15 text-success hover:bg-success hover:text-white" onClick={() => publish(p)}>
+                <button className="btn bg-success/15 text-success hover:bg-success hover:text-white" onClick={() => publish(p)}>
                   Publish
                 </button>
               ) : (
-                <button className="btn btn-sm bg-secondary/15 text-secondary hover:bg-secondary hover:text-white" onClick={() => close(p)}>
+                <button className="btn bg-secondary/15 text-secondary hover:bg-secondary hover:text-white" onClick={() => close(p)}>
                   Close
                 </button>
               )}
               <button
-                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                className="btn btn-icon border-default-300 hover:border-default-400 border"
                 onClick={() => startEdit(p)}
                 title="Edit posting"
               >
@@ -158,7 +158,7 @@ const Page = ({ postings, properties }: Props) => {
               </button>
               {p.applications_count === 0 && (
                 <button
-                  className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                  className="btn btn-icon border-default-300 hover:border-default-400 border"
                   onClick={() => destroy(p)}
                   title="Delete posting"
                 >
@@ -325,7 +325,7 @@ const Page = ({ postings, properties }: Props) => {
                 </div>
                 <div>
                   <label className="form-label">Description</label>
-                  <textarea className="form-input w-full" rows={4} value={data.content} onChange={(e) => setData('content', e.target.value)} />
+                  <textarea className="form-textarea" rows={4} value={data.content} onChange={(e) => setData('content', e.target.value)} />
                 </div>
                 <div className="flex gap-2">
                   <button className="btn bg-primary hover:bg-primary-hover flex-1 py-2 font-semibold text-white" disabled={processing}>

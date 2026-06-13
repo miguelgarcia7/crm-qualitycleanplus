@@ -28,7 +28,7 @@ const Page = ({ requests, workOrders, can }: Props) => {
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
             <thead className="thead-sm">
-              <tr className="bg-light/25 text-2xs uppercase"><th>Requested</th><th className="text-end">Increase</th><th>Reason</th><th>Status</th></tr>
+              <tr className="bg-light/25 text-xs uppercase"><th>Requested</th><th className="text-end">Increase</th><th>Reason</th><th>Status</th></tr>
             </thead>
             <tbody>
               {requests.length ? requests.map((r) => (

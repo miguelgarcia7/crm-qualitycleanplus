@@ -17,7 +17,7 @@ const ReportTable = ({ columns, rows, totals, emptyMessage }: Props) => (
   <div className="table-wrapper">
     <table className="table">
       <thead className="thead-sm">
-        <tr className="bg-light/25 text-2xs uppercase">
+        <tr className="bg-light/25 text-xs uppercase">
           {columns.map((column) => (
             <th key={column.label} className={column.numeric ? 'text-end' : ''}>
               {column.label}

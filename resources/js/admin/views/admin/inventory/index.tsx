@@ -46,7 +46,7 @@ const Page = ({ categories, items, stats, can }: Props) => {
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
             <thead className="thead-sm">
-              <tr className="bg-light/25 text-2xs uppercase">
+              <tr className="bg-light/25 text-xs uppercase">
                 <th>Item</th>
                 <th>Variant</th>
                 <th className="text-end">On hand</th>
@@ -64,9 +64,9 @@ const Page = ({ categories, items, stats, can }: Props) => {
                       <td className="text-end">{v.current_stock}</td>
                       <td><span className={`badge badge-label ${statusBadge(v.status)}`}>{statusLabel(v.status)}</span></td>
                       <td className="text-end whitespace-nowrap">
-                        {can.receive && <button className="text-primary text-xs hover:underline" onClick={() => setMove({ variant: v, mode: 'receive' })}>receive</button>}
-                        {can.manual_out && <button className="text-default-500 ms-3 text-xs hover:underline" onClick={() => setMove({ variant: v, mode: 'manual-out' })}>take out</button>}
-                        {can.return && <button className="text-default-500 ms-3 text-xs hover:underline" onClick={() => setMove({ variant: v, mode: 'return' })}>return</button>}
+                        {can.receive && <button className="text-primary hover:underline" onClick={() => setMove({ variant: v, mode: 'receive' })}>receive</button>}
+                        {can.manual_out && <button className="text-default-500 ms-3 hover:underline" onClick={() => setMove({ variant: v, mode: 'manual-out' })}>take out</button>}
+                        {can.return && <button className="text-default-500 ms-3 hover:underline" onClick={() => setMove({ variant: v, mode: 'return' })}>return</button>}
                       </td>
                     </tr>
                   )),

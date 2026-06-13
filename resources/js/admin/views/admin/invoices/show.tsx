@@ -68,7 +68,7 @@ const Page = ({ invoice, can }: Props) => {
           <div className="table-wrapper">
             <table className="table table-hover">
               <thead className="thead-sm">
-                <tr className="bg-light/25 text-2xs uppercase">
+                <tr className="bg-light/25 text-xs uppercase">
                   <th>Contractor</th>
                   <th>Position</th>
                   <th className="text-end">Reg Hrs</th>

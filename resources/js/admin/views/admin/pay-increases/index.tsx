@@ -80,14 +80,14 @@ const Page = ({ pending, workOrders, can }: Props) => {
             {can.approve && (
               <>
                 <button
-                  className="btn btn-icon btn-sm bg-success hover:bg-success-hover size-8 rounded-full text-white"
+                  className="btn btn-icon bg-success hover:bg-success-hover size-8 rounded-full text-white"
                   onClick={() => setApproving(row.original)}
                   title="Review & approve"
                 >
                   <Icon icon="check" className="text-base" />
                 </button>
                 <button
-                  className="btn btn-icon btn-sm bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
+                  className="btn btn-icon bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
                   onClick={() => decline(row.original.workflow_id)}
                   title="Decline"
                 >

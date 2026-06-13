@@ -88,7 +88,7 @@ const ViewButton = ({ id }: { id: number }) => (
   <div className="flex justify-center">
     <Link
       href={`/admin/people/${id}`}
-      className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+      className="btn btn-icon border-default-300 hover:border-default-400 border"
       title="View profile"
     >
       <Icon icon="eye" className="text-base" />

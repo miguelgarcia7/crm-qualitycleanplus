@@ -25,7 +25,7 @@ const Page = ({ assignments, can }: Props) => {
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
             <thead className="thead-sm">
-              <tr className="bg-light/25 text-2xs uppercase"><th>Person</th><th>Item</th><th className="text-end">Qty</th><th>Assigned</th><th className="text-end">Action</th></tr>
+              <tr className="bg-light/25 text-xs uppercase"><th>Person</th><th>Item</th><th className="text-end">Qty</th><th>Assigned</th><th className="text-end">Action</th></tr>
             </thead>
             <tbody>
               {assignments.length ? assignments.map((a) => (
@@ -37,8 +37,8 @@ const Page = ({ assignments, can }: Props) => {
                   <td className="text-end whitespace-nowrap">
                     {can.return && (
                       <div className="inline-flex gap-2">
-                        <button className="btn btn-sm bg-primary hover:bg-primary-hover text-white" onClick={() => resolve(a, true)}>Returned</button>
-                        <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => resolve(a, false)}>Lost</button>
+                        <button className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => resolve(a, true)}>Returned</button>
+                        <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => resolve(a, false)}>Lost</button>
                       </div>
                     )}
                   </td>

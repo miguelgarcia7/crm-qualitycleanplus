@@ -143,7 +143,7 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
         <div className="flex justify-end gap-1.5">
           {isDocument && item.file_id !== null && (
             <a
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               href={`/admin/applicants/${appId}/onboarding/${item.key}/download`}
               title="View document"
             >
@@ -161,7 +161,7 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
               />
               {item.file_id === null ? (
                 <button
-                  className="btn btn-icon btn-sm bg-primary hover:bg-primary-hover size-8 rounded-full text-white"
+                  className="btn btn-icon bg-primary hover:bg-primary-hover size-8 rounded-full text-white"
                   onClick={() => fileInput.current?.click()}
                   title="Upload document"
                 >
@@ -169,7 +169,7 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
                 </button>
               ) : (
                 <button
-                  className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                  className="btn btn-icon border-default-300 hover:border-default-400 border"
                   onClick={() => fileInput.current?.click()}
                   title="Replace document"
                 >
@@ -180,7 +180,7 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
           )}
           {item.key === 'i9' && can.edit_checklist && item.file_id !== null && !item.verified && (
             <button
-              className="btn btn-icon btn-sm bg-success hover:bg-success-hover size-8 rounded-full text-white"
+              className="btn btn-icon bg-success hover:bg-success-hover size-8 rounded-full text-white"
               onClick={verify}
               title="Verify I-9"
             >
@@ -204,7 +204,7 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
           )}
           {can.waive && !item.complete && (
             <button
-              className="btn btn-sm bg-warning/15 text-warning hover:bg-warning hover:text-white"
+              className="btn bg-warning/15 text-warning hover:bg-warning hover:text-white"
               onClick={toggleWaive}
               title={item.waived ? 'Remove the waiver' : 'Waive this requirement (HR)'}
             >
@@ -400,7 +400,7 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
             <div className="table-wrapper">
               <table className="table">
                 <thead className="thead-sm">
-                  <tr className="bg-light/25 text-2xs uppercase">
+                  <tr className=" uppercase">
                     <th>Item</th>
                     <th>Status</th>
                     <th className="text-end">Actions</th>

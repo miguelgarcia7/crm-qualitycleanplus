@@ -35,7 +35,7 @@ const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing foun
         {showHeaders && (
           <thead className="thead-sm">
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="bg-light/25 text-2xs uppercase">
+              <tr key={headerGroup.id} className="bg-light/25 text-xs uppercase">
                 {headerGroup.headers.map((header) => (
                   <th key={header.id} onClick={header.column.getToggleSortingHandler()} className={cn('select-none', header.column.getCanSort() ? 'cursor-pointer' : 'cursor-default')}>
                     <div className={cn('flex items-center', { 'justify-center': header.column.columnDef.header === 'Actions' })}>

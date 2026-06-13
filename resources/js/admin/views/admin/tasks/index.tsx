@@ -39,7 +39,7 @@ const Page = ({ tasks }: Props) => {
         <div className="table-wrapper">
           <table className="table table-hover">
             <thead className="thead-sm">
-              <tr className="bg-light/25 text-2xs uppercase">
+              <tr className="bg-light/25 text-xs uppercase">
                 <th>Workflow</th>
                 <th>Task</th>
                 <th>Type</th>
@@ -60,10 +60,10 @@ const Page = ({ tasks }: Props) => {
                     <td className="text-end">
                       {t.can_act ? (
                         <div className="inline-flex gap-2">
-                          <button className="btn btn-sm bg-primary hover:bg-primary-hover text-white" disabled={busy === t.id} onClick={() => complete(t)}>
+                          <button className="btn bg-primary hover:bg-primary-hover text-white" disabled={busy === t.id} onClick={() => complete(t)}>
                             Complete
                           </button>
-                          <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white" disabled={busy === t.id} onClick={() => reject(t)}>
+                          <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" disabled={busy === t.id} onClick={() => reject(t)}>
                             Reject
                           </button>
                         </div>

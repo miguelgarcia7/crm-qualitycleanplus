@@ -72,14 +72,14 @@ const Page = ({ properties, can }: Props) => {
           <div className="flex justify-center gap-1.5">
             <Link
               href={`/admin/properties/${row.original.id}`}
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               title="View property"
             >
               <Icon icon="eye" className="text-base" />
             </Link>
             <Link
               href={`/admin/properties/${row.original.id}/grid`}
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               title="Weekly timesheet grid"
             >
               <Icon icon="calendar" className="text-base" />

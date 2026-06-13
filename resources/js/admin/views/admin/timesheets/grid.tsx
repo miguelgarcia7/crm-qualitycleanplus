@@ -113,7 +113,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
           <div className="table-wrapper">
             <table className="table table-hover text-sm">
               <thead className="thead-sm">
-                <tr className="bg-light/25 text-2xs uppercase">
+                <tr className="bg-light/25 text-xs uppercase">
                   <th>Contractor</th>
                   {week.days.map((d) => (
                     <th key={d} className="text-center">{dayLabel(d)}</th>
@@ -177,7 +177,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
           <div className="table-wrapper">
             <table className="table table-hover text-sm">
               <thead className="thead-sm">
-                <tr className="bg-light/25 text-2xs uppercase">
+                <tr className="bg-light/25 text-xs uppercase">
                   <th>Contractor</th>
                   <th>Type</th>
                   <th className="text-end">Amount</th>

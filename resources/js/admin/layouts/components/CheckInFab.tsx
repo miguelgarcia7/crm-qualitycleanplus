@@ -1,3 +1,4 @@
+import Icon from '@/components/wrappers/Icon'
 import { router, usePage } from '@inertiajs/react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -166,11 +167,11 @@ const CheckInFab = () => {
     <>
       <button
         onClick={openModal}
-        className="bg-primary hover:bg-primary-hover fixed bottom-6 right-6 z-40 flex size-14 items-center justify-center rounded-full text-2xl text-white shadow-lg"
+        className="bg-primary hover:bg-primary-hover fixed bottom-16 right-8 z-40 flex size-14 items-center justify-center rounded-full text-2xl text-white shadow-lg"
         title="Check in / out"
         aria-label="Check in or out"
       >
-        📍
+        <Icon icon="map-pin" />
       </button>
 
       {open && (

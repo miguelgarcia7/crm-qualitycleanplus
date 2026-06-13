@@ -96,7 +96,7 @@ const Page = ({ requests, can }: Props) => {
           <div className="flex justify-center gap-1.5">
             {can.decline && (
               <button
-                className="btn btn-icon btn-sm bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
+                className="btn btn-icon bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
                 onClick={() => decline(row.original.id)}
                 title="Decline"
               >
@@ -105,7 +105,7 @@ const Page = ({ requests, can }: Props) => {
             )}
             {can.cancel && (
               <button
-                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                className="btn btn-icon border-default-300 hover:border-default-400 border"
                 onClick={() => cancel(row.original.id)}
                 title="Cancel request"
               >

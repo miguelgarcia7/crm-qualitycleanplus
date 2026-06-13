@@ -41,7 +41,7 @@ const Page = ({ queue, mine, people, can }: Props) => {
           <div className="table-wrapper">
             <table className="table table-hover text-sm">
               <thead className="thead-sm">
-                <tr className="bg-light/25 text-2xs uppercase"><th>Person</th><th>Proposed change</th><th>Requested by</th><th className="text-end">Action</th></tr>
+                <tr className="bg-light/25 text-xs uppercase"><th>Person</th><th>Proposed change</th><th>Requested by</th><th className="text-end">Action</th></tr>
               </thead>
               <tbody>
                 {queue.length ? queue.map((q) => (
@@ -50,8 +50,8 @@ const Page = ({ queue, mine, people, can }: Props) => {
                     <td>{changeList(q.current, q.changes)}{q.reason && <div className="text-default-400 mt-1 text-xs italic">{q.reason}</div>}</td>
                     <td>{q.requested_by ?? '—'}</td>
                     <td className="text-end whitespace-nowrap">
-                      <button className="btn btn-sm bg-primary hover:bg-primary-hover text-white" onClick={() => router.post(`/admin/info-changes/${q.id}/approve`, {}, { preserveScroll: true })}>Approve</button>
-                      <button className="btn btn-sm bg-danger/15 text-danger hover:bg-danger hover:text-white ms-2" onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }) }}>Decline</button>
+                      <button className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => router.post(`/admin/info-changes/${q.id}/approve`, {}, { preserveScroll: true })}>Approve</button>
+                      <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white ms-2" onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }) }}>Decline</button>
                     </td>
                   </tr>
                 )) : <tr><td colSpan={4} className="text-default-400 py-4 text-center">Nothing awaiting verification.</td></tr>}
@@ -68,7 +68,7 @@ const Page = ({ queue, mine, people, can }: Props) => {
         </div>
         <div className="table-wrapper">
           <table className="table table-hover text-sm">
-            <thead className="thead-sm"><tr className="bg-light/25 text-2xs uppercase"><th>Change</th><th>Submitted</th><th>Status</th></tr></thead>
+            <thead className="thead-sm"><tr className="bg-light/25 text-xs uppercase"><th>Change</th><th>Submitted</th><th>Status</th></tr></thead>
             <tbody>
               {mine.length ? mine.map((m) => (
                 <tr key={m.id}>

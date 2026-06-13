@@ -157,7 +157,7 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
                       </div>
                       <a
                         href={`/admin/kb/attachments/${a.id}`}
-                        className="btn btn-icon btn-sm border-default-300 hover:border-default-400 shrink-0 border"
+                        className="btn btn-icon border-default-300 hover:border-default-400 shrink-0 border"
                         title="Download"
                       >
                         <Icon icon="download" className="text-base" />
@@ -261,7 +261,7 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
             ) : (
               <div className="table-wrapper">
                 <table className="table">
-                  <thead className="thead-sm bg-light/25 text-2xs uppercase">
+                  <thead className="thead-sm bg-light/25 text-xs uppercase">
                     <tr>
                       <th>Version</th>
                       <th>By</th>
@@ -281,7 +281,7 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
                         <td>
                           <Link
                             href={`/admin/kb/articles/${article.slug}/versions/${v.version}`}
-                            className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                            className="btn btn-icon border-default-300 hover:border-default-400 border"
                             title={`View version ${v.version}`}
                           >
                             <Icon icon="eye" className="text-base" />

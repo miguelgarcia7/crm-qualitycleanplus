@@ -142,7 +142,7 @@ const Page = ({ timesheets, can_export }: Props) => {
           <div className="flex justify-center gap-1.5">
             <Link
               href={`/admin/properties/${row.original.property_id}/grid?week=${row.original.week_start}`}
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               title="Open weekly grid"
             >
               <Icon icon="layout" className="text-base" />

@@ -118,7 +118,7 @@ const Page = ({ categories }: Props) => {
         cell: ({ row }: { row: TableRow<Category> }) => (
           <div className="flex justify-center gap-1.5">
             <button
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               onClick={() => startEdit(row.original)}
               title="Edit category"
             >
@@ -126,7 +126,7 @@ const Page = ({ categories }: Props) => {
             </button>
             {row.original.articles_count === 0 && (
               <button
-                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                className="btn btn-icon border-default-300 hover:border-default-400 border"
                 onClick={() => destroy(row.original)}
                 title="Delete category"
               >

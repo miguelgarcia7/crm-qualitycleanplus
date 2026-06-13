@@ -203,7 +203,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
             <div className="table-wrapper">
               <table className="table">
                 <thead className="thead-sm">
-                  <tr className="bg-light/25 text-2xs uppercase">
+                  <tr className="bg-light/25 text-xs uppercase">
                     <th>Bucket</th>
                     <th>Dates</th>
                     <th>Hours</th>
@@ -226,7 +226,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
                         <div className="flex justify-end">
                           {r.cancellable && (
                             <button
-                              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                              className="btn btn-icon border-default-300 hover:border-default-400 border"
                               onClick={() => cancel(r.id)}
                               title="Cancel request"
                             >
@@ -258,7 +258,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
             <div className="table-wrapper">
               <table className="table">
                 <thead className="thead-sm">
-                  <tr className="bg-light/25 text-2xs uppercase">
+                  <tr className="bg-light/25 text-xs uppercase">
                     <th>Staff</th>
                     <th>Bucket</th>
                     <th>Dates</th>
@@ -282,14 +282,14 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
                       <td>
                         <div className="flex justify-center gap-1.5">
                           <button
-                            className="btn btn-icon btn-sm bg-success hover:bg-success-hover size-8 rounded-full text-white"
+                            className="btn btn-icon bg-success hover:bg-success-hover size-8 rounded-full text-white"
                             onClick={() => approve(r.id)}
                             title="Approve"
                           >
                             <Icon icon="check" className="text-base" />
                           </button>
                           <button
-                            className="btn btn-icon btn-sm bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
+                            className="btn btn-icon bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
                             onClick={() => reject(r.id)}
                             title="Reject"
                           >
@@ -345,7 +345,7 @@ const StaffBalances = ({ others, canAdjust, onAdjust }: { others: Other[]; canAd
               cell: ({ row }: { row: TableRow<Other> }) => (
                 <div className="flex justify-center">
                   <button
-                    className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                    className="btn btn-icon border-default-300 hover:border-default-400 border"
                     onClick={() => onAdjust(row.original)}
                     title="Adjust balance"
                   >

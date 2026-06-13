@@ -58,13 +58,15 @@ html[data-skin="sage"] {
     /* Warm hairline borders */
     --color-default-300: #e6e3d8;
 
+    --text-xs: 0.8125rem;
     --text-sm: 15px;
     --text-base: 16px;
 
     /* Generous gaps between cards (gap-base / mb-base) */
     --spacing-base: 24px;
 
-    --radius: 12px;
+    --radius: 6px;
+    --card-radius: 18px;
 
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
@@ -75,7 +77,7 @@ html[data-skin="sage"] {
     --sidenav-item-gap: 12px;
     --sidenav-item-padding-x: 14px;
     --sidenav-item-padding-y: 11px;
-    --sidenav-item-font-size: 0.875rem;
+    --sidenav-item-font-size: 1rem;
     --sidenav-item-font-weight: 500;
 
     /* Sub Menu Items */
@@ -261,13 +263,13 @@ html[data-skin="sage"] {
 
     /* Clean hairline card headers (no dashed dividers) + matching horizontal padding */
     .card .card-header {
-        padding: 1.125rem 1.5rem;
+        padding: 1.5rem 1.5rem;
         border-bottom-style: solid;
         border-bottom-color: var(--color-default-300);
     }
 
     .card .card-footer {
-        padding: 1.125rem 1.5rem;
+        padding: 1.5rem 1.5rem;
     }
 }
 

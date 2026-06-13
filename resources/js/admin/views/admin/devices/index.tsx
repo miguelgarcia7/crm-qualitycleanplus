@@ -85,14 +85,14 @@ const Page = ({ devices, properties }: Props) => {
         cell: ({ row }: { row: TableRow<Device> }) => (
           <div className="flex justify-center gap-1.5">
             <button
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               onClick={() => regenerate(row.original.id)}
               title="New activation code"
             >
               <Icon icon="refresh" className="text-base" />
             </button>
             <button
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               onClick={() => revoke(row.original.id)}
               title="Revoke device"
             >

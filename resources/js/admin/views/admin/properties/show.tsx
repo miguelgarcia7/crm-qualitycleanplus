@@ -107,7 +107,7 @@ const confirmDelete = (url: string) => {
 const RemoveButton = ({ url, title }: { url: string; title: string }) => (
   <button
     type="button"
-    className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+    className="btn btn-icon border-default-300 hover:border-default-400 border"
     onClick={() => confirmDelete(url)}
     title={title}
   >
@@ -258,7 +258,7 @@ const DepartmentsTab = ({ property, departments, catalogs, can }: Pick<Props, 'p
       <div className="table-wrapper">
         <table className="table table-hover">
           <thead className="thead-sm">
-            <tr className="bg-light/25 text-2xs uppercase">
+            <tr className="bg-light/25 text-xs uppercase">
               <th>Department</th>
               <th>Manager</th>
               <th>Phone</th>
@@ -350,7 +350,7 @@ const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | '
       <div className="table-wrapper">
         <table className="table table-hover">
           <thead className="thead-sm">
-            <tr className="bg-light/25 text-2xs uppercase">
+            <tr className="bg-light/25 text-xs uppercase">
               <th>Position</th>
               <th>Pay</th>
               <th>Bill</th>
@@ -463,7 +463,7 @@ const ContractsTab = ({ property, contracts, catalogs, can }: Pick<Props, 'prope
       <div className="table-wrapper">
         <table className="table table-hover">
           <thead className="thead-sm">
-            <tr className="bg-light/25 text-2xs uppercase">
+            <tr className="bg-light/25 text-xs uppercase">
               <th>Name</th>
               <th>Type</th>
               <th>Effective</th>
@@ -486,7 +486,7 @@ const ContractsTab = ({ property, contracts, catalogs, can }: Pick<Props, 'prope
                       {can.downloadContracts && (
                         <a
                           href={`/admin/properties/${property.id}/contracts/${c.id}/download`}
-                          className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                          className="btn btn-icon border-default-300 hover:border-default-400 border"
                           title="Download contract"
                         >
                           <Icon icon="download" className="text-base" />
@@ -568,7 +568,7 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
       <div className="table-wrapper">
         <table className="table table-hover">
           <thead className="thead-sm">
-            <tr className="bg-light/25 text-2xs uppercase">
+            <tr className="bg-light/25 text-xs uppercase">
               <th>Person</th>
               <th>Role</th>
               {can.manageAssignments && <th></th>}
@@ -642,7 +642,7 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
   <div className="table-wrapper">
     <table className="table table-hover">
       <thead className="thead-sm">
-        <tr className="bg-light/25 text-2xs uppercase">
+        <tr className="bg-light/25 text-xs uppercase">
           <th>When</th>
           <th>Change</th>
           <th>By</th>

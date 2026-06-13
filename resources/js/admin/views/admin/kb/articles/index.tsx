@@ -119,7 +119,7 @@ const Page = ({ articles }: Props) => {
           <div className="flex justify-center gap-1.5">
             <Link
               href={`/admin/kb/articles/${row.original.slug}`}
-              className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
               title="Open article"
             >
               <Icon icon="eye" className="text-base" />
@@ -127,7 +127,7 @@ const Page = ({ articles }: Props) => {
             {row.original.status !== 'archived' && (
               <Link
                 href={`/admin/kb/articles/${row.original.slug}/edit`}
-                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                className="btn btn-icon border-default-300 hover:border-default-400 border"
                 title="Edit article"
               >
                 <Icon icon="edit" className="text-base" />

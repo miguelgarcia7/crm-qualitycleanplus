@@ -196,7 +196,7 @@ const WorkOrdersTab = ({ workOrders }: { workOrders: WorkOrderRow[] }) => {
     <div className="table-wrapper">
       <table className="table table-hover">
         <thead className="thead-sm">
-          <tr className="bg-light/25 text-2xs uppercase">
+          <tr className="bg-light/25 text-xs uppercase">
             <th>Property</th>
             <th>Position</th>
             <th>Start</th>
@@ -244,7 +244,7 @@ const HoursTab = ({ hours }: { hours: HoursRow[] }) => (
   <div className="table-wrapper">
     <table className="table table-hover">
       <thead className="thead-sm">
-        <tr className="bg-light/25 text-2xs uppercase">
+        <tr className="bg-light/25 text-xs uppercase">
           <th>Week</th>
           <th>Property</th>
           <th>Position</th>
@@ -288,7 +288,7 @@ const AdjustmentsTab = ({ adjustments }: { adjustments: AdjustmentRow[] }) => (
   <div className="table-wrapper">
     <table className="table table-hover">
       <thead className="thead-sm">
-        <tr className="bg-light/25 text-2xs uppercase">
+        <tr className="bg-light/25 text-xs uppercase">
           <th>Date</th>
           <th>Item</th>
           <th>Type</th>
@@ -357,7 +357,7 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
   <div className="table-wrapper">
     <table className="table table-hover">
       <thead className="thead-sm">
-        <tr className="bg-light/25 text-2xs uppercase">
+        <tr className="bg-light/25 text-xs uppercase">
           <th>When</th>
           <th>What</th>
           <th>By</th>

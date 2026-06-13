@@ -101,17 +101,17 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
         cell: ({ row }: { row: TableRow<WorkOrderRow> }) => {
           const w = row.original
           return (
-            <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+            <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
               <Link
                 href={`/admin/work-orders/${w.id}/edit`}
-                className="btn btn-icon btn-sm border-default-300 hover:border-default-400 border"
+                className="btn btn-icon border-default-300 hover:border-default-400 border"
                 title="Edit work order"
               >
                 <Icon icon="edit" className="text-base" />
               </Link>
               {w.status === 'active' && can.transfer && (
                 <button
-                  className="btn btn-sm bg-primary/15 text-primary hover:bg-primary hover:text-white"
+                  className="btn bg-primary/15 text-primary hover:bg-primary hover:text-white"
                   onClick={() => setModal({ kind: 'transfer', wo: w })}
                 >
                   Transfer
@@ -119,7 +119,7 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
               )}
               {w.status === 'active' && can.temp && !w.is_temporary_assignment && (
                 <button
-                  className="btn btn-sm bg-info/15 text-info hover:bg-info hover:text-white"
+                  className="btn bg-info/15 text-info hover:bg-info hover:text-white"
                   onClick={() => setModal({ kind: 'temp', wo: w })}
                 >
                   Temp
