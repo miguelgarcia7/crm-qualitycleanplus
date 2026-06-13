@@ -21,4 +21,16 @@ export default defineConfig({
             refresh: ['resources/views/site/**', 'resources/css/site/**', 'resources/js/site/**'],
         }),
     ],
+    css: {
+        preprocessorOptions: {
+            scss: {
+                // Bootstrap 5.x's SCSS predates the modern Dart Sass module system,
+                // so the compiler emits ~hundreds of deprecation warnings from inside
+                // node_modules (color-functions, global-builtin, if-function, @import).
+                // We're on the latest Bootstrap (no 5.x fix until 6.0), so silence the
+                // *dependency* deprecations only — warnings from our own SCSS still show.
+                quietDeps: true,
+            },
+        },
+    },
 });
