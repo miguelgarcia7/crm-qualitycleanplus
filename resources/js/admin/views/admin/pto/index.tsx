@@ -67,6 +67,9 @@ const PersonCell = ({ name }: { name: string }) => (
 const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Props) => {
   const form = useForm({ bucket: 'vacation', start_date: '', end_date: '', hours: 8, reason: '', notice_period_warning_acknowledged: false })
   const [adjustFor, setAdjustFor] = useState<Other | null>(null)
+  // Allow backdating the start up to 10 days (e.g. logging sick time after the
+  // fact). End ≥ start always (mirrors the backend's after_or_equal rule).
+  const minStart = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -162,6 +165,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
                     <input
                       type="date"
                       className="form-input w-full"
+                      min={minStart}
                       value={form.data.start_date}
                       onChange={(e) => form.setData('start_date', e.target.value)}
                       required
@@ -172,6 +176,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
                     <input
                       type="date"
                       className="form-input w-full"
+                      min={form.data.start_date || minStart}
                       value={form.data.end_date}
                       onChange={(e) => form.setData('end_date', e.target.value)}
                       required
