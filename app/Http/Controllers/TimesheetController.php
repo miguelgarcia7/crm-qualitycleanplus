@@ -78,6 +78,9 @@ class TimesheetController extends Controller
 
         return Timesheet::query()
             ->join('payroll_periods', 'payroll_periods.id', '=', 'timesheets.payroll_period_id')
+            // This is the timesheet *history* — hide future ahead-periods (kept
+            // ready for manual entry, but they have no hours yet).
+            ->whereDate('payroll_periods.week_start', '<=', now())
             ->orderByDesc('payroll_periods.week_start')
             ->select('timesheets.*')
             ->with([
