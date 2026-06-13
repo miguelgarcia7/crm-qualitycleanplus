@@ -149,8 +149,8 @@ class SampleDataSeeder extends Seeder
             )->syncRoles($role);
         }
 
-        // Two positions with Bible rates (cents).
-        $positions = Position::query()->whereIn('slug', ['housekeeper', 'banquet-server'])->get();
+        // Three positions with Bible rates (cents).
+        $positions = Position::query()->whereIn('slug', ['housekeeper', 'banquet-server', 'cook'])->get();
         foreach ($positions as $i => $position) {
             $pay = 1800 + $i * 200;
             $bill = $pay + 1200;
@@ -164,10 +164,10 @@ class SampleDataSeeder extends Seeder
             );
         }
 
-        // Three contractors, each on an active work order at the property.
+        // Five contractors, each on an active work order at the property.
         $workOrders = [];
         $contractors = [];
-        foreach (['Carlos Contractor', 'Dana Cleaner', 'Sam Server'] as $i => $name) {
+        foreach (['Carlos Contractor', 'Dana Cleaner', 'Sam Server', 'Nora Night', 'Owen Overnight'] as $i => $name) {
             $position = $positions[$i % $positions->count()];
             $rate = $property->currentRateFor($position->id);
 
@@ -190,7 +190,7 @@ class SampleDataSeeder extends Seeder
                 'bill_rate' => $rate->bill_rate,
                 'ot_pay_rate' => $rate->ot_pay_rate,
                 'ot_bill_rate' => $rate->ot_bill_rate,
-                'start_date' => now()->subMonth()->toDateString(),
+                'start_date' => now()->subWeeks(7)->toDateString(),
                 'status' => WorkOrderStatus::Active,
                 'source' => WorkOrderSource::RecruiterCreated,
                 'created_by' => $recruiter->id,
@@ -265,6 +265,12 @@ class SampleDataSeeder extends Seeder
         // so the dashboard's live "On the clock" widget has something to show.
         $this->openClockEntry($workOrders[0], 130);
         $this->openClockEntry($planoWorkOrders[0], 45, 'tablet');
+
+        // Deepen each property to ~6 weeks of populated weekly timesheets so the
+        // history list isn't mostly empty. Idempotent: skips weeks that already
+        // have entries (billed / last week) and frozen (approved) weeks.
+        $this->backfillWeeklyHistory($property, $workOrders, 6);
+        $this->backfillWeeklyHistory($plano, $planoWorkOrders, 6);
 
         $this->seedInventory($recruiter);
         $this->seedRequestsAndCharges($property, $recruiter, $frontDesk, $contractors, $workOrders);
@@ -433,6 +439,10 @@ class SampleDataSeeder extends Seeder
         $this->seedRecruiting($property, $plano, $recruiter);
 
         $this->seedKnowledgeBase($frontDesk, $contractors);
+
+        // A third active property (Omni Hotel) owned solely by a SECOND recruiter,
+        // Ruben — its own contractors with ~6 weeks of clocked history + this week.
+        $this->seedOmniProperty($positions);
     }
 
     /**
@@ -494,7 +504,7 @@ class SampleDataSeeder extends Seeder
                 'bill_rate' => $rate->bill_rate,
                 'ot_pay_rate' => $rate->ot_pay_rate,
                 'ot_bill_rate' => $rate->ot_bill_rate,
-                'start_date' => now()->subWeeks(3)->toDateString(),
+                'start_date' => now()->subWeeks(7)->toDateString(),
                 'status' => WorkOrderStatus::Active,
                 'source' => WorkOrderSource::RecruiterCreated,
                 'created_by' => $recruiter->id,
@@ -502,6 +512,171 @@ class SampleDataSeeder extends Seeder
         }
 
         return [$property, $workOrders];
+    }
+
+    /**
+     * A third active property (Omni Hotel) for a SECOND recruiter, Ruben, who is
+     * the only person assigned to it. Isolated recruiter/property pair with its
+     * own contractors and six completed weeks of clocked history plus the
+     * current week — so the People "Hours" tab and the live grids have data.
+     *
+     * @param  Collection<int, Position>  $positions
+     */
+    private function seedOmniProperty($positions): void
+    {
+        $omni = Property::create([
+            'name' => 'Omni Hotel',
+            'pm_name' => 'Olivia Owner',
+            'pm_phone' => '817-555-0300',
+            'city' => 'Fort Worth',
+            'state' => 'TX',
+            'timezone' => 'America/Chicago',
+            'latitude' => 32.7555,
+            'longitude' => -97.3308,
+            'tax_rate' => 0.0825,
+            'closing_day' => 7, // week ends Sunday → Mon–Sun timesheets
+            'status' => PropertyStatus::Active,
+        ]);
+
+        // Second recruiter — and the ONLY person assigned to Omni (no PM).
+        $ruben = Person::firstOrCreate(
+            ['email' => 'recruiter2@example.com'],
+            ['name' => 'Ruben Recruiter', 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now(), 'hire_date' => now()->subMonths(6)->toDateString()],
+        );
+        $ruben->syncRoles('recruiter');
+        $omni->assignments()->create(['person_id' => $ruben->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+
+        // Bible rates for the two demo positions.
+        foreach ($positions as $i => $position) {
+            $pay = 1900 + $i * 200;
+            $bill = $pay + 1300;
+            $omni->positionRates()->create([
+                'position_id' => $position->id, 'effective_date' => now()->subMonths(2)->toDateString(),
+                'pay_rate' => $pay, 'bill_rate' => $bill,
+                'ot_pay_rate' => (int) round($pay * 1.5), 'ot_bill_rate' => (int) round($bill * 1.5),
+                'is_active' => true, 'created_by' => $ruben->id,
+            ]);
+        }
+
+        // Three contractors under Ruben, each on an active WO opened ~5 weeks ago.
+        $workOrders = [];
+        foreach (['Gloria Glove', 'Hank Hallway', 'Ivy Linens'] as $i => $name) {
+            $position = $positions[$i % $positions->count()];
+            $rate = $omni->currentRateFor($position->id);
+
+            $phone = '(817) 555-031'.$i;
+            $contractor = Person::factory()->create([
+                'name' => $name,
+                'status' => PersonStatus::ContractorActive,
+                'primary_recruiter_id' => $ruben->id,
+                'phone' => $phone,
+                'normalized_phone' => preg_replace('/\D/', '', $phone),
+            ]);
+            $contractor->syncRoles('contractor');
+
+            $workOrders[] = WorkOrder::create([
+                'person_id' => $contractor->id,
+                'property_id' => $omni->id,
+                'position_id' => $position->id,
+                'pay_rate' => $rate->pay_rate,
+                'bill_rate' => $rate->bill_rate,
+                'ot_pay_rate' => $rate->ot_pay_rate,
+                'ot_bill_rate' => $rate->ot_bill_rate,
+                'start_date' => now()->subWeeks(7)->toDateString(),
+                'status' => WorkOrderStatus::Active,
+                'source' => WorkOrderSource::RecruiterCreated,
+                'created_by' => $ruben->id,
+            ]);
+        }
+
+        // Each week needs its payroll period before clock events can attach
+        // (clockEvent looks the period up by date). ensure-periods already ran
+        // before Omni existed, so we materialize Omni's periods here.
+        $tz = $omni->timezone;
+        $thisWeekStart = $omni->weekStartFor(Carbon::now($tz));
+
+        // Six completed weeks of populated weekly timesheets so Omni shows up
+        // across the timesheets history with hours (first contractor pulls a
+        // little overtime, handled inside backfillWeeklyHistory).
+        $this->backfillWeeklyHistory($omni, $workOrders, 6);
+
+        // This week so far — only the weekdays elapsed (capped Mon–Fri).
+        $this->ensurePayrollPeriod($omni, $thisWeekStart);
+        $daysSoFar = max(1, min(5, (int) $thisWeekStart->diffInDays(Carbon::now($tz)) + 1));
+        foreach ($workOrders as $workOrder) {
+            for ($day = 0; $day < $daysSoFar; $day++) {
+                $this->clockEvent($workOrder, $thisWeekStart->copy()->addDays($day)->toDateString(), '09:00', '17:00');
+            }
+        }
+
+        // One contractor on the clock right now for the live "On the clock" widget.
+        $this->openClockEntry($workOrders[0], 75);
+
+        // Omni was created after the global ensure-periods ran — re-run it so Omni
+        // gets the same current + upcoming open periods/timesheets as the others.
+        Artisan::call('payroll:ensure-periods');
+    }
+
+    /** Materialize a property's weekly payroll period (idempotent). */
+    private function ensurePayrollPeriod(Property $property, CarbonInterface $weekStart): PayrollPeriod
+    {
+        return PayrollPeriod::firstOrCreate(
+            ['property_id' => $property->id, 'week_start' => $weekStart->toDateString()],
+            ['week_end' => $weekStart->copy()->addDays(6)->toDateString(), 'status' => PayrollPeriodStatus::Open],
+        );
+    }
+
+    /**
+     * Fill the last $weeks completed weeks for a property with Mon–Fri clock
+     * events + a draft timesheet, so the timesheets history shows populated
+     * weeks. Idempotent and non-destructive: a week whose timesheet is already
+     * submitted/approved (frozen) is left untouched, and a (work order, week)
+     * that already has entries is skipped — so it overlays cleanly on billed
+     * history and the current/last-week seeding without doubling hours.
+     *
+     * @param  array<int, WorkOrder>  $workOrders
+     */
+    private function backfillWeeklyHistory(Property $property, array $workOrders, int $weeks): void
+    {
+        $thisWeekStart = $property->weekStartFor(Carbon::now($property->timezone));
+
+        for ($w = $weeks; $w >= 1; $w--) {
+            $weekStart = $thisWeekStart->copy()->subWeeks($w);
+            $period = $this->ensurePayrollPeriod($property, $weekStart);
+            $timesheet = $period->timesheet()->firstOrCreate(
+                [],
+                ['property_id' => $property->id, 'source' => 'clock_in', 'status' => TimesheetStatus::Draft],
+            );
+
+            // Never add entries to a submitted/approved (frozen) week.
+            if ($timesheet->status !== TimesheetStatus::Draft) {
+                continue;
+            }
+
+            $weekEnd = $weekStart->copy()->addDays(6)->toDateString();
+            foreach ($workOrders as $i => $workOrder) {
+                // Skip WOs not yet active that week, and weeks already clocked.
+                if ($workOrder->start_date->toDateString() > $weekEnd) {
+                    continue;
+                }
+                $alreadyClocked = TimeEntry::query()
+                    ->where('work_order_id', $workOrder->id)
+                    ->where('payroll_period_id', $period->id)
+                    ->exists();
+                if ($alreadyClocked) {
+                    continue;
+                }
+
+                for ($day = 0; $day < 5; $day++) {
+                    $this->clockEvent(
+                        $workOrder,
+                        $weekStart->copy()->addDays($day)->toDateString(),
+                        '09:00',
+                        $i === 0 ? '18:00' : '17:00',
+                    );
+                }
+            }
+        }
     }
 
     /**
