@@ -1,5 +1,18 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import DataTable from '@/components/table/DataTable'
+import TablePagination from '@/components/table/TablePagination'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router } from '@inertiajs/react'
+import {
+  createColumnHelper,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  Row as TableRow,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
 
 type ExistingWo = { id: number; pay_rate: number; bill_rate: number; ot_pay_rate: number; ot_bill_rate: number }
@@ -68,6 +81,34 @@ type Props = {
 }
 
 const money = (cents: number | null | undefined) => `$${(((cents ?? 0) as number) / 100).toFixed(2)}`
+
+const columnHelper = createColumnHelper<Row>()
+
+const needsAttention = (r: Row) => r.status === 'unmatched' || r.needs_resolution || r.needs_position
+
+const ROW_FILTERS = [
+  { key: 'all', label: 'All rows' },
+  { key: 'attention', label: 'Needs resolution' },
+  { key: 'ready', label: 'Ready' },
+  { key: 'skipped', label: 'Skipped' },
+] as const
+type RowFilter = (typeof ROW_FILTERS)[number]['key']
+
+const matchesRowFilter = (r: Row, f: RowFilter) => {
+  switch (f) {
+    case 'attention':
+      return needsAttention(r)
+    case 'ready':
+      return r.status !== 'skipped' && !needsAttention(r)
+    case 'skipped':
+      return r.status === 'skipped'
+    default:
+      return true
+  }
+}
+
+// Resolution-first ordering so the rows that block commit float to the top.
+const rowRank = (r: Row) => (needsAttention(r) ? 0 : r.status === 'skipped' ? 2 : 1)
 
 const StatusBadge = ({ status, label }: { status: string; label: string }) => {
   const tone =
@@ -194,6 +235,78 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
 
   const committableRows = useMemo(() => rows.filter((r) => r.status !== 'skipped' && r.status !== 'unmatched'), [rows])
 
+  const [globalFilter, setGlobalFilter] = useState('')
+  const [rowFilter, setRowFilter] = useState<RowFilter>('all')
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 })
+
+  const reviewData = useMemo(
+    () =>
+      rows
+        .filter((r) => matchesRowFilter(r, rowFilter))
+        .sort((a, b) => rowRank(a) - rowRank(b) || a.row_number - b.row_number),
+    [rows, rowFilter],
+  )
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('row_number', { header: '#', cell: ({ row }) => row.original.row_number }),
+      columnHelper.accessor((r) => `${r.name ?? ''} ${r.external_id ?? ''} ${r.position ?? ''}`, {
+        id: 'name',
+        header: 'Name / ID',
+        cell: ({ row }) => (
+          <div>
+            <div className="font-medium">{row.original.name}</div>
+            <div className="text-default-400 text-xs">
+              {row.original.external_id}
+              {row.original.position ? ` · ${row.original.position}` : ''}
+            </div>
+          </div>
+        ),
+      }),
+      columnHelper.accessor('hours', { header: 'Hours', cell: ({ row }) => row.original.hours }),
+      columnHelper.accessor('pay_rate_cents', { header: 'Pay', cell: ({ row }) => `${money(row.original.pay_rate_cents)}/hr` }),
+      columnHelper.accessor('status', {
+        header: 'Status',
+        cell: ({ row }) => <StatusBadge status={row.original.status} label={row.original.status_label} />,
+      }),
+      ...(!readOnly
+        ? [
+            {
+              id: 'resolve',
+              header: 'Resolve',
+              enableSorting: false,
+              cell: ({ row }: { row: TableRow<Row> }) => (
+                <RowActions batchId={batch.id} row={row.original} positions={positions} people={people} />
+              ),
+            },
+          ]
+        : []),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [readOnly, positions, people, batch.id],
+  )
+
+  const table = useReactTable({
+    data: reviewData,
+    columns,
+    state: { globalFilter, sorting, pagination },
+    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+  })
+
+  const pageIndex = table.getState().pagination.pageIndex
+  const pageSize = table.getState().pagination.pageSize
+  const totalItems = table.getFilteredRowModel().rows.length
+  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
+  const end = Math.min(start + pageSize - 1, totalItems)
+
   const addAdjustment = () =>
     setAdjustments((prev) => [
       ...prev,
@@ -281,44 +394,63 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
 
       {(step === 'review' || readOnly) && (
         <div className="card rounded-2xl">
-          <div className="card-body p-0">
-            <table className="w-full text-sm">
-              <thead className="border-default-200 border-b text-left">
-                <tr className="text-default-400">
-                  <th className="p-3">#</th>
-                  <th className="p-3">Name / ID</th>
-                  <th className="p-3">Hours</th>
-                  <th className="p-3">Pay</th>
-                  <th className="p-3">Status</th>
-                  {!readOnly && <th className="p-3">Resolve</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="border-default-100 border-b">
-                    <td className="p-3">{row.row_number}</td>
-                    <td className="p-3">
-                      <div className="font-medium">{row.name}</div>
-                      <div className="text-default-400 text-xs">
-                        {row.external_id}
-                        {row.position ? ` · ${row.position}` : ''}
-                      </div>
-                    </td>
-                    <td className="p-3">{row.hours}</td>
-                    <td className="p-3">{money(row.pay_rate_cents)}/hr</td>
-                    <td className="p-3">
-                      <StatusBadge status={row.status} label={row.status_label} />
-                    </td>
-                    {!readOnly && (
-                      <td className="p-3">
-                        <RowActions batchId={batch.id} row={row} positions={positions} people={people} />
-                      </td>
-                    )}
-                  </tr>
+          <div className="card-header">
+            <div className="flex flex-wrap gap-3">
+              <div className="input-icon-group">
+                <Icon icon="search" className="input-icon" />
+                <input
+                  className="form-input"
+                  placeholder="Search rows..."
+                  value={globalFilter}
+                  onChange={(e) => setGlobalFilter(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
+              <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+              <select
+                className="form-select w-auto min-w-36"
+                value={rowFilter}
+                onChange={(e) => {
+                  setRowFilter(e.target.value as RowFilter)
+                  setPagination((p) => ({ ...p, pageIndex: 0 }))
+                }}
+              >
+                {ROW_FILTERS.map((f) => (
+                  <option key={f.key} value={f.key}>
+                    {f.label}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+              <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+                {[25, 50, 100].map((size) => (
+                  <option key={size}>{size}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          <DataTable table={table} emptyMessage="No rows match this filter." />
+
+          {table.getRowModel().rows.length > 0 && (
+            <div className="card-footer">
+              <TablePagination
+                totalItems={totalItems}
+                start={start}
+                end={end}
+                itemsName="rows"
+                pageIndex={pageIndex}
+                pageCount={table.getPageCount()}
+                canPreviousPage={table.getCanPreviousPage()}
+                canNextPage={table.getCanNextPage()}
+                previousPage={table.previousPage}
+                nextPage={table.nextPage}
+                setPageIndex={table.setPageIndex}
+                showInfo
+              />
+            </div>
+          )}
         </div>
       )}
 
