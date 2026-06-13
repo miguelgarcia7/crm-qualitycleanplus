@@ -12,7 +12,7 @@
   `device` guard (driver `sanctum`, provider `devices`); `device/*` CSRF-excepted in `bootstrap/app.php`.
 - **Schema/model:** `devices` (property_id, name, `activation_code`, `is_activated`, `app_version`,
   `last_seen_at`) + `Device` (`HasApiTokens`, `newCode`/`regenerateCode`/`markSeen`) + factory.
-  Permission `devices.manage` (admin/office_manager).
+  Permission `devices.manage` (super_admin only — narrowed 2026-06-13; originally admin/office_manager).
 - **Shared actions parametrized:** `ClockInContractor::handle(..., $clockMethod='qr', $enforceGeofence=true)`
   and `ClockOutContractor` (optional selfie/GPS) — tablet calls them with `clockMethod='tablet'`,
   `enforceGeofence=false` (no GPS captured).
@@ -49,7 +49,7 @@ guard; phone lookup; photo on clock-in); improved per `www.minute.site` (alphanu
   per-contractor token (phone identifies the contractor per action).
 - No GPS/geofence on tablet entries; selfie required on clock-in (optional clock-out).
 - Kiosk endpoints are stateless Bearer APIs → `device/*` excluded from CSRF.
-- Permission `devices.manage` (admin/office_manager) for back-office device CRUD.
+- Permission `devices.manage` (super_admin only — narrowed 2026-06-13) for back-office device CRUD.
 - New domain context **`Devices`**.
 
 ## Increments

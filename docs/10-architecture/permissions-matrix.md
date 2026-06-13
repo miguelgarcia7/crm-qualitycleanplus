@@ -95,6 +95,14 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | `field_visits.view_by_property` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own property) | ⚪ |
 | `field_visits.manual_edit` | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
+## Devices (tablet kiosk management — ADR-0017)
+
+| Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `devices.manage` | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+
+> Provisioning/revoking tablet kiosks is a system-level task restricted to Super Admin only. (Previously held by `admin` + `office_manager`; narrowed per product decision 2026-06-13.)
+
 ## Timesheets
 
 | Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |
