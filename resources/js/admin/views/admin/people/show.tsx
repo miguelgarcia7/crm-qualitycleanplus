@@ -68,7 +68,7 @@ type HistoryRow = { id: number; description: string; event: string | null; cause
 
 type Props = {
   person: PersonInfo
-  workOrders: WorkOrderRow[]
+  workOrders: WorkOrderRow[] | null
   hours: HoursRow[] | null
   adjustments: AdjustmentRow[] | null
   pto: PtoPayload | null
@@ -391,7 +391,7 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
 
 const Page = ({ person, workOrders, hours, adjustments, pto, history }: Props) => {
   const tabs = [
-    { key: 'work-orders', label: 'Work Orders', show: true },
+    { key: 'work-orders', label: 'Work Orders', show: workOrders !== null },
     { key: 'hours', label: 'Hours', show: hours !== null },
     { key: 'adjustments', label: 'Adjustments', show: adjustments !== null },
     { key: 'pto', label: 'Time Off', show: pto !== null },
@@ -448,7 +448,7 @@ const Page = ({ person, workOrders, hours, adjustments, pto, history }: Props) =
             </nav>
 
             <div className="card-body p-6">
-              {active === 'work-orders' && <WorkOrdersTab workOrders={workOrders} />}
+              {active === 'work-orders' && workOrders !== null && <WorkOrdersTab workOrders={workOrders} />}
               {active === 'hours' && hours !== null && <HoursTab hours={hours} />}
               {active === 'adjustments' && adjustments !== null && <AdjustmentsTab adjustments={adjustments} />}
               {active === 'pto' && pto !== null && <PtoTab pto={pto} />}

@@ -45,10 +45,15 @@ class PeopleController extends Controller
         /** @var Person $user */
         $user = $request->user();
 
+        // Work orders, hours and adjustments are contractor-side concepts (a WO
+        // places a contractor; hours/adjustments hang off their time entries).
+        // Staff records — recruiters, OM, HR, etc. — never have them, so those
+        // tabs are hidden for staff. PTO is the inverse: staff-only accrual.
+        $isStaff = $person->status->isStaff();
         $canRates = $user->can('bible.rates.view');
-        $canHours = $user->can('timesheets.view_history');
-        $canAdjustments = $user->can('time_entries.add_adjustment');
-        $canPto = $person->status->isStaff() && $user->can('pto.balances.view_all');
+        $canHours = ! $isStaff && $user->can('timesheets.view_history');
+        $canAdjustments = ! $isStaff && $user->can('time_entries.add_adjustment');
+        $canPto = $isStaff && $user->can('pto.balances.view_all');
         $canHistory = $user->can('audit.activity_log.view');
 
         return Inertia::render('admin/people/show', [
@@ -69,7 +74,7 @@ class PeopleController extends Controller
                 'recruiter' => $person->primaryRecruiter?->name,
                 'roles' => $person->getRoleNames()->map(fn (string $r): string => Str::headline($r))->values()->all(),
             ],
-            'workOrders' => $this->workOrderRows($person, $canRates),
+            'workOrders' => $isStaff ? null : $this->workOrderRows($person, $canRates),
             'hours' => $canHours ? $this->hoursRows($person) : null,
             'adjustments' => $canAdjustments ? $this->adjustmentRows($person) : null,
             'pto' => $canPto ? $this->ptoPayload($person) : null,
