@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, router } from '@inertiajs/react'
 import ReportTable from './components/ReportTable'
 
@@ -51,10 +52,11 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
 
       <div className="card">
         <div className="card-header">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="form-label">Payroll week</label>
-              <select className="form-select" value={week} onChange={(e) => apply(e.target.value, propertyId)}>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+            <div className="input-icon-group">
+              <Icon icon="calendar" className="input-icon" />
+              <select className="form-select !w-auto min-w-44" value={week} onChange={(e) => apply(e.target.value, propertyId)}>
                 {weeks.length === 0 && <option value="">No weeks yet</option>}
                 {weeks.map((w) => (
                   <option key={w} value={w}>
@@ -63,9 +65,9 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="form-label">Property</label>
-              <select className="form-select" value={propertyId} onChange={(e) => apply(week, e.target.value)}>
+            <div className="input-icon-group">
+              <Icon icon="building" className="input-icon" />
+              <select className="form-select !w-auto min-w-44" value={propertyId} onChange={(e) => apply(week, e.target.value)}>
                 <option value="">All properties</option>
                 {properties.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -75,18 +77,18 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
               </select>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
             <a
               href={`/admin/reports/payouts/export?week=${week}${propertyId ? `&property_id=${propertyId}` : ''}`}
               className="btn btn-light text-nowrap"
             >
-              Export Excel
+              <Icon icon="download" className="me-1 size-4" /> Export Excel
             </a>
             <a
               href={`/admin/reports/payouts/pdf?week=${week}${propertyId ? `&property_id=${propertyId}` : ''}`}
               className="btn btn-light text-nowrap"
             >
-              PDF
+              <Icon icon="file-text" className="me-1 size-4" /> PDF
             </a>
           </div>
         </div>
@@ -120,6 +122,12 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
             money(totals.total_pay),
           ]}
           emptyMessage="No hours recorded for this week."
+          footer={
+            <span className="text-default-400 text-sm">
+              {rows.length} contractor{rows.length === 1 ? '' : 's'}
+              {week ? ` · ${weekLabel(week)}` : ''}
+            </span>
+          }
         />
       </div>
       <p className="text-default-400 mt-3 text-xs">

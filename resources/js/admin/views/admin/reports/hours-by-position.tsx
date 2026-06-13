@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, router } from '@inertiajs/react'
 import { useState } from 'react'
 import ReportTable from './components/ReportTable'
@@ -42,19 +43,20 @@ const Page = ({ filters, properties, rows, totals }: Props) => {
 
       <div className="card">
         <div className="card-header">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="form-label">From</label>
-              <input type="date" className="form-input" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </div>
-            <div>
-              <label className="form-label">To</label>
-              <input type="date" className="form-input" value={to} onChange={(e) => setTo(e.target.value)} />
-            </div>
-            <div>
-              <label className="form-label">Property</label>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+            <label className="flex items-center gap-2">
+              <span className="text-default-500 text-sm">From</span>
+              <input type="date" className="form-input w-auto" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="text-default-500 text-sm">To</span>
+              <input type="date" className="form-input w-auto" value={to} onChange={(e) => setTo(e.target.value)} />
+            </label>
+            <div className="input-icon-group">
+              <Icon icon="building" className="input-icon" />
               <select
-                className="form-select"
+                className="form-select !w-auto min-w-44"
                 value={propertyId}
                 onChange={(e) => {
                   setPropertyId(e.target.value)
@@ -77,7 +79,7 @@ const Page = ({ filters, properties, rows, totals }: Props) => {
             href={`/admin/reports/hours-by-position/export?from=${from}&to=${to}${propertyId ? `&property_id=${propertyId}` : ''}`}
             className="btn btn-light text-nowrap"
           >
-            Export Excel
+            <Icon icon="download" className="me-1 size-4" /> Export Excel
           </a>
         </div>
 
@@ -100,6 +102,11 @@ const Page = ({ filters, properties, rows, totals }: Props) => {
           ])}
           totals={['Total', hours(totals.regular_minutes), hours(totals.overtime_minutes), hours(totals.training_minutes), hours(totals.total_minutes), '']}
           emptyMessage="No worked weeks in this range."
+          footer={
+            <span className="text-default-400 text-sm">
+              {rows.length} position{rows.length === 1 ? '' : 's'} · {filters.from} → {filters.to}
+            </span>
+          }
         />
       </div>
     </>

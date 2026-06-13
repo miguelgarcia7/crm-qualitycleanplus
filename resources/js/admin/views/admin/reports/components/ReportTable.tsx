@@ -11,11 +11,15 @@ type Props = {
   rows: ReactNode[][]
   totals?: ReactNode[]
   emptyMessage: string
+  /** Optional summary rendered in a closing card-footer (mirrors the
+   *  pagination band on list tables — gives the card a clean bottom edge). */
+  footer?: ReactNode
 }
 
-const ReportTable = ({ columns, rows, totals, emptyMessage }: Props) => (
-  <div className="table-wrapper">
-    <table className="table">
+const ReportTable = ({ columns, rows, totals, emptyMessage, footer }: Props) => (
+  <>
+    <div className="table-wrapper">
+      <table className="table">
       <thead className="thead-sm">
         <tr className="bg-light/25 text-xs uppercase">
           {columns.map((column) => (
@@ -45,7 +49,7 @@ const ReportTable = ({ columns, rows, totals, emptyMessage }: Props) => (
         )}
       </tbody>
       {totals && rows.length > 0 && (
-        <tfoot>
+        <tfoot className="tfoot-sm">
           <tr className="bg-light/40 font-semibold">
             {totals.map((cell, j) => (
               <td key={j} className={columns[j]?.numeric ? 'text-end' : ''}>
@@ -55,8 +59,10 @@ const ReportTable = ({ columns, rows, totals, emptyMessage }: Props) => (
           </tr>
         </tfoot>
       )}
-    </table>
-  </div>
+      </table>
+    </div>
+    {footer && rows.length > 0 && <div className="card-footer">{footer}</div>}
+  </>
 )
 
 export default ReportTable

@@ -30,6 +30,13 @@
             }
         }
 
+        .tfoot-sm {
+            th,
+            td {
+                @apply p-2;
+            }
+        }
+
         th,
         td {
             &:first-child {
@@ -50,7 +57,7 @@
         }
 
         tfoot {
-            @apply bg-default-400/50 border-t font-medium last:[&>tr]:border-b-0;
+            @apply bg-light/25 border-light border-t font-medium last:[&>tr]:border-b-0;
 
             th {
                 @apply text-default-700 h-10 px-2.5 align-middle;
