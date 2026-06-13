@@ -185,7 +185,7 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             <span className="me-1 font-semibold text-nowrap">Filter By:</span>
             <select
-              className="form-select w-auto"
+              className="form-select w-auto min-w-36"
               value={(table.getColumn('status')?.getFilterValue() as string) ?? 'All'}
               onChange={(e) => table.getColumn('status')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}
             >
@@ -196,7 +196,7 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
                 </option>
               ))}
             </select>
-            <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+            <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}

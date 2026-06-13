@@ -393,7 +393,7 @@ const StaffBalances = ({ others, canAdjust, onAdjust }: { others: Other[]; canAd
         <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
           <h4 className="card-title me-auto md:hidden">Staff Balances</h4>
           <span className="text-default-400 text-sm text-nowrap">Rows per page</span>
-          <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+          <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
             {[10, 25, 50].map((size) => (
               <option key={size}>{size}</option>
             ))}

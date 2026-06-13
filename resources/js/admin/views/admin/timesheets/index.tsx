@@ -5,6 +5,7 @@ import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Head, Link } from '@inertiajs/react'
 import {
+  ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
   getFilteredRowModel,
@@ -83,7 +84,13 @@ const Page = ({ timesheets, can_export }: Props) => {
   const [activeTab, setActiveTab] = useState('all')
   const [globalFilter, setGlobalFilter] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+
+  const propertyOptions = useMemo(
+    () => Array.from(new Set(timesheets.map((t) => t.property))).sort((a, b) => a.localeCompare(b)),
+    [timesheets],
+  )
 
   const counts = useMemo(() => {
     const result: Record<string, number> = {}
@@ -99,6 +106,8 @@ const Page = ({ timesheets, can_export }: Props) => {
     () => [
       columnHelper.accessor('property', {
         header: 'Property',
+        filterFn: 'equalsString',
+        enableColumnFilter: true,
         cell: ({ row }) => <span className="font-semibold">{row.original.property}</span>,
       }),
       columnHelper.accessor('week_start', {
@@ -157,15 +166,17 @@ const Page = ({ timesheets, can_export }: Props) => {
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter, pagination },
+    state: { sorting, globalFilter, columnFilters, pagination },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: 'includesString',
+    enableColumnFilters: true,
   })
 
   const pageIndex = table.getState().pagination.pageIndex
@@ -218,7 +229,30 @@ const Page = ({ timesheets, can_export }: Props) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+            {propertyOptions.length > 1 && (
+              <>
+                <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+                <div className="input-icon-group">
+                  <Icon icon="building" className="input-icon" />
+                  <select
+                    className="form-select !w-auto"
+                    value={(table.getColumn('property')?.getFilterValue() as string) ?? 'All'}
+                    onChange={(e) => {
+                      table.getColumn('property')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)
+                      setPagination((p) => ({ ...p, pageIndex: 0 }))
+                    }}
+                  >
+                    <option value="All">All properties</option>
+                    {propertyOptions.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+            <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}

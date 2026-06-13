@@ -150,7 +150,7 @@ const Page = ({ properties, can }: Props) => {
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <select className="form-select w-auto" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+            <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}
