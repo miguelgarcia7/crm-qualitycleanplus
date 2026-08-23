@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             DepartmentSeeder::class,
             PositionSeeder::class,
+            HolidaySeeder::class,
             InventorySeeder::class,
         ]);
 

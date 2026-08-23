@@ -11,12 +11,15 @@ use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Department;
+use App\Domain\PropertyBible\Models\Holiday;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Domain\PropertyBible\Support\HolidayDateResolver;
 use App\Http\Requests\Property\StorePropertyRequest;
 use App\Http\Requests\Property\UpdatePropertyRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -84,6 +87,7 @@ class PropertyController extends Controller
             'departments.department',
             'positionRates.position',
             'assignments.person:id,name',
+            'holidays',
         ]);
 
         if ($canContracts) {
@@ -132,6 +136,7 @@ class PropertyController extends Controller
                 'notes' => $c->notes,
             ]) : [],
             'history' => $this->historyPayload($property),
+            'holidays' => $this->holidaysPayload($property),
             'catalogs' => [
                 'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
                 'positions' => Position::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -148,8 +153,33 @@ class PropertyController extends Controller
                 'downloadContracts' => $user instanceof Person && $user->can('bible.contracts.download'),
                 'manageAssignments' => $user instanceof Person && $user->can('manageAssignments', $property),
                 'inviteUsers' => $user instanceof Person && $user->can('admin.users.create'),
+                'editHolidays' => $user instanceof Person && $user->can('update', $property),
             ],
         ]);
+    }
+
+    /**
+     * Every holiday in the calendar, flagged with whether this property
+     * observes it and its date this year (in the property's timezone).
+     *
+     * @return Collection<int, array{id: int, name: string, type_label: string, this_year: non-falsy-string, enabled: bool}>
+     */
+    private function holidaysPayload(Property $property): Collection
+    {
+        $enabled = $property->holidays->pluck('id')->all();
+        $year = (int) now()->format('Y');
+
+        return Holiday::query()
+            ->orderByRaw("case when type = 'legal' then 0 else 1 end")
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Holiday $h): array => [
+                'id' => $h->id,
+                'name' => $h->name,
+                'type_label' => $h->type->label(),
+                'this_year' => HolidayDateResolver::resolve($h, $year, $property->timezone)->format('M j'),
+                'enabled' => in_array($h->id, $enabled, true),
+            ]);
     }
 
     public function qr(Property $property): Response

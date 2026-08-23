@@ -188,21 +188,26 @@ When `RecomputeTimeSummary` runs for a (work_order, week), it executes the bucke
 
 ```
 1. Load all time_entries for this (work_order, week), oldest first
-2. Load the property's holiday calendar for the year
-3. Walk day-by-day:
+2. Load the property's ATTACHED holidays, resolved in the property's timezone
+   for every year the week touches (weeks can span New Year)
+3. Walk day-by-day (keyed by the entry's property-local start date):
    - For each day, sum duration_minutes
    - Subtract training_minutes (entry_type = training) → training bucket
-   - If date is a property holiday → holiday bucket
+   - If date is a property holiday → holiday bucket (never overtime, but the
+     minutes still advance the weekly 40h counter, so holiday hours push
+     later days into OT)
    - Else: track running weekly total
        - If adding this day pushes weekly past 40h:
            - Split: some goes to regular bucket (up to 40h cap)
            - Remainder goes to overtime bucket
        - Else: add to regular bucket
 4. Compute amounts:
-   - regular_amount_pay = regular_minutes / 60 * pay_rate_snapshot (averaged across entries)
-   - overtime_amount_pay = overtime_minutes / 60 * ot_pay_rate_snapshot
-   - holiday_amount_pay = holiday_minutes / 60 * ot_pay_rate_snapshot (×1.5 holiday rule)
-   - training_amount_pay = training_minutes / 60 * (training rate from config)
+   - regular_amount_pay = regular_minutes / 60 * pay_rate (WO rate)
+   - overtime_amount_pay = overtime_minutes / 60 * ot_pay_rate
+   - holiday_amount_pay = holiday_minutes / 60 * (pay_rate × qcp.time.holiday_multiplier, default 1.5)
+     — deliberately derived from the BASE rate, not the OT rate, so an
+     overridden OT rate never changes holiday pay
+   - training_amount_pay = training_minutes / 60 * pay_rate (not billed)
    - same for bill
 5. Sum to total_pay, total_bill
 6. Write/update time_summaries row

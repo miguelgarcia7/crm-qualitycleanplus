@@ -10,6 +10,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\EquipmentAssignmentController;
 use App\Http\Controllers\FieldVisitController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\PositionController;
 use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
+use App\Http\Controllers\PropertyHolidayController;
 use App\Http\Controllers\PropertyPositionRateController;
 use App\Http\Controllers\PtoController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -69,6 +71,11 @@ Route::get('departments', [DepartmentController::class, 'index'])->middleware('c
 Route::post('departments', [DepartmentController::class, 'store'])->middleware('can:bible.departments.edit')->name('departments.store');
 Route::match(['put', 'patch'], 'departments/{department}', [DepartmentController::class, 'update'])->middleware('can:bible.departments.edit')->name('departments.update');
 
+// Holiday calendar — legal holidays read-only, custom deletable; properties opt in per holiday
+Route::get('holidays', [HolidayController::class, 'index'])->middleware('can:bible.holidays.view')->name('holidays.index');
+Route::post('holidays', [HolidayController::class, 'store'])->middleware('can:bible.holidays.edit')->name('holidays.store');
+Route::delete('holidays/{holiday}', [HolidayController::class, 'destroy'])->middleware('can:bible.holidays.edit')->name('holidays.destroy');
+
 // Bible sub-sections (nested under a property)
 Route::post('properties/{property}/departments', [PropertyDepartmentController::class, 'store'])->name('properties.departments.store');
 Route::match(['put', 'patch'], 'properties/{property}/departments/{department}', [PropertyDepartmentController::class, 'update'])->name('properties.departments.update');
@@ -76,6 +83,8 @@ Route::delete('properties/{property}/departments/{department}', [PropertyDepartm
 
 Route::post('properties/{property}/rates', [PropertyPositionRateController::class, 'store'])->name('properties.rates.store');
 Route::delete('properties/{property}/rates/{rate}', [PropertyPositionRateController::class, 'destroy'])->name('properties.rates.destroy');
+
+Route::put('properties/{property}/holidays', [PropertyHolidayController::class, 'sync'])->name('properties.holidays.sync');
 
 Route::post('properties/{property}/contracts', [ContractController::class, 'store'])->name('properties.contracts.store');
 Route::get('properties/{property}/contracts/{contract}/download', [ContractController::class, 'download'])->name('properties.contracts.download');

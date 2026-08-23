@@ -5,6 +5,7 @@ namespace App\Domain\PropertyBible\Models;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
+use App\Domain\PropertyBible\Support\HolidayDateResolver;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -115,6 +117,34 @@ class Property extends Model
     public function payrollPeriods(): HasMany
     {
         return $this->hasMany(PayrollPeriod::class);
+    }
+
+    /**
+     * @return BelongsToMany<Holiday, $this>
+     */
+    public function holidays(): BelongsToMany
+    {
+        return $this->belongsToMany(Holiday::class, 'property_holiday')->withTimestamps();
+    }
+
+    /**
+     * This property's holiday dates for the given years, resolved in its own
+     * timezone: local date string => holiday name. Time bucketing compares a
+     * punch's local start date against these keys.
+     *
+     * @param  list<int>  $years
+     * @return array<string, string>
+     */
+    public function holidayDates(array $years): array
+    {
+        $dates = [];
+        foreach ($this->holidays as $holiday) {
+            foreach (array_unique($years) as $year) {
+                $dates[HolidayDateResolver::resolve($holiday, $year, $this->timezone)->toDateString()] = $holiday->name;
+            }
+        }
+
+        return $dates;
     }
 
     /**

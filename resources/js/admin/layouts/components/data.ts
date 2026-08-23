@@ -27,6 +27,7 @@ export const menuItems: MenuItemType[] = [
       { url: '/admin/properties', slug: 'bible', label: 'Property Bible', icon: 'building', permission: 'bible.properties.view' },
       { url: '/admin/positions', slug: 'positions', label: 'Positions', icon: 'id-badge-2', permission: 'bible.positions.edit' },
       { url: '/admin/departments', slug: 'departments', label: 'Departments', icon: 'sitemap', permission: 'bible.departments.edit' },
+      { url: '/admin/holidays', slug: 'holidays', label: 'Holidays', icon: 'calendar-star', permission: 'bible.holidays.edit' },
       { url: '/admin/work-orders', slug: 'work-orders', label: 'Work Orders', icon: 'clipboard-list', permission: 'work_orders.view' },
       { url: '/admin/timesheets', slug: 'timesheets', label: 'Timesheets', icon: 'clock', permission: 'timesheets.view_history' },
       { url: '/admin/field-visits', slug: 'field-visits', label: 'Field Visits', icon: 'map-pin', permission: 'field_visits.view_own' },

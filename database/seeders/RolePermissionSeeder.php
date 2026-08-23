@@ -40,6 +40,8 @@ class RolePermissionSeeder extends Seeder
             'bible.positions.edit' => ['admin', 'office_manager', 'payroll'],
             'bible.rates.view' => ['admin', 'office_manager', 'payroll', 'recruiter'],
             'bible.rates.edit' => ['admin', 'office_manager', 'payroll'],
+            'bible.holidays.view' => ['admin', 'office_manager', 'hr', 'payroll', 'recruiter', 'property_manager'],
+            'bible.holidays.edit' => ['admin', 'office_manager', 'payroll'],
             'bible.contracts.view' => ['admin', 'payroll'],
             'bible.contracts.edit' => ['admin', 'payroll'],
             'bible.contracts.download' => ['admin', 'payroll'],

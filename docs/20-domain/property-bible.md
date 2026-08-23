@@ -12,13 +12,14 @@ Every property has its Bible accessible through the back-office under `Propertie
 
 ## Sections of the Bible
 
-A property's Bible has five sections:
+A property's Bible has six sections:
 
 1. **Profile** — basic identity and contact info
 2. **Departments** — operational units within the property with their managers
 3. **Positions & Rates** — what jobs exist here and what they pay/bill
-4. **Contracts** — signed agreements (restricted access)
-5. **Notes / History** — audit log and timeline of changes
+4. **Holidays** — which calendar holidays this property observes (see below)
+5. **Contracts** — signed agreements (restricted access)
+6. **Notes / History** — audit log and timeline of changes
 
 ## 1. Profile
 
@@ -112,6 +113,23 @@ Once past that gate, the Bible's rates **auto-fill** the work order form — the
 - The Bible row stays as the standard; the WO is the actual
 
 When a Bible rate changes, **existing work orders are NOT updated.** Dashboard warning may flag "23 active WOs are below the current Bible standard rate for Housekeeper at this property." See `20-domain/work-orders.md` for rate authority details.
+
+## 3b. Holidays
+
+A global holiday calendar (`holidays` table) is managed at `/admin/holidays`
+(gated `bible.holidays.view` / `.edit`): 7 seeded **legal** holidays follow a
+recurrence rule (e.g. Thanksgiving = 4th Thursday of November) and are
+read-only; **custom** holidays are month/day dates repeating yearly, validated
+with `checkdate` at creation. Properties opt in per holiday on their Bible's
+Holidays tab (`property_holiday` pivot); new properties auto-attach the 4
+defaults (New Year's, Labor Day, Thanksgiving, Christmas).
+
+Work on an observed holiday's date (property-local start date) buckets as
+holiday time at `qcp.time.holiday_multiplier` (default 1.5×) on the WO's base
+rates — never overtime, though the hours still advance the weekly 40h counter.
+Changing a property's holiday set (or deleting a custom holiday) recomputes
+that property's open weeks; closed/invoiced weeks are frozen (ADR-0006). Full
+algorithm: `20-domain/time-tracking.md` §Hourly bucketing.
 
 ## 4. Contracts
 

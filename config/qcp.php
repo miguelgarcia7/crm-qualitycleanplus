@@ -16,11 +16,14 @@ return [
     ],
 
     /*
-    | Time-bucketing rules (20-domain/time-tracking.md). Stable for v1; holiday
-    | bucketing arrives with the holiday calendar in Phase 08.
+    | Time-bucketing rules (20-domain/time-tracking.md). Work on an attached
+    | property holiday's date pays/bills at holiday_multiplier × the WO's base
+    | rates, never overtime — but still advances the weekly 40h counter. One
+    | config key on purpose: the legacy app hardcoded 1.5 in five places.
     */
     'time' => [
         'overtime_weekly_threshold_minutes' => 40 * 60, // hours over 40/week → overtime
+        'holiday_multiplier' => 1.5,                    // holiday pay/bill = base rate × this
         'payroll_periods_ahead' => 4,                   // how many open periods to keep ready
     ],
 

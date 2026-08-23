@@ -53,6 +53,7 @@ type Contract = {
   notes: string | null
 }
 type HistoryRow = { id: number; description: string; event: string | null; causer: string | null; created_at: string | null }
+type PropertyHoliday = { id: number; name: string; type_label: string; this_year: string; enabled: boolean }
 type Option = { id: number; name: string }
 type ValueLabel = { value: string; label: string }
 
@@ -65,6 +66,7 @@ type Can = {
   downloadContracts: boolean
   manageAssignments: boolean
   inviteUsers: boolean
+  editHolidays: boolean
 }
 
 type Props = {
@@ -74,6 +76,7 @@ type Props = {
   assignments: Assignment[]
   contracts: Contract[]
   history: HistoryRow[]
+  holidays: PropertyHoliday[]
   catalogs: {
     departments: Option[]
     positions: Option[]
@@ -696,6 +699,100 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
   )
 }
 
+const HolidaysTab = ({ property, holidays, can }: Pick<Props, 'property' | 'holidays' | 'can'>) => {
+  const [enabledIds, setEnabledIds] = useState<number[]>(holidays.filter((h) => h.enabled).map((h) => h.id))
+  const [saving, setSaving] = useState(false)
+
+  const initial = holidays
+    .filter((h) => h.enabled)
+    .map((h) => h.id)
+    .sort()
+    .join(',')
+  const dirty = [...enabledIds].sort().join(',') !== initial
+
+  const toggle = (id: number) => {
+    setEnabledIds((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id]))
+  }
+
+  const save = () => {
+    setSaving(true)
+    router.put(
+      `/admin/properties/${property.id}/holidays`,
+      { holiday_ids: enabledIds },
+      { preserveScroll: true, onFinish: () => setSaving(false) },
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>Holiday</th>
+              <th>Type</th>
+              <th>This Year</th>
+              <th className="text-center">Observed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {holidays.length ? (
+              holidays.map((h) => (
+                <tr key={h.id}>
+                  <td className="font-medium">{h.name}</td>
+                  <td>
+                    <span
+                      className={cn(
+                        'badge badge-label',
+                        h.type_label === 'Legal' ? 'bg-info/15 text-info' : 'bg-secondary/15 text-secondary',
+                      )}
+                    >
+                      {h.type_label}
+                    </span>
+                  </td>
+                  <td>{h.this_year}</td>
+                  <td className="text-center">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox"
+                      checked={enabledIds.includes(h.id)}
+                      onChange={() => toggle(h.id)}
+                      disabled={!can.editHolidays}
+                    />
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="text-default-400 py-4 text-center">
+                  No holidays in the calendar yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {can.editHolidays && (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white disabled:opacity-50"
+            onClick={save}
+            disabled={!dirty || saving}
+          >
+            Save Holidays
+          </button>
+          <p className="text-default-400 text-sm">
+            Work on an observed holiday pays and bills at the holiday rate and never counts as overtime. Changes recompute the current open
+            weeks; invoiced weeks are frozen.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
   <div className="table-wrapper">
     <table className="table table-hover">
@@ -729,10 +826,11 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
 
 // --- Page ------------------------------------------------------------------
 
-const Page = ({ property, departments, rates, assignments, contracts, history, catalogs, can }: Props) => {
+const Page = ({ property, departments, rates, assignments, contracts, history, holidays, catalogs, can }: Props) => {
   const tabs = [
     { key: 'rates', label: 'Positions & Rates', show: true },
     { key: 'departments', label: 'Departments', show: true },
+    { key: 'holidays', label: 'Holidays', show: true },
     { key: 'team', label: 'Team', show: true },
     { key: 'contracts', label: 'Contracts', show: can.viewContracts },
     { key: 'history', label: 'History', show: true },
@@ -791,6 +889,7 @@ const Page = ({ property, departments, rates, assignments, contracts, history, c
             <div className="card-body p-6">
               {active === 'rates' && <RatesTab property={property} rates={rates} catalogs={catalogs} can={can} />}
               {active === 'departments' && <DepartmentsTab property={property} departments={departments} catalogs={catalogs} can={can} />}
+              {active === 'holidays' && <HolidaysTab property={property} holidays={holidays} can={can} />}
               {active === 'team' && <TeamTab property={property} assignments={assignments} catalogs={catalogs} can={can} />}
               {active === 'contracts' && can.viewContracts && <ContractsTab property={property} contracts={contracts} catalogs={catalogs} can={can} />}
               {active === 'history' && <HistoryTab history={history} />}
