@@ -400,7 +400,7 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
             <div className="table-wrapper">
               <table className="table">
                 <thead className="thead-sm">
-                  <tr className=" uppercase">
+                  <tr className="bg-light/25 text-xs uppercase">
                     <th>Item</th>
                     <th>Status</th>
                     <th className="text-end">Actions</th>
