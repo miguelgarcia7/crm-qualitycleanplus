@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * A property QCP services — the root of its Property Bible (Profile, Departments,
@@ -48,6 +49,7 @@ class Property extends Model
         'latitude',
         'longitude',
         'geofence_radius_meters',
+        'qr_clock_enabled', // qr_token is deliberately NOT fillable — minted by the saving hook
         'closing_day',
         'tax_rate',
         'status',
@@ -66,9 +68,22 @@ class Property extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'geofence_radius_meters' => 'integer',
+            'qr_clock_enabled' => 'boolean',
             'closing_day' => 'integer',
             'tax_rate' => 'decimal:4',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Mint the public QR token the first time QR clock-in is enabled. The
+        // token is the property's unguessable clock-in URL; it never rotates
+        // on disable/re-enable so printed posters stay valid.
+        static::saving(function (Property $property): void {
+            if ($property->qr_clock_enabled && $property->qr_token === null) {
+                $property->qr_token = Str::random(24);
+            }
+        });
     }
 
     /**

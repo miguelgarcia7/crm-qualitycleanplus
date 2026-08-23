@@ -191,8 +191,10 @@ class PropertyController extends Controller
                 'id' => $property->id,
                 'name' => $property->name,
                 'has_location' => $property->latitude !== null && $property->longitude !== null,
+                'qr_clock_enabled' => $property->qr_clock_enabled,
             ],
-            'url' => 'https://'.config('domains.qcminute').'/clock-in/'.$property->id,
+            // Token-based URL — unguessable, minted when QR clock-in is enabled.
+            'url' => $property->qr_token === null ? null : 'https://'.config('domains.qcminute').'/clock-in/'.$property->qr_token,
         ]);
     }
 
@@ -243,6 +245,8 @@ class PropertyController extends Controller
             'latitude' => $property->latitude,
             'longitude' => $property->longitude,
             'geofence_radius_meters' => $property->geofence_radius_meters,
+            'qr_clock_enabled' => $property->qr_clock_enabled,
+            'has_qr_token' => $property->qr_token !== null,
             'closing_day' => $property->closing_day,
             'tax_rate' => $property->tax_rate,
             'status' => $property->status->value,

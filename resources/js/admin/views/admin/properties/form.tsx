@@ -17,6 +17,8 @@ type Property = {
   latitude: string | null
   longitude: string | null
   geofence_radius_meters: number
+  qr_clock_enabled: boolean
+  has_qr_token: boolean
   closing_day: number | null
   tax_rate: string | null
   status: string
@@ -63,6 +65,7 @@ const Page = ({ property, statuses, timeSources }: Props) => {
     latitude: property?.latitude ?? '',
     longitude: property?.longitude ?? '',
     geofence_radius_meters: property?.geofence_radius_meters ?? 300,
+    qr_clock_enabled: property?.qr_clock_enabled ?? false,
     closing_day: property?.closing_day ?? '',
     tax_rate: property?.tax_rate ?? '0',
     status: property?.status ?? 'active',
@@ -192,6 +195,27 @@ const Page = ({ property, statuses, timeSources }: Props) => {
                     onChange={(e) => setData('geofence_radius_meters', Number(e.target.value))}
                   />
                 </Field>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2" title={!data.latitude ? 'Set coordinates first' : undefined}>
+                  <input
+                    type="checkbox"
+                    className="form-checkbox"
+                    checked={data.qr_clock_enabled}
+                    disabled={!data.latitude && !data.qr_clock_enabled}
+                    onChange={(e) => setData('qr_clock_enabled', e.target.checked)}
+                  />
+                  <span className="font-medium">QR clock-in enabled</span>
+                </label>
+                <p className="text-default-400 mt-1 text-sm">
+                  {property?.has_qr_token
+                    ? 'This property has an active QR code — find the printable poster under "Clock-in QR" on the property page.'
+                    : data.qr_clock_enabled
+                      ? 'A unique QR code will be generated the first time you save with this enabled.'
+                      : 'Contractors clock in by scanning a poster QR code with their phone. Requires coordinates.'}
+                </p>
+                {errors.qr_clock_enabled && <p className="text-danger mt-1 text-sm">{errors.qr_clock_enabled}</p>}
               </div>
             </div>
 

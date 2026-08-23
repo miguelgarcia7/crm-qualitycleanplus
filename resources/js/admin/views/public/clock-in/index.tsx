@@ -2,11 +2,11 @@ import AppProvidersWrapper from '@/components/wrappers/AppProvidersWrapper'
 import { Head, router, usePage } from '@inertiajs/react'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 
-type Property = { id: number; name: string; city: string | null; state: string | null }
+type Property = { token: string; name: string; city: string | null; state: string | null }
 type WorkOrderOption = { id: number; position: string | null }
 type OpenEntry = { id: number; property: string | null; position: string | null; since: string | null; same_property: boolean }
 type Lookup = { phone: string; error?: string; contractor?: string; work_orders?: WorkOrderOption[]; open_entry?: OpenEntry | null }
-type Result = { action: 'in' | 'out'; position?: string | null; duration?: string; at: string | null }
+type Result = { action: 'in' | 'out'; position?: string | null; duration?: string; at: string | null; flagged?: boolean }
 
 type Props = { property: Property; lookup?: Lookup; result?: Result }
 
@@ -27,6 +27,9 @@ const Page = ({ property, lookup, result }: Props) => {
   const [workOrderId, setWorkOrderId] = useState<string>('')
   const [geo, setGeo] = useState<Geo | null>(null)
   const [geoError, setGeoError] = useState<string | null>(null)
+  // GPS is flag-not-block: after a failed attempt the punch may proceed and
+  // is flagged for review server-side (GpsPolicy).
+  const [geoFailure, setGeoFailure] = useState<'permission_denied' | 'no_fix' | null>(null)
   const [selfie, setSelfie] = useState<File | null>(null)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -71,12 +74,18 @@ const Page = ({ property, lookup, result }: Props) => {
   const requestGps = () => {
     setGeoError(null)
     if (!navigator.geolocation) {
-      setGeoError('Location is not available on this device.')
+      setGeoFailure('no_fix')
       return
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) }),
-      () => setGeoError('Could not get your location. Please enable location access and try again.'),
+      (pos) => {
+        setGeoFailure(null)
+        setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) })
+      },
+      (err) => {
+        setGeoFailure(err.code === err.PERMISSION_DENIED ? 'permission_denied' : 'no_fix')
+        setGeoError('Could not get your location. You can retry, or continue — your manager will be notified.')
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     )
   }
@@ -95,25 +104,29 @@ const Page = ({ property, lookup, result }: Props) => {
 
   const lookupPhone = (e: FormEvent) => {
     e.preventDefault()
-    router.post(`/clock-in/${property.id}/lookup`, { phone }, { preserveScroll: true })
+    router.post(`/clock-in/${property.token}/lookup`, { phone }, { preserveScroll: true })
   }
 
   const submit = () => {
-    if (!geo || !selfie) return
+    if ((!geo && !geoFailure) || !selfie) return
     setSubmitting(true)
     const data = new FormData()
     data.append('phone', phone)
-    data.append('lat', String(geo.lat))
-    data.append('lng', String(geo.lng))
-    if (geo.accuracy !== null) data.append('accuracy', String(geo.accuracy))
+    if (geo) {
+      data.append('lat', String(geo.lat))
+      data.append('lng', String(geo.lng))
+      if (geo.accuracy !== null) data.append('accuracy', String(geo.accuracy))
+    } else if (geoFailure) {
+      data.append('gps_failure_reason', geoFailure)
+    }
     data.append('selfie', selfie)
 
     if (openHere) {
       data.append('time_entry_id', String(openHere.id))
-      router.post(`/clock-in/${property.id}/out`, data, { forceFormData: true, onFinish: () => setSubmitting(false) })
+      router.post(`/clock-in/${property.token}/out`, data, { forceFormData: true, onFinish: () => setSubmitting(false) })
     } else {
       data.append('work_order_id', workOrderId)
-      router.post(`/clock-in/${property.id}/in`, data, { forceFormData: true, onFinish: () => setSubmitting(false) })
+      router.post(`/clock-in/${property.token}/in`, data, { forceFormData: true, onFinish: () => setSubmitting(false) })
     }
   }
 
@@ -141,7 +154,12 @@ const Page = ({ property, lookup, result }: Props) => {
                   ? `${result.position ?? 'Shift'} · started at ${result.at}`
                   : `${result.at} · worked ${result.duration}`}
               </p>
-              <a href={`/clock-in/${property.id}`} className="btn btn-light mt-6 w-full">
+              {result.flagged && (
+                <p className="text-warning mt-3 text-sm">
+                  Your location could not be verified, so this punch was flagged for review — no action needed from you.
+                </p>
+              )}
+              <a href={`/clock-in/${property.token}`} className="btn btn-light mt-6 w-full">
                 Done
               </a>
             </div>
@@ -208,10 +226,11 @@ const Page = ({ property, lookup, result }: Props) => {
                 <p className="text-success text-sm">✓ Location captured (±{geo.accuracy ?? '?'}m)</p>
               ) : (
                 <button type="button" className="btn btn-light w-full" onClick={requestGps}>
-                  Share my location
+                  {geoFailure ? 'Retry location' : 'Share my location'}
                 </button>
               )}
-              {(geoError || errors.gps) && <p className="text-danger mt-1 text-sm">{geoError ?? errors.gps}</p>}
+              {geoError && !geo && <p className="text-warning mt-1 text-sm">{geoError}</p>}
+              {errors.gps && <p className="text-danger mt-1 text-sm">{errors.gps}</p>}
             </div>
 
             {/* Selfie */}
@@ -236,7 +255,7 @@ const Page = ({ property, lookup, result }: Props) => {
             <button
               type="button"
               className="btn bg-primary w-full py-2.5 font-semibold text-white disabled:opacity-50"
-              disabled={submitting || !geo || !selfie || (!openHere && !workOrderId)}
+              disabled={submitting || (!geo && !geoFailure) || !selfie || (!openHere && !workOrderId)}
               onClick={submit}
             >
               {openHere ? 'Confirm clock out' : 'Confirm clock in'}

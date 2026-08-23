@@ -103,6 +103,7 @@ class SampleDataSeeder extends Seeder
                 'timezone' => 'America/Chicago',
                 'latitude' => 32.7767,   // enables the QR clock-in geofence (Phase 07a)
                 'longitude' => -96.7970,
+                'qr_clock_enabled' => true, // mints the qr_token on save
                 'tax_rate' => 0.0875,
                 'closing_day' => 1, // week ends Monday → Tue–Mon timesheets
                 'status' => PropertyStatus::Active,
@@ -467,6 +468,7 @@ class SampleDataSeeder extends Seeder
             'timezone' => 'America/Chicago',
             'latitude' => 33.0198,
             'longitude' => -96.6989,
+            'qr_clock_enabled' => true,
             'tax_rate' => 0.081,
             'closing_day' => 3, // week ends Wednesday → Thu–Wed timesheets
             'status' => PropertyStatus::Active,

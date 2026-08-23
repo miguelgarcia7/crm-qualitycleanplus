@@ -35,6 +35,11 @@ return new class extends Migration
             $table->decimal('longitude', 10, 7)->nullable();
             $table->unsignedInteger('geofence_radius_meters')->default(300);
 
+            // QR clock-in: the public URL carries an unguessable token, minted
+            // server-side the first time QR is enabled (never fillable).
+            $table->string('qr_token', 32)->nullable()->unique();
+            $table->boolean('qr_clock_enabled')->default(false);
+
             // Billing
             $table->unsignedTinyInteger('closing_day')->nullable(); // day-of-month cycle ends
             $table->decimal('tax_rate', 5, 4)->default(0);          // e.g. 0.0875

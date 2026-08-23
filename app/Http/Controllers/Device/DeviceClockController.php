@@ -117,7 +117,7 @@ class DeviceClockController extends Controller
         }
         $this->assertPhoneOwns($entry->person, $validated['phone']);
 
-        $closed = $action->handle($entry, ['selfie' => $request->file('selfie')]);
+        $closed = $action->handle($entry, ['selfie' => $request->file('selfie')], evaluateGps: false);
 
         return response()->json(['ok' => true, 'action' => 'out', 'duration_minutes' => $closed->duration_minutes]);
     }

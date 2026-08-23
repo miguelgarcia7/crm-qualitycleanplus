@@ -36,7 +36,10 @@ Related: ADR-0017, `20-domain/time-tracking.md`.
    ▼
 2. Scans QR code (printed at front desk, time clock area, etc.)
    │
-   QR is a static URL: qcpstaffing.com/clock-in/{property_id}
+   QR is a static URL: qcpstaffing.com/clock-in/{qr_token}
+   (an unguessable per-property token, minted server-side the first time
+   "QR clock-in enabled" is switched on; unknown token and disabled
+   property 404 identically)
    │
    ▼
 3. Browser opens the QC Minute clock-in page
@@ -165,9 +168,10 @@ This flow uses the existing Sanctum + device authentication pattern. Property's 
 |---|---|---|
 | Phone number not in system | "Phone number not recognized. Please contact HR." | Refuses to advance; no time_entry created |
 | No active work orders | "No active work order at this property. Please contact your recruiter." | Refuses to advance |
-| GPS denied | "Location access required to clock in. Please grant permission." | Block; instructions to enable |
-| GPS unavailable | "Could not detect your location. Please try again outside or use the tablet at the front desk." | Block; suggest tablet fallback |
-| Outside geofence | "You appear to be [X meters] away from [Property]. Clock-in is only available at the property." | Block; log attempt (audit visibility) |
+| GPS denied | "Could not get your location. You can retry, or continue — your manager will be notified." | Allow + flag `permission_denied`; recruiters notified |
+| GPS unavailable | same retry-or-continue message | Allow + flag `no_fix`; recruiters notified |
+| GPS accuracy too blunt for the fence | (no user-facing error — punch proceeds) | Allow + flag `poor_accuracy`; containment deliberately not judged on untrusted evidence |
+| Outside geofence (trusted fix) | "You appear to be [X meters] away from [Property]. Clock-in is only available at the property." | Block clock-IN only; clock-out is allowed + flagged `outside_geofence` |
 | Camera denied | "Camera access required for clock-in verification." | Block; instructions to enable |
 | Already clocked in elsewhere | "You're currently clocked in at [Other Property]. Please clock out before clocking in here." | Block; show prior location |
 | Payroll period closed | "This week's payroll is closed. Please contact your recruiter." | Block; rare (means someone forgot to close on time) |

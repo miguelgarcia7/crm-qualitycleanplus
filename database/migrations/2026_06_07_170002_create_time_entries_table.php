@@ -33,14 +33,18 @@ return new class extends Migration
             $table->string('timezone')->nullable();
 
             // GPS + selfies captured on QR clock in/out (Phase 07a, ADR-0017).
-            // Only the `clock_method = qr` path populates these.
+            // Only the `clock_method = qr` path populates these. A punch that
+            // went through without a trusted GPS fix carries a flag reason
+            // (GpsPolicy: flag-and-notify, never lock a worker out of payroll).
             $table->decimal('clock_in_gps_lat', 10, 7)->nullable();
             $table->decimal('clock_in_gps_lng', 10, 7)->nullable();
             $table->unsignedInteger('clock_in_gps_accuracy_meters')->nullable();
+            $table->string('clock_in_gps_flag_reason', 30)->nullable();
             $table->foreignId('clock_in_selfie_file_id')->nullable()->constrained('files')->nullOnDelete();
             $table->decimal('clock_out_gps_lat', 10, 7)->nullable();
             $table->decimal('clock_out_gps_lng', 10, 7)->nullable();
             $table->unsignedInteger('clock_out_gps_accuracy_meters')->nullable();
+            $table->string('clock_out_gps_flag_reason', 30)->nullable();
             $table->foreignId('clock_out_selfie_file_id')->nullable()->constrained('files')->nullOnDelete();
 
             // Rate snapshots from the work order (cents).

@@ -2,24 +2,29 @@
 
 namespace App\Domain\Time\Actions;
 
-use App\Domain\Shared\Support\Geofence;
+use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\Time\Enums\TimeEntrySource;
 use App\Domain\Time\Enums\TimeEntryType;
 use App\Domain\Time\Events\TimeEntrySaved;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
+use App\Domain\Time\Support\GpsPolicy;
 use App\Domain\Time\Support\StoreSelfie;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Notifications\PunchFlagged;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Opens a QR clock-in time entry for a contractor (Phase 07a, ADR-0017). Enforces
- * the property geofence (blocking — anti-fraud), requires a selfie, snapshots the
- * work order's rates, and leaves the entry open (no end / duration) until clock-out.
+ * Opens a QR clock-in time entry for a contractor (Phase 07a, ADR-0017).
+ * GPS runs through GpsPolicy (flag-and-notify): only a trusted fix outside
+ * the fence blocks; degraded GPS clocks in flagged and the property's
+ * recruiters are notified. Requires a selfie, snapshots the work order's
+ * rates, and leaves the entry open (no end / duration) until clock-out.
  *
- * @phpstan-type ClockData array{lat?: float|null, lng?: float|null, accuracy?: int|null, selfie: UploadedFile}
+ * @phpstan-type ClockData array{lat?: float|null, lng?: float|null, accuracy?: int|null, gps_failure_reason?: string|null, selfie: UploadedFile}
  */
 class ClockInContractor
 {
@@ -38,13 +43,17 @@ class ClockInContractor
             ]);
         }
 
-        if ($enforceGeofence && ($lat === null || $lng === null || ! Geofence::contains($property, $lat, $lng))) {
-            $distance = $lat !== null && $lng !== null ? Geofence::distanceToProperty($property, $lat, $lng) : null;
-            throw ValidationException::withMessages([
-                'gps' => $distance === null
-                    ? 'This property has no location configured yet — clock-in is unavailable.'
-                    : 'You appear to be '.(int) round($distance)." meters from {$property->name}. Clock-in is only available at the property.",
-            ]);
+        $flagReason = null;
+        if ($enforceGeofence) {
+            $gps = GpsPolicy::evaluate($property, $lat, $lng, $data['accuracy'] ?? null, $data['gps_failure_reason'] ?? null);
+
+            if ($gps['outcome'] === GpsPolicy::OUTCOME_BLOCKED) {
+                throw ValidationException::withMessages([
+                    'gps' => 'You appear to be '.(int) round((float) $gps['distance'])." meters from {$property->name}. Clock-in is only available at the property.",
+                ]);
+            }
+
+            $flagReason = $gps['flag_reason'];
         }
 
         $now = CarbonImmutable::now('UTC');
@@ -67,13 +76,31 @@ class ClockInContractor
             'clock_in_gps_lat' => $lat,
             'clock_in_gps_lng' => $lng,
             'clock_in_gps_accuracy_meters' => $data['accuracy'] ?? null,
+            'clock_in_gps_flag_reason' => $flagReason,
         ]);
 
         $entry->update(['clock_in_selfie_file_id' => StoreSelfie::for($data['selfie'], $entry, $workOrder->person_id)->id]);
 
+        if ($flagReason !== null) {
+            self::notifyRecruiters($entry, 'in', $flagReason);
+        }
+
         TimeEntrySaved::dispatch($entry->property_id, $period->week_start->toDateString());
 
         return $entry;
+    }
+
+    /** Flag review goes to the property's recruiters (the people who manage the contractor). */
+    public static function notifyRecruiters(TimeEntry $entry, string $direction, string $reason): void
+    {
+        $recruiters = $entry->property?->assignments()
+            ->where('role', PropertyAssignmentRole::Recruiter->value)
+            ->with('person')
+            ->get()
+            ->pluck('person')
+            ->filter() ?? collect();
+
+        Notification::send($recruiters, new PunchFlagged($entry, $direction, $reason));
     }
 
     private function openPeriodForDate(WorkOrder $workOrder, string $date): PayrollPeriod

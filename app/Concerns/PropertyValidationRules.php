@@ -4,6 +4,7 @@ namespace App\Concerns;
 
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
+use App\Domain\PropertyBible\Models\Property;
 use Illuminate\Validation\Rule;
 
 /**
@@ -32,6 +33,21 @@ trait PropertyValidationRules
             // 50m floor: below that, normal phone GPS accuracy can't clear the
             // fence. 5km cap: beyond that the fence stops meaning "on site".
             'geofence_radius_meters' => ['required', 'integer', 'min:50', 'max:5000'],
+            'qr_clock_enabled' => [
+                'sometimes', 'boolean',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    // Enabling QR needs a geofence to judge punches against.
+                    // Fall back to the stored property when the request omits
+                    // latitude (partial update).
+                    $property = $this->route('property');
+                    $lat = $this->has('latitude')
+                        ? $this->input('latitude')
+                        : ($property instanceof Property ? $property->latitude : null);
+                    if ($value && $lat === null) {
+                        $fail('Set the property\'s coordinates before enabling QR clock-in.');
+                    }
+                },
+            ],
             // ISO day-of-week the property's work week ends on (1 = Mon … 7 = Sun).
             'closing_day' => ['nullable', 'integer', 'min:1', 'max:7'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:1'],

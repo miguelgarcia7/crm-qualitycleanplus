@@ -25,6 +25,7 @@ return [
         'overtime_weekly_threshold_minutes' => 40 * 60, // hours over 40/week → overtime
         'holiday_multiplier' => 1.5,                    // holiday pay/bill = base rate × this
         'payroll_periods_ahead' => 4,                   // how many open periods to keep ready
+        'gps_accuracy_cap_meters' => 200,               // ceiling on GpsPolicy's required accuracy (min(cap, radius/2))
     ],
 
     /*
