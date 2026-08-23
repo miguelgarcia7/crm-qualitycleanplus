@@ -118,14 +118,18 @@ it('rejects a phone that does not match the work order', function () {
         ])->assertStatus(422);
 });
 
-it('lets an office manager create a device but forbids a recruiter', function () {
+it('lets a super admin create a device but forbids everyone else', function () {
+    // devices.manage is deliberately super-admin only (sidebar restructure commit).
     $this->seed(RolePermissionSeeder::class);
     $property = Property::factory()->create();
 
     $this->actingAs(person('recruiter'))->post(main('/admin/devices'), ['name' => 'T', 'property_id' => $property->id])
         ->assertForbidden();
 
-    $this->actingAs(person('office_manager'))->post(main('/admin/devices'), ['name' => 'Front Desk', 'property_id' => $property->id])
+    $this->actingAs(person('office_manager'))->post(main('/admin/devices'), ['name' => 'T', 'property_id' => $property->id])
+        ->assertForbidden();
+
+    $this->actingAs(person('super_admin'))->post(main('/admin/devices'), ['name' => 'Front Desk', 'property_id' => $property->id])
         ->assertRedirect();
 
     expect(Device::query()->where('name', 'Front Desk')->exists())->toBeTrue();
