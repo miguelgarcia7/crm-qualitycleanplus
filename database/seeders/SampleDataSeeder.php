@@ -443,6 +443,10 @@ class SampleDataSeeder extends Seeder
         // A third active property (Omni Hotel) owned solely by a SECOND recruiter,
         // Ruben — its own contractors with ~6 weeks of clocked history + this week.
         $this->seedOmniProperty($positions);
+
+        // A fourth active property (MAG Properties, Carrollton TX) — Sat-close week,
+        // 50 m geofence, no tax; owned by Rita, with its own contractors + history.
+        $this->seedMagProperty($positions);
     }
 
     /**
@@ -613,6 +617,99 @@ class SampleDataSeeder extends Seeder
         $this->openClockEntry($workOrders[0], 75);
 
         // Omni was created after the global ensure-periods ran — re-run it so Omni
+        // gets the same current + upcoming open periods/timesheets as the others.
+        Artisan::call('payroll:ensure-periods');
+    }
+
+    private function seedMagProperty($positions): void
+    {
+        $mag = Property::create([
+            'name' => 'MAG Properties',
+            'pm_name' => 'Michelle Gonzalez',       // client-side PM display name (no login)
+            'pm_phone' => '(972) 555-0400',          // placeholder
+            'main_phone' => '(972) 555-0401',        // placeholder
+            'address' => '1519 Palisades Dr.',
+            'city' => 'Carrollton',
+            'state' => 'TX',
+            'zip' => '75007',
+            'timezone' => 'America/Chicago',
+            'latitude' => 32.99539490837768,
+            'longitude' => -96.90267649371854,
+            'geofence_radius_meters' => 50,
+            'tax_rate' => 0,
+            'closing_day' => 6, // ISO 6 = Saturday → Sun–Sat work week
+            'time_source' => PropertyTimeSource::ClockIn,
+            'status' => PropertyStatus::Active,
+        ]);
+
+        // Owned by the primary demo recruiter (Rita); Michelle is the client-side
+        // PM name above, not a QCP staff login.
+        $recruiter = Person::query()->where('email', 'recruiter@example.com')->firstOrFail();
+        $mag->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+
+        // Bible rates for a few positions.
+        foreach ($positions as $i => $position) {
+            $pay = 2000 + $i * 200;
+            $bill = $pay + 1400;
+            $mag->positionRates()->create([
+                'position_id' => $position->id, 'effective_date' => now()->subMonths(2)->toDateString(),
+                'pay_rate' => $pay, 'bill_rate' => $bill,
+                'ot_pay_rate' => (int) round($pay * 1.5), 'ot_bill_rate' => (int) round($bill * 1.5),
+                'is_active' => true, 'created_by' => $recruiter->id,
+            ]);
+        }
+
+        // Three contractors under Rita, each on an active WO opened ~7 weeks ago.
+        $workOrders = [];
+        foreach (['Marisol Mopp', 'Diego Duster', 'Priya Polish'] as $i => $name) {
+            $position = $positions[$i % $positions->count()];
+            $rate = $mag->currentRateFor($position->id);
+
+            $phone = '(972) 555-041'.$i;             // placeholder
+            $contractor = Person::factory()->create([
+                'name' => $name,
+                'status' => PersonStatus::ContractorActive,
+                'primary_recruiter_id' => $recruiter->id,
+                'phone' => $phone,
+                'normalized_phone' => preg_replace('/\D/', '', $phone),
+            ]);
+            $contractor->syncRoles('contractor');
+
+            $workOrders[] = WorkOrder::create([
+                'person_id' => $contractor->id,
+                'property_id' => $mag->id,
+                'position_id' => $position->id,
+                'pay_rate' => $rate->pay_rate,
+                'bill_rate' => $rate->bill_rate,
+                'ot_pay_rate' => $rate->ot_pay_rate,
+                'ot_bill_rate' => $rate->ot_bill_rate,
+                'start_date' => now()->subWeeks(7)->toDateString(),
+                'status' => WorkOrderStatus::Active,
+                'source' => WorkOrderSource::RecruiterCreated,
+                'created_by' => $recruiter->id,
+            ]);
+        }
+
+        $tz = $mag->timezone;
+        $thisWeekStart = $mag->weekStartFor(Carbon::now($tz));
+
+        // Six completed weeks of populated weekly timesheets so MAG shows up across
+        // the timesheets history with hours (first contractor pulls a little OT).
+        $this->backfillWeeklyHistory($mag, $workOrders, 6);
+
+        // This week so far — only the weekdays elapsed (capped at 5).
+        $this->ensurePayrollPeriod($mag, $thisWeekStart);
+        $daysSoFar = max(1, min(5, (int) $thisWeekStart->diffInDays(Carbon::now($tz)) + 1));
+        foreach ($workOrders as $workOrder) {
+            for ($day = 0; $day < $daysSoFar; $day++) {
+                $this->clockEvent($workOrder, $thisWeekStart->copy()->addDays($day)->toDateString(), '09:00', '17:00');
+            }
+        }
+
+        // One contractor on the clock right now for the live "On the clock" widget.
+        $this->openClockEntry($workOrders[0], 60);
+
+        // MAG is created after the global ensure-periods ran — re-run it so MAG
         // gets the same current + upcoming open periods/timesheets as the others.
         Artisan::call('payroll:ensure-periods');
     }
