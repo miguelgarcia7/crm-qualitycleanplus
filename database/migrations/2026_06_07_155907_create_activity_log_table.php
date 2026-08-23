@@ -23,4 +23,9 @@ return new class extends Migration
             $table->index('created_at');
         });
     }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('activity_log');
+    }
 };
