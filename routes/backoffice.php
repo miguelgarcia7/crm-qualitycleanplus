@@ -6,6 +6,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\EquipmentAssignmentController;
 use App\Http\Controllers\FieldVisitController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayIncreaseController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PersonAvatarController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
@@ -56,6 +58,16 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('backoffic
 Route::get('properties/{property}/qr', [PropertyController::class, 'qr'])->name('properties.qr'); // clock-in QR (Phase 07a)
 Route::resource('properties', PropertyController::class);
 
+// Global position catalog — one canonical name list; rates are set per property
+Route::get('positions', [PositionController::class, 'index'])->middleware('can:bible.positions.view')->name('positions.index');
+Route::post('positions', [PositionController::class, 'store'])->middleware('can:bible.positions.edit')->name('positions.store');
+Route::match(['put', 'patch'], 'positions/{position}', [PositionController::class, 'update'])->middleware('can:bible.positions.edit')->name('positions.update');
+
+// Global department catalog — one canonical name list; manager contacts are per property
+Route::get('departments', [DepartmentController::class, 'index'])->middleware('can:bible.departments.view')->name('departments.index');
+Route::post('departments', [DepartmentController::class, 'store'])->middleware('can:bible.departments.edit')->name('departments.store');
+Route::match(['put', 'patch'], 'departments/{department}', [DepartmentController::class, 'update'])->middleware('can:bible.departments.edit')->name('departments.update');
+
 // Bible sub-sections (nested under a property)
 Route::post('properties/{property}/departments', [PropertyDepartmentController::class, 'store'])->name('properties.departments.store');
 Route::match(['put', 'patch'], 'properties/{property}/departments/{department}', [PropertyDepartmentController::class, 'update'])->name('properties.departments.update');
@@ -73,6 +85,7 @@ Route::delete('properties/{property}/assignments/{assignment}', [PropertyAssignm
 
 // Work Orders (Phase 03)
 Route::get('work-orders/rate-lookup', [WorkOrderController::class, 'rateLookup'])->name('work-orders.rate-lookup');
+Route::get('work-orders/position-lookup', [WorkOrderController::class, 'positionLookup'])->name('work-orders.position-lookup');
 Route::resource('work-orders', WorkOrderController::class)->only(['index', 'create', 'store', 'edit', 'update']);
 Route::post('work-orders/{work_order}/close', [WorkOrderController::class, 'close'])->name('work-orders.close');
 
@@ -276,6 +289,7 @@ Route::get('audit', [AuditLogController::class, 'index'])
 
 // People directory (Phase 09b) — policy-gated (contractors/staff tabs, recruiter own-scoping)
 Route::get('people', [PeopleController::class, 'index'])->name('backoffice.people.index');
+
 Route::get('people/{person}', [PeopleController::class, 'show'])->whereNumber('person')->name('backoffice.people.show');
 
 // Profile photos (any authenticated back-office user; streamed from the private disk)

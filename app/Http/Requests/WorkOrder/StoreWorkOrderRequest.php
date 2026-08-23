@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\WorkOrder;
 
+use App\Domain\PropertyBible\Models\Property;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,7 +25,17 @@ class StoreWorkOrderRequest extends FormRequest
         return [
             'person_id' => ['required', 'integer', Rule::exists('people', 'id')->whereNull('deleted_at')],
             'property_id' => ['required', 'integer', Rule::exists('properties', 'id')->whereNull('deleted_at')],
-            'position_id' => ['required', 'integer', Rule::exists('positions', 'id')->whereNull('deleted_at')],
+            'position_id' => [
+                'required', 'integer', Rule::exists('positions', 'id')->whereNull('deleted_at'),
+                // The Bible is authoritative: a WO requires a current rate for
+                // this (property, position) so recruiters never invent rates.
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $property = Property::find((int) $this->input('property_id'));
+                    if ($property !== null && $property->currentRateFor((int) $value) === null) {
+                        $fail('The Property Bible has no current rate for this position at the selected property. Add the rate on the property\'s Rates tab first.');
+                    }
+                },
+            ],
             'pay_rate' => ['required', 'numeric', 'min:0', 'max:100000'],
             'bill_rate' => ['required', 'numeric', 'min:0', 'max:100000'],
             'ot_pay_rate' => ['required', 'numeric', 'min:0', 'max:100000'],

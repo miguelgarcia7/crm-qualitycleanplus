@@ -123,6 +123,16 @@ class WorkOrderController extends Controller
         return to_route('work-orders.index')->with('success', 'Work order closed.');
     }
 
+    /** Positions a work order may be created against at a property: those with a current Bible rate. */
+    public function positionLookup(Request $request): JsonResponse
+    {
+        $this->authorize('create', WorkOrder::class);
+
+        $property = Property::find($request->integer('property_id'));
+
+        return response()->json($property?->configuredPositions() ?? []);
+    }
+
     /** Bible rate auto-fill: current (property, position) rate in cents, or null. */
     public function rateLookup(Request $request): JsonResponse
     {

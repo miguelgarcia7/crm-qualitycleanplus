@@ -63,20 +63,22 @@ Per (property, department):
 
 Used for: "I need to call the F&B manager at the Hilton — what's their number?" answered without hunting through emails.
 
+The department names themselves live in a global catalog (`departments` table) managed at `/admin/departments` (gated `bible.departments.view` / `.edit`): create, rename (propagates everywhere via FK), deactivate — never delete, since `property_departments` references them. Per-property facts (manager name/phone) stay on the property's Departments tab.
+
 ## 3. Positions & Rates
 
 This is the **core feature** of the Bible. It standardizes what jobs exist at each property and what they cost.
 
 ### Positions
 
-Globally defined (`positions` table — e.g. `Housekeeper`, `Banquet Server`, `Dishwasher`, `Janitor`). Per (property, position) you store:
+Globally defined (`positions` table — e.g. `Housekeeper`, `Banquet Server`, `Dishwasher`, `Janitor`), so position names stay canonical across every property, work order, and report. The catalog is managed at `/admin/positions` (gated `bible.positions.view` / `.edit`): create, rename (propagates everywhere via FK), and deactivate — never delete, since rates and work orders reference positions. Per (property, position) you store:
 
 | Field | Notes |
 |---|---|
 | Pay rate | What QCP pays the contractor (cents) |
 | Bill rate | What QCP charges the property (cents) |
-| OT pay rate | Overtime pay rate (cents — typically pay × 1.5 but explicit) |
-| OT bill rate | Overtime bill rate (cents — typically bill × 1.5 but explicit) |
+| OT pay rate | Overtime pay rate (cents — stored explicitly; the form computes 1.5× pay by default, with an explicit override toggle for contracts that differ) |
+| OT bill rate | Overtime bill rate (cents — same: auto 1.5× bill unless overridden) |
 | Effective date | When this rate takes effect |
 | Active | Toggle without delete |
 | Notes | Optional context |
@@ -102,7 +104,9 @@ The "current" rate for (property, position) is the row with the latest `effectiv
 
 ### Rates are reference, work orders are authoritative
 
-The Bible's rates **auto-fill** the work order form when a new WO is created — they don't *force* it. The user can override:
+A work order can only be **created** against a position that has a current Bible rate at that property — the WO form offers only those positions, and the server rejects any other (position, property) pair. This guarantees every WO starts from Bible data; configure the position's rates on the property first.
+
+Once past that gate, the Bible's rates **auto-fill** the work order form — they don't *force* the values. The user can override:
 
 - Two contractors at the same hotel, same position, can have different WO rates (this is real and common)
 - The Bible row stays as the standard; the WO is the actual

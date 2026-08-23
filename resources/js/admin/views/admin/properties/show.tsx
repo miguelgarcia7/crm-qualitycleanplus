@@ -329,6 +329,11 @@ const DepartmentsTab = ({ property, departments, catalogs, can }: Pick<Props, 'p
   )
 }
 
+const otFromBase = (value: string) => {
+  const n = parseFloat(value)
+  return isNaN(n) ? '' : (n * 1.5).toFixed(2)
+}
+
 const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | 'rates' | 'catalogs' | 'can'>) => {
   const { data, setData, post, processing, errors, reset } = useForm({
     position_id: '',
@@ -340,9 +345,24 @@ const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | '
     notes: '',
   })
 
+  // OT is 1.5× by default; the override toggle unlocks the fields for the rare
+  // contract that stipulates a different overtime multiplier.
+  const [overrideOt, setOverrideOt] = useState(false)
+  useEffect(() => {
+    if (overrideOt) return
+    setData((d) => ({ ...d, ot_pay_rate: otFromBase(d.pay_rate), ot_bill_rate: otFromBase(d.bill_rate) }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.pay_rate, data.bill_rate, overrideOt])
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    post(`/admin/properties/${property.id}/rates`, { preserveScroll: true, onSuccess: () => reset() })
+    post(`/admin/properties/${property.id}/rates`, {
+      preserveScroll: true,
+      onSuccess: () => {
+        reset()
+        setOverrideOt(false)
+      },
+    })
   }
 
   return (
@@ -413,12 +433,39 @@ const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | '
             <input className="form-input" value={data.bill_rate} onChange={(e) => setData('bill_rate', e.target.value)} required />
           </div>
           <div>
-            <label className="form-label">OT Pay ($)</label>
-            <input className="form-input" value={data.ot_pay_rate} onChange={(e) => setData('ot_pay_rate', e.target.value)} required />
+            <label className="form-label">OT Pay ($){!overrideOt && <span className="text-default-400"> · auto 1.5×</span>}</label>
+            <input
+              className={cn('form-input', !overrideOt && 'opacity-60')}
+              value={data.ot_pay_rate}
+              onChange={(e) => setData('ot_pay_rate', e.target.value)}
+              readOnly={!overrideOt}
+              tabIndex={overrideOt ? undefined : -1}
+              required
+            />
+            {errors.ot_pay_rate && <p className="text-danger mt-1 text-sm">{errors.ot_pay_rate}</p>}
           </div>
           <div>
-            <label className="form-label">OT Bill ($)</label>
-            <input className="form-input" value={data.ot_bill_rate} onChange={(e) => setData('ot_bill_rate', e.target.value)} required />
+            <label className="form-label">OT Bill ($){!overrideOt && <span className="text-default-400"> · auto 1.5×</span>}</label>
+            <input
+              className={cn('form-input', !overrideOt && 'opacity-60')}
+              value={data.ot_bill_rate}
+              onChange={(e) => setData('ot_bill_rate', e.target.value)}
+              readOnly={!overrideOt}
+              tabIndex={overrideOt ? undefined : -1}
+              required
+            />
+            {errors.ot_bill_rate && <p className="text-danger mt-1 text-sm">{errors.ot_bill_rate}</p>}
+          </div>
+          <div className="col-span-2 -mt-2 md:col-span-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="form-checkbox"
+                checked={overrideOt}
+                onChange={(e) => setOverrideOt(e.target.checked)}
+              />
+              Override OT rates — this property&apos;s contract differs from the standard 1.5×
+            </label>
           </div>
           <div>
             <label className="form-label">Effective Date</label>

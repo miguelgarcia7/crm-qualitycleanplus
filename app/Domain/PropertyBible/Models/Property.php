@@ -11,6 +11,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\PropertyFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -176,5 +177,23 @@ class Property extends Model
             ->whereDate('effective_date', '<=', now())
             ->orderByDesc('effective_date')
             ->first();
+    }
+
+    /**
+     * Positions this property has a current Bible rate for — the only positions
+     * a work order may be created against here.
+     *
+     * @return Collection<int, Position>
+     */
+    public function configuredPositions(): Collection
+    {
+        return Position::query()
+            ->where('is_active', true)
+            ->whereIn('id', $this->positionRates()
+                ->where('is_active', true)
+                ->whereDate('effective_date', '<=', now())
+                ->select('position_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 }

@@ -1,6 +1,6 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { Head, Link, useForm } from '@inertiajs/react'
-import { FormEvent, useEffect } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 
 type Option = { id: number; name: string }
 type WorkOrder = {
@@ -25,6 +25,15 @@ type Props = {
 }
 
 const toDollars = (cents: number) => (cents / 100).toFixed(2)
+
+const otFromBase = (value: string) => {
+  const n = parseFloat(value)
+  return isNaN(n) ? '' : (n * 1.5).toFixed(2)
+}
+
+// Whether stored cent values deviate from the standard 1.5× OT convention.
+const otDeviates = (pay: number, bill: number, otPay: number, otBill: number) =>
+  Math.abs(otPay - pay * 1.5) > 1 || Math.abs(otBill - bill * 1.5) > 1
 
 const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
   <div>
@@ -54,6 +63,41 @@ const Page = ({ workOrder, catalogs }: Props) => {
 
   const linkableRequests = (catalogs.moreStaffRequests ?? []).filter((r) => String(r.property_id) === data.property_id)
 
+  // Positions come from the Property Bible: only those with a current rate at
+  // the chosen property are offered (create only; edit shows the stored one).
+  const [positionOptions, setPositionOptions] = useState<Option[]>(editing ? catalogs.positions : [])
+  useEffect(() => {
+    if (editing) return
+    if (!data.property_id) {
+      setPositionOptions([])
+      return
+    }
+    let stale = false
+    fetch(`/admin/work-orders/position-lookup?property_id=${data.property_id}`, { headers: { Accept: 'application/json' } })
+      .then((r) => r.json())
+      .then((options: Option[]) => {
+        if (stale) return
+        setPositionOptions(options)
+        setData((d) => (options.some((o) => String(o.id) === d.position_id) ? d : { ...d, position_id: '' }))
+      })
+      .catch(() => {})
+    return () => {
+      stale = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.property_id])
+
+  // OT is 1.5× by default; override unlocks the fields when a contract (or the
+  // Bible rate) deviates. Editing an off-standard WO starts in override mode.
+  const [overrideOt, setOverrideOt] = useState(
+    () => workOrder !== null && otDeviates(workOrder.pay_rate, workOrder.bill_rate, workOrder.ot_pay_rate, workOrder.ot_bill_rate),
+  )
+  useEffect(() => {
+    if (overrideOt) return
+    setData((d) => ({ ...d, ot_pay_rate: otFromBase(d.pay_rate), ot_bill_rate: otFromBase(d.bill_rate) }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.pay_rate, data.bill_rate, overrideOt])
+
   // Auto-fill rates from the Property Bible when property + position are chosen
   // (create only; don't clobber an existing WO's rates). Overridable.
   useEffect(() => {
@@ -70,6 +114,8 @@ const Page = ({ workOrder, catalogs }: Props) => {
           ot_pay_rate: toDollars(rate.ot_pay_rate),
           ot_bill_rate: toDollars(rate.ot_bill_rate),
         }))
+        // A Bible rate with non-standard OT carries its override into the WO.
+        setOverrideOt(otDeviates(rate.pay_rate, rate.bill_rate, rate.ot_pay_rate, rate.ot_bill_rate))
       })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,12 +152,27 @@ const Page = ({ workOrder, catalogs }: Props) => {
                 </select>
               </Field>
               <Field label="Position" error={errors.position_id}>
-                <select className="form-select" value={data.position_id} onChange={(e) => setData('position_id', e.target.value)} disabled={editing} required>
-                  <option value="">Select…</option>
-                  {catalogs.positions.map((o) => (
+                <select
+                  className="form-select"
+                  value={data.position_id}
+                  onChange={(e) => setData('position_id', e.target.value)}
+                  disabled={editing || !data.property_id}
+                  required
+                >
+                  <option value="">{data.property_id || editing ? 'Select…' : 'Select a property first'}</option>
+                  {positionOptions.map((o) => (
                     <option key={o.id} value={o.id}>{o.name}</option>
                   ))}
                 </select>
+                {!editing && data.property_id && positionOptions.length === 0 && (
+                  <p className="text-warning mt-1 text-sm">
+                    This property has no positions with Bible rates yet —{' '}
+                    <Link href={`/admin/properties/${data.property_id}`} className="underline">
+                      add rates on the property
+                    </Link>{' '}
+                    first.
+                  </p>
+                )}
               </Field>
 
               <Field label="Pay Rate ($)" error={errors.pay_rate}>
@@ -121,13 +182,32 @@ const Page = ({ workOrder, catalogs }: Props) => {
                 <input className="form-input" value={data.bill_rate} onChange={(e) => setData('bill_rate', e.target.value)} required />
               </Field>
               <div />
-              <Field label="OT Pay Rate ($)" error={errors.ot_pay_rate}>
-                <input className="form-input" value={data.ot_pay_rate} onChange={(e) => setData('ot_pay_rate', e.target.value)} required />
+              <Field label={overrideOt ? 'OT Pay Rate ($)' : 'OT Pay Rate ($) · auto 1.5×'} error={errors.ot_pay_rate}>
+                <input
+                  className={`form-input ${overrideOt ? '' : 'opacity-60'}`}
+                  value={data.ot_pay_rate}
+                  onChange={(e) => setData('ot_pay_rate', e.target.value)}
+                  readOnly={!overrideOt}
+                  tabIndex={overrideOt ? undefined : -1}
+                  required
+                />
               </Field>
-              <Field label="OT Bill Rate ($)" error={errors.ot_bill_rate}>
-                <input className="form-input" value={data.ot_bill_rate} onChange={(e) => setData('ot_bill_rate', e.target.value)} required />
+              <Field label={overrideOt ? 'OT Bill Rate ($)' : 'OT Bill Rate ($) · auto 1.5×'} error={errors.ot_bill_rate}>
+                <input
+                  className={`form-input ${overrideOt ? '' : 'opacity-60'}`}
+                  value={data.ot_bill_rate}
+                  onChange={(e) => setData('ot_bill_rate', e.target.value)}
+                  readOnly={!overrideOt}
+                  tabIndex={overrideOt ? undefined : -1}
+                  required
+                />
               </Field>
-              <div />
+              <div className="flex items-end pb-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="form-checkbox" checked={overrideOt} onChange={(e) => setOverrideOt(e.target.checked)} />
+                  Override OT rates (≠ 1.5×)
+                </label>
+              </div>
 
               <Field label="Start Date" error={errors.start_date}>
                 <input type="date" className="form-input" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} required />
