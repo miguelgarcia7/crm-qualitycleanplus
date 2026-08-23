@@ -32,6 +32,20 @@ it('lets an office manager create a property', function () {
     expect(Property::where('name', 'Marriott Downtown')->exists())->toBeTrue();
 });
 
+it('rejects a lone coordinate and an unusable geofence radius', function () {
+    $this->actingAs(person('office_manager'))
+        ->post(main('/admin/properties'), array_merge(propertyPayload(), ['latitude' => 33.44, 'longitude' => null]))
+        ->assertSessionHasErrors('longitude');
+
+    $this->actingAs(person('office_manager'))
+        ->post(main('/admin/properties'), array_merge(propertyPayload(), ['geofence_radius_meters' => 10]))
+        ->assertSessionHasErrors('geofence_radius_meters');
+
+    $this->actingAs(person('office_manager'))
+        ->post(main('/admin/properties'), array_merge(propertyPayload(), ['geofence_radius_meters' => 9999]))
+        ->assertSessionHasErrors('geofence_radius_meters');
+});
+
 it('records property creation in the activity log', function () {
     $this->actingAs(person('office_manager'))
         ->post(main('/admin/properties'), propertyPayload());

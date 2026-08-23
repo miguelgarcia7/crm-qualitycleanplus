@@ -27,9 +27,11 @@ trait PropertyValidationRules
             'state' => ['nullable', 'string', 'max:64'],
             'zip' => ['nullable', 'string', 'max:16'],
             'timezone' => ['required', 'string', 'timezone:all'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-            'geofence_radius_meters' => ['required', 'integer', 'min:0', 'max:100000'],
+            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
+            // 50m floor: below that, normal phone GPS accuracy can't clear the
+            // fence. 5km cap: beyond that the fence stops meaning "on site".
+            'geofence_radius_meters' => ['required', 'integer', 'min:50', 'max:5000'],
             // ISO day-of-week the property's work week ends on (1 = Mon … 7 = Sun).
             'closing_day' => ['nullable', 'integer', 'min:1', 'max:7'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:1'],

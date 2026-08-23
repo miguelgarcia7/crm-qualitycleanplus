@@ -33,8 +33,8 @@ Standard property identity. One row in `properties`.
 | Hotel main phone | Front desk / switchboard |
 | Address, city, state, zip | Postal address |
 | Timezone | IANA timezone string (e.g. `America/Phoenix`) — drives all time-tracking math |
-| Latitude / longitude | Used for geofencing (recruiter check-in + contractor QR clock-in). Required for new properties. |
-| Geofence radius (meters) | Default 300m; configurable per property. Drives contractor clock-in block + recruiter check-in flag (per ADR-0017) |
+| Latitude / longitude | Used for geofencing (recruiter check-in + contractor QR clock-in). Set on the property form's interactive map (MapLibre + OSM, no API token): drag/click the pin, search an address, or accept the auto-dropped pin geocoded from the property's address. Mutually required; plain inputs remain as fallback. |
+| Geofence radius (meters) | Default 300m; per property, clamped 50–5000m (below 50m normal phone GPS can't clear the fence; above 5km the fence stops meaning "on site"). Drawn live as a circle on the map. Drives contractor clock-in block + recruiter check-in flag (per ADR-0017) |
 | Closing day | Day of **week** the property's work week ends (ISO 1=Mon…7=Sun; unset = Sunday). Payroll periods start the next day — ends Wednesday → Thu–Wed timesheets. See ADR-0009 amendment. |
 | Tax rate | Decimal for sales tax on invoices |
 | Status | active / inactive — inactive properties don't accept new work orders |

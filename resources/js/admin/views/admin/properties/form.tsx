@@ -1,3 +1,4 @@
+import GeofenceMapCard from '@/components/GeofenceMapCard'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { Head, Link, useForm } from '@inertiajs/react'
 import { FormEvent } from 'react'
@@ -128,20 +129,6 @@ const Page = ({ property, statuses, timeSources }: Props) => {
                   ))}
                 </select>
               </Field>
-              <Field label="Latitude" error={errors.latitude}>
-                <input className="form-input" value={data.latitude} onChange={(e) => setData('latitude', e.target.value)} placeholder="33.4484" />
-              </Field>
-              <Field label="Longitude" error={errors.longitude}>
-                <input className="form-input" value={data.longitude} onChange={(e) => setData('longitude', e.target.value)} placeholder="-112.0740" />
-              </Field>
-              <Field label="Geofence Radius (m)" error={errors.geofence_radius_meters}>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={data.geofence_radius_meters}
-                  onChange={(e) => setData('geofence_radius_meters', Number(e.target.value))}
-                />
-              </Field>
               <Field label="Week Ends On" error={errors.closing_day}>
                 <select className="form-select" value={data.closing_day} onChange={(e) => setData('closing_day', e.target.value)}>
                   <option value="">Sunday (default — Mon–Sun week)</option>
@@ -170,6 +157,42 @@ const Page = ({ property, statuses, timeSources }: Props) => {
                 </select>
                 <p className="text-default-400 mt-1 text-xs">Import = no clock-in; hours arrive via the weekly Excel import.</p>
               </Field>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h5 className="font-semibold">Location &amp; Geofence</h5>
+                <p className="text-default-400 text-sm">
+                  Where the property is and how close a contractor's phone must be to QR clock-in.
+                </p>
+              </div>
+
+              <GeofenceMapCard
+                latitude={data.latitude}
+                longitude={data.longitude}
+                radius={data.geofence_radius_meters}
+                addressQuery={[data.address, data.city, data.state].filter(Boolean).join(', ')}
+                onCoordinates={(lat, lng) => setData((d) => ({ ...d, latitude: lat, longitude: lng }))}
+              />
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Field label="Latitude" error={errors.latitude}>
+                  <input className="form-input" value={data.latitude} onChange={(e) => setData('latitude', e.target.value)} placeholder="33.4484" />
+                </Field>
+                <Field label="Longitude" error={errors.longitude}>
+                  <input className="form-input" value={data.longitude} onChange={(e) => setData('longitude', e.target.value)} placeholder="-112.0740" />
+                </Field>
+                <Field label="Geofence Radius (m)" error={errors.geofence_radius_meters}>
+                  <input
+                    type="number"
+                    min={50}
+                    max={5000}
+                    className="form-input"
+                    value={data.geofence_radius_meters}
+                    onChange={(e) => setData('geofence_radius_meters', Number(e.target.value))}
+                  />
+                </Field>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">

@@ -43,6 +43,7 @@
     "jsvectormap": "1.3.3",
     "laravel-echo": "^2.3.7",
     "laravel-vite-plugin": "^2.1.0",
+    "maplibre-gl": "^6.5.0",
     "preline": "4.0.1",
     "pusher-js": "^8.5.0",
     "qrcode.react": "^4.2.0",
