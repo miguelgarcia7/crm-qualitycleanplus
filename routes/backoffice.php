@@ -39,6 +39,7 @@ use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\TimeEntryController;
 use App\Http\Controllers\TimesheetController;
+use App\Http\Controllers\UserInviteController;
 use App\Http\Controllers\WorkflowTaskController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\WorkOrderWorkflowController;
@@ -289,6 +290,10 @@ Route::get('audit', [AuditLogController::class, 'index'])
 
 // People directory (Phase 09b) — policy-gated (contractors/staff tabs, recruiter own-scoping)
 Route::get('people', [PeopleController::class, 'index'])->name('backoffice.people.index');
+
+// Invite a user (PM or internal staff) — creates the person + assignments, emails a set-password link
+Route::get('people/invite', [UserInviteController::class, 'create'])->middleware('can:admin.users.create')->name('people.invite.create');
+Route::post('people/invite', [UserInviteController::class, 'store'])->middleware('can:admin.users.create')->name('people.invite.store');
 
 Route::get('people/{person}', [PeopleController::class, 'show'])->whereNumber('person')->name('backoffice.people.show');
 

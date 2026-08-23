@@ -43,6 +43,7 @@ type StaffRow = {
 type Props = {
   contractors: ContractorRow[] | null
   staff: StaffRow[] | null
+  canInvite: boolean
 }
 
 const statusBadge: Record<string, string> = {
@@ -105,12 +106,14 @@ const PeopleTable = <T extends { id: number }>({
   columns,
   itemsName,
   emptyMessage,
+  action,
 }: {
   rows: T[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: any[]
   itemsName: string
   emptyMessage: string
+  action?: React.ReactNode
 }) => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
@@ -157,6 +160,7 @@ const PeopleTable = <T extends { id: number }>({
               <option key={size}>{size}</option>
             ))}
           </select>
+          {action}
         </div>
       </div>
 
@@ -184,7 +188,13 @@ const PeopleTable = <T extends { id: number }>({
   )
 }
 
-const Page = ({ contractors, staff }: Props) => {
+const Page = ({ contractors, staff, canInvite }: Props) => {
+  const inviteButton = canInvite ? (
+    <Link href="/admin/people/invite" className="btn bg-primary hover:bg-primary-hover text-nowrap text-white">
+      <Icon icon="user-plus" className="me-1 size-4" /> Invite user
+    </Link>
+  ) : undefined
+
   const tabs = [
     { key: 'contractors', label: 'Contractors', show: contractors !== null, count: contractors?.length ?? 0 },
     { key: 'staff', label: 'Staff', show: staff !== null, count: staff?.length ?? 0 },
@@ -300,10 +310,10 @@ const Page = ({ contractors, staff }: Props) => {
         </nav>
 
         {activeTab === 'contractors' && contractors !== null && (
-          <PeopleTable rows={contractors} columns={contractorColumns} itemsName="contractors" emptyMessage="No contractors yet." />
+          <PeopleTable rows={contractors} columns={contractorColumns} itemsName="contractors" emptyMessage="No contractors yet." action={inviteButton} />
         )}
         {activeTab === 'staff' && staff !== null && (
-          <PeopleTable rows={staff} columns={staffColumns} itemsName="staff" emptyMessage="No staff yet." />
+          <PeopleTable rows={staff} columns={staffColumns} itemsName="staff" emptyMessage="No staff yet." action={inviteButton} />
         )}
       </div>
     </>

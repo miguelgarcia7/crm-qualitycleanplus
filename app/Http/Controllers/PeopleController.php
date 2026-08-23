@@ -35,6 +35,7 @@ class PeopleController extends Controller
         return Inertia::render('admin/people/index', [
             'contractors' => $user->can('people.contractors.view') ? $this->contractorRows($user) : null,
             'staff' => $user->can('people.staff.view') ? $this->staffRows() : null,
+            'canInvite' => $user->can('admin.users.create'),
         ]);
     }
 

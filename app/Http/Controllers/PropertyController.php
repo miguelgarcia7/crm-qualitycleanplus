@@ -147,6 +147,7 @@ class PropertyController extends Controller
                 'editContracts' => $user instanceof Person && $user->can('bible.contracts.edit'),
                 'downloadContracts' => $user instanceof Person && $user->can('bible.contracts.download'),
                 'manageAssignments' => $user instanceof Person && $user->can('manageAssignments', $property),
+                'inviteUsers' => $user instanceof Person && $user->can('admin.users.create'),
             ],
         ]);
     }

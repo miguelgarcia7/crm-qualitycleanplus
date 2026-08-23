@@ -140,6 +140,7 @@ Roles get assigned permissions during seeding. See `10-architecture/permissions-
 | Public job application | `applicant` | Public site form submission |
 | Manual entry by HR | varies | Back-office form |
 | Promoted from applicant | `contractor_active` | Recruiter action (workflow) |
+| Invited user | `staff_active` + chosen role | `/admin/people/invite` (gated `admin.users.create`): role picker (PM, recruiter, office manager, front desk, HR, payroll, W-2 — never admin tier), creates the person with no password, emails a set-your-password link (reset-token flow) pointing at the surface they sign in on (QC Minute for PMs, back office for staff). PMs require ≥1 property assignment; recruiters may get a starting book; staff get a hire date (PTO accrual) |
 | Self-registered | (not allowed) | — |
 
 No public registration. All accounts are created either by application or by an authorized internal user.

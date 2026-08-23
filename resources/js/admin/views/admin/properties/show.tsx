@@ -64,6 +64,7 @@ type Can = {
   editContracts: boolean
   downloadContracts: boolean
   manageAssignments: boolean
+  inviteUsers: boolean
 }
 
 type Props = {
@@ -680,6 +681,16 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
             </button>
           </div>
         </form>
+      )}
+
+      {can.inviteUsers && (
+        <p className="text-default-400 text-sm">
+          Person not in the list?{' '}
+          <Link href={`/admin/people/invite?property_id=${property.id}`} className="text-primary underline">
+            Invite a new property user
+          </Link>{' '}
+          — they&apos;ll get an email to set their password.
+        </p>
       )}
     </div>
   )
