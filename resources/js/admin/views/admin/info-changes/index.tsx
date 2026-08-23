@@ -50,8 +50,10 @@ const Page = ({ queue, mine, people, can }: Props) => {
                     <td>{changeList(q.current, q.changes)}{q.reason && <div className="text-default-400 mt-1 text-xs italic">{q.reason}</div>}</td>
                     <td>{q.requested_by ?? '—'}</td>
                     <td className="text-end whitespace-nowrap">
-                      <button className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => router.post(`/admin/info-changes/${q.id}/approve`, {}, { preserveScroll: true })}>Approve</button>
-                      <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white ms-2" onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }) }}>Decline</button>
+                      <div className="flex justify-end gap-1.5">
+                        <button className="btn bg-success/15 text-success hover:bg-success hover:text-white" onClick={() => router.post(`/admin/info-changes/${q.id}/approve`, {}, { preserveScroll: true })}>Approve</button>
+                        <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }) }}>Decline</button>
+                      </div>
                     </td>
                   </tr>
                 )) : <tr><td colSpan={4} className="text-default-400 py-4 text-center">Nothing awaiting verification.</td></tr>}

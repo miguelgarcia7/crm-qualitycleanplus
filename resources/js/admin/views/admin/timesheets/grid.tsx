@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useEffect, useState } from 'react'
 
@@ -90,6 +91,9 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
             </h4>
           </div>
           <div className="flex items-center gap-2">
+            <Link href={`/admin/properties/${property.id}`} className="btn btn-light text-nowrap">
+              <Icon icon="building" className="me-1 size-4" /> Property
+            </Link>
             <button className="btn btn-light px-3 py-1.5" onClick={() => shiftWeek(-1)}>← Prev</button>
             <button className="btn btn-light px-3 py-1.5" onClick={() => shiftWeek(1)}>Next →</button>
             {can.submit && (
@@ -97,7 +101,6 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                 Send for Approval
               </button>
             )}
-            <Link href={`/admin/properties/${property.id}`} className="text-default-500 ms-2 text-sm hover:underline">Property</Link>
           </div>
         </div>
 

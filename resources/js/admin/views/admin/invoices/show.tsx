@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
@@ -40,11 +41,13 @@ const Page = ({ invoice, can }: Props) => {
             <span className="badge badge-label bg-secondary/15 text-secondary">{invoice.status_label}</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/admin/invoices" className="btn btn-light text-nowrap">
+              <Icon icon="arrow-left" className="me-1 size-4" /> All invoices
+            </Link>
             <a href={`/admin/invoices/${invoice.id}/pdf`} className="btn btn-light px-4 py-1.5">Download PDF</a>
             {can.send && (
               <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setSending(true)}>Send to Property</button>
             )}
-            <Link href="/admin/invoices" className="text-default-500 ms-2 text-sm hover:underline">All</Link>
           </div>
         </div>
 

@@ -59,8 +59,8 @@ const Page = ({ tasks }: Props) => {
                     <td>{t.created_at}</td>
                     <td className="text-end">
                       {t.can_act ? (
-                        <div className="inline-flex gap-2">
-                          <button className="btn bg-primary hover:bg-primary-hover text-white" disabled={busy === t.id} onClick={() => complete(t)}>
+                        <div className="flex justify-end gap-1.5">
+                          <button className="btn bg-success/15 text-success hover:bg-success hover:text-white" disabled={busy === t.id} onClick={() => complete(t)}>
                             Complete
                           </button>
                           <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" disabled={busy === t.id} onClick={() => reject(t)}>

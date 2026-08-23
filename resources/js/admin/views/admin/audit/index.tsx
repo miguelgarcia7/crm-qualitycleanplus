@@ -102,7 +102,7 @@ const Page = ({ entries, pagination, filters, options }: Props) => {
         <div className="table-wrapper">
           <table className="table table-hover">
             <thead className="thead-sm">
-              <tr className=" uppercase">
+              <tr className="bg-light/25 text-xs uppercase">
                 <th>When</th>
                 <th>What</th>
                 <th>Subject</th>
