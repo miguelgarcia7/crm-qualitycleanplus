@@ -12,6 +12,7 @@ type Entry = {
   end_time: string | null
   duration_minutes: number | null
   entry_type: string
+  gps_flags: string[]
 }
 type Summary = { regular_minutes: number; overtime_minutes: number; training_minutes: number; total_pay: number; total_bill: number }
 
@@ -140,6 +141,11 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                             {cellEntries(r.work_order_id, d).map((e) => (
                               <div key={e.id} className="mb-1 flex items-center justify-center gap-1">
                                 <span>{e.start_time}–{e.end_time}</span>
+                                {e.gps_flags.length > 0 && (
+                                  <span title={`Punch without verified GPS — ${e.gps_flags.join('; ')}`} className="inline-flex shrink-0">
+                                    <Icon icon="map-pin-off" className="text-warning text-sm" />
+                                  </span>
+                                )}
                                 {can.edit && (
                                   <button className="text-danger" title="Remove"
                                     onClick={() => router.delete(`/admin/time-entries/${e.id}`, { preserveScroll: true })}>×</button>

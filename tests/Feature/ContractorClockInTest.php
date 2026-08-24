@@ -13,6 +13,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Notifications\PunchFlagged;
 use Carbon\CarbonImmutable;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -236,6 +237,22 @@ it('blocks a second clock-in while one is open', function () {
         ->assertSessionHasErrors('work_order_id');
 
     expect(TimeEntry::query()->count())->toBe(1);
+});
+
+it('surfaces GPS flags on the timesheet grid', function () {
+    $s = clockScenario();
+    $this->seed(RolePermissionSeeder::class);
+
+    $this->post(qcminute("/clock-in/{$s['token']}/in"), [
+        'phone' => $s['phone'], 'work_order_id' => $s['workOrder']->id,
+        'gps_failure_reason' => 'no_fix',
+        'selfie' => UploadedFile::fake()->image('s.jpg'),
+    ]);
+
+    $this->actingAs(person('office_manager'))
+        ->get(main("/admin/properties/{$s['property']->id}/grid"))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('entries.0.gps_flags', ['in: no GPS fix']));
 });
 
 it('supports a lunch break as two entries the same day', function () {

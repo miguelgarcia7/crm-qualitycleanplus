@@ -12,6 +12,7 @@ use App\Domain\Time\Events\TimeEntrySaved;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
+use App\Domain\Time\Support\GpsPolicy;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Http\Requests\Time\StoreTimeEntryRequest;
@@ -57,6 +58,11 @@ class TimeEntryController extends Controller
                 'end_time' => $e->end_at_utc?->copy()->setTimezone($tz)->format('H:i'),
                 'duration_minutes' => $e->duration_minutes,
                 'entry_type' => $e->entry_type->value,
+                // GpsPolicy flags: punches recorded without verified GPS.
+                'gps_flags' => array_values(array_filter([
+                    $e->clock_in_gps_flag_reason === null ? null : 'in: '.GpsPolicy::reasonLabel($e->clock_in_gps_flag_reason),
+                    $e->clock_out_gps_flag_reason === null ? null : 'out: '.GpsPolicy::reasonLabel($e->clock_out_gps_flag_reason),
+                ])),
             ]);
 
         $summaries = $period === null ? collect() : TimeSummary::query()
