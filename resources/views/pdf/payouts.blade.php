@@ -33,6 +33,7 @@
                 <th>Contractor</th>
                 <th>Property</th>
                 <th>Position</th>
+                <th>Job Code</th>
                 <th class="num">Regular (h)</th>
                 <th class="num">Overtime (h)</th>
                 <th class="num">Training (h)</th>
@@ -45,6 +46,7 @@
                     <td>{{ $row['contractor'] }}</td>
                     <td>{{ $row['property'] }}</td>
                     <td>{{ $row['position'] }}</td>
+                    <td>{{ $row['job_code'] ?? '—' }}</td>
                     <td class="num">{{ $hours($row['regular_minutes']) }}</td>
                     <td class="num">{{ $hours($row['overtime_minutes']) }}</td>
                     <td class="num">{{ $hours($row['training_minutes']) }}</td>

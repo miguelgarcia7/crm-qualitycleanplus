@@ -216,10 +216,12 @@ it('reports invoiced revenue by month with payout totals', function () {
 it('reports payouts by contractor for the latest payroll week', function () {
     ['workOrder' => $wo, 'monday' => $monday] = reportScenario();
     reportHours($wo, $monday, 5);
+    $wo->property->positionCodes()->create(['position_id' => $wo->position_id, 'job_code' => '1001-10']);
 
     $this->actingAs(person('payroll'))->get(main('/admin/reports/payouts'))
         ->assertOk()
         ->assertSee($wo->person->name)
+        ->assertSee('1001-10') // the property's job code rides along per row
         ->assertSee('95000');
 });
 

@@ -7,6 +7,7 @@ type Row = {
   contractor: string
   property: string
   position: string
+  job_code: string | null
   regular_minutes: number
   overtime_minutes: number
   training_minutes: number
@@ -98,6 +99,7 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
             { label: 'Contractor' },
             { label: 'Property' },
             { label: 'Position' },
+            { label: 'Job Code' },
             { label: 'Regular (h)', numeric: true },
             { label: 'Overtime (h)', numeric: true },
             { label: 'Training (h)', numeric: true },
@@ -107,6 +109,7 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
             <span className="font-semibold">{r.contractor}</span>,
             r.property,
             r.position,
+            r.job_code ?? '—',
             hours(r.regular_minutes),
             hours(r.overtime_minutes),
             hours(r.training_minutes),
@@ -114,6 +117,7 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
           ])}
           totals={[
             'Total',
+            '',
             '',
             '',
             hours(totals.regular_minutes),

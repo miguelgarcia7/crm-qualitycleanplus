@@ -146,9 +146,9 @@ class ReportController extends Controller
         $data = $this->payoutsData($request);
 
         return Excel::download(new ArrayReportExport(
-            ['Contractor', 'Property', 'Position', 'Regular (h)', 'Overtime (h)', 'Training (h)', 'Total Pay ($)'],
+            ['Contractor', 'Property', 'Position', 'Job Code', 'Regular (h)', 'Overtime (h)', 'Training (h)', 'Total Pay ($)'],
             collect($data['rows'])->map(fn (array $row): array => [
-                $row['contractor'], $row['property'], $row['position'],
+                $row['contractor'], $row['property'], $row['position'], $row['job_code'] ?? '',
                 round($row['regular_minutes'] / 60, 1), round($row['overtime_minutes'] / 60, 1),
                 round($row['training_minutes'] / 60, 1), $row['total_pay'] / 100,
             ])->all(),
@@ -327,12 +327,17 @@ class ReportController extends Controller
                 ->join('properties', 'properties.id', '=', 'time_summaries.property_id')
                 ->join('work_orders', 'work_orders.id', '=', 'time_summaries.work_order_id')
                 ->join('positions', 'positions.id', '=', 'work_orders.position_id')
+                ->leftJoin('property_position_codes', function ($join): void {
+                    $join->on('property_position_codes.property_id', '=', 'time_summaries.property_id')
+                        ->on('property_position_codes.position_id', '=', 'work_orders.position_id');
+                })
                 ->whereDate('time_summaries.week_start', $week)
                 ->when($propertyId, fn ($q, $id) => $q->where('time_summaries.property_id', $id))
                 ->select([
                     'people.name as contractor',
                     'properties.name as property',
                     'positions.name as position',
+                    'property_position_codes.job_code',
                     'time_summaries.regular_minutes',
                     'time_summaries.overtime_minutes',
                     'time_summaries.training_minutes',
@@ -344,6 +349,7 @@ class ReportController extends Controller
                     'contractor' => (string) $row->contractor,
                     'property' => (string) $row->property,
                     'position' => (string) $row->position,
+                    'job_code' => $row->job_code === null ? null : (string) $row->job_code,
                     'regular_minutes' => (int) $row->regular_minutes,
                     'overtime_minutes' => (int) $row->overtime_minutes,
                     'training_minutes' => (int) $row->training_minutes,
