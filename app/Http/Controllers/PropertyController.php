@@ -88,6 +88,7 @@ class PropertyController extends Controller
             'positionRates.position',
             'assignments.person:id,name',
             'holidays',
+            'positionCodes',
         ]);
 
         if ($canContracts) {
@@ -137,6 +138,18 @@ class PropertyController extends Controller
             ]) : [],
             'history' => $this->historyPayload($property),
             'holidays' => $this->holidaysPayload($property),
+            // Job codes: one row per position that has (or had) a rate here.
+            'jobCodes' => $property->positionRates
+                ->pluck('position')
+                ->filter()
+                ->unique('id')
+                ->sortBy('name')
+                ->values()
+                ->map(fn ($position): array => [
+                    'position_id' => $position->id,
+                    'position' => $position->name,
+                    'job_code' => $property->positionCodes->firstWhere('position_id', $position->id)?->job_code,
+                ]),
             'catalogs' => [
                 'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
                 'positions' => Position::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),

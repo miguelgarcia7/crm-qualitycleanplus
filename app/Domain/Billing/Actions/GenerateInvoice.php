@@ -55,6 +55,7 @@ class GenerateInvoice
 
             $workSubtotal = 0;
             $reg = $ot = $hol = $trn = 0;
+            $jobCodes = $property->jobCodesByPosition();
 
             foreach ($summaries as $summary) {
                 $wo = $summary->workOrder;
@@ -64,6 +65,7 @@ class GenerateInvoice
                     'work_order_id' => $summary->work_order_id,
                     'contractor_name' => $wo->person->name,
                     'position_name' => $wo->position->name,
+                    'job_code' => $jobCodes[$wo->position_id] ?? null,
                     'pay_rate' => $wo->pay_rate,
                     'ot_pay_rate' => $wo->ot_pay_rate,
                     'bill_rate' => $wo->bill_rate,

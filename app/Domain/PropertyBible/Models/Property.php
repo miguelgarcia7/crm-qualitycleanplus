@@ -143,6 +143,24 @@ class Property extends Model
     }
 
     /**
+     * @return HasMany<PropertyPositionCode, $this>
+     */
+    public function positionCodes(): HasMany
+    {
+        return $this->hasMany(PropertyPositionCode::class);
+    }
+
+    /**
+     * position_id => this property's GL code, for stamping onto invoice lines.
+     *
+     * @return array<int, string>
+     */
+    public function jobCodesByPosition(): array
+    {
+        return $this->positionCodes()->pluck('job_code', 'position_id')->all();
+    }
+
+    /**
      * This property's holiday dates for the given years, resolved in its own
      * timezone: local date string => holiday name. Time bucketing compares a
      * punch's local start date against these keys.

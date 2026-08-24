@@ -20,7 +20,7 @@ return new class extends Migration
 
             $table->string('contractor_name');
             $table->string('position_name');
-            $table->string('job_coding')->nullable();
+            $table->string('job_code', 64)->nullable(); // property's GL code for the position, frozen at issue
 
             $table->bigInteger('pay_rate');
             $table->bigInteger('ot_pay_rate');

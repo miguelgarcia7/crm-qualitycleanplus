@@ -96,10 +96,37 @@ class InvoiceController extends Controller
             'items' => $invoice->items->map(fn ($it): array => [
                 'contractor_name' => $it->contractor_name,
                 'position_name' => $it->position_name,
+                'job_code' => $it->job_code,
                 'regular_minutes' => $it->regular_minutes,
                 'overtime_minutes' => $it->overtime_minutes,
                 'total_bill' => $it->total_bill,
             ]),
+            'position_summary' => $this->positionSummary($invoice),
         ];
+    }
+
+    /**
+     * Per-position rollup of the frozen line items (hours, billed, paid out),
+     * stamped with the property's job code — the margin-per-position view in
+     * the client's own chart of accounts. Grouped by position name, which the
+     * catalog keeps unique.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function positionSummary(Invoice $invoice): array
+    {
+        return $invoice->items
+            ->groupBy('position_name')
+            ->map(fn ($items, string $position): array => [
+                'position' => $position,
+                'job_code' => $items->first()->job_code,
+                'regular_minutes' => (int) $items->sum('regular_minutes'),
+                'overtime_minutes' => (int) $items->sum('overtime_minutes'),
+                'holiday_minutes' => (int) $items->sum('holiday_minutes'),
+                'total_bill' => (int) $items->sum('total_bill'),
+                'total_payout' => (int) $items->sum('total_payout'),
+            ])
+            ->values()
+            ->all();
     }
 }

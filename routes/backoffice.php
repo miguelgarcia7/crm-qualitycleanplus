@@ -30,6 +30,7 @@ use App\Http\Controllers\PropertyAssignmentController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\PropertyDepartmentController;
 use App\Http\Controllers\PropertyHolidayController;
+use App\Http\Controllers\PropertyJobCodeController;
 use App\Http\Controllers\PropertyPositionRateController;
 use App\Http\Controllers\PtoController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -85,6 +86,8 @@ Route::post('properties/{property}/rates', [PropertyPositionRateController::clas
 Route::delete('properties/{property}/rates/{rate}', [PropertyPositionRateController::class, 'destroy'])->name('properties.rates.destroy');
 
 Route::put('properties/{property}/holidays', [PropertyHolidayController::class, 'sync'])->name('properties.holidays.sync');
+
+Route::put('properties/{property}/job-codes', [PropertyJobCodeController::class, 'sync'])->name('properties.job-codes.sync');
 
 Route::post('properties/{property}/contracts', [ContractController::class, 'store'])->name('properties.contracts.store');
 Route::get('properties/{property}/contracts/{contract}/download', [ContractController::class, 'download'])->name('properties.contracts.download');

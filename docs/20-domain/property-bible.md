@@ -103,6 +103,17 @@ property_position_rates
 
 The "current" rate for (property, position) is the row with the latest `effective_date ≤ today` and `active = true`.
 
+### Job codes (client GL codes)
+
+Each property may assign its own accounting/GL code per position
+(`property_position_codes`, one code per (property, position) — e.g. hotel A
+bills "Housekeeper" as `1001-10`, hotel B as `5500-01`). Edited on the Rates
+tab (gated `bible.rates.edit`); saves are transactional upserts — a blank code
+clears the row, unsubmitted positions are untouched. The code is **frozen onto
+`invoice_items.job_code` at invoice generation** (ADR-0006), so later changes
+never rewrite issued invoices, and it appears as a Job Code column plus a
+per-position summary (hours, billed, payout) on the invoice page and PDF.
+
 ### Rates are reference, work orders are authoritative
 
 A work order can only be **created** against a position that has a current Bible rate at that property — the WO form offers only those positions, and the server rejects any other (position, property) pair. This guarantees every WO starts from Bible data; configure the position's rates on the property first.

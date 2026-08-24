@@ -53,6 +53,7 @@
             <tr>
                 <th>Contractor</th>
                 <th>Position</th>
+                <th>Job Code</th>
                 <th class="num">Reg Hrs</th>
                 <th class="num">OT Hrs</th>
                 <th class="num">Amount</th>
@@ -63,9 +64,36 @@
                 <tr>
                     <td>{{ $item->contractor_name }}</td>
                     <td>{{ $item->position_name }}</td>
+                    <td>{{ $item->job_code ?? '—' }}</td>
                     <td class="num">{{ $hrs($item->regular_minutes) }}</td>
                     <td class="num">{{ $hrs($item->overtime_minutes) }}</td>
                     <td class="num">{{ $money($item->total_bill) }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    {{-- Per-position rollup in the client's own chart of accounts --}}
+    <table>
+        <thead>
+            <tr>
+                <th>Position</th>
+                <th>Job Code</th>
+                <th class="num">Reg Hrs</th>
+                <th class="num">OT Hrs</th>
+                <th class="num">HLD Hrs</th>
+                <th class="num">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($invoice->items->groupBy('position_name') as $position => $items)
+                <tr>
+                    <td>{{ $position }}</td>
+                    <td>{{ $items->first()->job_code ?? '—' }}</td>
+                    <td class="num">{{ $hrs($items->sum('regular_minutes')) }}</td>
+                    <td class="num">{{ $hrs($items->sum('overtime_minutes')) }}</td>
+                    <td class="num">{{ $hrs($items->sum('holiday_minutes')) }}</td>
+                    <td class="num">{{ $money($items->sum('total_bill')) }}</td>
                 </tr>
             @endforeach
         </tbody>

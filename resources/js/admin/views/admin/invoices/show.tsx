@@ -3,7 +3,23 @@ import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
-type Item = { contractor_name: string; position_name: string; regular_minutes: number; overtime_minutes: number; total_bill: number }
+type Item = {
+  contractor_name: string
+  position_name: string
+  job_code: string | null
+  regular_minutes: number
+  overtime_minutes: number
+  total_bill: number
+}
+type PositionSummary = {
+  position: string
+  job_code: string | null
+  regular_minutes: number
+  overtime_minutes: number
+  holiday_minutes: number
+  total_bill: number
+  total_payout: number
+}
 type Invoice = {
   id: number
   invoice_number: string
@@ -19,6 +35,7 @@ type Invoice = {
   total: number
   notification_recipient: string | null
   items: Item[]
+  position_summary: PositionSummary[]
 }
 
 type Props = { invoice: Invoice; can: { send: boolean } }
@@ -74,6 +91,7 @@ const Page = ({ invoice, can }: Props) => {
                 <tr className="bg-light/25 text-xs uppercase">
                   <th>Contractor</th>
                   <th>Position</th>
+                  <th>Job Code</th>
                   <th className="text-end">Reg Hrs</th>
                   <th className="text-end">OT Hrs</th>
                   <th className="text-end">Amount</th>
@@ -84,6 +102,7 @@ const Page = ({ invoice, can }: Props) => {
                   <tr key={idx}>
                     <td className="font-medium">{it.contractor_name}</td>
                     <td>{it.position_name}</td>
+                    <td className="text-default-500">{it.job_code ?? '—'}</td>
                     <td className="text-end">{hrs(it.regular_minutes)}</td>
                     <td className="text-end">{hrs(it.overtime_minutes)}</td>
                     <td className="text-end">{money(it.total_bill)}</td>
@@ -92,6 +111,40 @@ const Page = ({ invoice, can }: Props) => {
               </tbody>
             </table>
           </div>
+
+          {invoice.position_summary.length > 0 && (
+            <div className="mt-6">
+              <h5 className="mb-2 font-semibold">Position Summary</h5>
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead className="thead-sm">
+                    <tr className="bg-light/25 text-xs uppercase">
+                      <th>Position</th>
+                      <th>Job Code</th>
+                      <th className="text-end">Reg Hrs</th>
+                      <th className="text-end">OT Hrs</th>
+                      <th className="text-end">HLD Hrs</th>
+                      <th className="text-end">Billed</th>
+                      <th className="text-end">Payout</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoice.position_summary.map((row) => (
+                      <tr key={row.position}>
+                        <td className="font-medium">{row.position}</td>
+                        <td className="text-default-500">{row.job_code ?? '—'}</td>
+                        <td className="text-end">{hrs(row.regular_minutes)}</td>
+                        <td className="text-end">{hrs(row.overtime_minutes)}</td>
+                        <td className="text-end">{hrs(row.holiday_minutes)}</td>
+                        <td className="text-end">{money(row.total_bill)}</td>
+                        <td className="text-end">{money(row.total_payout)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="mt-4 flex justify-end">
             <table className="w-64 text-sm">

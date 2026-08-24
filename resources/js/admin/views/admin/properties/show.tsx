@@ -54,6 +54,7 @@ type Contract = {
 }
 type HistoryRow = { id: number; description: string; event: string | null; causer: string | null; created_at: string | null }
 type PropertyHoliday = { id: number; name: string; type_label: string; this_year: string; enabled: boolean }
+type JobCodeRow = { position_id: number; position: string; job_code: string | null }
 type Option = { id: number; name: string }
 type ValueLabel = { value: string; label: string }
 
@@ -77,6 +78,7 @@ type Props = {
   contracts: Contract[]
   history: HistoryRow[]
   holidays: PropertyHoliday[]
+  jobCodes: JobCodeRow[]
   catalogs: {
     departments: Option[]
     positions: Option[]
@@ -338,7 +340,7 @@ const otFromBase = (value: string) => {
   return isNaN(n) ? '' : (n * 1.5).toFixed(2)
 }
 
-const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | 'rates' | 'catalogs' | 'can'>) => {
+const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'property' | 'rates' | 'jobCodes' | 'catalogs' | 'can'>) => {
   const { data, setData, post, processing, errors, reset } = useForm({
     position_id: '',
     pay_rate: '',
@@ -482,6 +484,64 @@ const RatesTab = ({ property, rates, catalogs, can }: Pick<Props, 'property' | '
             </button>
           </div>
         </form>
+      )}
+
+      <JobCodesCard property={property} jobCodes={jobCodes} canEdit={can.editRates} />
+    </div>
+  )
+}
+
+// The client's own accounting codes per position — printed on their invoices
+// and exports so their accounting team can post the cost (e.g. "1001-10").
+const JobCodesCard = ({ property, jobCodes, canEdit }: { property: Property; jobCodes: JobCodeRow[]; canEdit: boolean }) => {
+  const [codes, setCodes] = useState<Record<number, string>>(
+    Object.fromEntries(jobCodes.map((r) => [r.position_id, r.job_code ?? ''])),
+  )
+  const [saving, setSaving] = useState(false)
+
+  const initial = JSON.stringify(jobCodes.map((r) => r.job_code ?? ''))
+  const dirty = JSON.stringify(jobCodes.map((r) => codes[r.position_id] ?? '')) !== initial
+
+  const save = () => {
+    setSaving(true)
+    router.put(
+      `/admin/properties/${property.id}/job-codes`,
+      { codes: jobCodes.map((r) => ({ position_id: r.position_id, job_code: codes[r.position_id] ?? '' })) },
+      { preserveScroll: true, onFinish: () => setSaving(false) },
+    )
+  }
+
+  if (jobCodes.length === 0) return null
+
+  return (
+    <div className="border-default-200 border-t pt-5">
+      <h5 className="font-semibold">Job Codes</h5>
+      <p className="text-default-400 mb-3 text-sm">
+        This property&apos;s accounting code per position — printed next to the position on invoices and exports.
+      </p>
+      <div className="max-w-lg space-y-2">
+        {jobCodes.map((r) => (
+          <div key={r.position_id} className="flex items-center gap-3">
+            <span className="w-48 text-sm font-medium">{r.position}</span>
+            <input
+              className="form-input flex-1"
+              placeholder="e.g. 1001-10"
+              value={codes[r.position_id] ?? ''}
+              onChange={(e) => setCodes((c) => ({ ...c, [r.position_id]: e.target.value }))}
+              readOnly={!canEdit}
+            />
+          </div>
+        ))}
+      </div>
+      {canEdit && (
+        <button
+          type="button"
+          className="btn bg-primary hover:bg-primary-hover mt-3 px-4 py-2 font-semibold text-white disabled:opacity-50"
+          onClick={save}
+          disabled={!dirty || saving}
+        >
+          Save Job Codes
+        </button>
       )}
     </div>
   )
@@ -826,7 +886,7 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
 
 // --- Page ------------------------------------------------------------------
 
-const Page = ({ property, departments, rates, assignments, contracts, history, holidays, catalogs, can }: Props) => {
+const Page = ({ property, departments, rates, assignments, contracts, history, holidays, jobCodes, catalogs, can }: Props) => {
   const tabs = [
     { key: 'rates', label: 'Positions & Rates', show: true },
     { key: 'departments', label: 'Departments', show: true },
@@ -887,7 +947,7 @@ const Page = ({ property, departments, rates, assignments, contracts, history, h
             </nav>
 
             <div className="card-body p-6">
-              {active === 'rates' && <RatesTab property={property} rates={rates} catalogs={catalogs} can={can} />}
+              {active === 'rates' && <RatesTab property={property} rates={rates} jobCodes={jobCodes} catalogs={catalogs} can={can} />}
               {active === 'departments' && <DepartmentsTab property={property} departments={departments} catalogs={catalogs} can={can} />}
               {active === 'holidays' && <HolidaysTab property={property} holidays={holidays} can={can} />}
               {active === 'team' && <TeamTab property={property} assignments={assignments} catalogs={catalogs} can={can} />}
