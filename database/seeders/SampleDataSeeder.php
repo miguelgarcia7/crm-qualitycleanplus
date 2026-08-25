@@ -6,10 +6,12 @@ use App\Domain\Adjustments\Actions\CreateManualAdjustment;
 use App\Domain\Adjustments\Enums\AdjustmentType;
 use App\Domain\Adjustments\Models\AdjustmentItem;
 use App\Domain\Billing\Actions\ApproveTimesheet;
+use App\Domain\Billing\Actions\DeclineTimesheet;
 use App\Domain\Billing\Actions\SendInvoice;
 use App\Domain\Billing\Actions\SubmitTimesheetForApproval;
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
+use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Devices\Models\Device;
 use App\Domain\FieldVisits\Enums\FieldVisitStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
@@ -143,7 +145,10 @@ class SampleDataSeeder extends Seeder
 
         // Office-staff logins so each role's dashboard is testable (Phase 06).
         // Hire dates spread across the PTO tenure tiers (Phase 08a).
-        foreach (['office_manager' => 8, 'payroll' => 3, 'hr' => 26, 'super_admin' => 30] as $role => $monthsEmployed) {
+        // `admin` is the business-ownership tier (ADR-0013) and owns approvals
+        // like "Approve new item" on supply requests — without a login for it,
+        // those steps sit in the queue with nobody able to reach them.
+        foreach (['office_manager' => 8, 'payroll' => 3, 'hr' => 26, 'super_admin' => 30, 'admin' => 40] as $role => $monthsEmployed) {
             Person::firstOrCreate(
                 ['email' => "{$role}@example.com"],
                 ['name' => ucwords(str_replace('_', ' ', $role)), 'password' => Hash::make('password'), 'status' => PersonStatus::StaffActive, 'email_verified_at' => now(), 'hire_date' => now()->subMonths($monthsEmployed)->toDateString()],
@@ -272,6 +277,10 @@ class SampleDataSeeder extends Seeder
         // have entries (billed / last week) and frozen (approved) weeks.
         $this->backfillWeeklyHistory($property, $workOrders, 6);
         $this->backfillWeeklyHistory($plano, $planoWorkOrders, 6);
+
+        // Leave a spread of timesheets genuinely waiting on a PM (and one
+        // declined) so the dashboard's approval queue and pipeline aren't empty.
+        $this->seedApprovalQueue($recruiter, $pm);
 
         $this->seedInventory($recruiter);
         $this->seedRequestsAndCharges($property, $recruiter, $frontDesk, $contractors, $workOrders);
@@ -834,6 +843,50 @@ class SampleDataSeeder extends Seeder
      * Property contracts (Phase 02): an active MSA downtown and a Plano SOW that
      * expires within the 30-day alert window, each with a stored document.
      */
+    /**
+     * Timesheets genuinely sitting with a property manager, which the billed
+     * history never leaves behind (it submits and approves in one pass). Pushes
+     * already-populated draft weeks through the real submit action, then
+     * backdates the clock so the dashboard shows a spread of waiting times —
+     * including one past the 3-day SLA and one the PM sent back.
+     */
+    private function seedApprovalQueue(Person $recruiter, Person $pm): void
+    {
+        $submit = app(SubmitTimesheetForApproval::class);
+
+        $drafts = Timesheet::query()
+            ->where('status', TimesheetStatus::Draft)
+            ->whereHas('payrollPeriod.timeEntries')
+            ->with('payrollPeriod')
+            ->orderBy('id')
+            ->limit(4)
+            ->get();
+
+        // Hours waiting, oldest first — 5d and 4d are past the SLA, 26h and 7h are not.
+        $waitingHours = [120, 96, 26, 7];
+
+        foreach ($drafts as $i => $timesheet) {
+            if (! $timesheet->status->canSubmit()) {
+                continue;
+            }
+
+            $submitted = $submit->handle($timesheet, $recruiter);
+            $submitted->forceFill([
+                'sent_for_approval_at' => Carbon::now()->subHours($waitingHours[$i] ?? 12),
+            ])->save();
+
+            // The last one comes back declined so that state is represented too.
+            if ($i === 3) {
+                app(DeclineTimesheet::class)->handle(
+                    $submitted,
+                    $pm,
+                    'Two housekeeping shifts on Thursday were not worked — please remove and resubmit.',
+                    'hours_dispute',
+                );
+            }
+        }
+    }
+
     private function seedContracts(Property $downtown, Property $plano): void
     {
         $payroll = Person::query()->where('email', 'payroll@example.com')->firstOrFail();
@@ -842,6 +895,9 @@ class SampleDataSeeder extends Seeder
         $contracts = [
             [$downtown, 'Master Service Agreement 2026', ContractType::Msa, now()->subMonths(5), now()->addMonths(7)],
             [$plano, 'Housekeeping SOW — Summer 2026', ContractType::Sow, now()->subMonth(), now()->addDays(20)],
+            // Inside the 14-day window, so the "needs a decision soon" panel and
+            // the 14-day expiry alert both have a live example.
+            [$downtown, 'Night Crew SOW — Q3 2026', ContractType::Sow, now()->subMonths(3), now()->addDays(9)],
         ];
 
         foreach ($contracts as [$property, $name, $type, $effective, $expires]) {

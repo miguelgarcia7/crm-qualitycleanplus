@@ -101,7 +101,7 @@ it('includes the live ops widgets for timesheet-live viewers', function () {
             ->where('widgets', function ($widgets) {
                 $titles = widgetTitles($widgets);
 
-                return is_array($widgets['clockedIn'])              // live clock-ins (empty array is fine)
+                return is_array($widgets['onTheClock'])             // live clock-ins (an empty roster is fine)
                     && is_array($widgets['actions'])
                     && count($widgets['actions']) > 0
                     && $titles->contains('Hours this week');
@@ -113,7 +113,7 @@ it('withholds live ops + activity widgets from roles without those permissions',
     // HR has neither timesheets.view_live nor audit.activity_log.view.
     $this->actingAs(person('hr'))->get(main('/admin/dashboard'))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets.clockedIn', null)
+            ->where('widgets.onTheClock', null)
             ->where('widgets.activity', null),
         );
 });

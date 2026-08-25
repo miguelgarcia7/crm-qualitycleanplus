@@ -60,7 +60,7 @@ const StatCard = ({ stat }: { stat: Stat }) => {
     </div>
   )
 
-  const className = 'card h-full rounded-2xl'
+  const className = 'card h-full'
 
   return stat.href ? (
     <Link href={stat.href} className={`${className} transition hover:shadow-lg`}>

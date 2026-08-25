@@ -28,7 +28,7 @@ const TrendChart = ({ trend }: { trend: Trend }) => {
   })
 
   return (
-    <div className="card h-full rounded-2xl">
+    <div className="card h-full">
       <div className="card-header p-5 pb-0">
         <h4 className="card-title">{trend.title}</h4>
       </div>

@@ -1,79 +1,100 @@
+import Icon from '@/components/wrappers/Icon'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import { Head, usePage } from '@inertiajs/react'
+import { Head } from '@inertiajs/react'
 import ActivityCard, { ActivityRow } from './widgets/ActivityCard'
-import ClockedInCard, { ClockedInRow } from './widgets/ClockedInCard'
-import DonutCard, { Donut } from './widgets/DonutCard'
+import AlertBanner, { PulseAlert } from './widgets/AlertBanner'
+import ApprovalsTable, { Approvals } from './widgets/ApprovalsTable'
+import DecisionsCard, { Decisions } from './widgets/DecisionsCard'
 import ListCard, { ListWidget } from './widgets/ListCard'
+import OnTheClockCard, { OnTheClock } from './widgets/OnTheClockCard'
+import PipelineStrip, { Pipeline } from './widgets/PipelineStrip'
+import PulseStat, { PulseStatData } from './widgets/PulseStat'
 import QuickActions, { QuickAction } from './widgets/QuickActions'
 import StatCard, { Stat } from './widgets/StatCard'
+import TasksCard, { Tasks } from './widgets/TasksCard'
 import TrendChart, { Trend } from './widgets/TrendChart'
 
 type Widgets = {
+  // Role-specific widgets (Phase 06) that sit below the landing panels.
   stats: Stat[]
   lists: ListWidget[]
   charts: Trend[]
   actions: QuickAction[]
-  clockedIn: ClockedInRow[] | null
-  donut: Donut | null
   activity: ActivityRow[] | null
+  // Landing panels.
+  context: { week_label: string; property_count: number; scoped: boolean }
+  alerts: PulseAlert[]
+  headline: PulseStatData[]
+  pipeline: Pipeline | null
+  tasks: Tasks
+  approvals: Approvals | null
+  onTheClock: OnTheClock | null
+  decisions: Decisions | null
 }
 
 type Props = { widgets: Widgets }
 
-const greeting = () => {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
-}
-
-const today = () =>
-  new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-
 const Page = ({ widgets }: Props) => {
-  const user = (usePage().props as { auth?: { user?: { name?: string } } }).auth?.user
-  const firstName = (user?.name ?? '').split(' ')[0]
-
-  // First chart gets the wide hero slot; the donut (when present) sits beside it.
+  const { context } = widgets
+  // The revenue-vs-payouts chart leads; anything else drops below.
   const [heroChart, ...restCharts] = widgets.charts
-  const sideCards = [
-    widgets.clockedIn !== null && <ClockedInCard key="clocked-in" rows={widgets.clockedIn} />,
-    widgets.activity !== null && <ActivityCard key="activity" rows={widgets.activity} />,
-  ].filter(Boolean)
 
   return (
     <>
       <Head title="Dashboard" />
       <PageBreadcrumb title="Dashboard" subtitle="Back Office" />
 
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h4 className="text-lg font-bold">
-            {greeting()}, {firstName}
-          </h4>
-          <p className="text-default-400 text-sm">{today()} — here&apos;s what needs your attention.</p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-default-400 flex flex-wrap items-center gap-2 text-sm">
+          <span className="border-default-200 bg-card inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
+            <Icon icon="calendar" className="size-4" />
+            {context.week_label}
+          </span>
+          <span className="border-default-200 bg-card inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
+            <Icon icon="building" className="size-4" />
+            {context.scoped ? `My ${context.property_count} properties` : `All ${context.property_count} properties`}
+          </span>
         </div>
+
         {widgets.actions.length > 0 && <QuickActions actions={widgets.actions} />}
       </div>
 
-      {widgets.stats.length > 0 && (
+      {widgets.alerts.map((alert) => (
+        <AlertBanner key={alert.key} alert={alert} />
+      ))}
+
+      {widgets.headline.length > 0 && (
         <div className="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {widgets.stats.map((stat, i) => (
-            <StatCard key={i} stat={stat} />
+          {widgets.headline.map((stat, i) => (
+            <PulseStat key={i} stat={stat} />
           ))}
         </div>
       )}
 
-      {(heroChart || widgets.donut) && (
-        <div className="mb-4 grid gap-4 xl:grid-cols-3">
-          {heroChart && (
-            <div className={widgets.donut ? 'xl:col-span-2' : 'xl:col-span-3'}>
-              <TrendChart trend={heroChart} />
-            </div>
-          )}
-          {widgets.donut && <DonutCard donut={widgets.donut} />}
+      {widgets.pipeline && <PipelineStrip pipeline={widgets.pipeline} />}
+
+      <div className="mb-4 grid gap-4 xl:grid-cols-3">
+        {heroChart && (
+          <div className="xl:col-span-2">
+            <TrendChart trend={heroChart} />
+          </div>
+        )}
+        <div className={heroChart ? '' : 'xl:col-span-3'}>
+          <TasksCard tasks={widgets.tasks} />
         </div>
-      )}
+      </div>
+
+      <div className="mb-4 grid gap-4 xl:grid-cols-3">
+        {widgets.approvals && (
+          <div className="xl:col-span-2">
+            <ApprovalsTable approvals={widgets.approvals} />
+          </div>
+        )}
+        <div className={`flex flex-col gap-4 ${widgets.approvals ? '' : 'xl:col-span-3'}`}>
+          {widgets.onTheClock && <OnTheClockCard data={widgets.onTheClock} />}
+          {widgets.decisions && <DecisionsCard decisions={widgets.decisions} />}
+        </div>
+      </div>
 
       {restCharts.length > 0 && (
         <div className="mb-4 grid gap-4 lg:grid-cols-2">
@@ -83,12 +104,20 @@ const Page = ({ widgets }: Props) => {
         </div>
       )}
 
-      {(widgets.lists.length > 0 || sideCards.length > 0) && (
+      {widgets.stats.length > 0 && (
+        <div className="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {widgets.stats.map((stat, i) => (
+            <StatCard key={i} stat={stat} />
+          ))}
+        </div>
+      )}
+
+      {(widgets.lists.length > 0 || widgets.activity !== null) && (
         <div className="grid gap-4 lg:grid-cols-2">
-          {sideCards}
           {widgets.lists.map((widget, i) => (
             <ListCard key={i} widget={widget} />
           ))}
+          {widgets.activity !== null && <ActivityCard rows={widgets.activity} />}
         </div>
       )}
     </>

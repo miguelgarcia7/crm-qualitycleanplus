@@ -44,7 +44,7 @@ const Row = ({ row }: { row: ListRow }) => {
 }
 
 const ListCard = ({ widget }: { widget: ListWidget }) => (
-  <div className="card h-full rounded-2xl">
+  <div className="card h-full">
     <div className="card-header flex items-center justify-between p-5 pb-2">
       <h4 className="card-title">{widget.title}</h4>
       {widget.viewAllHref && (

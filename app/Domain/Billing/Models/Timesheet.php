@@ -3,6 +3,7 @@
 namespace App\Domain\Billing\Models;
 
 use App\Domain\Billing\Enums\TimesheetStatus;
+use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
 use Database\Factories\TimesheetFactory;
@@ -89,5 +90,15 @@ class Timesheet extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    /**
+     * The recruiter who sent this timesheet for approval.
+     *
+     * @return BelongsTo<Person, $this>
+     */
+    public function sentForApprovalBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'sent_for_approval_by');
     }
 }

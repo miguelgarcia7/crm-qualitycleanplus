@@ -24,7 +24,6 @@ use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Reports\Models\ReportMonthlyRevenue;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
-use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Workflows\Enums\WorkflowStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
@@ -46,8 +45,10 @@ use Spatie\Activitylog\Models\Activity;
  */
 class DashboardMetrics
 {
+    public function __construct(private readonly BackOfficePulse $pulse) {}
+
     /**
-     * @return array{stats: list<array<string, mixed>>, lists: list<array<string, mixed>>, charts: list<array<string, mixed>>}
+     * @return array<string, mixed>
      */
     public function forBackOffice(Person $user): array
     {
@@ -56,6 +57,12 @@ class DashboardMetrics
         $charts = [];
 
         $propertyIds = $this->scopedPropertyIds($user);
+
+        // Margin is the headline chart for anyone allowed to see money, so it
+        // goes in first and takes the wide slot on the landing page.
+        if ($user->can('reports.financial.view')) {
+            $charts[] = $this->revenueVsPayoutsChart();
+        }
 
         $stats[] = [
             'title' => 'My open tasks',
@@ -163,9 +170,8 @@ class DashboardMetrics
             'lists' => $lists,
             'charts' => $charts,
             'actions' => $this->quickActions($user),
-            'clockedIn' => $user->can('timesheets.view_live') ? $this->clockedInNow($propertyIds) : null,
-            'donut' => $user->can('timesheets.view_live') ? $this->hoursByPropertyDonut($propertyIds) : null,
             'activity' => $user->can('audit.activity_log.view') ? $this->recentActivity() : null,
+            ...$this->pulse->build($user, $propertyIds),
         ];
     }
 
@@ -336,7 +342,6 @@ class DashboardMetrics
 
         $lists[] = $this->expiringContractsList(null);
         $charts[] = $this->weeklyRevenueChart();
-        $charts[] = $this->revenueVsPayoutsChart();
     }
 
     /**
@@ -537,75 +542,6 @@ class DashboardMetrics
         $today = CarbonImmutable::now();
 
         return [$sumFor($today), $sumFor($today->subWeek())];
-    }
-
-    /**
-     * Live ops pulse: contractors with an open clock entry right now.
-     *
-     * @param  list<int>|null  $propertyIds
-     * @return list<array<string, mixed>>
-     */
-    private function clockedInNow(?array $propertyIds): array
-    {
-        $now = CarbonImmutable::now();
-
-        return TimeEntry::query()
-            ->whereNotNull('start_at_utc')
-            ->whereNull('end_at_utc')
-            ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
-            ->with(['person:id,name,avatar_file_id', 'property:id,name'])
-            ->orderBy('start_at_utc')
-            ->limit(12)
-            ->get()
-            ->map(fn (TimeEntry $e): array => [
-                'person' => $e->person?->name,
-                'person_id' => $e->person_id,
-                'avatar' => $e->person?->avatarUrl(),
-                'property' => $e->property?->name,
-                'property_id' => $e->property_id,
-                'minutes' => $e->start_at_utc !== null ? (int) $e->start_at_utc->diffInMinutes($now) : 0,
-            ])
-            ->all();
-    }
-
-    /**
-     * Current-week hours split by property (top 5 + Other) for the donut.
-     *
-     * @param  list<int>|null  $propertyIds
-     * @return array<string, mixed>|null
-     */
-    private function hoursByPropertyDonut(?array $propertyIds): ?array
-    {
-        $today = CarbonImmutable::now()->toDateString();
-
-        $rows = TimeSummary::query()
-            ->whereDate('week_start', '<=', $today)
-            ->whereDate('week_end', '>=', $today)
-            ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
-            ->with('property:id,name')
-            ->get();
-
-        if ($rows->isEmpty()) {
-            return null;
-        }
-
-        $byProperty = $rows
-            ->groupBy(fn (TimeSummary $s): string => $s->property->name)
-            ->map(fn ($group): float => round($group->sum(fn (TimeSummary $s): int => $s->regular_minutes + $s->overtime_minutes + $s->holiday_minutes + $s->training_minutes) / 60, 1))
-            ->sortDesc();
-
-        $top = $byProperty->take(5);
-        $other = $byProperty->skip(5)->sum();
-        if ($other > 0) {
-            $top->put('Other', round($other, 1));
-        }
-
-        return [
-            'title' => 'This week by property',
-            'labels' => $top->keys()->values()->all(),
-            'series' => $top->values()->all(),
-            'suffix' => 'h',
-        ];
     }
 
     /**
