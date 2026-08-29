@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Minute\ChangePersonalInfoController;
 use App\Http\Controllers\Minute\DashboardController;
+use App\Http\Controllers\Minute\InvoiceController;
 use App\Http\Controllers\Minute\KbController;
 use App\Http\Controllers\Minute\MoreStaffController;
 use App\Http\Controllers\Minute\PayIncreaseController;
@@ -23,6 +24,12 @@ Route::get('timesheets', [TimesheetApprovalController::class, 'index'])->name('q
 Route::get('timesheets/{timesheet}', [TimesheetApprovalController::class, 'show'])->name('qcminute.timesheets.show');
 Route::post('timesheets/{timesheet}/approve', [TimesheetApprovalController::class, 'approve'])->name('qcminute.timesheets.approve');
 Route::post('timesheets/{timesheet}/decline', [TimesheetApprovalController::class, 'decline'])->name('qcminute.timesheets.decline');
+
+// Property-manager invoice viewing — read-only; generating, sending and voiding
+// stay in the back office. This is what invoice emails link to.
+Route::get('invoices', [InvoiceController::class, 'index'])->middleware('can:invoices.view')->name('qcminute.invoices.index');
+Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('qcminute.invoices.show');
+Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('qcminute.invoices.pdf');
 
 // Property-manager pay increase requests (Phase 04b, ADR-0020)
 Route::get('pay-increases', [PayIncreaseController::class, 'index'])->name('qcminute.pay-increases.index');
