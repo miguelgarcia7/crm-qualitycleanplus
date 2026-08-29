@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 class InvoiceController extends Controller
 {
@@ -69,9 +70,19 @@ class InvoiceController extends Controller
 
         $validated = $request->validate(['recipient' => ['required', 'email']]);
 
-        $action->handle($invoice, $request->user(), $validated['recipient']);
+        try {
+            $action->handle($invoice, $request->user(), $validated['recipient']);
+        } catch (TransportExceptionInterface $e) {
+            // The invoice stays unsent — say so rather than leaving the
+            // recruiter believing the client has it.
+            report($e);
 
-        return back()->with('success', 'Invoice marked as sent.');
+            return back()->withErrors([
+                'recipient' => 'The invoice could not be delivered, so it has not been marked as sent. Check the address and try again.',
+            ]);
+        }
+
+        return back()->with('success', "Invoice emailed to {$validated['recipient']}.");
     }
 
     /**

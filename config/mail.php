@@ -55,10 +55,13 @@ return [
 
         'postmark' => [
             'transport' => 'postmark',
-            // 'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),
-            // 'client' => [
-            //     'timeout' => 5,
-            // ],
+            'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),
+            'client' => [
+                // Invoice sends are synchronous (SendInvoice only marks an
+                // invoice sent once delivery succeeds), so a hung API call
+                // would hang the recruiter's request. Fail fast instead.
+                'timeout' => 10,
+            ],
         ],
 
         'resend' => [
