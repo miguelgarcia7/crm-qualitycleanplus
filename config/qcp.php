@@ -2,8 +2,13 @@
 
 return [
     /*
-    | The invoicing entity (Quality Cleaning Plus). Snapshotted onto every
-    | invoice at generation (ADR-0006), so later edits never change past invoices.
+    | SEED DEFAULTS ONLY — not the live source. Company identity lives in the
+    | `settings` table (CompanySettingsSeeder reads these on a fresh install)
+    | and is edited at /admin/settings/company. Read it via CompanySettings,
+    | never via this config: the DB wins once seeded.
+    |
+    | GenerateInvoice snapshots the block onto each invoice (ADR-0006), so
+    | later edits never change past invoices.
     */
     'invoicer' => [
         'name' => env('QCP_INVOICER_NAME', 'Quality Cleaning Plus'),
