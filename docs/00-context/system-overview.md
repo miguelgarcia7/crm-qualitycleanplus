@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Living document — regenerate when modules change |
-| Last updated | 2026-08-23 (repo at `24a3054`) |
+| Last updated | 2026-08-24 (repo at `0875fe4`) |
 | Owner | Engineering |
 | Companion | `vision.md` (why), `10-architecture/` (how), `80-plan/roadmap.md` (when) |
 
@@ -17,7 +17,7 @@ separate databases. A property, a contractor, and a person's identity now exist
 exactly once.
 
 **At a glance:** 18 domain contexts · 58 tables · 52 models · 64 actions ·
-10 roles · 7 workflows · 4 surfaces · 346 passing tests (1,560 assertions).
+10 roles · 7 workflows · 4 surfaces · 353 passing tests (1,584 assertions).
 
 ---
 
@@ -179,6 +179,11 @@ Internal documentation, readable on both signed-in surfaces.
 #### Dashboards — `app/Domain/Dashboards`
 Assembles each role's landing page from widgets drawn across every other module.
 
+- `BackOfficePulse` builds the landing panels: launch blockers, headline figures,
+  the hour-to-invoice pipeline, and the queues waiting on a person
+- `DashboardMetrics` adds the role-specific widget lists beneath them
+- Every panel is permission-gated — a recruiter sees no company-wide money
+
 #### Shared & platform — `app/Domain/Shared`
 Polymorphic file storage and feedback; in-app notification center with per-category
 mutes on both surfaces; audit log viewer over every recorded action.
@@ -255,7 +260,6 @@ invoice.
 
 - **No email actually sends.** Invoices are marked sent but never delivered
   (`SendInvoice` records the recipient only); the mailer is still set to `log`.
-- **The repository has no remote** — the work exists only on one machine.
 - **Phase 10 cutover** and data migration has no plan document yet.
 
 ### Known gaps — deferred and not yet built
@@ -269,4 +273,4 @@ invoice.
 ---
 
 *Figures drawn from the domain contexts, migrations, seeded role matrix, workflow
-definitions, and the passing test suite at commit `24a3054`.*
+definitions, and the passing test suite at commit `0875fe4`.*
