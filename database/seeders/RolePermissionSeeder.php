@@ -177,6 +177,9 @@ class RolePermissionSeeder extends Seeder
             'admin.impersonate' => ['admin'],
             'admin.users.create' => ['admin', 'office_manager', 'hr'],
             'admin.roles.assign' => ['admin'],
+
+            // Company identity frozen onto invoices — ownership-tier only.
+            'settings.company.manage' => ['admin'],
         ];
     }
 

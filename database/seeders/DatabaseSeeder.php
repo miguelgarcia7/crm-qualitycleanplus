@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             PositionSeeder::class,
             HolidaySeeder::class,
             InventorySeeder::class,
+            CompanySettingsSeeder::class,
         ]);
 
         // A super admin who can log in to either domain (Phase 01 acceptance).

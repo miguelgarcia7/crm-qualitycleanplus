@@ -4,6 +4,7 @@ use App\Http\Controllers\AdjustmentController;
 use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ChangePersonalInfoController;
+use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
@@ -288,6 +289,10 @@ Route::post('/settings/avatar', [ProfileController::class, 'updateAvatar'])->nam
 Route::delete('/settings/avatar', [ProfileController::class, 'destroyAvatar'])->name('settings.avatar.destroy');
 Route::put('/settings/password', [PasswordController::class, 'update'])->name('settings.password.update');
 Route::patch('/settings/notifications', [ProfileController::class, 'updateNotifications'])->name('settings.notifications.update');
+
+// Company identity snapshotted onto invoices (ADR-0006) — ownership tier only.
+Route::get('/settings/company', [CompanySettingsController::class, 'edit'])->middleware('can:settings.company.manage')->name('settings.company.edit');
+Route::patch('/settings/company', [CompanySettingsController::class, 'update'])->name('settings.company.update');
 
 // Notification center (Phase 09d) — the bell dropdown + full history
 Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

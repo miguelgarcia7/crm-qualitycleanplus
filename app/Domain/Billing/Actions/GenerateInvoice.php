@@ -10,6 +10,7 @@ use App\Domain\Billing\Models\InvoiceItem;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Reports\Actions\RefreshMonthlyRevenue;
+use App\Domain\Settings\Support\CompanySettings;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\TimeSummary;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\DB;
  */
 class GenerateInvoice
 {
+    public function __construct(private readonly CompanySettings $company) {}
+
     public function handle(Timesheet $timesheet): Invoice
     {
         if ($timesheet->invoice_id !== null) {
@@ -48,7 +51,7 @@ class GenerateInvoice
                 'issue_date' => now()->toDateString(),
                 'due_date' => now()->addDays((int) config('qcp.invoice.payment_terms_days', 30))->toDateString(),
                 'property_snapshot' => $this->propertySnapshot($property),
-                'invoicer_snapshot' => config('qcp.invoicer'),
+                'invoicer_snapshot' => $this->company->invoicer(),
                 'tax_rate' => $property->tax_rate,
                 'status' => InvoiceStatus::Draft,
             ]);

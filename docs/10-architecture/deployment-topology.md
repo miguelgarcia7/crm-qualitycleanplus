@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Accepted |
-| Last updated | 2026-06-06 |
+| Last updated | 2026-08-24 |
 | Owner | Engineering |
 
 ## What gets deployed
@@ -53,6 +53,73 @@ Three environments:
 - **local** — Docker compose, all-in-one
 - **staging** — production-like, used for cutover rehearsal and demos
 - **production**
+
+## Production environment variables
+
+A managed host (Laravel Cloud or equivalent) injects `DB_*`, `REDIS_*` and the
+object-storage credentials when you attach those resources. Everything below is
+set by hand.
+
+```
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=                                  # php artisan key:generate --show
+APP_URL=https://qualitycleanplus.com
+
+# Both hostnames must be attached to the SAME application — one deployable
+# serves both surfaces (ADR-0024).
+DOMAIN_MAIN=qualitycleanplus.com
+DOMAIN_QCMINUTE=qcpstaffing.com
+
+DB_CONNECTION=mysql
+FILESYSTEM_DISK=s3
+QUEUE_CONNECTION=redis
+CACHE_STORE=redis
+SESSION_DRIVER=database
+SESSION_DOMAIN=null                       # two registrable domains cannot share a cookie
+BROADCAST_CONNECTION=reverb
+
+MAIL_MAILER=postmark
+POSTMARK_API_KEY=
+MAIL_FROM_ADDRESS=                        # must be a verified Postmark sender signature
+MAIL_FROM_NAME="QCP Staffing"
+
+REVERB_APP_ID=
+REVERB_APP_KEY=
+REVERB_APP_SECRET=
+REVERB_HOST=
+REVERB_PORT=443
+REVERB_SCHEME=https
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+```
+
+### Gotchas
+
+**`FILESYSTEM_DISK` must be `s3` from the first deploy.** Container filesystems
+are ephemeral, so on `local` every uploaded contract, signed I-9, ID scan,
+clock-in selfie and KB attachment disappears on redeploy. Worse, `files` stores
+the disk per row, so anything written while it was `local` keeps pointing at a
+disk whose contents are gone.
+
+**`VITE_*` variables are build-time.** They are compiled into the JS bundle and
+must be present when `npm run build` runs; setting them afterwards does nothing
+until the next deploy.
+
+**Reverb needs a persistent WebSocket process**, a different shape from a
+PHP-FPM web container — check the host's support before assuming it. Only the
+live timesheet grid (`TimeEntrySaved`) uses broadcasting; `pusher` is a drop-in
+alternative and everything else works without it.
+
+**A queue worker is not optional.** `RecomputeTimeSummary` is dispatched on
+every clock-out, so without a worker hours never roll up into timesheets.
+
+**`QCP_INVOICER_*` is now only a seed default.** Company identity lives in the
+`settings` table and is edited at `/admin/settings/company`; the environment
+seeds it on a fresh install and is ignored afterwards. Set it there, or leave
+it unset and fill the form after deploying.
 
 ## Device authentication path
 

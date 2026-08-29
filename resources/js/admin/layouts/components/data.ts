@@ -119,6 +119,7 @@ export const menuItems: MenuItemType[] = [
     isTitle: true,
     children: [
       { url: '/admin/audit', slug: 'audit', label: 'Audit Log', icon: 'shield-lock', permission: 'audit.activity_log.view' },
+      { url: '/admin/settings/company', slug: 'company-settings', label: 'Company', icon: 'building-bank', permission: 'settings.company.manage' },
     ],
   },
 ]
