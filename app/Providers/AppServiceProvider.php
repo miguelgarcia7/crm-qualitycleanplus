@@ -43,6 +43,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -68,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->assertSurfaceDomainsAreDistinct();
         $this->configureDefaults();
 
         // Policies live under app/Domain (Beyond CRUD layout) so they're
@@ -117,6 +119,38 @@ class AppServiceProvider extends ServiceProvider
         $registry->register(WorkflowType::Termination, TerminationDefinition::class);
         $registry->register(WorkflowType::MoreStaff, MoreStaffDefinition::class);
         $registry->register(WorkflowType::ChangePersonalInfo, ChangePersonalInfoDefinition::class);
+    }
+
+    /**
+     * The three surfaces are separated only by hostname (ADR-0024). Laravel keys
+     * routes by domain+URI, so when both hostnames match it does not error — the
+     * later registration silently replaces the earlier one, and QC Minute's "/"
+     * overwrites the marketing homepage. That fails as a wrong page rather than
+     * an error, which is expensive to diagnose, so refuse to boot instead.
+     *
+     * Note this cannot catch a STALE ROUTE CACHE: cached routes hold the
+     * hostnames baked in at cache time, so changing these vars always needs a
+     * redeploy (or `route:clear`) to take effect.
+     *
+     * @throws RuntimeException when the surfaces would collide
+     */
+    public function assertSurfaceDomainsAreDistinct(): void
+    {
+        $main = trim((string) config('domains.main'));
+        $qcminute = trim((string) config('domains.qcminute'));
+
+        if ($main !== '' && $qcminute !== '' && $main !== $qcminute) {
+            return;
+        }
+
+        throw new RuntimeException(
+            'DOMAIN_MAIN and DOMAIN_QCMINUTE must be two different, non-empty hostnames '
+            ."(got main='{$main}', qcminute='{$qcminute}'). The back office and QC Minute "
+            .'are separate surfaces on separate domains; sharing one hostname makes QC '
+            ."Minute's routes overwrite the marketing site. To run only one surface for "
+            .'now, point the unused one at a hostname that never resolves, e.g. '
+            .'DOMAIN_QCMINUTE=qcminute.invalid.'
+        );
     }
 
     /**
