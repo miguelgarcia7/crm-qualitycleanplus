@@ -34,7 +34,7 @@ Implements against `20-domain/property-bible.md`, `30-schema/conventions.md`, AD
 - **Contracts = provisional v1** per `90-open/contracts-data-model.md` (David deferred the richer model): metadata + one uploaded file via a polymorphic `files` table. Extendable later without breaking.
 - **File storage = local disk** for now; S3 is a prod concern. The `files` table is reusable by KB / invoices later.
 - **`property_assignments` built now** — drives the `(own)` policy scoping required by acceptance (recruiter/PM see only assigned properties).
-- **Departments + Positions seeded** from the predefined lists in `property-bible.md`. A super_admin catalog-management UI is deferred.
+- **Departments + Positions seeded** from the predefined lists in `property-bible.md`. Catalog-management UIs were built later at `/admin/positions`, `/admin/departments` and `/admin/holidays`.
 - **Effective-dated rates** — a rate change adds a new `property_position_rates` row; old rows are never mutated. "Current" = latest `effective_date ≤ today` with `is_active`.
 - **`people_external_ids.property_id`** gets its real FK to `properties` (left bare in Phase 01). Import logic stays in Phase 05.
 

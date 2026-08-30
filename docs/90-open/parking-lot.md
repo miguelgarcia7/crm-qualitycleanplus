@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Living document — items added as they surface, removed when resolved |
-| Last updated | 2026-05-21 |
+| Last updated | 2026-08-30 |
 | Owner | Product |
 
 Items we've identified but explicitly deferred. Each one has a context note so future-us (or a new session) can pick it up cold.
@@ -41,9 +41,17 @@ Initially deferred ("office_manager handles all"), then reopened during a later 
 
 **Action:** If/when business direction changes, write a new ADR superseding 0002 and plan the migration. Estimated 3-6 months of work at that point.
 
-## Applicant-to-contractor promotion flow
+## ~~Applicant-to-contractor promotion flow~~ (resolved — built)
 
-**Context:** The workflow exists in the catalog and is part of Phase 4/8 build, but a detailed step-by-step flow doc hasn't been written.
+**Resolved:** built in Phase 08b. `PromoteApplicantToContractor` transitions
+`applicant` → `contractor_active`, sets `converted_to_contractor_at` and the
+primary recruiter, and is gated on `OnboardingChecklist::isComplete()` (ID
+front/back, I-9, W-9, contractor agreement, background check — each waivable).
+`ReversePromotion` undoes it. UI at `/admin/applicants/{id}`.
+
+The open questions below were answered by the build; kept for context.
+
+**Original context:** The workflow exists in the catalog and is part of Phase 4/8 build, but a detailed step-by-step flow doc hasn't been written.
 
 **What we know (from `20-domain/people-lifecycle.md`):**
 
@@ -61,7 +69,7 @@ Initially deferred ("office_manager handles all"), then reopened during a later 
 - What happens if a required checklist item is skipped
 - Integration with hire date / W-2 onboarding (if person is being hired as W-2 staff instead)
 
-**Status:** Deliberately deferred to revisit. Phase 4/8 will surface details when built.
+**Status:** RESOLVED — built in Phase 08b (see the note at the top of this entry).
 
 ## Recruiter-to-property transfer workflow
 
@@ -130,11 +138,24 @@ Captured in `20-domain/inventory.md` under "Termination interaction → Determin
 
 **Current default:** Out of scope for v1. Existing process continues. Revisit in v2.
 
-## Two-factor authentication
+## Two-factor authentication — partially built
 
-**Context:** Standard security practice. Not in v1.
+**Context:** No longer "not in v1". Fortify's TOTP feature is enabled in
+`config/fortify.php` with `confirm` + `confirmPassword`, all nine
+`/user/two-factor-*` routes are registered, `Person` uses
+`TwoFactorAuthenticatable`, and the columns exist. The challenge and
+confirm-password screens were built with the rest of the auth pages.
 
-**Decision needed when:** Compliance requirement, security incident, or capacity. Not blocking v1.
+No external service is involved: `pragmarx/google2fa` generates and validates
+codes, `bacon/bacon-qr-code` renders the enrollment QR — both already
+installed. The second factor is the user's own authenticator app.
+
+**What's missing:** the enrollment panel on the profile settings page (enable →
+QR → confirm code → recovery codes, plus regenerate and disable). Until that
+exists 2FA is dormant, since it is opt-in per user and nobody can opt in.
+
+**Decision needed when:** Whenever someone wants it on. Roughly half a day
+against endpoints that already exist.
 
 ## Native push notifications
 

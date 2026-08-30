@@ -117,7 +117,7 @@ As of 2026-06-06:
 - **24 ADRs** locking in every architectural decision
 - **10 flow files** covering the major end-to-end processes
 - **Open items:** 1 (Contracts data model — deferred per David's direction)
-- **Parked items:** 2 (Applicant-to-contractor promotion detailed flow, Recruiter-to-property bulk transfer)
+- **Parked items:** 1 (Recruiter-to-property bulk transfer). Applicant-to-contractor promotion was built — see `PromoteApplicantToContractor` + `OnboardingChecklist`.
 - **Phase plans:** Roadmap only; per-phase plans pending
 - **Schema docs:** ERD + conventions; per-table specs come with each phase
 - **Cost estimate** produced — `reviews/2026-05-21-cost-estimate.md`

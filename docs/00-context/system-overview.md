@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Living document — regenerate when modules change |
-| Last updated | 2026-08-24 (repo at `0875fe4`) |
+| Last updated | 2026-08-30 (repo at `ab07e53`) |
 | Owner | Engineering |
 | Companion | `vision.md` (why), `10-architecture/` (how), `80-plan/roadmap.md` (when) |
 
@@ -17,7 +17,7 @@ separate databases. A property, a contractor, and a person's identity now exist
 exactly once.
 
 **At a glance:** 18 domain contexts · 58 tables · 52 models · 64 actions ·
-10 roles · 7 workflows · 4 surfaces · 353 passing tests (1,584 assertions).
+10 roles · 7 workflows · 4 surfaces · 379 passing tests (1,669 assertions).
 
 ---
 
@@ -258,9 +258,12 @@ invoice.
 
 ### Blocking launch
 
-- **No email actually sends.** Invoices are marked sent but never delivered
-  (`SendInvoice` records the recipient only); the mailer is still set to `log`.
 - **Phase 10 cutover** and data migration has no plan document yet.
+
+Mail delivery now works: invoices are emailed through Postmark with a link to
+the invoice on QC Minute, and an invoice is marked sent only once delivery
+succeeds. Production still needs `POSTMARK_API_KEY`, `MAIL_MAILER=postmark`,
+and a verified sender signature — see `10-architecture/deployment-topology.md`.
 
 ### Known gaps — deferred and not yet built
 
@@ -273,4 +276,4 @@ invoice.
 ---
 
 *Figures drawn from the domain contexts, migrations, seeded role matrix, workflow
-definitions, and the passing test suite at commit `0875fe4`.*
+definitions, and the passing test suite at commit `ab07e53`.*
