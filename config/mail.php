@@ -55,7 +55,7 @@ return [
 
         'postmark' => [
             'transport' => 'postmark',
-            'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),
+            // 'message_stream_id' => env('POSTMARK_MESSAGE_STREAM_ID'),
             'client' => [
                 // Invoice sends are synchronous (SendInvoice only marks an
                 // invoice sent once delivery succeeds), so a hung API call
