@@ -6,6 +6,7 @@ use App\Domain\Billing\Models\Invoice;
 use App\Domain\PropertyBible\Models\Property;
 use App\Notifications\InvoiceIssued;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Symfony\Component\Mailer\Envelope;
@@ -59,6 +60,37 @@ it('emails a link to the invoice on QC Minute rather than attaching a PDF', func
             && str_contains($mail->actionUrl, '/invoices/')
             && $mail->attachments === [];
     });
+});
+
+it('points the mail header at QC Minute, not the back office', function () {
+    Notification::fake();
+
+    $invoice = Invoice::factory()->create([
+        'property_id' => Property::factory(),
+        'invoicer_snapshot' => ['name' => 'Quality Cleaning Plus LLC'],
+    ]);
+
+    app(SendInvoice::class)->handle($invoice, person('recruiter'), 'billing@hotel.test');
+
+    Notification::assertSentOnDemand(InvoiceIssued::class, function (InvoiceIssued $n, array $channels, object $notifiable): bool {
+        $mail = $n->toMail($notifiable);
+
+        // The stock header links to APP_URL — the back office, which this
+        // recipient cannot sign in to.
+        return $mail->viewData['headerUrl'] === 'https://'.config('domains.qcminute')
+            && ! str_contains($mail->viewData['headerUrl'], (string) config('domains.main'))
+            && $mail->viewData['headerName'] === 'Quality Cleaning Plus LLC';
+    });
+});
+
+it('renders the whole email on the QC Minute host', function () {
+    $invoice = Invoice::factory()->create(['property_id' => Property::factory()]);
+    $notification = new InvoiceIssued($invoice);
+
+    $rendered = (string) $notification->toMail(new AnonymousNotifiable)->render();
+
+    expect($rendered)->toContain(config('domains.qcminute'))
+        ->and($rendered)->not->toContain(config('domains.main'));
 });
 
 it('marks the invoice sent once delivery succeeds', function () {

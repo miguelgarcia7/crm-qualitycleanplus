@@ -118,4 +118,24 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Components
+    |--------------------------------------------------------------------------
+    |
+    | The slim default config ships without this block, and its absence
+    | silently disables view overrides in resources/views/vendor/mail — the
+    | framework copies are used and nothing reports that yours were ignored.
+    | Declared so our message layout (surface-aware mail header) is found.
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'default',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];

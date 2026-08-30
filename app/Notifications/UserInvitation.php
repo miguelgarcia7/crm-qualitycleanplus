@@ -45,7 +45,12 @@ class UserInvitation extends Notification
             ? 'An account has been created for you on QC Minute, the portal where you can review weekly timesheets, approve hours, and view invoices for your property.'
             : 'An account has been created for you on the QCP Staffing back office.';
 
-        return (new MailMessage)
+        $mail = new MailMessage;
+
+        // Header must point at the surface this person signs in on, not APP_URL.
+        $mail->viewData = ['headerUrl' => "{$scheme}://{$host}"];
+
+        return $mail
             ->subject($this->surface === 'qcminute' ? 'You have been invited to QC Minute' : 'You have been invited to QCP Staffing')
             ->greeting("Hello {$notifiable->name},")
             ->line($intro)

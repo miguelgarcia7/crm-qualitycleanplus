@@ -38,7 +38,16 @@ class InvoiceIssued extends Notification
         $property = $this->invoice->property_snapshot['name'] ?? 'your property';
         $total = '$'.number_format($this->invoice->total / 100, 2);
 
-        return (new MailMessage)
+        $mail = new MailMessage;
+
+        // The stock header links to APP_URL — the back office, which this
+        // recipient cannot sign in to. Point it at QC Minute instead.
+        $mail->viewData = [
+            'headerUrl' => "{$scheme}://{$host}",
+            'headerName' => $this->companyName(),
+        ];
+
+        return $mail
             ->subject("Invoice {$this->invoice->invoice_number} from QCP Staffing")
             ->greeting('Hello,')
             ->line("Invoice {$this->invoice->invoice_number} for {$property} is ready to view.")
@@ -46,5 +55,18 @@ class InvoiceIssued extends Notification
             ->action('View invoice', $url)
             ->line('You can download a PDF copy from that page. Signing in with your QC Minute account is required.')
             ->salutation('Thank you, QCP Staffing');
+    }
+
+    /**
+     * The company name as the client knows it — the same identity frozen onto
+     * the invoice itself, not APP_NAME (which is the internal app's name).
+     */
+    private function companyName(): string
+    {
+        $snapshot = $this->invoice->invoicer_snapshot['name'] ?? null;
+
+        return is_string($snapshot) && trim($snapshot) !== ''
+            ? $snapshot
+            : (string) config('qcp.invoicer.name', 'QCP Staffing');
     }
 }
