@@ -17,6 +17,10 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('source_request_id')->nullable(); // supply_requests
             $table->foreignId('person_id')->constrained('people')->restrictOnDelete();
+            // What the deduction is for. Uniforms come from a supply request;
+            // the hiring fee is set by 'CP when a contractor is taken on and has
+            // no source request.
+            $table->enum('reason', ['uniform', 'hiring_fee'])->default('uniform')->index();
             $table->bigInteger('total_amount'); // cents
             $table->unsignedTinyInteger('num_payments');
             $table->bigInteger('amount_per_payment'); // cents (base slice)

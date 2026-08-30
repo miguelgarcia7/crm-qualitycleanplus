@@ -5,8 +5,11 @@ namespace App\Domain\Inventory\Jobs;
 use App\Domain\Adjustments\Enums\AdjustmentSourceType;
 use App\Domain\Adjustments\Enums\AdjustmentType;
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
+use App\Domain\Inventory\Actions\AllocateChargeScheduleEntries;
 use App\Domain\Inventory\Enums\ChargeEntryStatus;
+use App\Domain\Inventory\Enums\ChargeReason;
 use App\Domain\Inventory\Enums\ChargeScheduleStatus;
+use App\Domain\Inventory\Models\ContractorChargeSchedule;
 use App\Domain\Inventory\Models\ContractorChargeScheduleEntry;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -27,6 +30,16 @@ class ApplyScheduledContractorCharges implements ShouldQueue
 
     public function handle(): void
     {
+        // Top up schedules too long for the open-period window (a $250 hiring
+        // fee at $20 needs 13 periods; only a few are ever open) before
+        // applying anything.
+        $allocate = app(AllocateChargeScheduleEntries::class);
+
+        ContractorChargeSchedule::query()
+            ->where('status', ChargeScheduleStatus::Active)
+            ->with('person')
+            ->each(fn (ContractorChargeSchedule $schedule) => $allocate->handle($schedule));
+
         $entries = ContractorChargeScheduleEntry::query()
             ->where('status', ChargeEntryStatus::Scheduled)
             ->whereHas('payrollPeriod', fn (Builder $q) => $q->where('status', 'open'))
@@ -42,12 +55,16 @@ class ApplyScheduledContractorCharges implements ShouldQueue
                     'person_id' => $schedule->person_id,
                     'property_id' => $period->property_id,
                     'payroll_period_id' => $period->id,
-                    'source_type' => AdjustmentSourceType::SupplyRequest,
+                    // A hiring fee has no source request — it is QCP's own
+                    // charge, not something the contractor requested.
+                    'source_type' => $schedule->reason === ChargeReason::HiringFee
+                        ? AdjustmentSourceType::Manual
+                        : AdjustmentSourceType::SupplyRequest,
                     'source_id' => $schedule->source_request_id,
                     'value' => $entry->amount,
                     'type' => AdjustmentType::Deduction,
                     'is_billable' => false,
-                    'notes' => 'Uniform charge (payment '.$entry->payment_index.' of '.$schedule->num_payments.')',
+                    'notes' => $schedule->reason->label().' (payment '.$entry->payment_index.' of '.$schedule->num_payments.')',
                 ]);
 
                 $entry->update([
@@ -55,7 +72,17 @@ class ApplyScheduledContractorCharges implements ShouldQueue
                     'applied_adjustment_id' => $adjustment->id,
                 ]);
 
-                if ($schedule->entries()->where('status', ChargeEntryStatus::Scheduled)->doesntExist()) {
+                // Complete only once the whole amount has actually been taken.
+                // Checking "no scheduled entries left" was safe when every
+                // payment was allocated up front, but a schedule longer than
+                // the open-period window is allocated in instalments — that
+                // test would retire it early and strand the remainder, since
+                // the allocator only tops up ACTIVE schedules.
+                $collected = (int) $schedule->entries()
+                    ->where('status', ChargeEntryStatus::Applied)
+                    ->sum('amount');
+
+                if ($collected >= $schedule->total_amount) {
                     $schedule->update(['status' => ChargeScheduleStatus::Completed]);
                 }
             });

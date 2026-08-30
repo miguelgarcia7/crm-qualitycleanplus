@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory\Models;
 
+use App\Domain\Inventory\Enums\ChargeReason;
 use App\Domain\Inventory\Enums\ChargeScheduleStatus;
 use App\Domain\People\Models\Person;
 use Database\Factories\ContractorChargeScheduleFactory;
@@ -14,6 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A contractor charge spread over payroll periods (ADR-0014).
  *
  * @property ChargeScheduleStatus $status
+ * @property ChargeReason $reason
+ * @property-read int|null $applied_count aggregate from withCount()
+ * @property-read int|null $collected_amount aggregate from withSum()
  */
 class ContractorChargeSchedule extends Model
 {
@@ -26,6 +30,7 @@ class ContractorChargeSchedule extends Model
     protected $fillable = [
         'source_request_id',
         'person_id',
+        'reason',
         'total_amount',
         'num_payments',
         'amount_per_payment',
@@ -39,6 +44,7 @@ class ContractorChargeSchedule extends Model
     {
         return [
             'status' => ChargeScheduleStatus::class,
+            'reason' => ChargeReason::class,
             'total_amount' => 'integer',
             'num_payments' => 'integer',
             'amount_per_payment' => 'integer',

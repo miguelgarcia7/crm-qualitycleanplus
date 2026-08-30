@@ -47,6 +47,17 @@ return [
     ],
 
     /*
+    | The fee QCP charges a contractor for taking them on, deducted from pay
+    | across pay periods like a uniform charge (never billed to the property).
+    | Created automatically when an applicant is promoted; the per-period amount
+    | is editable per contractor, and the schedule can be cancelled outright.
+    */
+    'hiring_fee' => [
+        'amount_cents' => 250_00,
+        'per_period_cents' => 20_00,
+    ],
+
+    /*
     | Invoicing.
     */
     'invoice' => [

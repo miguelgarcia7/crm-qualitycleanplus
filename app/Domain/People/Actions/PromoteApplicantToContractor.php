@@ -2,6 +2,7 @@
 
 namespace App\Domain\People\Actions;
 
+use App\Domain\Inventory\Actions\ScheduleHiringFee;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Support\OnboardingChecklist;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PromoteApplicantToContractor
 {
+    public function __construct(private readonly ScheduleHiringFee $hiringFee) {}
+
     public function handle(JobApplication $application, Person $promoter): void
     {
         /** @var Person $person */
@@ -58,6 +61,12 @@ class PromoteApplicantToContractor
                 ->causedBy($promoter)
                 ->withProperties(['old_status' => PersonStatus::Applicant->value, 'new_status' => PersonStatus::ContractorActive->value])
                 ->log("Promoted {$person->name} to contractor");
+
+            // QCP's fee for taking them on. Created here rather than left to
+            // someone remembering: a missed fee is revenue quietly lost. The
+            // per-period amount is editable and the schedule cancellable from
+            // the person's profile.
+            $this->hiringFee->handle($person);
         });
     }
 }

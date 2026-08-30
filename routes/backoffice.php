@@ -6,6 +6,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\ContractController;
+use App\Http\Controllers\ContractorChargeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DeviceController;
@@ -229,6 +230,11 @@ Route::post('imports/{importBatch}/rollback', [ImportController::class, 'rollbac
 Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');
 Route::post('work-orders/{work_order}/time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
 Route::delete('time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
+
+// Contractor deduction schedules — hiring fee + uniform charges. The total is
+// fixed at creation; these change the pace, or stop collection entirely.
+Route::patch('contractor-charges/{schedule}', [ContractorChargeController::class, 'update'])->name('contractor-charges.update');
+Route::delete('contractor-charges/{schedule}', [ContractorChargeController::class, 'cancel'])->name('contractor-charges.cancel');
 
 // Payroll adjustments — manual incentives/deductions (Phase 04)
 Route::post('payroll-periods/{period}/adjustments', [AdjustmentController::class, 'store'])->name('adjustments.store');

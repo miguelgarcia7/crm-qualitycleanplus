@@ -1,8 +1,8 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
-import { cn } from '@/utils/helpers'
-import { Head, Link } from '@inertiajs/react'
-import { useEffect, useState } from 'react'
+import { cn, toPascalCase } from '@/utils/helpers'
+import { Head, Link, router, useForm } from '@inertiajs/react'
+import { FormEvent, useEffect, useState } from 'react'
 
 // --- Types -------------------------------------------------------------------
 
@@ -66,11 +66,25 @@ type PtoPayload = {
 
 type HistoryRow = { id: number; description: string; event: string | null; causer: string | null; created_at: string | null }
 
+type ChargeRow = {
+  id: number
+  reason: string
+  reason_label: string
+  total_amount: number
+  amount_per_payment: number
+  num_payments: number
+  applied_count: number
+  collected_amount: number
+  status: string
+  can_edit: boolean
+}
+
 type Props = {
   person: PersonInfo
   workOrders: WorkOrderRow[] | null
   hours: HoursRow[] | null
   adjustments: AdjustmentRow[] | null
+  charges: ChargeRow[] | null
   pto: PtoPayload | null
   history: HistoryRow[] | null
 }
@@ -284,6 +298,135 @@ const HoursTab = ({ hours }: { hours: HoursRow[] }) => (
   </div>
 )
 
+/**
+ * Deductions spread across pay periods. The total is fixed when the charge is
+ * created; what is editable here is the pace, or stopping collection.
+ */
+const ChargesTab = ({ charges }: { charges: ChargeRow[] }) => {
+  const [editing, setEditing] = useState<ChargeRow | null>(null)
+
+  const cancel = (row: ChargeRow) => {
+    if (!confirm(`Stop collecting the ${row.reason_label.toLowerCase()}? Payments already taken are unchanged.`)) return
+    router.delete(`/admin/contractor-charges/${row.id}`, { preserveScroll: true })
+  }
+
+  return (
+    <>
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>Charge</th>
+              <th className="text-end">Total</th>
+              <th className="text-end">Per period</th>
+              <th className="text-end">Collected</th>
+              <th>Status</th>
+              <th className="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {charges.length ? (
+              charges.map((row) => (
+                <tr key={row.id}>
+                  <td className="font-medium">{row.reason_label}</td>
+                  <td className="text-end">{money(row.total_amount)}</td>
+                  <td className="text-end">{money(row.amount_per_payment)}</td>
+                  <td className="text-end">
+                    {money(row.collected_amount)}
+                    <span className="text-default-400 block text-xs">
+                      {row.applied_count} of {row.num_payments} payments
+                    </span>
+                  </td>
+                  <td>
+                    <span className={cn('badge badge-label', row.status === 'active' ? 'bg-warning/15 text-warning' : 'bg-light text-default-600')}>
+                      {toPascalCase(row.status)}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="flex justify-center gap-1.5">
+                      {row.can_edit && (
+                        <>
+                          <button className="btn btn-icon border-default-300 hover:border-default-400 border" title="Change per-period amount" onClick={() => setEditing(row)}>
+                            <Icon icon="pencil" className="text-base" />
+                          </button>
+                          <button className="btn btn-icon border-default-300 hover:border-danger text-danger border" title="Stop collecting" onClick={() => cancel(row)}>
+                            <Icon icon="x" className="text-base" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="text-default-400 py-4 text-center">
+                  No deductions scheduled.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && <EditChargeModal row={editing} onClose={() => setEditing(null)} />}
+    </>
+  )
+}
+
+const EditChargeModal = ({ row, onClose }: { row: ChargeRow; onClose: () => void }) => {
+  const { data, setData, patch, processing, errors } = useForm({
+    amount_per_payment: String(row.amount_per_payment / 100),
+  })
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    router.patch(
+      `/admin/contractor-charges/${row.id}`,
+      { amount_per_payment: Math.round(Number(data.amount_per_payment) * 100) },
+      { preserveScroll: true, onSuccess: onClose },
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header">
+          <h4 className="card-title">{row.reason_label}</h4>
+        </div>
+        <div className="card-body p-5">
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="form-label">Amount per pay period</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                className="form-input"
+                value={data.amount_per_payment}
+                onChange={(e) => setData('amount_per_payment', e.target.value)}
+                required
+              />
+              {errors.amount_per_payment && <p className="text-danger mt-1 text-sm">{errors.amount_per_payment}</p>}
+              <p className="text-default-400 mt-2 text-sm">
+                {money(row.total_amount)} total, {money(row.collected_amount)} already collected. Payments already taken are not changed.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>
+                Cancel
+              </button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const AdjustmentsTab = ({ adjustments }: { adjustments: AdjustmentRow[] }) => (
   <div className="table-wrapper">
     <table className="table table-hover">
@@ -389,11 +532,12 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
 
 // --- Page -------------------------------------------------------------------------
 
-const Page = ({ person, workOrders, hours, adjustments, pto, history }: Props) => {
+const Page = ({ person, workOrders, hours, adjustments, charges, pto, history }: Props) => {
   const tabs = [
     { key: 'work-orders', label: 'Work Orders', show: workOrders !== null },
     { key: 'hours', label: 'Hours', show: hours !== null },
     { key: 'adjustments', label: 'Adjustments', show: adjustments !== null },
+    { key: 'charges', label: 'Deductions', show: charges !== null },
     { key: 'pto', label: 'Time Off', show: pto !== null },
     { key: 'history', label: 'History', show: history !== null },
   ].filter((t) => t.show)
@@ -451,6 +595,7 @@ const Page = ({ person, workOrders, hours, adjustments, pto, history }: Props) =
               {active === 'work-orders' && workOrders !== null && <WorkOrdersTab workOrders={workOrders} />}
               {active === 'hours' && hours !== null && <HoursTab hours={hours} />}
               {active === 'adjustments' && adjustments !== null && <AdjustmentsTab adjustments={adjustments} />}
+              {active === 'charges' && charges !== null && <ChargesTab charges={charges} />}
               {active === 'pto' && pto !== null && <PtoTab pto={pto} />}
               {active === 'history' && history !== null && <HistoryTab history={history} />}
             </div>

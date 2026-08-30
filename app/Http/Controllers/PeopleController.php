@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
+use App\Domain\Inventory\Enums\ChargeEntryStatus;
+use App\Domain\Inventory\Enums\ChargeScheduleStatus;
+use App\Domain\Inventory\Models\ContractorChargeSchedule;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Policies\PersonPolicy;
@@ -78,6 +81,7 @@ class PeopleController extends Controller
             'workOrders' => $isStaff ? null : $this->workOrderRows($person, $canRates),
             'hours' => $canHours ? $this->hoursRows($person) : null,
             'adjustments' => $canAdjustments ? $this->adjustmentRows($person) : null,
+            'charges' => $canAdjustments ? $this->chargeRows($person) : null,
             'pto' => $canPto ? $this->ptoPayload($person) : null,
             'history' => $canHistory ? $this->historyRows($person) : null,
         ]);
@@ -194,6 +198,38 @@ class PeopleController extends Controller
                 'regular_minutes' => $s->regular_minutes,
                 'overtime_minutes' => $s->overtime_minutes,
                 'other_minutes' => $s->holiday_minutes + $s->training_minutes,
+            ])
+            ->all();
+    }
+
+    /**
+     * Deductions spread over pay periods — the hiring fee and any uniform
+     * charges.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function chargeRows(Person $person): array
+    {
+        return ContractorChargeSchedule::query()
+            ->where('person_id', $person->id)
+            ->withCount(['entries as applied_count' => fn ($q) => $q->where('status', ChargeEntryStatus::Applied->value)])
+            ->withSum(['entries as collected_amount' => fn ($q) => $q->where('status', ChargeEntryStatus::Applied->value)], 'amount')
+            ->latest('id')
+            ->get()
+            ->map(fn (ContractorChargeSchedule $s): array => [
+                'id' => $s->id,
+                'reason' => $s->reason->value,
+                'reason_label' => $s->reason->label(),
+                'total_amount' => $s->total_amount,
+                'amount_per_payment' => $s->amount_per_payment,
+                'num_payments' => $s->num_payments,
+                'applied_count' => (int) $s->applied_count,
+                // Actually taken out of pay so far. The rest is either
+                // scheduled against a future period or not yet allocated to
+                // one, which is why this is not total minus scheduled.
+                'collected_amount' => (int) ($s->collected_amount ?? 0),
+                'status' => $s->status->value,
+                'can_edit' => $s->status === ChargeScheduleStatus::Active,
             ])
             ->all();
     }

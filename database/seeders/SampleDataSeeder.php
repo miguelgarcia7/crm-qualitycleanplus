@@ -17,10 +17,14 @@ use App\Domain\FieldVisits\Enums\FieldVisitStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\Imports\Actions\CommitImport;
 use App\Domain\Imports\Actions\CreateImportBatch;
+use App\Domain\Inventory\Actions\AllocateChargeScheduleEntries;
 use App\Domain\Inventory\Actions\CreateItem;
 use App\Domain\Inventory\Actions\CreatePurchaseOrder;
 use App\Domain\Inventory\Actions\ReceivePurchaseOrder;
 use App\Domain\Inventory\Actions\ReceiveStock;
+use App\Domain\Inventory\Actions\ScheduleHiringFee;
+use App\Domain\Inventory\Enums\ChargeEntryStatus;
+use App\Domain\Inventory\Enums\ChargeScheduleStatus;
 use App\Domain\Inventory\Enums\PurchaseOrderStatus;
 use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\Inventory\Models\Category;
@@ -108,6 +112,9 @@ class SampleDataSeeder extends Seeder
                 'qr_clock_enabled' => true, // mints the qr_token on save
                 'tax_rate' => 0.0875,
                 'closing_day' => 1, // week ends Monday → Tue–Mon timesheets
+                // Contracted direct-hire term, shorter than the 2080h default
+                // so the PM roster shows real progress rather than a flat bar.
+                'direct_hire_threshold_minutes' => 500 * 60,
                 'status' => PropertyStatus::Active,
             ],
         );
@@ -281,6 +288,10 @@ class SampleDataSeeder extends Seeder
         // Leave a spread of timesheets genuinely waiting on a PM (and one
         // declined) so the dashboard's approval queue and pipeline aren't empty.
         $this->seedApprovalQueue($recruiter, $pm);
+
+        // Hiring fees, after the work orders exist — the allocator needs an
+        // active placement to know which property's periods to charge.
+        $this->seedHiringFees();
 
         $this->seedInventory($recruiter);
         $this->seedRequestsAndCharges($property, $recruiter, $frontDesk, $contractors, $workOrders);
@@ -479,6 +490,9 @@ class SampleDataSeeder extends Seeder
             'longitude' => -96.6989,
             'qr_clock_enabled' => true,
             'tax_rate' => 0.081,
+            // A tighter direct-hire term than the Marriott — the value is
+            // per-contract, so properties legitimately differ.
+            'direct_hire_threshold_minutes' => 240 * 60,
             'closing_day' => 3, // week ends Wednesday → Thu–Wed timesheets
             'status' => PropertyStatus::Active,
         ]);
@@ -883,6 +897,48 @@ class SampleDataSeeder extends Seeder
                     'Two housekeeping shifts on Thursday were not worked — please remove and resubmit.',
                     'hours_dispute',
                 );
+            }
+        }
+    }
+
+    /**
+     * Hiring fees for the seeded contractors. Production creates these on
+     * promotion, but the sample contractors are made directly, so they are
+     * scheduled here — at different stages, so the Deductions tab shows an
+     * untouched schedule, one part-collected, and one cancelled.
+     */
+    private function seedHiringFees(): void
+    {
+        $schedule = app(ScheduleHiringFee::class);
+        $allocate = app(AllocateChargeScheduleEntries::class);
+
+        $contractors = Person::query()
+            ->where('status', PersonStatus::ContractorActive)
+            ->whereHas('workOrders')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($contractors as $i => $person) {
+            $fee = $schedule->handle($person);
+
+            if ($fee === null) {
+                continue;
+            }
+
+            $allocate->handle($fee);
+
+            // Every third contractor has been paying it down for a while.
+            if ($i % 3 === 1) {
+                $fee->entries()->orderBy('payment_index')->limit(4)
+                    ->update(['status' => ChargeEntryStatus::Applied]);
+            }
+
+            // One cancelled outright — the fee was waived after two payments.
+            if ($i === 2) {
+                $fee->entries()->orderBy('payment_index')->limit(2)
+                    ->update(['status' => ChargeEntryStatus::Applied]);
+                $fee->entries()->where('status', ChargeEntryStatus::Scheduled)->delete();
+                $fee->update(['status' => ChargeScheduleStatus::Cancelled]);
             }
         }
     }
