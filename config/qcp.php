@@ -34,6 +34,19 @@ return [
     ],
 
     /*
+    | Direct-hire eligibility. Hours a contractor must work at a property before
+    | that property may hire them directly — a commercial term protecting QCP
+    | against losing a placement it sourced. Properties carry their own value
+    | (from their contract); this is the fallback when a property has none, and
+    | the value copied onto each work order at creation.
+    |
+    | 2080h ≈ a full work-year. Confirm against the standard contract term.
+    */
+    'work_orders' => [
+        'direct_hire_threshold_hours' => 2080,
+    ],
+
+    /*
     | Invoicing.
     */
     'invoice' => [

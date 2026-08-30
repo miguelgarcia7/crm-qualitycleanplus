@@ -4,19 +4,20 @@ namespace App\Domain\PropertyBible\Actions;
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Concerns\LogsPropertyActivity;
+use App\Domain\PropertyBible\Concerns\NormalisesDirectHireThreshold;
 use App\Domain\PropertyBible\Models\Holiday;
 use App\Domain\PropertyBible\Models\Property;
 
 class CreateProperty
 {
-    use LogsPropertyActivity;
+    use LogsPropertyActivity, NormalisesDirectHireThreshold;
 
     /**
      * @param  array<string, mixed>  $data
      */
     public function handle(array $data, ?Person $creator): Property
     {
-        $property = new Property($data);
+        $property = new Property($this->normaliseDirectHireThreshold($data));
         $property->created_by = $creator?->id;
         $property->save();
 

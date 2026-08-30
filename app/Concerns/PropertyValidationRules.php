@@ -51,6 +51,9 @@ trait PropertyValidationRules
             // ISO day-of-week the property's work week ends on (1 = Mon … 7 = Sun).
             'closing_day' => ['nullable', 'integer', 'min:1', 'max:7'],
             'tax_rate' => ['required', 'numeric', 'min:0', 'max:1'],
+            // Hours from this property's contract before it may hire a
+            // contractor directly. Blank = fall back to the system default.
+            'direct_hire_threshold_hours' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'status' => ['required', Rule::enum(PropertyStatus::class)],
             'time_source' => ['sometimes', Rule::enum(PropertyTimeSource::class)],
         ];

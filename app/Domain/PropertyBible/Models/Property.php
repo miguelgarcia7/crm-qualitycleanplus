@@ -52,6 +52,7 @@ class Property extends Model
         'qr_clock_enabled', // qr_token is deliberately NOT fillable — minted by the saving hook
         'closing_day',
         'tax_rate',
+        'direct_hire_threshold_minutes',
         'status',
         'time_source',
         'created_by',
@@ -71,6 +72,7 @@ class Property extends Model
             'qr_clock_enabled' => 'boolean',
             'closing_day' => 'integer',
             'tax_rate' => 'decimal:4',
+            'direct_hire_threshold_minutes' => 'integer',
         ];
     }
 
@@ -258,5 +260,21 @@ class Property extends Model
                 ->select('position_id'))
             ->orderBy('name')
             ->get(['id', 'name']);
+    }
+
+    /**
+     * This property's contracted direct-hire threshold, or null to fall back to
+     * the system default. Work orders copy the resolved value at creation, so
+     * changing it here never moves the goalposts on an existing placement.
+     */
+    public function directHireThresholdMinutes(): ?int
+    {
+        return $this->direct_hire_threshold_minutes;
+    }
+
+    /** The fallback used when a property carries no contracted value. */
+    public static function defaultDirectHireThresholdMinutes(): int
+    {
+        return (int) config('qcp.work_orders.direct_hire_threshold_hours', 2080) * 60;
     }
 }

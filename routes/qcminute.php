@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Minute\ChangePersonalInfoController;
+use App\Http\Controllers\Minute\ContractorRosterController;
 use App\Http\Controllers\Minute\DashboardController;
 use App\Http\Controllers\Minute\InvoiceController;
 use App\Http\Controllers\Minute\KbController;
@@ -24,6 +25,14 @@ Route::get('timesheets', [TimesheetApprovalController::class, 'index'])->name('q
 Route::get('timesheets/{timesheet}', [TimesheetApprovalController::class, 'show'])->name('qcminute.timesheets.show');
 Route::post('timesheets/{timesheet}/approve', [TimesheetApprovalController::class, 'approve'])->name('qcminute.timesheets.approve');
 Route::post('timesheets/{timesheet}/decline', [TimesheetApprovalController::class, 'decline'])->name('qcminute.timesheets.decline');
+
+// Contractors placed at the PM's properties, with direct-hire eligibility
+// progress — the commercial term they need visibility into.
+// Gated: contractors sign in on this surface too, and must not see a roster of
+// who else is placed at the property.
+Route::get('contractors', [ContractorRosterController::class, 'index'])
+    ->middleware('can:people.contractors.view')
+    ->name('qcminute.contractors.index');
 
 // Property-manager invoice viewing — read-only; generating, sending and voiding
 // stay in the back office. This is what invoice emails link to.

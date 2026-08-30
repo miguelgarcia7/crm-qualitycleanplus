@@ -16,6 +16,9 @@ class CreateWorkOrder
      */
     public function handle(array $data, ?Person $creator, WorkOrderSource $source = WorkOrderSource::RecruiterCreated): WorkOrder
     {
+        // The direct-hire threshold defaults from the property in WorkOrder's
+        // saving hook, so imports, temporary assignments and factories get it
+        // too — not just this path.
         $workOrder = new WorkOrder($data);
         $workOrder->source = $source;
         $workOrder->created_by = $creator?->id;

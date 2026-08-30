@@ -44,7 +44,7 @@ class WorkOrder extends Model
         'start_date',
         'end_date',
         'status',
-        'probationary_period_minutes',
+        'direct_hire_threshold_minutes',
         'source',
         'is_temporary_assignment',
         'parent_wo_id',
@@ -68,7 +68,8 @@ class WorkOrder extends Model
             'ot_bill_rate' => 'integer',
             'start_date' => 'date',
             'end_date' => 'date',
-            'probationary_period_minutes' => 'integer',
+            'direct_hire_threshold_minutes' => 'integer',
+            'direct_hire_notified_at' => 'datetime',
         ];
     }
 
@@ -110,6 +111,32 @@ class WorkOrder extends Model
     public function moreStaffRequest(): BelongsTo
     {
         return $this->belongsTo(MoreStaffRequest::class);
+    }
+
+    /**
+     * Fill the direct-hire threshold from the property's contracted value (or
+     * the system default) when the caller has not set one. Done here rather
+     * than in CreateWorkOrder so imports, temporary assignments and factories
+     * are covered by the same rule.
+     *
+     * Resolved once, at creation: changing a property's value later must not
+     * move the goalposts on placements already running.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (WorkOrder $workOrder): void {
+            // Ask the attribute bag rather than the accessor: the column is
+            // NOT NULL so the cast reports int, and "caller did not set one"
+            // is the state we actually need to detect.
+            if (array_key_exists('direct_hire_threshold_minutes', $workOrder->getAttributes())) {
+                return;
+            }
+
+            $property = Property::query()->find($workOrder->getAttributes()['property_id'] ?? null);
+
+            $workOrder->direct_hire_threshold_minutes = $property?->directHireThresholdMinutes()
+                ?? Property::defaultDirectHireThresholdMinutes();
+        });
     }
 
     /**

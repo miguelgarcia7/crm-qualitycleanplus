@@ -44,6 +44,11 @@ return new class extends Migration
             $table->unsignedTinyInteger('closing_day')->nullable(); // day-of-month cycle ends
             $table->decimal('tax_rate', 5, 4)->default(0);          // e.g. 0.0875
 
+            // Hours a contractor must work here before the property may hire them
+            // directly (a commercial term in the property contract). Null = use the
+            // system default in config/qcp.php. Copied onto each work order.
+            $table->unsignedInteger('direct_hire_threshold_minutes')->nullable();
+
             // Status
             $table->enum('status', ['active', 'inactive'])->default('active')->index();
 

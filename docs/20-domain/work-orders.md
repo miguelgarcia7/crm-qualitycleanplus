@@ -23,7 +23,8 @@ work_orders
   - start_date (date)
   - end_date (date, nullable — null means open-ended; REQUIRED when is_temporary_assignment=true)
   - status: enum (active | closed | suspended)
-  - probationary_period_minutes (default 2080 = ~1 work-year worth)
+  - direct_hire_threshold_minutes (copied from the property at creation; see "Direct-hire eligibility")
+  - direct_hire_notified_at (nullable — stamped once, when the placement crosses the threshold)
   - source: enum (recruiter_created | imported | pay_increase_from_wo_id | transfer_from_wo_id | temporary_assignment_from_wo_id)
   - parent_wo_id (nullable — set when this WO supersedes another via pay increase, transfer, or temp assignment)
   - is_temporary_assignment (bool, default false — true when this is a temp WO from a `temporary_assignment` workflow; per ADR-0019)
@@ -170,9 +171,40 @@ A WO can be `suspended` for temporary leave (medical, personal). Suspended WOs:
 
 Suspension is rarely used; for permanent end-of-relationship, use closure.
 
-## Probationary period
+## Direct-hire eligibility
 
-The `probationary_period_minutes` (default 2080 minutes = ~34 hours = ~1 work-week) defines the trial period during which performance reviews are heightened. Used by recruiter dashboard warnings and termination workflows. Not enforced by the system, just tracked.
+`direct_hire_threshold_minutes` is the hours a contractor must work **at that
+property** before the property may hire them directly. It is a commercial term
+from the property's contract, not a performance trial — it protects QCP against
+losing a placement it sourced.
+
+(This replaced `probationary_period_minutes`, which was described inconsistently
+as both "~1 work-year" and "~1 work-week" and was never read by anything.)
+
+**Where the value comes from.** Properties carry their contracted figure
+(`properties.direct_hire_threshold_minutes`, nullable). Work orders copy the
+resolved value at creation — property value, else the system default in
+`config/qcp.php` — and may override it per placement. Filled by `WorkOrder`'s
+`creating` hook so imports, temporary assignments and factories are covered by
+the same rule, not just `CreateWorkOrder`.
+
+Resolved **once**, at creation: renegotiating a property's contract must not
+move the goalposts on placements already running.
+
+**What counts.** Worked time from the weekly summaries — regular, overtime and
+holiday. Training is excluded: QCP pays it and never bills it, so it is not time
+worked for the property. Elapsed calendar time is irrelevant; a contractor on
+two shifts a week takes proportionally longer to become eligible.
+
+**Who sees it.** Property managers see progress and an eligible state on QC
+Minute at `/contractors`; the back office sees the same on the work-order list.
+When a placement crosses the threshold, the contractor's primary recruiter and
+any recruiter assigned to the property get an in-app notification —
+`direct_hire_notified_at` guards it so it fires once, not on every clock-out
+thereafter.
+
+A threshold of `0` means unrestricted rather than instantly eligible, and is
+reported as such rather than as a meaningless 0/0 bar.
 
 ## Auto-creation on first import
 

@@ -7,6 +7,7 @@ use App\Domain\Time\Enums\TimeEntryType;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
+use App\Domain\WorkOrders\Actions\NotifyDirectHireEligible;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -137,6 +138,8 @@ class RecomputeTimeSummary implements ShouldQueue
 
         // Keep the report rollup's weekly cell in step (ADR-0028).
         app(RefreshWeeklyRollup::class)->handle($workOrder->property_id, $period->week_start->toDateString());
+
+        app(NotifyDirectHireEligible::class)->handle($workOrder);
     }
 
     /** minutes × rate(cents/hour) → cents. */

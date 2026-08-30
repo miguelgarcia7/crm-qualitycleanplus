@@ -14,6 +14,7 @@ use App\Domain\WorkOrders\Actions\UpdateWorkOrder;
 use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Domain\WorkOrders\Support\DirectHireProgress;
 use App\Http\Requests\WorkOrder\StoreWorkOrderRequest;
 use App\Http\Requests\WorkOrder\UpdateWorkOrderRequest;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +26,7 @@ use Inertia\Response;
 
 class WorkOrderController extends Controller
 {
-    public function index(): Response
+    public function index(DirectHireProgress $progress): Response
     {
         $this->authorize('viewAny', WorkOrder::class);
 
@@ -37,8 +38,11 @@ class WorkOrderController extends Controller
             $query->whereIn('property_id', $user->assignedProperties()->pluck('properties.id')->all());
         }
 
+        $workOrders = $query->get();
+        $directHire = $progress->forMany($workOrders);
+
         return Inertia::render('admin/work-orders/index', [
-            'workOrders' => $query->get()->map(fn (WorkOrder $wo): array => [
+            'workOrders' => $workOrders->map(fn (WorkOrder $wo): array => [
                 'id' => $wo->id,
                 'person_id' => $wo->person_id,
                 'contractor' => $wo->person?->name,
@@ -53,6 +57,7 @@ class WorkOrderController extends Controller
                 'status' => $wo->status->value,
                 'is_temporary_assignment' => $wo->is_temporary_assignment,
                 'start_date' => $wo->start_date->toDateString(),
+                'direct_hire' => $directHire[$wo->id] ?? null,
             ]),
             'catalogs' => $this->catalogs() + [
                 'recruiters' => Person::role('recruiter')->orderBy('name')->get(['id', 'name']),

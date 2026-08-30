@@ -29,7 +29,15 @@ return new class extends Migration
             $table->date('start_date');
             $table->date('end_date')->nullable(); // null = open-ended
             $table->enum('status', ['active', 'closed', 'suspended'])->default('active')->index();
-            $table->unsignedInteger('probationary_period_minutes')->default(2080);
+            // Hours the contractor must work at this property before the hotel may
+            // hire them directly (a commercial term protecting QCP against losing a
+            // placement). Copied from the property default at creation and
+            // overridable per work order. Measured against worked time, not
+            // elapsed calendar time.
+            $table->unsignedInteger('direct_hire_threshold_minutes');
+            // Set once, when the contractor crosses the threshold, so the
+            // recruiter is told exactly once rather than on every recompute.
+            $table->timestamp('direct_hire_notified_at')->nullable();
             $table->enum('source', [
                 'recruiter_created',
                 'imported',

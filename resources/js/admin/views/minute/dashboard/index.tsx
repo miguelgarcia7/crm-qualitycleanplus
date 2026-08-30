@@ -10,6 +10,7 @@ type Props = { widgets: Widgets | null }
 const cards = [
   { href: '/timesheets', title: 'Timesheets', desc: 'Review and approve weekly hours.' },
   { href: '/invoices', title: 'Invoices', desc: 'View and download invoices for your property.' },
+  { href: '/contractors', title: 'Contractors', desc: 'Who is placed with you, and direct-hire eligibility.' },
   { href: '/pay-increases', title: 'Pay Increases', desc: 'Request a raise for a contractor.' },
   { href: '/staffing-requests', title: 'Staffing Requests', desc: 'Ask for more contractors at your property.' },
   { href: '/my-info', title: 'My Info', desc: 'Request a change to your name, email, or phone.' },
