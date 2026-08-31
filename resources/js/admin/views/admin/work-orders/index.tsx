@@ -17,6 +17,15 @@ import {
 } from '@tanstack/react-table'
 import { FormEvent, useMemo, useState } from 'react'
 
+type DirectHire = {
+  threshold_hours: number
+  worked_hours: number
+  remaining_hours: number
+  percent: number
+  eligible: boolean
+  unrestricted: boolean
+}
+
 type WorkOrderRow = {
   id: number
   person_id: number
@@ -31,6 +40,7 @@ type WorkOrderRow = {
   ot_bill_rate: number
   status: string
   is_temporary_assignment: boolean
+  direct_hire: DirectHire | null
   start_date: string
 }
 type Option = { id: number; name: string }
@@ -84,6 +94,36 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
       }),
       columnHelper.accessor('start_date', {
         header: 'Start',
+      }),
+      columnHelper.accessor('direct_hire', {
+        header: 'Eligibility',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const dh = row.original.direct_hire
+          if (dh === null) return <span className="text-default-400">—</span>
+          if (dh.unrestricted) return <span className="badge badge-label bg-light text-default-600">None</span>
+          if (dh.eligible) return <span className="badge badge-label bg-success/15 text-success">Eligible</span>
+
+          return (
+            <div className="min-w-28">
+              <span className="text-default-400 mb-1 block text-xs">
+                {Math.round(dh.worked_hours).toLocaleString()} / {Math.round(dh.threshold_hours).toLocaleString()} hrs
+              </span>
+              <span
+                className="bg-default-100 flex h-1.5 w-full overflow-hidden rounded"
+                role="progressbar"
+                aria-label="Progress toward direct-hire eligibility"
+                aria-valuenow={dh.percent}
+                aria-valuemin={0}
+                aria-valuemax={100}>
+                <span
+                  className="bg-primary flex flex-col justify-center overflow-hidden transition duration-500"
+                  style={{ width: `${Math.max(2, dh.percent)}%` }}
+                />
+              </span>
+            </div>
+          )
+        },
       }),
       columnHelper.accessor('status', {
         header: 'Status',

@@ -89,7 +89,7 @@ class WorkOrderController extends Controller
         return to_route('work-orders.index')->with('success', 'Work order created.');
     }
 
-    public function edit(WorkOrder $workOrder): Response
+    public function edit(WorkOrder $workOrder, DirectHireProgress $progress): Response
     {
         $this->authorize('update', $workOrder);
 
@@ -108,6 +108,7 @@ class WorkOrderController extends Controller
                 'status' => $workOrder->status->value,
                 'notes' => $workOrder->notes,
                 'direct_hire_threshold_hours' => intdiv((int) $workOrder->direct_hire_threshold_minutes, 60),
+                'direct_hire' => $progress->for($workOrder),
             ],
             'catalogs' => $this->catalogs(),
         ]);

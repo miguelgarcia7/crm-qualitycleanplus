@@ -17,9 +17,22 @@ type WorkOrder = {
   status: string
   notes: string | null
   direct_hire_threshold_hours: number | null
+  direct_hire: DirectHire | null
 }
 
 type MoreStaffOption = { id: number; property_id: number; label: string }
+type DirectHire = {
+  threshold_hours: number
+  worked_hours: number
+  remaining_hours: number
+  percent: number
+  eligible: boolean
+  unrestricted: boolean
+}
+
+const MAX_ELIGIBILITY_HOURS = 4160
+const ELIGIBILITY_STEP_HOURS = 40
+
 type Props = {
   workOrder: WorkOrder | null
   catalogs: { contractors: Option[]; properties: Option[]; positions: Option[]; moreStaffRequests?: MoreStaffOption[] }
@@ -45,6 +58,7 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
 )
 
 const Page = ({ workOrder, catalogs }: Props) => {
+  const directHire = workOrder?.direct_hire ?? null
   const editing = workOrder !== null
 
   const { data, setData, post, patch, processing, errors } = useForm({
@@ -239,19 +253,52 @@ const Page = ({ workOrder, catalogs }: Props) => {
               </Field>
             )}
 
-            <Field label="Direct-Hire Threshold (hours)" error={errors.direct_hire_threshold_hours}>
+            <Field label="Hours for full-time eligibility" error={errors.direct_hire_threshold_hours}>
               <input
-                type="number"
-                min="0"
-                className="form-input"
-                placeholder="Use the property default"
-                value={data.direct_hire_threshold_hours}
+                type="range"
+                className="form-range mt-2"
+                min={0}
+                max={MAX_ELIGIBILITY_HOURS}
+                step={ELIGIBILITY_STEP_HOURS}
+                value={Number(data.direct_hire_threshold_hours) || 0}
                 onChange={(e) => setData('direct_hire_threshold_hours', e.target.value)}
               />
+              <div className="text-default-400 flex items-baseline justify-between text-xs">
+                <span>0</span>
+                <span className="text-default-900 text-sm font-semibold">
+                  {Number(data.direct_hire_threshold_hours) || 0} hrs
+                </span>
+                <span>{MAX_ELIGIBILITY_HOURS.toLocaleString()}</span>
+              </div>
               <p className="text-default-400 mt-1 text-xs">
-                Hours this contractor must work before the property may hire them directly. Leave blank to take the property&apos;s
-                contracted value. Counts worked hours, not calendar time.
+                Hours this contractor must work before the property may hire them directly. Counts worked hours, not calendar time. Set to 0
+                for no restriction.
               </p>
+
+              {directHire && !directHire.unrestricted && (
+                <div className="mt-3">
+                  <div className="mb-1 flex items-baseline justify-between text-xs">
+                    <span className="text-default-500">
+                      {directHire.worked_hours.toLocaleString()} of {directHire.threshold_hours.toLocaleString()} hrs worked
+                    </span>
+                    <span className={directHire.eligible ? 'text-success font-semibold' : 'text-default-400'}>
+                      {directHire.eligible ? 'Eligible' : `${directHire.percent}%`}
+                    </span>
+                  </div>
+                  <div
+                    className="bg-default-100 flex h-1.5 w-full overflow-hidden rounded"
+                    role="progressbar"
+                    aria-label="Progress toward direct-hire eligibility"
+                    aria-valuenow={directHire.percent}
+                    aria-valuemin={0}
+                    aria-valuemax={100}>
+                    <div
+                      className={`flex flex-col justify-center overflow-hidden transition duration-500 ${directHire.eligible ? 'bg-success' : 'bg-primary'}`}
+                      style={{ width: `${Math.max(2, directHire.percent)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </Field>
             <Field label="Notes" error={errors.notes}>
               <textarea className="form-input" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
