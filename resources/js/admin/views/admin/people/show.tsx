@@ -201,6 +201,61 @@ const IdentityCard = ({ person }: { person: PersonInfo }) => (
   </div>
 )
 
+/**
+ * How much of a one-off fee the contractor still owes — the question a
+ * recruiter asks without wanting to open a tab, so it sits beside the identity
+ * card rather than inside Deductions.
+ *
+ * Alert and progress markup follow the reference library (ui/alerts,
+ * ui/progress) rather than being hand-rolled, so the bar carries its ARIA role.
+ */
+const FeeCard = ({ charge }: { charge: ChargeRow }) => {
+  const remaining = Math.max(0, charge.total_amount - charge.collected_amount)
+  const percent = charge.total_amount > 0 ? Math.round((charge.collected_amount / charge.total_amount) * 100) : 0
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h4 className="card-title">{charge.reason_label}</h4>
+      </div>
+
+      <div className="card-body">
+        <div className="bg-warning/15 text-warning flex items-center gap-3 rounded px-4 py-3" role="alert">
+          <Icon icon="alert-triangle" className="text-lg" />
+          <span>
+            <span className="block text-lg font-semibold">{money(charge.total_amount)}</span>
+            <span className="text-sm">{charge.reason === 'hiring_fee' ? 'New hiring processing fee' : 'Issued uniform charge'}</span>
+          </span>
+        </div>
+
+        <div className="mt-5">
+          <div className="mb-2 flex items-baseline justify-between">
+            <span className="font-semibold">Total amount paid</span>
+            <span className="font-semibold">{money(charge.collected_amount)}</span>
+          </div>
+
+          <div
+            className="bg-default-100 flex h-4 w-full overflow-hidden rounded"
+            role="progressbar"
+            aria-valuenow={percent}
+            aria-valuemin={0}
+            aria-valuemax={100}>
+            <div
+              className="bg-warning flex flex-col justify-center overflow-hidden text-center whitespace-nowrap transition duration-500"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+
+          <p className="text-default-400 mt-2 text-sm">
+            {remaining > 0 ? `${money(remaining)} remaining` : 'Paid in full'}
+            {charge.status === 'cancelled' && ' — collection cancelled'}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // --- Tabs ------------------------------------------------------------------------
 
 const WorkOrdersTab = ({ workOrders }: { workOrders: WorkOrderRow[] }) => {
@@ -533,6 +588,10 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
 // --- Page -------------------------------------------------------------------------
 
 const Page = ({ person, workOrders, hours, adjustments, charges, pto, history }: Props) => {
+  // The hiring fee is the one worth surfacing outside the tab — a cancelled or
+  // fully-paid one still shows, so "no card" unambiguously means "no fee".
+  const activeFee = charges?.find((c) => c.reason === 'hiring_fee') ?? null
+
   const tabs = [
     { key: 'work-orders', label: 'Work Orders', show: workOrders !== null },
     { key: 'hours', label: 'Hours', show: hours !== null },
@@ -569,6 +628,7 @@ const Page = ({ person, workOrders, hours, adjustments, charges, pto, history }:
       <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
         <div className="space-y-6">
           <IdentityCard person={person} />
+          {activeFee && <FeeCard charge={activeFee} />}
         </div>
 
         <div className="space-y-6 xl:col-span-2">
