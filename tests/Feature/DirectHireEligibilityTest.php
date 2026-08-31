@@ -2,9 +2,11 @@
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
+use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeSummary;
+use App\Domain\WorkOrders\Actions\CreateWorkOrder;
 use App\Domain\WorkOrders\Actions\NotifyDirectHireEligible;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Support\DirectHireProgress;
@@ -16,6 +18,27 @@ use Inertia\Testing\AssertableInertia as Assert;
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
 });
+
+/**
+ * The property form posts every field, so a partial patch would fail required
+ * rules — send the current values with only the override applied.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function propertyFormPayload(Property $property, array $overrides = []): array
+{
+    return array_merge([
+        'name' => $property->name,
+        'timezone' => $property->timezone,
+        'geofence_radius_meters' => $property->geofence_radius_meters,
+        'tax_rate' => $property->tax_rate,
+        // Literals rather than reading back: these carry DB defaults the
+        // factory does not populate in memory.
+        'status' => 'active',
+        'time_source' => 'clock_in',
+    ], $overrides);
+}
 
 /** Record worked minutes against a work order for one week. */
 function workedMinutes(WorkOrder $workOrder, int $regular, int $training = 0): void
@@ -136,6 +159,47 @@ it('stays quiet while a placement is short of the threshold', function () {
 
     Notification::assertNothingSent();
     expect($workOrder->fresh()->direct_hire_notified_at)->toBeNull();
+});
+
+it('accepts the threshold in hours on the property form and stores minutes', function () {
+    $property = Property::factory()->create(['direct_hire_threshold_minutes' => null]);
+
+    $this->actingAs(person('office_manager'))
+        ->patch(main("/admin/properties/{$property->id}"), propertyFormPayload($property, ['direct_hire_threshold_hours' => 750]))
+        ->assertSessionHasNoErrors();
+
+    expect($property->fresh()->direct_hire_threshold_minutes)->toBe(750 * 60);
+});
+
+it('clears a property threshold back to the system default when left blank', function () {
+    $property = Property::factory()->create(['direct_hire_threshold_minutes' => 500 * 60]);
+
+    $this->actingAs(person('office_manager'))
+        ->patch(main("/admin/properties/{$property->id}"), propertyFormPayload($property, ['direct_hire_threshold_hours' => '']))
+        ->assertSessionHasNoErrors();
+
+    expect($property->fresh()->direct_hire_threshold_minutes)->toBeNull();
+});
+
+it('takes a per-work-order override in hours, and inherits when left blank', function () {
+    // Blank on a work order means "use the property's value" — the column is
+    // NOT NULL, so a blank must not write null.
+    $property = Property::factory()->create(['direct_hire_threshold_minutes' => 500 * 60]);
+    $create = app(CreateWorkOrder::class);
+
+    $base = [
+        'person_id' => Person::factory()->contractorActive()->create()->id,
+        'property_id' => $property->id,
+        'position_id' => Position::factory()->create()->id,
+        'pay_rate' => 2000, 'bill_rate' => 3000, 'ot_pay_rate' => 3000, 'ot_bill_rate' => 4500,
+        'start_date' => now()->toDateString(),
+    ];
+
+    $inherited = $create->handle([...$base, 'direct_hire_threshold_hours' => ''], null);
+    $overridden = $create->handle([...$base, 'direct_hire_threshold_hours' => 120], null);
+
+    expect($inherited->direct_hire_threshold_minutes)->toBe(500 * 60)
+        ->and($overridden->direct_hire_threshold_minutes)->toBe(120 * 60);
 });
 
 it('shows a property manager only their own properties, with progress', function () {

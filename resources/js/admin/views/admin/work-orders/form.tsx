@@ -16,6 +16,7 @@ type WorkOrder = {
   end_date: string | null
   status: string
   notes: string | null
+  direct_hire_threshold_hours: number | null
 }
 
 type MoreStaffOption = { id: number; property_id: number; label: string }
@@ -58,6 +59,7 @@ const Page = ({ workOrder, catalogs }: Props) => {
     end_date: workOrder?.end_date ?? '',
     status: workOrder?.status ?? 'active',
     notes: workOrder?.notes ?? '',
+    direct_hire_threshold_hours: workOrder?.direct_hire_threshold_hours ?? '',
     more_staff_request_id: '',
   })
 
@@ -237,6 +239,20 @@ const Page = ({ workOrder, catalogs }: Props) => {
               </Field>
             )}
 
+            <Field label="Direct-Hire Threshold (hours)" error={errors.direct_hire_threshold_hours}>
+              <input
+                type="number"
+                min="0"
+                className="form-input"
+                placeholder="Use the property default"
+                value={data.direct_hire_threshold_hours}
+                onChange={(e) => setData('direct_hire_threshold_hours', e.target.value)}
+              />
+              <p className="text-default-400 mt-1 text-xs">
+                Hours this contractor must work before the property may hire them directly. Leave blank to take the property&apos;s
+                contracted value. Counts worked hours, not calendar time.
+              </p>
+            </Field>
             <Field label="Notes" error={errors.notes}>
               <textarea className="form-input" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
             </Field>

@@ -42,6 +42,9 @@ class StoreWorkOrderRequest extends FormRequest
             'ot_bill_rate' => ['required', 'numeric', 'min:0', 'max:100000'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            // Hours before the property may hire this contractor directly.
+            // Blank falls back to the property's contracted value.
+            'direct_hire_threshold_hours' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'more_staff_request_id' => [
                 'nullable', 'integer', Rule::exists('more_staff_requests', 'id'),

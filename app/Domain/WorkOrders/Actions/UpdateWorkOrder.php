@@ -3,11 +3,12 @@
 namespace App\Domain\WorkOrders\Actions;
 
 use App\Domain\PropertyBible\Concerns\LogsPropertyActivity;
+use App\Domain\PropertyBible\Concerns\NormalisesDirectHireThreshold;
 use App\Domain\WorkOrders\Models\WorkOrder;
 
 class UpdateWorkOrder
 {
-    use LogsPropertyActivity;
+    use LogsPropertyActivity, NormalisesDirectHireThreshold;
 
     /**
      * @param  array<string, mixed>  $data
@@ -18,7 +19,7 @@ class UpdateWorkOrder
      */
     public function handle(WorkOrder $workOrder, array $data): WorkOrder
     {
-        $workOrder->update($data);
+        $workOrder->update($this->normaliseDirectHireThreshold($data, blankMeansInherit: true));
 
         $this->logProperty(
             $workOrder->property,

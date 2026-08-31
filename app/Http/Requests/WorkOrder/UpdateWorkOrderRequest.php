@@ -30,6 +30,9 @@ class UpdateWorkOrderRequest extends FormRequest
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'status' => ['required', Rule::enum(WorkOrderStatus::class)],
+            // Hours before the property may hire this contractor directly.
+            // Blank falls back to the property's contracted value.
+            'direct_hire_threshold_hours' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }

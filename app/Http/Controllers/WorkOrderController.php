@@ -107,6 +107,7 @@ class WorkOrderController extends Controller
                 'end_date' => $workOrder->end_date?->toDateString(),
                 'status' => $workOrder->status->value,
                 'notes' => $workOrder->notes,
+                'direct_hire_threshold_hours' => intdiv((int) $workOrder->direct_hire_threshold_minutes, 60),
             ],
             'catalogs' => $this->catalogs(),
         ]);

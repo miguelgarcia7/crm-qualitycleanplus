@@ -66,6 +66,7 @@ class PropertyController extends Controller
             'property' => null,
             'statuses' => $this->statusOptions(),
             'timeSources' => $this->timeSourceOptions(),
+            'defaultDirectHireThresholdHours' => intdiv(Property::defaultDirectHireThresholdMinutes(), 60),
         ]);
     }
 
@@ -219,6 +220,7 @@ class PropertyController extends Controller
             'property' => $this->propertyPayload($property),
             'statuses' => $this->statusOptions(),
             'timeSources' => $this->timeSourceOptions(),
+            'defaultDirectHireThresholdHours' => intdiv(Property::defaultDirectHireThresholdMinutes(), 60),
         ]);
     }
 
@@ -262,6 +264,10 @@ class PropertyController extends Controller
             'has_qr_token' => $property->qr_token !== null,
             'closing_day' => $property->closing_day,
             'tax_rate' => $property->tax_rate,
+            // Stored in minutes, entered in hours (how the contract states it).
+            'direct_hire_threshold_hours' => $property->direct_hire_threshold_minutes !== null
+                ? intdiv($property->direct_hire_threshold_minutes, 60)
+                : null,
             'status' => $property->status->value,
             'time_source' => $property->time_source->value,
         ];

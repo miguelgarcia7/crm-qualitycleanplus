@@ -21,6 +21,7 @@ type Property = {
   has_qr_token: boolean
   closing_day: number | null
   tax_rate: string | null
+  direct_hire_threshold_hours: number | null
   status: string
   time_source: string
 }
@@ -29,6 +30,7 @@ type Props = {
   property: Property | null
   statuses: { value: string; label: string }[]
   timeSources: { value: string; label: string }[]
+  defaultDirectHireThresholdHours: number
 }
 
 const TIMEZONES = [
@@ -49,7 +51,7 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
   </div>
 )
 
-const Page = ({ property, statuses, timeSources }: Props) => {
+const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours }: Props) => {
   const editing = property !== null
 
   const { data, setData, post, patch, processing, errors } = useForm({
@@ -68,6 +70,7 @@ const Page = ({ property, statuses, timeSources }: Props) => {
     qr_clock_enabled: property?.qr_clock_enabled ?? false,
     closing_day: property?.closing_day ?? '',
     tax_rate: property?.tax_rate ?? '0',
+    direct_hire_threshold_hours: property?.direct_hire_threshold_hours ?? '',
     status: property?.status ?? 'active',
     time_source: property?.time_source ?? 'clock_in',
   })
@@ -149,6 +152,20 @@ const Page = ({ property, statuses, timeSources }: Props) => {
               </Field>
               <Field label="Tax Rate (e.g. 0.0875)" error={errors.tax_rate}>
                 <input className="form-input" value={data.tax_rate} onChange={(e) => setData('tax_rate', e.target.value)} />
+              </Field>
+              <Field label="Direct-Hire Threshold (hours)" error={errors.direct_hire_threshold_hours}>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-input"
+                  placeholder={`Default ${defaultDirectHireThresholdHours}`}
+                  value={data.direct_hire_threshold_hours}
+                  onChange={(e) => setData('direct_hire_threshold_hours', e.target.value)}
+                />
+                <p className="text-default-400 mt-1 text-xs">
+                  Hours a contractor must work here before this property may hire them directly, from their contract. Leave blank to use the
+                  default of {defaultDirectHireThresholdHours}. Copied onto each new work order — changing it does not affect placements already running.
+                </p>
               </Field>
               <Field label="Time Source" error={errors.time_source}>
                 <select className="form-select" value={data.time_source} onChange={(e) => setData('time_source', e.target.value)}>
