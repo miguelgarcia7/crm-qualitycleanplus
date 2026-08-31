@@ -47,8 +47,17 @@ const OnTheClockCard = ({ data }: { data: OnTheClock }) => {
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <span className="bg-light block h-1.5 w-20 overflow-hidden rounded-full">
-            <span className="bg-primary block h-full rounded-full" style={{ width: `${Math.max(6, Math.round(row.original.fill * 100))}%` }} />
+          <span
+            className="bg-default-100 flex h-1.5 w-20 overflow-hidden rounded"
+            role="progressbar"
+            aria-label={`${row.original.property} share of contractors on shift`}
+            aria-valuenow={Math.round(row.original.fill * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}>
+            <span
+              className="bg-primary flex flex-col justify-center overflow-hidden transition duration-500"
+              style={{ width: `${Math.max(6, Math.round(row.original.fill * 100))}%` }}
+            />
           </span>
         ),
       }),

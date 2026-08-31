@@ -64,9 +64,15 @@ const PipelineStrip = ({ pipeline }: { pipeline: Pipeline }) => (
 
               <span className="text-default-400 mt-1 block text-sm">{stage.note}</span>
 
-              <span className="bg-default-100 mt-3 block h-1 w-full overflow-hidden rounded-full">
+              <span
+                className="bg-default-100 mt-3 flex h-1 w-full overflow-hidden rounded"
+                role="progressbar"
+                aria-label={`${stage.label} progress`}
+                aria-valuenow={Math.round(stage.fill * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}>
                 <span
-                  className={`block h-full rounded-full ${barTone[stage.tone]}`}
+                  className={`flex flex-col justify-center overflow-hidden transition duration-500 ${barTone[stage.tone]}`}
                   style={{ width: `${Math.max(4, Math.round(stage.fill * 100))}%` }}
                 />
               </span>

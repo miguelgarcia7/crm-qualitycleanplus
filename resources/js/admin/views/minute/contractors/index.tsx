@@ -48,8 +48,14 @@ const DirectHireCell = ({ dh }: { dh: DirectHire | null }) => {
         </span>
         <span className="text-default-400">{hours(dh.remaining_hours)} to go</span>
       </div>
-      <span className="bg-light block h-1.5 w-full overflow-hidden rounded-full">
-        <span className="bg-primary block h-full rounded-full" style={{ width: `${Math.max(2, dh.percent)}%` }} />
+      <span
+        className="bg-default-100 flex h-1.5 w-full overflow-hidden rounded"
+        role="progressbar"
+        aria-label={`${hours(dh.worked_hours)} of ${hours(dh.threshold_hours)} hours toward direct-hire eligibility`}
+        aria-valuenow={dh.percent}
+        aria-valuemin={0}
+        aria-valuemax={100}>
+        <span className="bg-primary flex flex-col justify-center overflow-hidden transition duration-500" style={{ width: `${Math.max(2, dh.percent)}%` }} />
       </span>
     </div>
   )
