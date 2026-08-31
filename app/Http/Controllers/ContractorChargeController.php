@@ -24,7 +24,11 @@ class ContractorChargeController extends Controller
      */
     public function update(Request $request, ContractorChargeSchedule $schedule, AllocateChargeScheduleEntries $allocate): RedirectResponse
     {
+        // Permission alone is not enough: recruiters hold
+        // time_entries.add_adjustment but are scoped to their own contractors
+        // (ADR-0019), so check reach to this person as well.
         $this->authorize('time_entries.add_adjustment');
+        $this->authorize('view', $schedule->person);
 
         $validated = $request->validate([
             'amount_per_payment' => ['required', 'integer', 'min:1', 'max:'.$schedule->total_amount],
@@ -65,7 +69,11 @@ class ContractorChargeController extends Controller
      */
     public function cancel(ContractorChargeSchedule $schedule): RedirectResponse
     {
+        // Permission alone is not enough: recruiters hold
+        // time_entries.add_adjustment but are scoped to their own contractors
+        // (ADR-0019), so check reach to this person as well.
         $this->authorize('time_entries.add_adjustment');
+        $this->authorize('view', $schedule->person);
 
         DB::transaction(function () use ($schedule): void {
             $schedule->entries()->where('status', ChargeEntryStatus::Scheduled->value)->delete();

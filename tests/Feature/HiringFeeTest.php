@@ -22,7 +22,8 @@ beforeEach(function () {
 function placedContractor(int $weeks = 20): Person
 {
     $property = Property::factory()->create();
-    $person = Person::factory()->create();
+    // A hiring fee belongs to a contractor — the factory defaults to staff.
+    $person = Person::factory()->contractorActive()->create();
     WorkOrder::factory()->create(['person_id' => $person->id, 'property_id' => $property->id]);
 
     $week = now()->startOfWeek();
@@ -180,6 +181,40 @@ it('stays active until the whole fee is collected, not just the allocated part',
     // active schedules, so it would never be collected.
     expect($schedule->entries()->where('status', ChargeEntryStatus::Applied->value)->sum('amount'))->toBe(80_00)
         ->and($schedule->status)->toBe(ChargeScheduleStatus::Active);
+});
+
+it('lets the contractor’s own recruiter change the pace', function () {
+    $person = placedContractor();
+    $recruiter = person('recruiter');
+    $person->update(['primary_recruiter_id' => $recruiter->id]);
+
+    $schedule = app(ScheduleHiringFee::class)->handle($person);
+
+    $this->actingAs($recruiter)
+        ->patch(main("/admin/contractor-charges/{$schedule->id}"), ['amount_per_payment' => 35_00])
+        ->assertSessionHasNoErrors();
+
+    expect($schedule->fresh()->amount_per_payment)->toBe(35_00);
+});
+
+it('keeps a recruiter out of a schedule for someone else’s contractor', function () {
+    // Recruiters hold time_entries.add_adjustment but are scoped to their own
+    // contractors (ADR-0019) — the permission alone must not grant reach.
+    $person = placedContractor();
+    $person->update(['primary_recruiter_id' => person('recruiter')->id]);
+
+    $schedule = app(ScheduleHiringFee::class)->handle($person);
+    $otherRecruiter = person('recruiter');
+
+    $this->actingAs($otherRecruiter)
+        ->patch(main("/admin/contractor-charges/{$schedule->id}"), ['amount_per_payment' => 99_00])
+        ->assertForbidden();
+
+    $this->actingAs($otherRecruiter)
+        ->delete(main("/admin/contractor-charges/{$schedule->id}"))
+        ->assertForbidden();
+
+    expect($schedule->fresh()->amount_per_payment)->toBe(20_00);
 });
 
 it('does not schedule anything when the fee is configured to zero', function () {
