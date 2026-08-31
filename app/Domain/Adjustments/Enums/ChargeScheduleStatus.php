@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Inventory\Enums;
+namespace App\Domain\Adjustments\Enums;
 
 /**
  * Lifecycle of a contractor charge schedule (ADR-0014).

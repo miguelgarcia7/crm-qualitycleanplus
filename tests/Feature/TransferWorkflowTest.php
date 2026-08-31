@@ -1,7 +1,7 @@
 <?php
 
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
-use App\Domain\Inventory\Models\ContractorChargeScheduleEntry;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
+use App\Domain\Adjustments\Models\ContractorChargeScheduleEntry;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Position;

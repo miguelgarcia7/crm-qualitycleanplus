@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Domain\Inventory\Actions;
+namespace App\Domain\Adjustments\Actions;
 
-use App\Domain\Inventory\Enums\ChargeReason;
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
+use App\Domain\Adjustments\Enums\ChargeReason;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\People\Models\Person;
 use Illuminate\Support\Facades\DB;
 

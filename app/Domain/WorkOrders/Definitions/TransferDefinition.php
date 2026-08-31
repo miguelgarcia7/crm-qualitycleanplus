@@ -2,7 +2,7 @@
 
 namespace App\Domain\WorkOrders\Definitions;
 
-use App\Domain\Inventory\Models\ContractorChargeScheduleEntry;
+use App\Domain\Adjustments\Models\ContractorChargeScheduleEntry;
 use App\Domain\People\Models\Person;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Workflows\Definitions\StepBlueprint;

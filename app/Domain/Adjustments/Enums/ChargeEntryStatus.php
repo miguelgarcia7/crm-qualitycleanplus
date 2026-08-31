@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Inventory\Enums;
+namespace App\Domain\Adjustments\Enums;
 
 /**
  * Lifecycle of a single charge schedule entry (ADR-0014).

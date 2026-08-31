@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\Inventory\Actions\CreatePurchaseOrder;
 use App\Domain\Inventory\Actions\ManualStockOut;
 use App\Domain\Inventory\Actions\ReceivePurchaseOrder;
@@ -9,7 +10,6 @@ use App\Domain\Inventory\Actions\ReturnToStock;
 use App\Domain\Inventory\Enums\EquipmentAssignmentStatus;
 use App\Domain\Inventory\Enums\MovementType;
 use App\Domain\Inventory\Enums\PurchaseOrderStatus;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
 use App\Domain\Inventory\Models\EquipmentAssignment;
 use App\Domain\Inventory\Models\ItemVariant;
 use Illuminate\Validation\ValidationException;

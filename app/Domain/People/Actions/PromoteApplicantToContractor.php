@@ -2,7 +2,7 @@
 
 namespace App\Domain\People\Actions;
 
-use App\Domain\Inventory\Actions\ScheduleHiringFee;
+use App\Domain\Adjustments\Actions\ScheduleHiringFee;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Support\OnboardingChecklist;

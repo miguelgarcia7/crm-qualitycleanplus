@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Domain\Inventory\Models;
+namespace App\Domain\Adjustments\Models;
 
-use App\Domain\Inventory\Enums\ChargeReason;
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Enums\ChargeReason;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
 use App\Domain\People\Models\Person;
 use Database\Factories\ContractorChargeScheduleFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

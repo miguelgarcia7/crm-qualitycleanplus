@@ -4,7 +4,7 @@ use App\Console\Commands\ContractExpirationCheck;
 use App\Console\Commands\EnsurePayrollPeriods;
 use App\Console\Commands\ProcessPtoTenureCrossings;
 use App\Console\Commands\RefreshReportRollups;
-use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
+use App\Domain\Adjustments\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\WorkOrders\Jobs\ProcessTemporaryAssignmentEnds;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;

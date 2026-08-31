@@ -2,11 +2,11 @@
 
 use App\Domain\Adjustments\Enums\AdjustmentSourceType;
 use App\Domain\Adjustments\Enums\AdjustmentType;
+use App\Domain\Adjustments\Enums\ChargeEntryStatus;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
-use App\Domain\Inventory\Enums\ChargeEntryStatus;
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
 use App\Domain\Inventory\Enums\EquipmentAssignmentStatus;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
 use App\Domain\Inventory\Models\EquipmentAssignment;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\People\Enums\PersonStatus;

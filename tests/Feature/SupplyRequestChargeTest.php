@@ -2,6 +2,9 @@
 
 use App\Domain\Adjustments\Enums\AdjustmentSourceType;
 use App\Domain\Adjustments\Enums\AdjustmentType;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Jobs\ApplyScheduledContractorCharges;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\Billing\Actions\GenerateInvoice;
 use App\Domain\Billing\Enums\TimesheetStatus;
@@ -9,10 +12,7 @@ use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Inventory\Actions\CreateItem;
 use App\Domain\Inventory\Actions\FulfillSupplyRequest;
 use App\Domain\Inventory\Actions\ReceiveStock;
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
-use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\Inventory\Models\Category;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\People\Enums\PersonStatus;

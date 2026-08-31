@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\People\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

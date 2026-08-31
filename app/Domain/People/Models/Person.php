@@ -2,9 +2,9 @@
 
 namespace App\Domain\People\Models;
 
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
+use App\Domain\Adjustments\Models\ContractorChargeScheduleEntry;
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
-use App\Domain\Inventory\Models\ContractorChargeScheduleEntry;
 use App\Domain\People\Concerns\HasLegalHold;
 use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Enums\PersonStatus;

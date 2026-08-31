@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Domain\Inventory\Models;
+namespace App\Domain\Adjustments\Models;
 
-use App\Domain\Inventory\Enums\ChargeEntryStatus;
+use App\Domain\Adjustments\Enums\ChargeEntryStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

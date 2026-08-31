@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Inventory\Enums;
+namespace App\Domain\Adjustments\Enums;
 
 /**
  * Why a contractor is being charged. Both are payroll deductions and never

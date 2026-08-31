@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Adjustments\Enums\ChargeEntryStatus;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
-use App\Domain\Inventory\Enums\ChargeEntryStatus;
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Policies\PersonPolicy;

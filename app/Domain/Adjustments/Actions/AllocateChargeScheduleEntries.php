@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Domain\Inventory\Actions;
+namespace App\Domain\Adjustments\Actions;
 
-use App\Domain\Inventory\Enums\ChargeEntryStatus;
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
+use App\Domain\Adjustments\Enums\ChargeEntryStatus;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;

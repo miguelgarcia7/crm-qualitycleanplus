@@ -1,12 +1,12 @@
 <?php
 
-use App\Domain\Inventory\Actions\AllocateChargeScheduleEntries;
-use App\Domain\Inventory\Actions\ScheduleHiringFee;
-use App\Domain\Inventory\Enums\ChargeEntryStatus;
-use App\Domain\Inventory\Enums\ChargeReason;
-use App\Domain\Inventory\Enums\ChargeScheduleStatus;
-use App\Domain\Inventory\Jobs\ApplyScheduledContractorCharges;
-use App\Domain\Inventory\Models\ContractorChargeSchedule;
+use App\Domain\Adjustments\Actions\AllocateChargeScheduleEntries;
+use App\Domain\Adjustments\Actions\ScheduleHiringFee;
+use App\Domain\Adjustments\Enums\ChargeEntryStatus;
+use App\Domain\Adjustments\Enums\ChargeReason;
+use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
+use App\Domain\Adjustments\Jobs\ApplyScheduledContractorCharges;
+use App\Domain\Adjustments\Models\ContractorChargeSchedule;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
