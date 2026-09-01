@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import ConfirmModal from '@/components/ConfirmModal'
 import Icon from '@/components/wrappers/Icon'
 import { formatClockTime } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
@@ -46,14 +47,36 @@ const hrs = (min: number | null | undefined) => ((min ?? 0) / 60).toFixed(2)
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 const dayLabel = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })
 
+type ConfirmState = {
+  title: string
+  message: React.ReactNode
+  confirmLabel?: string
+  tone?: 'danger' | 'primary'
+  onConfirm: () => void
+}
+
 const Page = ({ property, week, period, timesheet, rows, entries, summaries, adjustments, can }: Props) => {
   const [modal, setModal] = useState<{ workOrderId: number; date: string } | null>(null)
   const [adjustModal, setAdjustModal] = useState(false)
+  const [confirming, setConfirming] = useState<ConfirmState | null>(null)
 
   const submitForApproval = () => {
-    if (timesheet && confirm('Send this week to the property manager for approval?')) {
-      router.post(`/admin/timesheets/${timesheet.id}/submit`, {}, { preserveScroll: true })
-    }
+    if (!timesheet) return
+
+    setConfirming({
+      title: 'Send for approval',
+      message: (
+        <>
+          Send the week of <strong className="text-default-900">{week.start}</strong> to the property manager for approval?
+          <span className="text-default-400 mt-2 block">
+            The week is locked while it is with them — further punches need the timesheet to be declined first.
+          </span>
+        </>
+      ),
+      confirmLabel: 'Send',
+      tone: 'primary',
+      onConfirm: () => router.post(`/admin/timesheets/${timesheet.id}/submit`, {}, { preserveScroll: true }),
+    })
   }
 
   // Live updates (Reverb): refresh the grid when anyone changes this property's
@@ -78,6 +101,44 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
   }
 
   const cellEntries = (wo: number, date: string) => entries.filter((e) => e.work_order_id === wo && e.date === date)
+
+  // The × sits inches from the punch times in a dense grid, so the prompt names
+  // exactly what is going — a generic "Are you sure?" does not help someone who
+  // mis-clicked and cannot tell which row they hit.
+  const confirmEntryRemoval = (entry: Entry, contractor: string | null, date: string) =>
+    setConfirming({
+      title: 'Remove punch',
+      message: (
+        <>
+          Remove the{' '}
+          <strong className="text-default-900">
+            {formatClockTime(entry.start_time)} – {formatClockTime(entry.end_time)}
+          </strong>{' '}
+          punch for <strong className="text-default-900">{contractor ?? 'this contractor'}</strong> on{' '}
+          <strong className="text-default-900">{dayLabel(date)}</strong>?
+          <span className="text-default-400 mt-2 block">This cannot be undone, and the week&apos;s hours will be recalculated.</span>
+        </>
+      ),
+      onConfirm: () => router.delete(`/admin/time-entries/${entry.id}`, { preserveScroll: true }),
+    })
+
+  const confirmAdjustmentRemoval = (adjustment: Adjustment) =>
+    setConfirming({
+      title: 'Remove adjustment',
+      message: (
+        <>
+          Remove the{' '}
+          <strong className="text-default-900">
+            {money(adjustment.value)} {adjustment.type}
+          </strong>{' '}
+          for <strong className="text-default-900">{adjustment.person}</strong>?
+          <span className="text-default-400 mt-2 block">
+            This cannot be undone{adjustment.is_billable ? ', and it will no longer be billed to the property' : ''}.
+          </span>
+        </>
+      ),
+      onConfirm: () => router.delete(`/admin/adjustments/${adjustment.id}`, { preserveScroll: true }),
+    })
 
   return (
     <>
@@ -150,8 +211,12 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                                   </span>
                                 )}
                                 {can.edit && (
-                                  <button className="text-danger" title="Remove"
-                                    onClick={() => router.delete(`/admin/time-entries/${e.id}`, { preserveScroll: true })}>×</button>
+                                  <button
+                                    className="text-danger hover:bg-danger/10 rounded px-1 leading-none"
+                                    title={`Remove ${formatClockTime(e.start_time)} – ${formatClockTime(e.end_time)} punch`}
+                                    onClick={() => confirmEntryRemoval(e, r.contractor, d)}>
+                                    ×
+                                  </button>
                                 )}
                               </div>
                             ))}
@@ -213,8 +278,12 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                       <td className="text-default-400">{a.notes}</td>
                       <td className="text-end">
                         {can.adjust && a.source_type === 'manual' && (
-                          <button className="text-danger" title="Remove"
-                            onClick={() => router.delete(`/admin/adjustments/${a.id}`, { preserveScroll: true })}>×</button>
+                          <button
+                            className="text-danger hover:bg-danger/10 rounded px-1 leading-none"
+                            title={`Remove ${money(a.value)} ${a.type}`}
+                            onClick={() => confirmAdjustmentRemoval(a)}>
+                            ×
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -226,6 +295,17 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
             </table>
           </div>
         </div>
+      )}
+
+      {confirming && (
+        <ConfirmModal
+          title={confirming.title}
+          message={confirming.message}
+          confirmLabel={confirming.confirmLabel ?? 'Remove'}
+          tone={confirming.tone ?? 'danger'}
+          onConfirm={confirming.onConfirm}
+          onClose={() => setConfirming(null)}
+        />
       )}
 
       {modal && <AddEntryModal workOrderId={modal.workOrderId} date={modal.date} onClose={() => setModal(null)} />}
