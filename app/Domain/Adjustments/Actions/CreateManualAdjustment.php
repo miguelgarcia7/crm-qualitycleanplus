@@ -6,6 +6,7 @@ use App\Domain\Adjustments\Enums\AdjustmentSourceType;
 use App\Domain\Adjustments\Enums\AdjustmentType;
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\People\Models\Person;
+use App\Domain\Time\Concerns\LogsPayrollActivity;
 use App\Domain\Time\Models\PayrollPeriod;
 use Illuminate\Validation\ValidationException;
 
@@ -16,6 +17,8 @@ use Illuminate\Validation\ValidationException;
  */
 class CreateManualAdjustment
 {
+    use LogsPayrollActivity;
+
     /**
      * @param  array{person_id:int, work_order_id?:int|null, adjustment_item_id?:int|null, value:int, type:string, is_billable?:bool, notes?:string|null}  $data
      */
@@ -29,7 +32,7 @@ class CreateManualAdjustment
 
         $type = AdjustmentType::from($data['type']);
 
-        return TimeEntryAdjustment::create([
+        $adjustment = TimeEntryAdjustment::create([
             'person_id' => $data['person_id'],
             'work_order_id' => $data['work_order_id'] ?? null,
             'property_id' => $period->property_id,
@@ -42,5 +45,27 @@ class CreateManualAdjustment
             'notes' => $data['notes'] ?? null,
             'created_by' => $actor?->id,
         ]);
+
+        $this->logPayroll(
+            $adjustment->person,
+            'created',
+            sprintf('Added a %s %s of %s', $adjustment->is_billable ? 'billable' : 'non-billable', $type->value, $this->money($adjustment->value)),
+            [
+                'adjustment_id' => $adjustment->id,
+                'payroll_period_id' => $period->id,
+                'property_id' => $period->property_id,
+                'value' => $adjustment->value,
+                'type' => $type->value,
+                'is_billable' => $adjustment->is_billable,
+            ],
+            $actor,
+        );
+
+        return $adjustment;
+    }
+
+    private function money(int $cents): string
+    {
+        return '$'.number_format($cents / 100, 2);
     }
 }

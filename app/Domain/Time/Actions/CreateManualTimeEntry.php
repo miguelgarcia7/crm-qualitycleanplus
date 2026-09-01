@@ -3,6 +3,7 @@
 namespace App\Domain\Time\Actions;
 
 use App\Domain\People\Models\Person;
+use App\Domain\Time\Concerns\LogsPayrollActivity;
 use App\Domain\Time\Enums\TimeEntrySource;
 use App\Domain\Time\Enums\TimeEntryType;
 use App\Domain\Time\Jobs\RecomputeTimeSummary;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
  */
 class CreateManualTimeEntry
 {
+    use LogsPayrollActivity;
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -55,6 +58,27 @@ class CreateManualTimeEntry
         ]);
 
         RecomputeTimeSummary::dispatchSync($workOrder->id, $period->id);
+
+        $this->logPayroll(
+            $workOrder->person,
+            'created',
+            sprintf(
+                'Added a %s–%s punch on %s at %s',
+                $start->format('g:i a'),
+                $end->format('g:i a'),
+                $start->format('D j M Y'),
+                $workOrder->property->name,
+            ),
+            [
+                'time_entry_id' => $entry->id,
+                'work_order_id' => $workOrder->id,
+                'property_id' => $workOrder->property_id,
+                'date' => $start->toDateString(),
+                'minutes' => $duration,
+                'entry_type' => $entry->entry_type->value,
+            ],
+            $creator,
+        );
 
         return $entry;
     }
