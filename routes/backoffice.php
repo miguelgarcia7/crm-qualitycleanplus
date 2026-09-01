@@ -229,6 +229,7 @@ Route::post('imports/{importBatch}/rollback', [ImportController::class, 'rollbac
 // Time tracking — live weekly grid + manual entries (Phase 03)
 Route::get('properties/{property}/grid', [TimeEntryController::class, 'grid'])->name('properties.grid');
 Route::post('work-orders/{work_order}/time-entries', [TimeEntryController::class, 'store'])->name('time-entries.store');
+Route::match(['put', 'patch'], 'time-entries/{timeEntry}', [TimeEntryController::class, 'update'])->name('time-entries.update');
 Route::delete('time-entries/{timeEntry}', [TimeEntryController::class, 'destroy'])->name('time-entries.destroy');
 
 // Contractor deduction schedules — hiring fee + uniform charges. The total is

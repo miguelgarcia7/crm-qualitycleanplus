@@ -8,6 +8,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Actions\DeleteTimeEntry;
+use App\Domain\Time\Actions\UpdateTimeEntry;
 use App\Domain\Time\Events\TimeEntrySaved;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
@@ -16,6 +17,7 @@ use App\Domain\Time\Support\GpsPolicy;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Http\Requests\Time\StoreTimeEntryRequest;
+use App\Http\Requests\Time\UpdateTimeEntryRequest;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -117,6 +119,10 @@ class TimeEntryController extends Controller
             'can' => [
                 'edit' => $user instanceof Person && $user->can('time_entries.create_manual')
                     && ($period?->status->isEditable() ?? false),
+                // Correcting an existing punch is its own permission from the one
+                // that adds a manual entry, so the button matches the endpoint.
+                'correct' => $user instanceof Person && $user->can('time_entries.edit')
+                    && ($period?->status->isEditable() ?? false),
                 'submit' => $user instanceof Person && $user->can('timesheets.submit_for_approval')
                     && ($timesheet?->status->canSubmit() ?? false),
                 'adjust' => $user instanceof Person && $user->can('time_entries.add_adjustment')
@@ -134,6 +140,17 @@ class TimeEntryController extends Controller
         TimeEntrySaved::dispatch($entry->property_id, $entry->payrollPeriod->week_start->toDateString());
 
         return back()->with('success', 'Time entry added.');
+    }
+
+    public function update(UpdateTimeEntryRequest $request, TimeEntry $timeEntry, UpdateTimeEntry $action): RedirectResponse
+    {
+        $this->authorizeProperty($timeEntry->property, 'time_entries.edit');
+
+        $action->handle($timeEntry, $request->validated());
+
+        TimeEntrySaved::dispatch($timeEntry->property_id, $timeEntry->payrollPeriod->week_start->toDateString());
+
+        return back()->with('success', 'Time entry updated.');
     }
 
     public function destroy(TimeEntry $timeEntry, DeleteTimeEntry $action): RedirectResponse

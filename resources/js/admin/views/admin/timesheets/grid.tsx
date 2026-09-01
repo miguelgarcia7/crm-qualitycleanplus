@@ -40,7 +40,7 @@ type Props = {
   entries: Entry[]
   summaries: Record<number, Summary>
   adjustments: Adjustment[]
-  can: { edit: boolean; submit: boolean; adjust: boolean }
+  can: { edit: boolean; correct: boolean; submit: boolean; adjust: boolean }
 }
 
 const hrs = (min: number | null | undefined) => ((min ?? 0) / 60).toFixed(2)
@@ -59,6 +59,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
   const [modal, setModal] = useState<{ workOrderId: number; date: string } | null>(null)
   const [adjustModal, setAdjustModal] = useState(false)
   const [confirming, setConfirming] = useState<ConfirmState | null>(null)
+  const [editing, setEditing] = useState<Entry | null>(null)
 
   const submitForApproval = () => {
     if (!timesheet) return
@@ -202,9 +203,18 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                           <td key={d} className="text-center align-top">
                             {cellEntries(r.work_order_id, d).map((e) => (
                               <div key={e.id} className="mb-1 flex items-center justify-center gap-1">
-                                <span className="whitespace-nowrap">
-                                  {formatClockTime(e.start_time)} – {formatClockTime(e.end_time)}
-                                </span>
+                                {can.correct ? (
+                                  <button
+                                    className="hover:text-primary hover:underline whitespace-nowrap"
+                                    title="Edit these times"
+                                    onClick={() => setEditing(e)}>
+                                    {formatClockTime(e.start_time)} – {formatClockTime(e.end_time)}
+                                  </button>
+                                ) : (
+                                  <span className="whitespace-nowrap">
+                                    {formatClockTime(e.start_time)} – {formatClockTime(e.end_time)}
+                                  </span>
+                                )}
                                 {e.gps_flags.length > 0 && (
                                   <span title={`Punch without verified GPS — ${e.gps_flags.join('; ')}`} className="inline-flex shrink-0">
                                     <Icon icon="map-pin-off" className="text-warning text-sm" />
@@ -308,6 +318,8 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
         />
       )}
 
+      {editing && <EditEntryModal entry={editing} onClose={() => setEditing(null)} />}
+
       {modal && <AddEntryModal workOrderId={modal.workOrderId} date={modal.date} onClose={() => setModal(null)} />}
       {adjustModal && period && (
         <AddAdjustmentModal periodId={period.id} rows={rows} onClose={() => setAdjustModal(false)} />
@@ -316,6 +328,68 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
   )
 }
 
+/**
+ * Correcting an existing punch. The date is fixed — moving one to another day
+ * could land it in a different payroll period, which is a remove-and-re-add
+ * rather than an edit.
+ */
+const EditEntryModal = ({ entry, onClose }: { entry: Entry; onClose: () => void }) => {
+  const { data, setData, patch, processing, errors } = useForm({
+    start_time: entry.start_time ?? '09:00',
+    end_time: entry.end_time ?? '17:00',
+    entry_type: entry.entry_type,
+  })
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    patch(`/admin/time-entries/${entry.id}`, { preserveScroll: true, onSuccess: onClose })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="card-header">
+          <h4 className="card-title">Edit Time Entry</h4>
+        </div>
+        <div className="card-body p-5">
+          <form onSubmit={submit} className="space-y-4">
+            <p className="text-default-400 text-sm">
+              {entry.date} — currently {formatClockTime(entry.start_time)} – {formatClockTime(entry.end_time)}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="form-label">Start</label>
+                <input type="time" className="form-input" value={data.start_time} onChange={(e) => setData('start_time', e.target.value)} required />
+                {errors.start_time && <p className="text-danger mt-1 text-sm">{errors.start_time}</p>}
+              </div>
+              <div>
+                <label className="form-label">End</label>
+                <input type="time" className="form-input" value={data.end_time} onChange={(e) => setData('end_time', e.target.value)} required />
+                {errors.end_time && <p className="text-danger mt-1 text-sm">{errors.end_time}</p>}
+              </div>
+            </div>
+            <div>
+              <label className="form-label">Type</label>
+              <select className="form-select" value={data.entry_type} onChange={(e) => setData('entry_type', e.target.value)}>
+                <option value="work">Work</option>
+                <option value="training">Training</option>
+              </select>
+            </div>
+            <p className="text-default-400 text-xs">An end time earlier than the start is treated as an overnight shift.</p>
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn bg-light hover:text-primary" onClick={onClose}>
+                Cancel
+              </button>
+              <button type="submit" className="btn bg-primary hover:bg-primary-hover font-semibold text-white" disabled={processing}>
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
 const AddEntryModal = ({ workOrderId, date, onClose }: { workOrderId: number; date: string; onClose: () => void }) => {
   const { data, setData, post, processing, errors } = useForm({
     date,

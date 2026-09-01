@@ -6,11 +6,13 @@ use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Actions\DeleteTimeEntry;
+use App\Domain\Time\Actions\UpdateTimeEntry;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function () {
@@ -85,23 +87,70 @@ it('records a removed punch, with details captured before the row goes', functio
         ->and($log->properties['time_entry_id'])->toBe($entry->id);
 });
 
-it('leaves a create-then-delete pair that reads as the correction it is', function () {
+it('records a corrected punch as one event carrying the old and new times', function () {
     ['workOrder' => $wo, 'monday' => $monday] = auditScenario();
     $recruiter = person('recruiter');
     $this->actingAs($recruiter);
 
-    // There is no edit endpoint — a correction is a delete plus a create.
-    $wrong = app(CreateManualTimeEntry::class)->handle($wo, [
+    $entry = app(CreateManualTimeEntry::class)->handle($wo, [
         'date' => $monday->toDateString(), 'start_time' => '09:00', 'end_time' => '17:30', 'entry_type' => 'work',
     ], $recruiter);
-    app(DeleteTimeEntry::class)->handle($wrong->fresh());
-    app(CreateManualTimeEntry::class)->handle($wo, [
-        'date' => $monday->toDateString(), 'start_time' => '09:00', 'end_time' => '13:00', 'entry_type' => 'work',
+
+    app(UpdateTimeEntry::class)->handle($entry->fresh(), [
+        'start_time' => '09:00', 'end_time' => '13:00', 'entry_type' => 'work',
+    ]);
+
+    $log = Activity::query()->where('log_name', 'payroll')->latest('id')->first();
+
+    expect($log->event)->toBe('updated')
+        ->and($log->causer_id)->toBe($recruiter->id)
+        ->and($log->subject_id)->toBe($wo->person_id)
+        ->and($log->description)->toContain('from 9:00 am–5:30 pm to 9:00 am–1:00 pm')
+        ->and($log->properties['from']['minutes'])->toBe(510)
+        ->and($log->properties['to']['minutes'])->toBe(240);
+
+    // One event, not the delete/create pair a correction used to leave behind.
+    $events = Activity::query()->where('log_name', 'payroll')->orderBy('id')->pluck('event')->all();
+    expect($events)->toBe(['created', 'updated'])
+        ->and($entry->fresh()->duration_minutes)->toBe(240);
+});
+
+it('keeps the original rate snapshots when a punch is corrected', function () {
+    ['workOrder' => $wo, 'monday' => $monday] = auditScenario();
+    $recruiter = person('recruiter');
+    $this->actingAs($recruiter);
+
+    $entry = app(CreateManualTimeEntry::class)->handle($wo, [
+        'date' => $monday->toDateString(), 'start_time' => '09:00', 'end_time' => '17:30', 'entry_type' => 'work',
     ], $recruiter);
 
-    $events = Activity::query()->where('log_name', 'payroll')->orderBy('id')->pluck('event')->all();
+    // The rates move after the work was done; the correction must not re-price it.
+    $wo->update(['pay_rate' => $wo->pay_rate + 500, 'bill_rate' => $wo->bill_rate + 500]);
 
-    expect($events)->toBe(['created', 'deleted', 'created']);
+    $updated = app(UpdateTimeEntry::class)->handle($entry->fresh(), [
+        'start_time' => '09:00', 'end_time' => '13:00', 'entry_type' => 'work',
+    ]);
+
+    expect($updated->pay_rate_snapshot)->toBe($entry->pay_rate_snapshot)
+        ->and($updated->bill_rate_snapshot)->toBe($entry->bill_rate_snapshot);
+});
+
+it('refuses to correct a punch once the week is locked', function () {
+    ['workOrder' => $wo, 'monday' => $monday, 'property' => $property] = auditScenario();
+    $recruiter = person('recruiter');
+    $this->actingAs($recruiter);
+
+    $entry = app(CreateManualTimeEntry::class)->handle($wo, [
+        'date' => $monday->toDateString(), 'start_time' => '09:00', 'end_time' => '17:30', 'entry_type' => 'work',
+    ], $recruiter);
+
+    PayrollPeriod::query()->where('property_id', $property->id)->update(['status' => PayrollPeriodStatus::Locked]);
+
+    expect(fn () => app(UpdateTimeEntry::class)->handle($entry->fresh(), [
+        'start_time' => '09:00', 'end_time' => '13:00', 'entry_type' => 'work',
+    ]))->toThrow(ValidationException::class);
+
+    expect($entry->fresh()->duration_minutes)->toBe(510);
 });
 
 it('records adjustments added and removed', function () {

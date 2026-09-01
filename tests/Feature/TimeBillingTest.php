@@ -15,6 +15,7 @@ use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Events\TimeEntrySaved;
 use App\Domain\Time\Models\PayrollPeriod;
+use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
@@ -101,6 +102,27 @@ it('dispatches TimeEntrySaved when a punch is added via the endpoint', function 
             'entry_type' => 'work',
         ])
         ->assertRedirect();
+
+    Event::assertDispatched(TimeEntrySaved::class);
+});
+
+it('corrects a punch through the endpoint and rebuilds the summary', function () {
+    Event::fake([TimeEntrySaved::class]);
+    ['workOrder' => $wo, 'monday' => $monday] = scenario();
+
+    seedHours($wo, $monday, 1, '09:00', '18:00'); // 9h
+    $entry = TimeEntry::where('work_order_id', $wo->id)->firstOrFail();
+
+    $this->actingAs(person('office_manager'))
+        ->patch(main("/admin/time-entries/{$entry->id}"), [
+            'start_time' => '09:00',
+            'end_time' => '17:00',
+            'entry_type' => 'work',
+        ])
+        ->assertRedirect();
+
+    expect($entry->fresh()->duration_minutes)->toBe(480)
+        ->and(TimeSummary::where('work_order_id', $wo->id)->first()->regular_minutes)->toBe(480);
 
     Event::assertDispatched(TimeEntrySaved::class);
 });
