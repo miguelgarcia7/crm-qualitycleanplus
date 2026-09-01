@@ -178,7 +178,9 @@ Recompute summary job dispatched for all affected (work_order, week) pairs
 
 ### Adjustment credits
 
-A correction can be applied as a new time entry with source = `adjustment_credit`. Example: "add 0.5h to John on Tuesday because the time clock missed the entry." This appears as a separate row (not an edit of the original), preserving the event log.
+An adjustment credit is a *new* time entry with source = `adjustment_credit`, for time that was never recorded at all. Example: "add 0.5h to John on Tuesday because the time clock missed the entry." It appears as a separate row because there is no original punch to correct.
+
+This is distinct from correcting a punch that exists but has the wrong times — see **Correcting a punch** below. Use an adjustment credit when time is missing; correct the entry when the time is recorded but wrong.
 
 Adjustment items (incentives, deductions) are *not* time entries — they live in their own table. See `20-domain/adjustments.md`.
 
@@ -229,7 +231,19 @@ The grid is read-only — PMs can't edit. Their only action is on the timesheet 
 
 Recruiters see the same grid with **edit affordance** (add manual entry, edit a punch with permission). Recruiter edits create or modify time_entries directly.
 
+### Correcting a punch
+
+Clicking the times on a punch opens a correction form (`PATCH /admin/time-entries/{id}`, gated on `time_entries.edit`). Three constraints are deliberate:
+
+- **The week must still be open.** Same guard the manual-entry path uses; once the period is locked the times are part of an approved timesheet.
+- **The date cannot move.** Shifting a punch to another day could land it in a different payroll period, which is a delete-and-re-add, not an edit. An end time earlier than the start is read as spanning midnight.
+- **Rate snapshots are not re-taken.** The entry keeps the rates that applied when the work was done (ADR-0005) — correcting a time must never silently re-price historical work at today's rates.
+
+The correction sets `was_updated` and writes one `updated` event to the `payroll` activity log carrying both the old and the new times, rather than the delete/create pair a correction used to leave behind. An open punch (no clock-out) opens with an empty end time, so this is also the manual way to close one.
+
 ## Long-running clock-in detection
+
+**Status: not built.** No job, no notification, and no `last_notified_at` column exist yet. The back-office dashboard's "On the clock now" panel is the current stand-in — it lists open punches longest-first and flags anything past the same 10-hour threshold. Spec below is the intended behaviour.
 
 A scheduled job (`LookForLongTimeEntries`) runs every 10 minutes:
 

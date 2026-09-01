@@ -33,8 +33,12 @@ class BackOfficePulse
     /** A timesheet waiting longer than this reads as overdue. */
     private const APPROVAL_SLA_DAYS = 3;
 
-    /** Past this, an open punch is more likely a missed clock-out than a long shift. */
-    private const LONG_SHIFT_HOURS = 8;
+    /**
+     * Past this, an open punch is more likely a missed clock-out than a long
+     * shift. Matches the threshold specced for LookForLongTimeEntries so the
+     * dashboard and the (still unbuilt) notification agree on "too long".
+     */
+    private const LONG_SHIFT_HOURS = 10;
 
     /** Rows shown on the live roster before it collapses to a "+N more" link. */
     private const LIVE_ROSTER_LIMIT = 8;

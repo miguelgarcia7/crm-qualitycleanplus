@@ -20,7 +20,7 @@ All significant model changes are recorded via Spatie's activity log:
 ```
 activity_log
   - id
-  - log_name (string, indexed — e.g. 'default', 'auth', 'workflows')
+  - log_name (string, indexed — e.g. 'default', 'auth', 'workflows', 'payroll')
   - description (text — short human-readable)
   - subject_type, subject_id (polymorphic — what changed)
   - causer_type, causer_id (polymorphic — who did it)
@@ -39,6 +39,14 @@ Every model that uses the `LogsActivity` trait. At minimum:
 - `work_orders` (creation, rate changes, closures)
 - `time_entries` (create, edit, delete — captures `was_updated` for non-contractor edits)
 - `time_entry_adjustments` (create, edit, delete)
+
+#### The `payroll` log
+
+Time entries and adjustments are written to a `payroll` log by explicit `activity()` calls in their actions, not by the `LogsActivity` model trait — the actions know what the change *meant* ("changed the punch from 9:00 am–5:30 pm to 9:00 am–1:00 pm"), where a model trait would only see column diffs.
+
+They are logged **against the contractor**, not against the entry or the person who made the change. The subject is what the trail is about, and the causer records who did it. This is what puts payroll corrections on the contractor's profile History tab, where someone reviewing a disputed week will actually look. The same rows are reachable from the global audit log at `/admin/audit`, filtered by log name.
+
+A correction carries `from` and `to` in `properties` (start, end, minutes). Neither screen renders those today — the description sentence carries the times.
 - `timesheets` (every state transition)
 - `invoices` (frozen, sent, voided, replaced)
 - `contracts` (uploaded, edited, downloaded)

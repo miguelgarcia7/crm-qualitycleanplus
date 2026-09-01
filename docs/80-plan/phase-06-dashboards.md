@@ -88,8 +88,14 @@ later phases:
   order: new work order, upload hours, timesheets, invoices, people, reports…).
 - **Hours this week** stat with %-change vs all of last week — per-property anchored
   weeks (ADR-0009): "this week" = each property's summary week containing today.
-- **On the clock now** — live open clock entries (the Phase 07 deferral, finally),
-  avatars + elapsed time, deep-linking to People profiles; `timesheets.view_live` gated.
+- **On the clock now** — live open clock entries (the Phase 07 deferral, finally);
+  `timesheets.view_live` gated. Now two panels rather than one:
+  - **On the clock by property** — head count per site, with today's GPS flags.
+  - **On the clock now** — one row per open punch: contractor (linked to their
+    profile), property, clock-in time in the property's timezone, and elapsed
+    time, ordered longest-first. Anything past 10 hours is flagged as a likely
+    missed clock-out — the same threshold `LookForLongTimeEntries` is specced
+    to use. Capped at 8 rows with a "+N more" link.
 - **This week by property** donut (top 5 + Other) beside the hero chart.
 - **Revenue vs payouts (6 months)** — margin chart straight from the Phase 09
   `report_monthly_revenue` rollup (admin/payroll/super_admin).

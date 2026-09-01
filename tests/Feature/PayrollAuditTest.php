@@ -135,6 +135,25 @@ it('keeps the original rate snapshots when a punch is corrected', function () {
         ->and($updated->bill_rate_snapshot)->toBe($entry->bill_rate_snapshot);
 });
 
+it('marks a punch as touched by someone other than the contractor', function () {
+    ['workOrder' => $wo, 'monday' => $monday] = auditScenario();
+    $recruiter = person('recruiter');
+    $this->actingAs($recruiter);
+
+    $entry = app(CreateManualTimeEntry::class)->handle($wo, [
+        'date' => $monday->toDateString(), 'start_time' => '09:00', 'end_time' => '17:30', 'entry_type' => 'work',
+    ], $recruiter);
+
+    expect($entry->was_updated)->toBeFalse();
+
+    app(UpdateTimeEntry::class)->handle($entry->fresh(), [
+        'start_time' => '09:00', 'end_time' => '13:00', 'entry_type' => 'work',
+    ]);
+
+    // The punch is no longer purely the contractor's own record.
+    expect($entry->fresh()->was_updated)->toBeTrue();
+});
+
 it('refuses to correct a punch once the week is locked', function () {
     ['workOrder' => $wo, 'monday' => $monday, 'property' => $property] = auditScenario();
     $recruiter = person('recruiter');

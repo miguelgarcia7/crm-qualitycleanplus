@@ -55,6 +55,9 @@ class CreateManualTimeEntry
             'ot_pay_rate_snapshot' => $workOrder->ot_pay_rate,
             'ot_bill_rate_snapshot' => $workOrder->ot_bill_rate,
             'created_by' => $creator?->id,
+            // A manual entry was never the contractor's own record — source says
+            // that. was_updated only marks a punch that was later corrected.
+            'was_updated' => false,
         ]);
 
         RecomputeTimeSummary::dispatchSync($workOrder->id, $period->id);

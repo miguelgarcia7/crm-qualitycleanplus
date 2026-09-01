@@ -2,6 +2,7 @@
 
 namespace App\Domain\Time\Actions;
 
+use App\Domain\People\Models\Person;
 use App\Domain\Time\Concerns\LogsPayrollActivity;
 use App\Domain\Time\Jobs\RecomputeTimeSummary;
 use App\Domain\Time\Models\TimeEntry;
@@ -53,11 +54,16 @@ class UpdateTimeEntry
             'minutes' => $entry->duration_minutes,
         ];
 
+        $editor = auth()->user();
+
         $entry->update([
             'start_at_utc' => $start->utc(),
             'end_at_utc' => $end->utc(),
             'duration_minutes' => (int) $start->diffInMinutes($end),
             'entry_type' => $data['entry_type'] ?? $entry->entry_type,
+            // Marks the punch as no longer purely the contractor's own record.
+            // Never cleared once set — it says the row was touched, not who last touched it.
+            'was_updated' => $entry->was_updated || ! ($editor instanceof Person && $editor->is($entry->person)),
         ]);
 
         RecomputeTimeSummary::dispatchSync($entry->work_order_id, $entry->payroll_period_id);

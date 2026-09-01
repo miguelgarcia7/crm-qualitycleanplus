@@ -167,6 +167,8 @@ it('names who is on the clock, longest shift first, flagging the long ones', fun
 
     expect($roster['title'])->toBe('On the clock now')
         ->and($roster['total'])->toBe(2)
+        // 10h matches the threshold specced for the long-shift notification.
+        ->and($roster['thresholdHours'])->toBe(10)
         ->and($roster['overCount'])->toBe(1)
         // Longest first, so a punch nobody closed leads the card.
         ->and($roster['rows'][0]['contractor'])->toBe('Marcus Webb')
