@@ -1,4 +1,5 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import { formatClockTime } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
@@ -74,7 +75,9 @@ const Page = ({ timesheet, property, week, rows, entries, summaries, can }: Prop
                     {week.days.map((d) => (
                       <td key={d} className="text-center align-top">
                         {cellEntries(r.work_order_id, d).map((e) => (
-                          <div key={e.id}>{e.start_time}–{e.end_time}</div>
+                          <div key={e.id} className="whitespace-nowrap">
+                            {formatClockTime(e.start_time)} – {formatClockTime(e.end_time)}
+                          </div>
                         ))}
                       </td>
                     ))}

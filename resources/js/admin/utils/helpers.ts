@@ -77,3 +77,23 @@ export function cn(...inputs: ClassValue[]) {
 export const splitArray = <T>(arr: T[], size: number): T[][] => {
   return Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size))
 }
+
+/**
+ * Render a 24-hour "HH:MM" clock time as 12-hour with am/pm — "09:00" → "9:00 am".
+ *
+ * The payload stays 24-hour because `<input type="time">` requires that format;
+ * this is for display only.
+ */
+export const formatClockTime = (time?: string | null): string => {
+  if (!time) return ''
+
+  const [rawHours, rawMinutes] = time.split(':')
+  const hours = Number(rawHours)
+
+  if (Number.isNaN(hours)) return time
+
+  const period = hours < 12 ? 'am' : 'pm'
+  const hour12 = hours % 12 === 0 ? 12 : hours % 12
+
+  return `${hour12}:${(rawMinutes ?? '00').padStart(2, '0')} ${period}`
+}

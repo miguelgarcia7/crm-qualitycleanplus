@@ -1,5 +1,6 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
+import { formatClockTime } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useEffect, useState } from 'react'
 
@@ -140,7 +141,9 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                           <td key={d} className="text-center align-top">
                             {cellEntries(r.work_order_id, d).map((e) => (
                               <div key={e.id} className="mb-1 flex items-center justify-center gap-1">
-                                <span>{e.start_time}–{e.end_time}</span>
+                                <span className="whitespace-nowrap">
+                                  {formatClockTime(e.start_time)} – {formatClockTime(e.end_time)}
+                                </span>
                                 {e.gps_flags.length > 0 && (
                                   <span title={`Punch without verified GPS — ${e.gps_flags.join('; ')}`} className="inline-flex shrink-0">
                                     <Icon icon="map-pin-off" className="text-warning text-sm" />
