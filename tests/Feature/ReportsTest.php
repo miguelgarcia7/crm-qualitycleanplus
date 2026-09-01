@@ -115,6 +115,32 @@ it('removes the weekly cell when its summaries vanish', function () {
     expect(ReportWeeklyRollup::query()->where('property_id', $property->id)->exists())->toBeFalse();
 });
 
+it('counts a week that starts on the last day of a month', function () {
+    // week_start is stored with a 00:00:00 time component, so comparing it as a
+    // string against a bare 'Y-m-d' upper bound drops the last day of the
+    // month. A property whose week begins the 31st would vanish from that
+    // month's revenue — this pins the boundary rather than the calendar.
+    Carbon::setTestNow(Carbon::parse('2026-08-31 09:00:00', 'America/Phoenix'));
+
+    ['property' => $property, 'workOrder' => $wo, 'monday' => $monday, 'timesheet' => $timesheet] = reportScenario();
+    expect($monday->toDateString())->toBe('2026-08-31');
+
+    reportHours($wo, $monday, 5);
+    app(ApproveTimesheet::class)->handle(
+        app(SubmitTimesheetForApproval::class)->handle($timesheet, person('recruiter')),
+        person('property_manager'),
+    );
+
+    $cell = ReportMonthlyRevenue::query()
+        ->where('property_id', $property->id)
+        ->whereDate('month_start', '2026-08-01')
+        ->first();
+
+    expect($cell)->not->toBeNull()
+        ->and($cell->invoice_count)->toBe(1);
+
+    Carbon::setTestNow();
+});
 it('builds the monthly revenue cell when an invoice freezes', function () {
     ['property' => $property, 'workOrder' => $wo, 'monday' => $monday, 'timesheet' => $timesheet] = reportScenario();
     reportHours($wo, $monday, 5); // bill 142500

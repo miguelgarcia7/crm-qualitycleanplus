@@ -183,7 +183,8 @@ class ReportController extends Controller
 
         $cells = ReportMonthlyRevenue::query()
             ->with('property:id,name')
-            ->whereBetween('month_start', [$from->toDateString(), $to->toDateString()])
+            ->whereDate('month_start', '>=', $from->toDateString())
+            ->whereDate('month_start', '<=', $to->toDateString())
             ->when($validated['property_id'] ?? null, fn ($q, $id) => $q->where('property_id', $id))
             ->orderByDesc('month_start')
             ->orderBy('property_id')
@@ -225,7 +226,8 @@ class ReportController extends Controller
 
         $rows = DB::table('report_weekly_rollups')
             ->join('properties', 'properties.id', '=', 'report_weekly_rollups.property_id')
-            ->whereBetween('week_start', [$from->toDateString(), $to->toDateString()])
+            ->whereDate('week_start', '>=', $from->toDateString())
+            ->whereDate('week_start', '<=', $to->toDateString())
             ->when($propertyId, fn ($q, $id) => $q->where('report_weekly_rollups.property_id', $id))
             ->groupBy('report_weekly_rollups.property_id', 'properties.name')
             ->select([
@@ -265,7 +267,8 @@ class ReportController extends Controller
 
         $rows = DB::table('report_weekly_rollups')
             ->join('positions', 'positions.id', '=', 'report_weekly_rollups.position_id')
-            ->whereBetween('week_start', [$from->toDateString(), $to->toDateString()])
+            ->whereDate('week_start', '>=', $from->toDateString())
+            ->whereDate('week_start', '<=', $to->toDateString())
             ->when($propertyId, fn ($q, $id) => $q->where('report_weekly_rollups.property_id', $id))
             ->groupBy('report_weekly_rollups.position_id', 'positions.name')
             ->select([

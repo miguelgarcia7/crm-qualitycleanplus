@@ -24,10 +24,12 @@ class RefreshMonthlyRevenue
             ->join('payroll_periods', 'payroll_periods.id', '=', 'invoices.payroll_period_id')
             ->where('invoices.property_id', $propertyId)
             ->where('invoices.status', '!=', InvoiceStatus::Voided->value)
-            ->whereBetween('payroll_periods.week_start', [
-                $month->toDateString(),
-                $month->endOfMonth()->toDateString(),
-            ])
+            // whereDate, not whereBetween: week_start is written with a
+            // 00:00:00 time component, so a string comparison against a bare
+            // 'Y-m-d' upper bound drops a week starting on the month's last
+            // day — silently under-reporting that month's revenue.
+            ->whereDate('payroll_periods.week_start', '>=', $month->toDateString())
+            ->whereDate('payroll_periods.week_start', '<=', $month->endOfMonth()->toDateString())
             ->get(['invoices.id', 'invoices.work_subtotal', 'invoices.adjustment_total', 'invoices.tax_amount', 'invoices.total']);
 
         DB::transaction(function () use ($propertyId, $month, $invoices): void {

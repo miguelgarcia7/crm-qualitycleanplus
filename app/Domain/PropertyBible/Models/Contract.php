@@ -65,7 +65,8 @@ class Contract extends Model
     {
         $query->where('is_active', true)
             ->whereNotNull('expiration_date')
-            ->whereBetween('expiration_date', [now()->toDateString(), now()->addDays($days)->toDateString()]);
+            ->whereDate('expiration_date', '>=', now()->toDateString())
+            ->whereDate('expiration_date', '<=', now()->addDays($days)->toDateString());
     }
 
     /**
