@@ -5,8 +5,10 @@ use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Dashboards\Services\BackOfficePulse;
+use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
+use App\Domain\Time\Models\TimeEntry;
 use Database\Seeders\RolePermissionSeeder;
 
 beforeEach(function () {
@@ -136,4 +138,78 @@ it('lists what needs a decision, scoped to what the viewer may see', function ()
 
     // Nothing seeded that needs deciding, so the panel stays away entirely.
     expect($pulse['decisions'])->toBeNull();
+});
+
+it('names who is on the clock, longest shift first, flagging the long ones', function () {
+    $property = Property::factory()->create(['name' => 'Sunrise Villas', 'timezone' => 'America/Phoenix']);
+    $short = Person::factory()->create(['name' => 'Ana Reyes']);
+    $long = Person::factory()->create(['name' => 'Marcus Webb']);
+
+    // Open punches — no clock-out — one just started, one running past 8h.
+    TimeEntry::factory()->create([
+        'person_id' => $short->id,
+        'property_id' => $property->id,
+        'start_at_utc' => now()->subHours(2),
+        'end_at_utc' => null,
+        'timezone' => 'America/Phoenix',
+    ]);
+    TimeEntry::factory()->create([
+        'person_id' => $long->id,
+        'property_id' => $property->id,
+        'start_at_utc' => now()->subHours(11),
+        'end_at_utc' => null,
+        'timezone' => 'America/Phoenix',
+    ]);
+    // A closed punch is not on the clock and must not appear.
+    TimeEntry::factory()->create(['property_id' => $property->id]);
+
+    $roster = pulseFor('office_manager')['onTheClockNow'];
+
+    expect($roster['title'])->toBe('On the clock now')
+        ->and($roster['total'])->toBe(2)
+        ->and($roster['overCount'])->toBe(1)
+        // Longest first, so a punch nobody closed leads the card.
+        ->and($roster['rows'][0]['contractor'])->toBe('Marcus Webb')
+        ->and($roster['rows'][0]['property'])->toBe('Sunrise Villas')
+        ->and($roster['rows'][0]['over'])->toBeTrue()
+        ->and($roster['rows'][0]['elapsed'])->toBe('11h 00m')
+        ->and($roster['rows'][1]['contractor'])->toBe('Ana Reyes')
+        ->and($roster['rows'][1]['over'])->toBeFalse()
+        ->and($roster['rows'][1]['elapsed'])->toBe('2h 00m');
+});
+
+it('keeps the by-property panel alongside the per-person roster', function () {
+    $property = Property::factory()->create(['name' => 'Sunrise Villas']);
+    TimeEntry::factory()->create([
+        'property_id' => $property->id,
+        'start_at_utc' => now()->subHours(3),
+        'end_at_utc' => null,
+    ]);
+
+    $pulse = pulseFor('office_manager');
+
+    // Two panels, two questions: how busy is each site, and who is still on.
+    expect($pulse['onTheClock']['title'])->toBe('On the clock by property')
+        ->and($pulse['onTheClock']['rows'][0]['property'])->toBe('Sunrise Villas')
+        ->and($pulse['onTheClockNow']['title'])->toBe('On the clock now')
+        ->and($pulse['onTheClockNow']['rows'])->toHaveCount(1);
+});
+
+it('collapses a long roster to the first few with a count of the rest', function () {
+    $property = Property::factory()->create();
+    TimeEntry::factory()->count(11)->create([
+        'property_id' => $property->id,
+        'start_at_utc' => now()->subHours(3),
+        'end_at_utc' => null,
+    ]);
+
+    $roster = pulseFor('office_manager')['onTheClockNow'];
+
+    expect($roster['total'])->toBe(11)
+        ->and($roster['rows'])->toHaveCount(8)
+        ->and($roster['moreCount'])->toBe(3);
+});
+
+it('withholds the live roster from roles without timesheets.view_live', function () {
+    expect(pulseFor('hr')['onTheClockNow'])->toBeNull();
 });

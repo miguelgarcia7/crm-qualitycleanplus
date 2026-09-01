@@ -6,6 +6,7 @@ import AlertBanner, { PulseAlert } from './widgets/AlertBanner'
 import ApprovalsTable, { Approvals } from './widgets/ApprovalsTable'
 import DecisionsCard, { Decisions } from './widgets/DecisionsCard'
 import ListCard, { ListWidget } from './widgets/ListCard'
+import LiveRosterCard, { LiveRoster } from './widgets/LiveRosterCard'
 import OnTheClockCard, { OnTheClock } from './widgets/OnTheClockCard'
 import PipelineStrip, { Pipeline } from './widgets/PipelineStrip'
 import PulseStat, { PulseStatData } from './widgets/PulseStat'
@@ -28,6 +29,7 @@ type Widgets = {
   pipeline: Pipeline | null
   tasks: Tasks
   approvals: Approvals | null
+  onTheClockNow: LiveRoster | null
   onTheClock: OnTheClock | null
   decisions: Decisions | null
 }
@@ -91,6 +93,7 @@ const Page = ({ widgets }: Props) => {
           </div>
         )}
         <div className={`flex flex-col gap-4 ${widgets.approvals ? '' : 'xl:col-span-3'}`}>
+          {widgets.onTheClockNow && <LiveRosterCard data={widgets.onTheClockNow} />}
           {widgets.onTheClock && <OnTheClockCard data={widgets.onTheClock} />}
           {widgets.decisions && <DecisionsCard decisions={widgets.decisions} />}
         </div>

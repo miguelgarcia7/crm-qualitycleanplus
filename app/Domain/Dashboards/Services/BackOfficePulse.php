@@ -33,6 +33,12 @@ class BackOfficePulse
     /** A timesheet waiting longer than this reads as overdue. */
     private const APPROVAL_SLA_DAYS = 3;
 
+    /** Past this, an open punch is more likely a missed clock-out than a long shift. */
+    private const LONG_SHIFT_HOURS = 8;
+
+    /** Rows shown on the live roster before it collapses to a "+N more" link. */
+    private const LIVE_ROSTER_LIMIT = 8;
+
     /**
      * @param  list<int>|null  $propertyIds  null means "every property"
      * @return array<string, mixed>
@@ -46,6 +52,7 @@ class BackOfficePulse
             'pipeline' => $user->can('timesheets.view_history') ? $this->pipeline($user, $propertyIds) : null,
             'tasks' => $this->tasks($user),
             'approvals' => $user->can('timesheets.view_history') ? $this->approvals($propertyIds) : null,
+            'onTheClockNow' => $user->can('timesheets.view_live') ? $this->onTheClockNow($propertyIds) : null,
             'onTheClock' => $user->can('timesheets.view_live') ? $this->onTheClock($propertyIds) : null,
             'decisions' => $this->decisions($user, $propertyIds),
         ];
@@ -397,6 +404,68 @@ class BackOfficePulse
     }
 
     /**
+     * Who is on the clock right now, one row per person, longest shift first.
+     *
+     * The by-property panel answers "how busy is each site"; this one answers
+     * "who is still on the clock, and for how long". A punch running past
+     * LONG_SHIFT_HOURS is usually a missed clock-out rather than real overtime,
+     * so those sort to the top and are called out.
+     *
+     * @param  list<int>|null  $propertyIds
+     * @return array<string, mixed>
+     */
+    private function onTheClockNow(?array $propertyIds): array
+    {
+        $now = CarbonImmutable::now();
+
+        $open = TimeEntry::query()
+            ->whereNotNull('start_at_utc')
+            ->whereNull('end_at_utc')
+            ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
+            ->with(['property:id,name,timezone', 'person:id,name'])
+            ->orderBy('start_at_utc') // longest on the clock first
+            ->get();
+
+        $rows = $open->map(function (TimeEntry $entry) use ($now): array {
+            $tz = $entry->timezone ?? $entry->property->timezone;
+            $start = $entry->start_at_utc;
+            $minutes = $start === null ? 0 : (int) $start->diffInMinutes($now);
+
+            return [
+                'id' => $entry->id,
+                'contractor' => $entry->person->name,
+                'property' => $entry->property->name,
+                'person_id' => $entry->person_id,
+                'started_at' => $start?->copy()->setTimezone($tz)->format('g:i a'),
+                'minutes' => $minutes,
+                'elapsed' => $this->hoursAndMinutes($minutes),
+                'over' => $minutes > self::LONG_SHIFT_HOURS * 60,
+            ];
+        });
+
+        return [
+            'title' => 'On the clock now',
+            'total' => $rows->count(),
+            'overCount' => $rows->where('over', true)->count(),
+            'thresholdHours' => self::LONG_SHIFT_HOURS,
+            // Enough to scan without turning the card into a full roster.
+            'rows' => $rows->take(self::LIVE_ROSTER_LIMIT)->values()->all(),
+            'moreCount' => max(0, $rows->count() - self::LIVE_ROSTER_LIMIT),
+            'viewAllHref' => '/admin/timesheets',
+            'emptyText' => 'Nobody is clocked in right now.',
+        ];
+    }
+
+    /** "9h 12m", or "47m" under the hour. */
+    private function hoursAndMinutes(int $minutes): string
+    {
+        $hours = intdiv($minutes, 60);
+        $rest = $minutes % 60;
+
+        return $hours > 0 ? sprintf('%dh %02dm', $hours, $rest) : sprintf('%dm', $rest);
+    }
+
+    /**
      * Who is on the clock right now, gathered by property, plus today's GPS
      * flags. Note that blocked clock-ins are not counted here — a blocked
      * attempt never becomes a time entry, so there is nothing to count.
@@ -427,7 +496,7 @@ class BackOfficePulse
             ->count();
 
         return [
-            'title' => 'On the clock now',
+            'title' => 'On the clock by property',
             'total' => $open->count(),
             'rows' => $byProperty->map(fn (int $count, string $name): array => [
                 'property' => $name,
