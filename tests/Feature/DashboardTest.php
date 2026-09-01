@@ -95,6 +95,21 @@ it('gives super admin cross-cutting widgets', function () {
         );
 });
 
+it('never shows the same chart twice, whatever roles pile up', function () {
+    // Revenue-vs-payouts is added once as the headline chart for anyone with
+    // reports.financial.view; super_admin used to also add its own copy, which
+    // rendered it at the top and again in the lower grid.
+    $this->actingAs(person('super_admin'))->get(main('/admin/dashboard'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('widgets', function ($widgets) {
+                $titles = collect($widgets['charts'])->pluck('title');
+
+                return $titles->contains('Revenue vs payouts (6 months)')
+                    && $titles->duplicates()->isEmpty();
+            }),
+        );
+});
+
 it('includes the live ops widgets for timesheet-live viewers', function () {
     $this->actingAs(person('office_manager'))->get(main('/admin/dashboard'))
         ->assertInertia(fn (AssertableInertia $page) => $page

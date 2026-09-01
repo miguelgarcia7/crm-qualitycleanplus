@@ -409,8 +409,10 @@ class DashboardMetrics
             'changeLabel' => 'vs last month',
         ];
 
+        // Not revenue-vs-payouts: forBackOffice() already adds it as the
+        // headline chart for anyone with reports.financial.view, which
+        // super_admin holds. Adding it here rendered it twice.
         $charts[] = $this->weeklyRevenueChart();
-        $charts[] = $this->revenueVsPayoutsChart();
     }
 
     /**
