@@ -181,6 +181,12 @@ losing a placement it sourced.
 (This replaced `probationary_period_minutes`, which was described inconsistently
 as both "~1 work-year" and "~1 work-week" and was never read by anything.)
 
+**There is no separate probationary period.** The legacy work-order modal shows
+two fields — a read-only "Probationary Period (hours)" and an "Hours for
+full-time eligibility" slider — but they are the same number, and QCP has no
+performance-trial concept. Confirmed with the owner 2026-08-31; deliberately
+modelled as one field here, so do not reintroduce the second during cutover.
+
 **Where the value comes from.** Properties carry their contracted figure
 (`properties.direct_hire_threshold_minutes`, nullable). Work orders copy the
 resolved value at creation — property value, else the system default in

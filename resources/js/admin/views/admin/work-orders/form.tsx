@@ -30,7 +30,7 @@ type DirectHire = {
   unrestricted: boolean
 }
 
-const MAX_ELIGIBILITY_HOURS = 4160
+const MAX_ELIGIBILITY_HOURS = 2080
 const ELIGIBILITY_STEP_HOURS = 40
 
 type Props = {
