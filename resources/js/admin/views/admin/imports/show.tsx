@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -326,9 +327,17 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
     )
 
   const commit = () => {
-    if (confirm('Commit this import? Time entries, an approved timesheet, and a frozen invoice will be created.')) {
-      router.post(`/admin/imports/${batch.id}/commit`, {}, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Commit import',
+      message: (
+        <>
+          Commit this import? Time entries, an approved timesheet and a frozen invoice are created in one step — there is no approval stage after this.
+        </>
+      ),
+      confirmLabel: 'Commit',
+      tone: 'primary',
+      onConfirm: () => router.post(`/admin/imports/${batch.id}/commit`, {}, { preserveScroll: true }),
+    })
   }
 
   return (
@@ -355,9 +364,12 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
                 <button
                   className="btn btn-sm btn-light"
                   onClick={() => {
-                    if (confirm('Void this import and start a corrected re-import for the same week?')) {
-                      router.post(`/admin/imports/${batch.id}/rollback`, { reimport: true }, { preserveScroll: true })
-                    }
+                    confirmAction({
+                      title: 'Void and re-import',
+                      message: <>Void this import and start a corrected re-import for the same week? The current invoice is voided first.</>,
+                      confirmLabel: 'Void and re-import',
+                      onConfirm: () => router.post(`/admin/imports/${batch.id}/rollback`, { reimport: true }, { preserveScroll: true }),
+                    })
                   }}
                 >
                   Re-import
@@ -365,9 +377,12 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
                 <button
                   className="btn btn-sm btn-light text-danger"
                   onClick={() => {
-                    if (confirm('Void and roll back this import? The invoice will be voided and time entries removed.')) {
-                      router.post(`/admin/imports/${batch.id}/rollback`, { reimport: false }, { preserveScroll: true })
-                    }
+                    confirmAction({
+                      title: 'Void and roll back',
+                      message: <>Void and roll back this import? The invoice is voided and every time entry it created is removed.</>,
+                      confirmLabel: 'Void and roll back',
+                      onConfirm: () => router.post(`/admin/imports/${batch.id}/rollback`, { reimport: false }, { preserveScroll: true }),
+                    })
                   }}
                 >
                   Void

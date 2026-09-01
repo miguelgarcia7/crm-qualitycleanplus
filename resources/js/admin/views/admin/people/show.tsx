@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn, toPascalCase } from '@/utils/helpers'
@@ -361,8 +362,16 @@ const ChargesTab = ({ charges }: { charges: ChargeRow[] }) => {
   const [editing, setEditing] = useState<ChargeRow | null>(null)
 
   const cancel = (row: ChargeRow) => {
-    if (!confirm(`Stop collecting the ${row.reason_label.toLowerCase()}? Payments already taken are unchanged.`)) return
-    router.delete(`/admin/contractor-charges/${row.id}`, { preserveScroll: true })
+    confirmAction({
+      title: 'Stop collecting',
+      message: (
+        <>
+          Stop collecting the <strong>{row.reason_label.toLowerCase()}</strong>? Payments already taken out of pay are unchanged; nothing further is deducted.
+        </>
+      ),
+      confirmLabel: 'Stop collecting',
+      onConfirm: () => router.delete(`/admin/contractor-charges/${row.id}`, { preserveScroll: true }),
+    })
   }
 
   return (

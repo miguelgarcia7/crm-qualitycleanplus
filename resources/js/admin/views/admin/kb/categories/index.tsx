@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -78,9 +79,15 @@ const Page = ({ categories }: Props) => {
   }
 
   const destroy = (c: Category) => {
-    if (confirm(`Delete "${c.name}"? Child categories move to the top level.`)) {
-      router.delete(`/admin/kb/categories/${c.slug}`, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Delete category',
+      message: (
+        <>
+          Delete <strong>{c.name}</strong>? Any child categories move up to the top level rather than being deleted.
+        </>
+      ),
+      onConfirm: () => router.delete(`/admin/kb/categories/${c.slug}`, { preserveScroll: true }),
+    })
   }
 
   const columns = useMemo(

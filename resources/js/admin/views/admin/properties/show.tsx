@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -104,17 +105,30 @@ const WEEKDAYS: Record<number, string> = {
   7: 'Sunday',
 }
 
-const confirmDelete = (url: string) => {
-  if (confirm('Are you sure?')) {
-    router.delete(url, { preserveScroll: true })
-  }
-}
+/**
+ * Owns its own confirmation so all four call sites get one, and so the prompt
+ * can name what is being removed — the old shared handler asked "Are you
+ * sure?", which tells the reader nothing about what they clicked.
+ */
+const RemoveButton = ({ url, title, description }: { url: string; title: string; description: React.ReactNode }) => (
+  <RemoveButtonInner
+    title={title}
+    onClick={() =>
+      confirmAction({
+        title,
+        message: description,
+        confirmLabel: 'Remove',
+        onConfirm: () => router.delete(url, { preserveScroll: true }),
+      })
+    }
+  />
+)
 
-const RemoveButton = ({ url, title }: { url: string; title: string }) => (
+const RemoveButtonInner = ({ title, onClick }: { title: string; onClick: () => void }) => (
   <button
     type="button"
     className="btn btn-icon border-default-300 hover:border-default-400 border"
-    onClick={() => confirmDelete(url)}
+    onClick={onClick}
     title={title}
   >
     <Icon icon="trash" className="text-base" />
@@ -286,7 +300,7 @@ const DepartmentsTab = ({ property, departments, catalogs, can }: Pick<Props, 'p
                   </td>
                   {can.editDepartments && (
                     <td className="text-end">
-                      <RemoveButton url={`/admin/properties/${property.id}/departments/${d.id}`} title="Remove department" />
+                      <RemoveButton url={`/admin/properties/${property.id}/departments/${d.id}`} title="Remove department" description={<>Remove <strong>{d.name}</strong> from this property? Its manager contact goes with it.</>} />
                     </td>
                   )}
                 </tr>
@@ -400,7 +414,7 @@ const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'pro
                   <td>{r.end_date ?? <span className="badge badge-label bg-success/15 text-success">current</span>}</td>
                   {can.editRates && (
                     <td className="text-end">
-                      <RemoveButton url={`/admin/properties/${property.id}/rates/${r.id}`} title="Remove rate" />
+                      <RemoveButton url={`/admin/properties/${property.id}/rates/${r.id}`} title="Remove rate" description={<>Remove the <strong>{r.position}</strong> rate? New work orders will have no rate to auto-fill from. Existing ones keep their snapshot.</>} />
                     </td>
                   )}
                 </tr>
@@ -604,7 +618,7 @@ const ContractsTab = ({ property, contracts, catalogs, can }: Pick<Props, 'prope
                         </a>
                       )}
                       {can.editContracts && (
-                        <RemoveButton url={`/admin/properties/${property.id}/contracts/${c.id}`} title="Delete contract" />
+                        <RemoveButton url={`/admin/properties/${property.id}/contracts/${c.id}`} title="Delete contract" description={<>Delete <strong>{c.name}</strong>? The uploaded document is removed too.</>} />
                       )}
                     </div>
                   </td>
@@ -697,7 +711,7 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
                   <td>{a.role_label}</td>
                   {can.manageAssignments && (
                     <td className="text-end">
-                      <RemoveButton url={`/admin/properties/${property.id}/assignments/${a.id}`} title="Remove assignment" />
+                      <RemoveButton url={`/admin/properties/${property.id}/assignments/${a.id}`} title="Remove assignment" description={<>Unassign <strong>{a.person}</strong> ({a.role_label}) from this property?</>} />
                     </td>
                   )}
                 </tr>

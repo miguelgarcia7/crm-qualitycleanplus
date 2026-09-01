@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -28,9 +29,15 @@ const Page = ({ holidays, can }: Props) => {
   }
 
   const destroy = (h: Holiday) => {
-    if (confirm(`Delete "${h.name}"? It will be removed from every property and open weeks will be recalculated.`)) {
-      router.delete(`/admin/holidays/${h.id}`, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Delete holiday',
+      message: (
+        <>
+          Delete <strong>{h.name}</strong>? It is removed from every property, and open weeks are recalculated — hours currently paid at the holiday rate revert to regular.
+        </>
+      ),
+      onConfirm: () => router.delete(`/admin/holidays/${h.id}`, { preserveScroll: true }),
+    })
   }
 
   return (

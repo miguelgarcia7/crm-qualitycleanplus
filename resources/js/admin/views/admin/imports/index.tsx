@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -50,12 +51,16 @@ const Page = ({ batches, can }: Props) => {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
   const rollback = (id: number, reimport: boolean) => {
-    const msg = reimport
-      ? 'Void this import and start a corrected re-import for the same week?'
-      : 'Void and roll back this import? The invoice will be voided and time entries removed.'
-    if (confirm(msg)) {
-      router.post(`/admin/imports/${id}/rollback`, { reimport }, { preserveScroll: true })
-    }
+    confirmAction({
+      title: reimport ? 'Void and re-import' : 'Void and roll back',
+      message: reimport ? (
+        <>Void this import and start a corrected re-import for the same week? The current invoice is voided first.</>
+      ) : (
+        <>Void and roll back this import? The invoice is voided and every time entry it created is removed.</>
+      ),
+      confirmLabel: reimport ? 'Void and re-import' : 'Void and roll back',
+      onConfirm: () => router.post(`/admin/imports/${id}/rollback`, { reimport }, { preserveScroll: true }),
+    })
   }
 
   const columns = useMemo(

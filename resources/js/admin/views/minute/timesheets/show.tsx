@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { formatClockTime } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
@@ -26,9 +27,13 @@ const Page = ({ timesheet, property, week, rows, entries, summaries, can }: Prop
   const cellEntries = (wo: number, date: string) => entries.filter((e) => e.work_order_id === wo && e.date === date)
 
   const approve = () => {
-    if (confirm('Approve this timesheet? This generates the invoice.')) {
-      router.post(`/timesheets/${timesheet.id}/approve`)
-    }
+    confirmAction({
+      title: 'Approve timesheet',
+      message: <>Approve this timesheet? An invoice is generated immediately and its figures are frozen — corrections after this need the invoice voided and reissued.</>,
+      confirmLabel: 'Approve',
+      tone: 'primary',
+      onConfirm: () => router.post(`/timesheets/${timesheet.id}/approve`),
+    })
   }
 
   return (

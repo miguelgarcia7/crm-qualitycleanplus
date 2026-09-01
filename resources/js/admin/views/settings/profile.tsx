@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -86,9 +87,12 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
   }
 
   const remove = () => {
-    if (confirm('Remove your profile photo?')) {
-      router.delete('/admin/settings/avatar', { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Remove photo',
+      message: <>Remove your profile photo? Your initials are shown instead.</>,
+      confirmLabel: 'Remove',
+      onConfirm: () => router.delete('/admin/settings/avatar', { preserveScroll: true }),
+    })
   }
 
   return (

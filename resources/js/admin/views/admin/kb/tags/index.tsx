@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -58,9 +59,15 @@ const Page = ({ tags }: Props) => {
   }
 
   const destroy = (t: Tag) => {
-    if (confirm(`Delete "${t.name}"? It will be removed from ${t.articles_count} article(s).`)) {
-      router.delete(`/admin/kb/tags/${t.slug}`, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Delete tag',
+      message: (
+        <>
+          Delete <strong>{t.name}</strong>? It will be removed from {t.articles_count} article{t.articles_count === 1 ? '' : 's'}.
+        </>
+      ),
+      onConfirm: () => router.delete(`/admin/kb/tags/${t.slug}`, { preserveScroll: true }),
+    })
   }
 
   const columns = useMemo(

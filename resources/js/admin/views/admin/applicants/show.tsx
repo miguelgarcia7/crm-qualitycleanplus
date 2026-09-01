@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -228,14 +229,29 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
     rejectForm.post(`/admin/applicants/${app.id}/reject`, { preserveScroll: true, onSuccess: () => setShowReject(false) })
   }
   const promote = () => {
-    if (confirm(`Promote ${person.name} to active contractor?`)) {
-      router.post(`/admin/applicants/${app.id}/promote`, {}, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Promote to contractor',
+      message: (
+        <>
+          Promote <strong>{person.name}</strong> to active contractor? They can be placed on work orders, and the hiring fee is scheduled against their pay.
+        </>
+      ),
+      confirmLabel: 'Promote',
+      tone: 'primary',
+      onConfirm: () => router.post(`/admin/applicants/${app.id}/promote`, {}, { preserveScroll: true }),
+    })
   }
   const reverse = () => {
-    if (confirm('Reverse this promotion? Status returns to applicant.')) {
-      router.post(`/admin/applicants/${app.id}/reverse`, {}, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Reverse promotion',
+      message: (
+        <>
+          Reverse this promotion? <strong>{person.name}</strong> returns to applicant status. This only works while they have no work orders.
+        </>
+      ),
+      confirmLabel: 'Reverse',
+      onConfirm: () => router.post(`/admin/applicants/${app.id}/reverse`, {}, { preserveScroll: true }),
+    })
   }
 
   const isPending = app.status === 'submitted' || app.status === 'reviewing'

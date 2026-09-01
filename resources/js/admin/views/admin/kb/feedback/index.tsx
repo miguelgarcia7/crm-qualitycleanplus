@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -81,9 +82,11 @@ const Page = ({ entries }: Props) => {
     router.put(`/admin/kb/feedback/${e.id}`, { is_resolved: resolved }, { preserveScroll: true })
 
   const destroy = (e: Entry) => {
-    if (confirm('Delete this feedback entry?')) {
-      router.delete(`/admin/kb/feedback/${e.id}`, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Delete feedback',
+      message: <>Delete this feedback entry? It is removed from the article's rating totals.</>,
+      onConfirm: () => router.delete(`/admin/kb/feedback/${e.id}`, { preserveScroll: true }),
+    })
   }
 
   const columns = useMemo(

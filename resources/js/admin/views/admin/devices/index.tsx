@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -48,9 +49,12 @@ const Page = ({ devices, properties }: Props) => {
 
   const regenerate = (id: number) => router.post(`/admin/devices/${id}/regenerate`, {}, { preserveScroll: true })
   const revoke = (id: number) => {
-    if (confirm('Revoke this device? Its token is invalidated and it must be re-paired.')) {
-      router.delete(`/admin/devices/${id}`, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Revoke device',
+      message: <>Revoke this device? Its token is invalidated and the tablet must be paired again before anyone can clock in on it.</>,
+      confirmLabel: 'Revoke',
+      onConfirm: () => router.delete(`/admin/devices/${id}`, { preserveScroll: true }),
+    })
   }
 
   const columns = useMemo(

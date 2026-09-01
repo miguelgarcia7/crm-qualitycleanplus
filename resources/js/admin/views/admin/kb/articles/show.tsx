@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -51,15 +52,25 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
   const errors = usePage().props.errors as Record<string, string>
 
   const transition = (action: 'publish' | 'unpublish' | 'archive', message: string) => {
-    if (confirm(message)) {
-      router.post(`/admin/kb/articles/${article.slug}/${action}`, {}, { preserveScroll: true })
-    }
+    confirmAction({
+      title: `${action.charAt(0).toUpperCase()}${action.slice(1)} article`,
+      message,
+      confirmLabel: action.charAt(0).toUpperCase() + action.slice(1),
+      tone: action === 'publish' ? 'primary' : 'danger',
+      onConfirm: () => router.post(`/admin/kb/articles/${article.slug}/${action}`, {}, { preserveScroll: true }),
+    })
   }
 
   const destroy = () => {
-    if (confirm(`Delete "${article.title}"? The version history goes with it.`)) {
-      router.delete(`/admin/kb/articles/${article.slug}`)
-    }
+    confirmAction({
+      title: 'Delete article',
+      message: (
+        <>
+          Delete <strong>{article.title}</strong>? Every saved version goes with it, so the edit history cannot be recovered.
+        </>
+      ),
+      onConfirm: () => router.delete(`/admin/kb/articles/${article.slug}`),
+    })
   }
 
   return (

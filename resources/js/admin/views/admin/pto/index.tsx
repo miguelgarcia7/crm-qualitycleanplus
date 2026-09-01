@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -82,9 +83,13 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
     if (reason) router.post(`/admin/pto/${id}/reject`, { reason }, { preserveScroll: true })
   }
   const cancel = (id: number) => {
-    if (confirm('Cancel this PTO request? Hours return to your balance.')) {
-      router.post(`/admin/pto/${id}/cancel`, {}, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Cancel time off',
+      message: <>Cancel this PTO request? The hours return to the balance they were taken from.</>,
+      confirmLabel: 'Cancel request',
+      cancelLabel: 'Keep it',
+      onConfirm: () => router.post(`/admin/pto/${id}/cancel`, {}, { preserveScroll: true }),
+    })
   }
 
   return (

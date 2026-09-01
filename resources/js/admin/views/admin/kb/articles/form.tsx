@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import Quill from '@/components/wrappers/Quill'
@@ -122,9 +123,16 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
   }
 
   const removeAttachment = (a: Attachment) => {
-    if (confirm(`Remove "${a.name}"?`)) {
-      router.delete(`/admin/kb/attachments/${a.id}`, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Remove attachment',
+      message: (
+        <>
+          Remove <strong>{a.name}</strong> from this article? The file is deleted.
+        </>
+      ),
+      confirmLabel: 'Remove',
+      onConfirm: () => router.delete(`/admin/kb/attachments/${a.id}`, { preserveScroll: true }),
+    })
   }
 
   return (

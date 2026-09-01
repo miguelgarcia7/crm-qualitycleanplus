@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -97,9 +98,15 @@ const Page = ({ postings, properties }: Props) => {
   const publish = (p: Posting) => router.post(`/admin/job-postings/${p.slug}/publish`, {}, { preserveScroll: true })
   const close = (p: Posting) => router.post(`/admin/job-postings/${p.slug}/close`, {}, { preserveScroll: true })
   const destroy = (p: Posting) => {
-    if (confirm(`Delete "${p.title}"? This only works while it has no applications.`)) {
-      router.delete(`/admin/job-postings/${p.slug}`, { preserveScroll: true })
-    }
+    confirmAction({
+      title: 'Delete posting',
+      message: (
+        <>
+          Delete <strong>{p.title}</strong>? This only works while the posting has no applications against it.
+        </>
+      ),
+      onConfirm: () => router.delete(`/admin/job-postings/${p.slug}`, { preserveScroll: true }),
+    })
   }
 
   const columns = useMemo(
