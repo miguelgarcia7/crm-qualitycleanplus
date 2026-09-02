@@ -25,7 +25,9 @@ return new class extends Migration
             $table->string('name');
             // Unique across soft-deleted rows too — deliberate: one identity per human
             // (rehire reuses the row; see people-lifecycle.md "Email & soft deletes").
-            $table->string('email')->unique();
+            // Nullable: most legacy contractors have no email and identify by phone
+            // (phase-final-cutover.md); uniqueness still holds for non-null values.
+            $table->string('email')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('phone', 32)->nullable();
             $table->string('normalized_phone', 15)->nullable()->index();

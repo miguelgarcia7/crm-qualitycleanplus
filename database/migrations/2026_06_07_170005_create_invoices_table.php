@@ -19,11 +19,15 @@ return new class extends Migration
             $table->foreignId('payroll_period_id')->constrained('payroll_periods')->restrictOnDelete();
             // restrict: an invoice is an immutable financial record — voiding is the
             // flow (ADR-0006); a timesheet hard-delete must never silently take an
-            // invoice with it.
-            $table->foreignId('timesheet_id')->unique()->constrained('timesheets')->restrictOnDelete();
+            // invoice with it. Nullable only for imported legacy manual invoices
+            // (phase-final-cutover.md) — the app's own generation always sets it.
+            $table->foreignId('timesheet_id')->nullable()->unique()->constrained('timesheets')->restrictOnDelete();
             $table->string('invoice_number')->unique();
             $table->date('issue_date');
             $table->date('due_date');
+            // When the client settled it. Carried from legacy (paid/overdue was a
+            // live status there); overdue is derived: unpaid + past due_date.
+            $table->timestamp('paid_at')->nullable();
 
             // Frozen snapshots
             $table->json('property_snapshot');
