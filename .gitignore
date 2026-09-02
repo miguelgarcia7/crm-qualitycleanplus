@@ -31,3 +31,4 @@ yarn-error.log
 
 # Local design-reference symlink → external Paces/Minute component library (not project content)
 /design-reference
+.env.rehearsal
