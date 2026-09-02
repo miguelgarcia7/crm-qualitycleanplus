@@ -59,9 +59,33 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // Every *_at in this app is UTC (30-schema/conventions.md); pin the
+            // session so TIMESTAMP columns are interpreted as UTC regardless of
+            // the server's own zone (a CDT session rejects UTC instants that
+            // fall in the local DST spring-forward gap).
+            'timezone' => '+00:00',
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+        ],
+
+        // Read-only source for the legacy cutover (docs/80-plan/phase-final-cutover.md).
+        // Locally this is the `minute` database Herd already holds; on cutover day it
+        // is the schema the frozen production dump was loaded into.
+        'legacy' => [
+            'driver' => 'mysql',
+            'host' => env('LEGACY_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('LEGACY_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('LEGACY_DB_DATABASE', 'minute'),
+            'username' => env('LEGACY_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('LEGACY_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'timezone' => '+00:00', // read legacy TIMESTAMP columns as the UTC they were written in
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
         ],
 
         'mariadb' => [
