@@ -47,6 +47,23 @@ return [
             'report' => false,
         ],
 
+        // Legacy files imported at cutover live in the DigitalOcean Spaces
+        // bucket the legacy app wrote to (phase-final-cutover.md); env names
+        // match the legacy app's so the values copy over from Forge verbatim.
+        'spaces' => [
+            'driver' => 's3',
+            'key' => env('SPACES_ACCESS_KEY_ID'),
+            'secret' => env('SPACES_SECRET_ACCESS_KEY'),
+            'region' => env('SPACES_DEFAULT_REGION'),
+            'bucket' => env('SPACES_BUCKET'),
+            'url' => env('SPACES_URL'),
+            'endpoint' => env('SPACES_ENDPOINT'),
+            'bucket_endpoint' => true,
+            'visibility' => 'public',
+            'use_path_style_endpoint' => env('SPACES_USE_PATH_STYLE_ENDPOINT', false),
+            'throw' => true,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
