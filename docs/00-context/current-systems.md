@@ -108,7 +108,7 @@ The data in both legacy systems is operational; cutting over requires moving it.
 3. Migrate data on a planned cutover date with a frozen-old-system window
 4. Retire QC Minute and QCP CRM after the new system has run cleanly for N weeks
 
-Detailed migration plan deferred to `80-plan/phase-final-cutover.md` (not yet written).
+Detailed migration plan: `80-plan/phase-final-cutover.md`.
 
 ## Related
 
