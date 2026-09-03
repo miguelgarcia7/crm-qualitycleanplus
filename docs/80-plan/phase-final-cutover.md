@@ -219,15 +219,24 @@ Legacy production (`prod_qc_min`) runs on a DigitalOcean droplet via Forge; the 
 app deploys to **Laravel Cloud**. The database engine on Laravel Cloud MUST be MySQL
 (the app uses ENUM columns, MySQL JSON path syntax, and the UTC session pin).
 
-**The importer runs FROM the DO server, writing TO the Laravel Cloud database.**
-Legacy reads stay on localhost where they are heavy; the Cloud DB's external-access
-allowlist is restricted to the droplet's single static IP (far simpler than opening
-DO's MySQL to Cloud egress). Setup on the droplet: PHP 8.4 side-by-side via Forge, a
-checkout of this repo, `.env` with `DB_*` → the Cloud database's external credentials
-and `LEGACY_DB_DATABASE=prod_qc_min` through a read-only MySQL user. Expect the run
-to take up to an hour over the wire (the summaries step is query-chatty). Dress
-rehearsals against the real Cloud DB need no freeze — `migrate:fresh` resets. After
-go-live: disable the Cloud DB's external access and remove the droplet checkout.
+**Primary path (proven in the 2026-09-03 dress rehearsal): verify locally, upload
+the verified database.** Running the importer over the wire against the Cloud DB was
+abandoned — the MySQL public endpoint resolved to private IPv4 / public-IPv6-only
+addresses and was unreachable from a typical IPv4 network. Instead:
+
+1. Refresh the local `minute` copy (legacy `db:sync-from-prod`) — at final cutover,
+   from the FROZEN legacy system.
+2. Locally: `migrate:fresh` → structural seeders → `legacy:import --force` →
+   `legacy:verify` (must be green) → `reports:refresh-rollups --from=2024-08-01`.
+3. Export the whole local `qcpminute` database (TablePlus or mysqldump —
+   ALL tables, including `migrations` and `legacy_id_map`) and import it into the
+   Laravel Cloud database via its temporarily-enabled public endpoint
+   (Org → Resources → Databases → cluster "…" → Edit settings → Enable public
+   endpoint; disable again after).
+4. Never run `migrate:fresh` on the Cloud DB after loading.
+
+The verify gate runs on the exact bytes that ship, so nothing is lost versus a
+remote import run; the freeze window is what guarantees the dump is final.
 
 ## Cutover runbook
 
