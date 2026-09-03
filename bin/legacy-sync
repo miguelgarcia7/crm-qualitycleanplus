@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+#
+# legacy-sync — the QC Minute cutover pipeline in one command
+# (docs/80-plan/phase-final-cutover.md).
+#
+#   bin/legacy-sync            rebuild local qcpminute from the local `minute`
+#                              copy and run the legacy:verify gate
+#   bin/legacy-sync --upload   ... and, only if verify is green, dump the
+#                              verified database and load it into the Laravel
+#                              Cloud database from .env.rehearsal
+#   bin/legacy-sync --yes      skip the confirmation prompt
+#
+# Refresh the local `minute` copy first (legacy app: db:sync-from-prod, or a
+# manual prod dump import). The upload stage needs the Cloud database's
+# public endpoint enabled and its credentials in .env.rehearsal.
+#
+# Hard-won details baked in: verify runs unpiped so its exit code gates the
+# upload; the dump uses 64KB insert batches (larger ones drop the connection
+# on small Cloud instances); the load runs with --reconnect=FALSE so a dropped
+# connection aborts loudly instead of silently skipping statements; and every
+# table count is compared afterwards.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+PHP="${PHP_BIN:-php84}"
+ENVF=.env.rehearsal
+DUMP=storage/app/legacy-sync.sql
+LOAD_ERRORS=storage/app/legacy-sync-load-errors.log
+
+UPLOAD=0
+YES=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --upload) UPLOAD=1 ;;
+        --yes) YES=1 ;;
+        --help|-h) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) echo "Unknown option: $arg (try --help)"; exit 1 ;;
+    esac
+done
+
+command -v "$PHP" >/dev/null || { echo "$PHP not found (set PHP_BIN to override)"; exit 1; }
+
+if [ "$YES" -ne 1 ]; then
+    printf 'This WIPES the local qcpminute database and rebuilds it from `minute`'
+    [ "$UPLOAD" -eq 1 ] && printf ', then REPLACES the Laravel Cloud database'
+    printf '. Continue? [y/N] '
+    read -r answer
+    [ "$answer" = "y" ] || [ "$answer" = "Y" ] || { echo "Aborted."; exit 1; }
+fi
+
+echo "==> Rebuilding local database from legacy"
+"$PHP" artisan migrate:fresh --no-interaction --quiet
+for seeder in RolePermissionSeeder DepartmentSeeder PositionSeeder InventorySeeder CompanySettingsSeeder; do
+    "$PHP" artisan db:seed --class="$seeder" --no-interaction --quiet
+done
+"$PHP" artisan legacy:import --force
+
+echo "==> Verifying (the gate — nothing ships unless this is green)"
+"$PHP" artisan legacy:verify
+
+echo "==> Refreshing report rollups"
+"$PHP" artisan reports:refresh-rollups --from=2024-08-01
+
+if [ "$UPLOAD" -ne 1 ]; then
+    echo "==> Done (local only). Re-run with --upload to push to Laravel Cloud."
+    exit 0
+fi
+
+[ -f "$ENVF" ] || { echo "$ENVF not found — it must hold the Cloud DB public-endpoint credentials."; exit 1; }
+CLOUD_HOST=$(grep '^DB_HOST=' "$ENVF" | cut -d= -f2-)
+CLOUD_PORT=$(grep '^DB_PORT=' "$ENVF" | cut -d= -f2-)
+CLOUD_USER=$(grep '^DB_USERNAME=' "$ENVF" | cut -d= -f2-)
+CLOUD_DB=$(grep '^DB_DATABASE=' "$ENVF" | cut -d= -f2-)
+CLOUD_PW=$(grep '^DB_PASSWORD=' "$ENVF" | cut -d= -f2-)
+
+echo "==> Checking the Cloud endpoint ($CLOUD_HOST)"
+nc -z -G 8 "$CLOUD_HOST" "$CLOUD_PORT" 2>/dev/null || {
+    echo "Cannot reach $CLOUD_HOST:$CLOUD_PORT."
+    echo "Enable the database's public endpoint: Laravel Cloud > Org > Resources > Databases > '...' > Edit settings."
+    exit 1
+}
+
+echo "==> Dumping the verified database"
+mysqldump -h127.0.0.1 -uroot --single-transaction --set-gtid-purged=OFF \
+    --net-buffer-length=65536 --default-character-set=utf8mb4 qcpminute > "$DUMP"
+ls -lh "$DUMP" | awk '{print "    dump:", $5}'
+
+echo "==> Loading into Laravel Cloud ($CLOUD_DB)"
+if ! MYSQL_PWD="$CLOUD_PW" mysql --reconnect=FALSE -h "$CLOUD_HOST" -P "$CLOUD_PORT" -u "$CLOUD_USER" \
+        --default-character-set=utf8mb4 "$CLOUD_DB" < "$DUMP" 2> "$LOAD_ERRORS"; then
+    echo "LOAD FAILED — the Cloud database may be inconsistent. Re-run bin/legacy-sync --upload."
+    cat "$LOAD_ERRORS"
+    exit 1
+fi
+[ -s "$LOAD_ERRORS" ] && { echo "Load warnings:"; cat "$LOAD_ERRORS"; }
+
+echo "==> Comparing every table (local vs Cloud)"
+mismatch=0
+for table in $(mysql -h127.0.0.1 -uroot -N qcpminute -e "SHOW TABLES"); do
+    case "$table" in cache|cache_locks|sessions) continue ;; esac
+    local_count=$(mysql -h127.0.0.1 -uroot -N qcpminute -e "SELECT COUNT(*) FROM \`$table\`")
+    cloud_count=$(MYSQL_PWD="$CLOUD_PW" mysql -h "$CLOUD_HOST" -P "$CLOUD_PORT" -u "$CLOUD_USER" -N "$CLOUD_DB" \
+        -e "SELECT COUNT(*) FROM \`$table\`")
+    if [ "$local_count" != "$cloud_count" ]; then
+        echo "    MISMATCH $table local=$local_count cloud=$cloud_count"
+        mismatch=1
+    fi
+done
+
+if [ "$mismatch" -ne 0 ]; then
+    echo "Comparison failed. (Note: an activity_log off-by-one usually means someone logged"
+    echo "into the local app between dump and compare — re-run --upload to be sure.)"
+    exit 1
+fi
+
+echo "==> All tables match. Laravel Cloud is a verified mirror."
+echo "    Remember to disable the database's public endpoint when you are done syncing."

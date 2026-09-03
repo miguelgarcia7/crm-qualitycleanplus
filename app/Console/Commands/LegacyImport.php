@@ -50,6 +50,11 @@ class LegacyImport extends Command
 
     public function handle(): int
     {
+        // A full run accumulates past PHP's default 128M by the summaries step
+        // (12 bulk steps + ~14k recompute jobs in one process); the CLI default
+        // varies per machine, so the command declares its own need.
+        ini_set('memory_limit', '1G');
+
         if ($this->option('list')) {
             foreach (array_keys(self::STEPS) as $name) {
                 $this->line($name);

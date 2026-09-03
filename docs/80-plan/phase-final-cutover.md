@@ -238,6 +238,13 @@ addresses and was unreachable from a typical IPv4 network. Instead:
 The verify gate runs on the exact bytes that ship, so nothing is lost versus a
 remote import run; the freeze window is what guarantees the dump is final.
 
+**The whole pipeline is one command: `bin/legacy-sync --upload`** (local-only
+rebuild+verify without the flag). It bakes in the operational lessons: verify's
+exit code gates the upload; the dump uses 64KB insert batches (bigger ones drop
+the connection on small Cloud instances); the load runs `--reconnect=FALSE` so a
+drop aborts loudly instead of silently skipping rows; every table count is
+compared afterwards. Sync days and cutover day run the same command.
+
 ## Cutover runbook
 
 1. **Rehearsals** (now → ready): refresh dump → wipe/reseed → `legacy:import` →
