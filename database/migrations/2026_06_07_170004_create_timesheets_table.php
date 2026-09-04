@@ -23,7 +23,7 @@ return new class extends Migration
                 'draft', 'pending_approval', 'declined', 'approved', 'invoiced', 'invoice_sent', 'voided',
             ])->default('draft')->index();
 
-            $table->timestamp('sent_for_approval_at')->nullable();
+            $table->timestamp('sent_for_approval_at')->nullable()->index(); // sortable column on the history list
             $table->foreignId('sent_for_approval_by')->nullable()->constrained('people')->nullOnDelete();
             $table->timestamp('declined_at')->nullable();
             $table->foreignId('declined_by')->nullable()->constrained('people')->nullOnDelete();

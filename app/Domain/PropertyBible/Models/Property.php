@@ -2,6 +2,7 @@
 
 namespace App\Domain\PropertyBible\Models;
 
+use App\Domain\Billing\Models\Timesheet;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
@@ -134,6 +135,14 @@ class Property extends Model
     public function payrollPeriods(): HasMany
     {
         return $this->hasMany(PayrollPeriod::class);
+    }
+
+    /**
+     * @return HasMany<Timesheet, $this>
+     */
+    public function timesheets(): HasMany
+    {
+        return $this->hasMany(Timesheet::class);
     }
 
     /**

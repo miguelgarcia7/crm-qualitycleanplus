@@ -1,21 +1,11 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
-import TablePagination from '@/components/table/TablePagination'
+import ServerPagination, { PaginationMeta } from '@/components/table/ServerPagination'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
-import { Head, Link } from '@inertiajs/react'
-import {
-  ColumnFiltersState,
-  createColumnHelper,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  Row as TableRow,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { Head, Link, router } from '@inertiajs/react'
+import { createColumnHelper, getCoreRowModel, Row as TableRow, SortingState, useReactTable } from '@tanstack/react-table'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 type TimesheetRow = {
   id: number
@@ -33,8 +23,21 @@ type TimesheetRow = {
   invoice_number: string | null
 }
 
+type Filters = {
+  tab: string
+  search: string
+  property_id: number | null
+  sort: string
+  direction: string
+  per_page: number
+}
+
 type Props = {
   timesheets: TimesheetRow[]
+  pagination: PaginationMeta
+  filters: Filters
+  counts: Record<string, number>
+  properties: { id: number; name: string }[]
   can_export: boolean
 }
 
@@ -45,21 +48,6 @@ const TABS: { key: string; label: string }[] = [
   { key: 'billed', label: 'Billed' },
   { key: 'issues', label: 'Issues' },
 ]
-
-const matchesTab = (status: string, tab: string) => {
-  switch (tab) {
-    case 'draft':
-      return status === 'draft'
-    case 'pending':
-      return status === 'pending_approval'
-    case 'billed':
-      return ['approved', 'invoiced', 'invoice_sent'].includes(status)
-    case 'issues':
-      return ['declined', 'voided'].includes(status)
-    default:
-      return true
-  }
-}
 
 const statusBadge: Record<string, string> = {
   draft: 'bg-warning/15 text-warning',
@@ -78,36 +66,61 @@ const weekLabel = (start: string, end: string) => {
   return `${fmt(start)} – ${fmt(end)}`
 }
 
+/** Drop empties so the URL carries only what is actually filtering. */
+const queryFrom = (filters: Filters, page: number): Record<string, string> => {
+  const params: Record<string, string> = {}
+  if (filters.tab !== 'all') params.tab = filters.tab
+  if (filters.search !== '') params.search = filters.search
+  if (filters.property_id) params.property_id = String(filters.property_id)
+  if (filters.sort !== 'week_start') params.sort = filters.sort
+  if (filters.direction !== 'desc') params.direction = filters.direction
+  if (filters.per_page !== 25) params.per_page = String(filters.per_page)
+  if (page > 1) params.page = String(page)
+  return params
+}
+
 const columnHelper = createColumnHelper<TimesheetRow>()
 
-const Page = ({ timesheets, can_export }: Props) => {
-  const [activeTab, setActiveTab] = useState('all')
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+const Page = ({ timesheets, pagination, filters, counts, properties, can_export }: Props) => {
+  const [search, setSearch] = useState(filters.search)
 
-  const propertyOptions = useMemo(
-    () => Array.from(new Set(timesheets.map((t) => t.property))).sort((a, b) => a.localeCompare(b)),
-    [timesheets],
+  /**
+   * Every control routes through here: the query string is the state, so a
+   * filtered view is a link someone can send, and the back button steps
+   * through filters the way people expect. Only the props that actually change
+   * come back down the wire.
+   */
+  const visit = (changes: Partial<Filters>, page = 1, replace = false) => {
+    router.get('/admin/timesheets', queryFrom({ ...filters, ...changes }, page), {
+      preserveState: true,
+      preserveScroll: true,
+      // Tabs, filters and page moves push history, so Back steps through them.
+      // Search replaces — nobody wants one history entry per keystroke.
+      replace,
+      only: ['timesheets', 'pagination', 'filters', 'counts'],
+    })
+  }
+
+  // Debounced so typing does not fire a request per keystroke. The guard keeps
+  // it from re-requesting what the server just sent back.
+  const typed = useRef(false)
+  useEffect(() => {
+    if (!typed.current || search === filters.search) return
+    const timer = setTimeout(() => visit({ search }, 1, true), 300)
+    return () => clearTimeout(timer)
+  }, [search]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => setSearch(filters.search), [filters.search])
+
+  const sorting: SortingState = useMemo(
+    () => [{ id: filters.sort, desc: filters.direction === 'desc' }],
+    [filters.sort, filters.direction],
   )
-
-  const counts = useMemo(() => {
-    const result: Record<string, number> = {}
-    for (const tab of TABS) {
-      result[tab.key] = timesheets.filter((t) => matchesTab(t.status, tab.key)).length
-    }
-    return result
-  }, [timesheets])
-
-  const data = useMemo(() => timesheets.filter((t) => matchesTab(t.status, activeTab)), [timesheets, activeTab])
 
   const columns = useMemo(
     () => [
       columnHelper.accessor('property', {
         header: 'Property',
-        filterFn: 'equalsString',
-        enableColumnFilter: true,
         cell: ({ row }) => <span className="font-semibold">{row.original.property}</span>,
       }),
       columnHelper.accessor('week_start', {
@@ -147,13 +160,13 @@ const Page = ({ timesheets, can_export }: Props) => {
       }),
       {
         header: 'Actions',
+        enableSorting: false,
         cell: ({ row }: { row: TableRow<TimesheetRow> }) => (
           <div className="flex justify-center gap-1.5">
             <Link
               href={`/admin/properties/${row.original.property_id}/grid?week=${row.original.week_start}`}
               className="btn btn-icon border-default-300 hover:border-default-400 border"
-              title="Open weekly grid"
-            >
+              title="Open weekly grid">
               <Icon icon="layout" className="text-base" />
             </Link>
           </div>
@@ -164,31 +177,22 @@ const Page = ({ timesheets, can_export }: Props) => {
   )
 
   const table = useReactTable({
-    data,
+    data: timesheets,
     columns,
-    state: { sorting, globalFilter, columnFilters, pagination },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    state: { sorting },
+    // The database orders and slices; the table only renders what it is given.
+    manualSorting: true,
+    manualPagination: true,
+    pageCount: pagination.last_page,
+    onSortingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(sorting) : updater
+      const [first] = next
+      visit(first ? { sort: first.id, direction: first.desc ? 'desc' : 'asc' } : { sort: 'week_start', direction: 'desc' })
+    },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: 'includesString',
-    enableColumnFilters: true,
   })
 
-  const pageIndex = table.getState().pagination.pageIndex
-  const pageSize = table.getState().pagination.pageSize
-  const totalItems = table.getFilteredRowModel().rows.length
-  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
-  const end = Math.min(start + pageSize - 1, totalItems)
-
-  const selectTab = (key: string) => {
-    setActiveTab(key)
-    setPagination((p) => ({ ...p, pageIndex: 0 }))
-  }
+  const exportQuery = new URLSearchParams(queryFrom(filters, 1)).toString()
 
   return (
     <>
@@ -202,15 +206,14 @@ const Page = ({ timesheets, can_export }: Props) => {
               key={tab.key}
               type="button"
               role="tab"
-              aria-selected={activeTab === tab.key}
-              onClick={() => selectTab(tab.key)}
+              aria-selected={filters.tab === tab.key}
+              onClick={() => visit({ tab: tab.key })}
               className={cn(
                 'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                activeTab === tab.key ? 'border-primary text-primary border-b' : '',
-              )}
-            >
+                filters.tab === tab.key ? 'border-primary text-primary border-b' : '',
+              )}>
               {tab.label}
-              <span className="text-default-400 ms-1.5 text-xs">({counts[tab.key]})</span>
+              <span className="text-default-400 ms-1.5 text-xs">({counts[tab.key] ?? 0})</span>
             </button>
           ))}
         </nav>
@@ -221,44 +224,45 @@ const Page = ({ timesheets, can_export }: Props) => {
               <Icon icon="search" className="input-icon" />
               <input
                 className="form-input"
-                placeholder="Search timesheets..."
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder="Search property or invoice #..."
+                value={search}
+                onChange={(e) => {
+                  typed.current = true
+                  setSearch(e.target.value)
+                }}
               />
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            {propertyOptions.length > 1 && (
+            {properties.length > 1 && (
               <>
                 <span className="me-1 font-semibold text-nowrap">Filter By:</span>
                 <div className="input-icon-group">
                   <Icon icon="building" className="input-icon" />
                   <select
                     className="form-select !w-auto"
-                    value={(table.getColumn('property')?.getFilterValue() as string) ?? 'All'}
-                    onChange={(e) => {
-                      table.getColumn('property')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)
-                      setPagination((p) => ({ ...p, pageIndex: 0 }))
-                    }}
-                  >
-                    <option value="All">All properties</option>
-                    {propertyOptions.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
+                    value={filters.property_id ?? ''}
+                    onChange={(e) => visit({ property_id: e.target.value === '' ? null : Number(e.target.value) })}>
+                    <option value="">All properties</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.name}
                       </option>
                     ))}
                   </select>
                 </div>
               </>
             )}
-            <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+            <select className="form-select w-20" value={filters.per_page} onChange={(e) => visit({ per_page: Number(e.target.value) })}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}
             </select>
             {can_export && (
-              <a href="/admin/timesheets/export" className="btn bg-primary hover:bg-primary-hover text-nowrap text-white">
+              <a
+                href={`/admin/timesheets/export${exportQuery ? `?${exportQuery}` : ''}`}
+                className="btn bg-primary hover:bg-primary-hover text-nowrap text-white">
                 <Icon icon="download" className="me-1 size-4" /> Export Excel
               </a>
             )}
@@ -267,22 +271,9 @@ const Page = ({ timesheets, can_export }: Props) => {
 
         <DataTable table={table} emptyMessage="No timesheets in this view yet." />
 
-        {table.getRowModel().rows.length > 0 && (
+        {pagination.total > 0 && (
           <div className="card-footer">
-            <TablePagination
-              totalItems={totalItems}
-              start={start}
-              end={end}
-              itemsName="timesheets"
-              pageIndex={pageIndex}
-              pageCount={table.getPageCount()}
-              canPreviousPage={table.getCanPreviousPage()}
-              canNextPage={table.getCanNextPage()}
-              previousPage={table.previousPage}
-              nextPage={table.nextPage}
-              setPageIndex={table.setPageIndex}
-              showInfo
-            />
+            <ServerPagination meta={pagination} itemsName="timesheets" onPageChange={(page) => visit({}, page)} />
           </div>
         )}
       </div>

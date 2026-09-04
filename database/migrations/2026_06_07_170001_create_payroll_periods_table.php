@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('payroll_periods', function (Blueprint $table) {
             $table->id();
             $table->foreignId('property_id')->constrained('properties')->cascadeOnDelete();
-            $table->date('week_start');
+            $table->date('week_start')->index(); // history lists filter and sort on this
             $table->date('week_end');
             $table->enum('status', ['open', 'locked', 'invoiced', 'closed'])->default('open')->index();
             $table->timestamp('locked_at')->nullable();
