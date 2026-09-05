@@ -7,6 +7,7 @@ use App\Domain\Billing\Models\Timesheet;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Concerns\LogsPropertyActivity;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
+use App\Notifications\TimesheetDecided;
 use App\Notifications\TimesheetStatusChanged;
 use Illuminate\Validation\ValidationException;
 
@@ -40,6 +41,7 @@ class DeclineTimesheet
         if ($timesheet->sent_for_approval_by !== null) {
             $recruiter = Person::find($timesheet->sent_for_approval_by);
             $recruiter?->notify(new TimesheetStatusChanged($timesheet, 'declined', "Your timesheet was declined: {$reason}"));
+            $recruiter?->notify(new TimesheetDecided($timesheet, approved: false));
         }
 
         return $timesheet;

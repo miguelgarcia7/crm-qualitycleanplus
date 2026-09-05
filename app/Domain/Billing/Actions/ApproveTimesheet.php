@@ -6,6 +6,7 @@ use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Concerns\LogsPropertyActivity;
+use App\Notifications\TimesheetDecided;
 use App\Notifications\TimesheetStatusChanged;
 use Illuminate\Validation\ValidationException;
 
@@ -36,6 +37,7 @@ class ApproveTimesheet
         if ($timesheet->sent_for_approval_by !== null) {
             $recruiter = Person::find($timesheet->sent_for_approval_by);
             $recruiter?->notify(new TimesheetStatusChanged($timesheet, 'approved', 'Your timesheet was approved; the invoice is ready to send.'));
+            $recruiter?->notify(new TimesheetDecided($timesheet, approved: true));
         }
 
         return $timesheet;

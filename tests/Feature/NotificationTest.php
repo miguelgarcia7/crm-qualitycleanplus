@@ -1,5 +1,7 @@
 <?php
 
+use App\Domain\Billing\Actions\ApproveTimesheet;
+use App\Domain\Billing\Actions\DeclineTimesheet;
 use App\Domain\Billing\Actions\SubmitTimesheetForApproval;
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
@@ -9,6 +11,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Workflows\Models\Workflow;
 use App\Notifications\TimesheetAwaitingApproval;
+use App\Notifications\TimesheetDecided;
 use App\Notifications\TimesheetStatusChanged;
 use App\Notifications\WorkflowNotice;
 use Database\Seeders\RolePermissionSeeder;
@@ -283,4 +286,77 @@ it('renders a real email carrying the property, the week and the review link', f
         ->and($body)->toContain("//{$host}/timesheets/{$s['timesheet']->id}")
         // The header must not send a PM to the back office they cannot sign in to.
         ->and($body)->not->toContain('//'.config('domains.main'));
+});
+
+// --- Timesheet decided: the recruiter hears back ------------------------------------
+
+it('emails the recruiter when their week is approved, pointing at the invoice', function () {
+    $s = notifyScenario();
+    app(SubmitTimesheetForApproval::class)->handle($s['timesheet'], $s['recruiter']);
+
+    /** @var ArrayTransport $transport */
+    $transport = Mail::mailer()->getSymfonyTransport();
+    // Submitting already sent the PM's email; clear it so this asserts on ours.
+    $transport->flush();
+
+    $s['recruiter']->notifyNow(new TimesheetDecided($s['timesheet']->fresh(), approved: true));
+    $body = $transport->messages()[0]->getOriginalMessage()->toString();
+
+    expect($body)->toContain('Sunrise Villas')
+        ->toContain('has been approved')
+        ->toContain('ready to send')
+        // Back office, not QC Minute — this recipient is staff.
+        ->toContain('//'.config('domains.main').'/admin/')
+        ->not->toContain('//'.config('domains.qcminute'));
+});
+
+it('carries the decline reason and links to the grid that needs fixing', function () {
+    $s = notifyScenario();
+    app(SubmitTimesheetForApproval::class)->handle($s['timesheet'], $s['recruiter']);
+    app(DeclineTimesheet::class)->handle($s['timesheet']->fresh(), $s['pm'], 'Tuesday hours look wrong', 'hours');
+
+    /** @var ArrayTransport $transport */
+    $transport = Mail::mailer()->getSymfonyTransport();
+    $transport->flush();
+
+    $s['recruiter']->notifyNow(new TimesheetDecided($s['timesheet']->fresh(), approved: false));
+    // The decoded body, not toString(): quoted-printable encoding turns the
+    // "=" in "?week=" into "=3D", so a URL assertion on the raw message fails.
+    $body = (string) $transport->messages()[0]->getOriginalMessage()->getHtmlBody();
+    $week = $s['timesheet']->payrollPeriod->week_start->toDateString();
+
+    expect($body)->toContain('was declined')
+        // The reason is the whole point of the email.
+        ->toContain('Tuesday hours look wrong')
+        ->toContain('reopened')
+        // Straight to the grid they have to correct, not a list to search.
+        ->toContain("/admin/properties/{$s['property']->id}/grid?week={$week}");
+});
+
+it('sends both decision emails through the queue, like the submission one', function () {
+    $timesheet = Timesheet::factory()->make();
+
+    expect(new TimesheetDecided($timesheet, approved: true))->toBeInstanceOf(ShouldQueue::class)
+        ->and(new TimesheetDecided($timesheet, approved: false))->toBeInstanceOf(ShouldQueue::class);
+});
+
+it('fires the approval email from the action, alongside the in-app notice', function () {
+    Notification::fake();
+    $s = notifyScenario();
+    app(SubmitTimesheetForApproval::class)->handle($s['timesheet'], $s['recruiter']);
+
+    app(ApproveTimesheet::class)->handle($s['timesheet']->fresh(), $s['pm']);
+
+    Notification::assertSentTo($s['recruiter'], TimesheetStatusChanged::class);
+    Notification::assertSentTo($s['recruiter'], TimesheetDecided::class);
+});
+
+it('fires the decline email from the action, alongside the in-app notice', function () {
+    Notification::fake();
+    $s = notifyScenario();
+    app(SubmitTimesheetForApproval::class)->handle($s['timesheet'], $s['recruiter']);
+
+    app(DeclineTimesheet::class)->handle($s['timesheet']->fresh(), $s['pm'], 'Hours look wrong', 'hours');
+
+    Notification::assertSentTo($s['recruiter'], TimesheetDecided::class);
 });
