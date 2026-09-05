@@ -3,6 +3,7 @@
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use Database\Seeders\RolePermissionSeeder;
+use Inertia\Testing\AssertableInertia;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
 
@@ -41,7 +42,15 @@ it('scopes recruiters to their own contractors', function () {
 it('only sends staff to roles with staff view', function () {
     Person::factory()->create(['name' => 'Stacy Staffer', 'status' => PersonStatus::StaffActive]);
 
-    $this->actingAs(person('hr'))->get(main('/admin/people'))->assertSee('Stacy Staffer');
+    $this->actingAs(person('hr'))->get(main('/admin/people?tab=staff'))->assertSee('Stacy Staffer');
+
+    // The tab is a permission boundary: asking for it directly must not serve
+    // it to someone who may not see staff.
+    $this->actingAs(person('payroll'))->get(main('/admin/people?tab=staff'))
+        ->assertOk()
+        ->assertDontSee('Stacy Staffer')
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('filters.tab', 'contractors'));
+
     $this->actingAs(person('payroll'))->get(main('/admin/people'))->assertDontSee('Stacy Staffer');
 });
 

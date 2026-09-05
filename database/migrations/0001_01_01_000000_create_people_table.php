@@ -22,7 +22,7 @@ return new class extends Migration
             $table->id();
 
             // Identity
-            $table->string('name');
+            $table->string('name')->index(); // the directory sorts on this by default
             // Unique across soft-deleted rows too — deliberate: one identity per human
             // (rehire reuses the row; see people-lifecycle.md "Email & soft deletes").
             // Nullable: most legacy contractors have no email and identify by phone

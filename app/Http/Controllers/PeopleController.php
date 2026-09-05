@@ -15,6 +15,7 @@ use App\Domain\Pto\Models\PtoYearAllotment;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -28,6 +29,45 @@ use Spatie\Activitylog\Models\Activity;
  */
 class PeopleController extends Controller
 {
+    /** Statuses on the contractor side of the lifecycle (ADR-0019). */
+    private const CONTRACTOR_STATUSES = [
+        PersonStatus::ContractorActive->value,
+        PersonStatus::ContractorInactive->value,
+        PersonStatus::PendingTermination->value,
+        PersonStatus::Terminated->value,
+    ];
+
+    private const STAFF_STATUSES = [
+        PersonStatus::StaffActive->value,
+        PersonStatus::StaffInactive->value,
+    ];
+
+    /**
+     * Sortable column => SQL expression, per tab. A whitelist, so a hand-edited
+     * query string cannot order by an arbitrary column.
+     *
+     * Properties and roles are deliberately absent: both are lists assembled
+     * from related rows, and ordering by a comma-joined string is meaningless.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const SORTS = [
+        'contractors' => [
+            'name' => 'people.name',
+            'phone' => 'people.phone',
+            'recruiter' => 'recruiters.name',
+            'status' => 'people.status',
+        ],
+        'staff' => [
+            'name' => 'people.name',
+            'phone' => 'people.phone',
+            'hire_date' => 'people.hire_date',
+            'status' => 'people.status',
+        ],
+    ];
+
+    private const PER_PAGE = [10, 25, 50];
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Person::class);
@@ -35,11 +75,174 @@ class PeopleController extends Controller
         /** @var Person $user */
         $user = $request->user();
 
+        $canContractors = $user->can('people.contractors.view');
+        $canStaff = $user->can('people.staff.view');
+
+        $filters = $this->filters($request, $canContractors, $canStaff);
+        $onContractors = $filters['tab'] === 'contractors';
+
+        // Only the tab on screen is fetched. Both lists used to load on every
+        // visit, including the one nobody was looking at.
+        $page = $onContractors
+            ? $this->contractorQuery($filters, $user)->paginate($filters['per_page'])->withQueryString()
+            : $this->staffQuery($filters)->paginate($filters['per_page'])->withQueryString();
+
+        $rows = collect($page->items());
+
         return Inertia::render('admin/people/index', [
-            'contractors' => $user->can('people.contractors.view') ? $this->contractorRows($user) : null,
-            'staff' => $user->can('people.staff.view') ? $this->staffRows() : null,
-            'canInvite' => $user->can('admin.users.create'),
+            'people' => $onContractors
+                ? $rows->map($this->contractorRow(...))->all()
+                : $rows->map($this->staffRow(...))->all(),
+            'pagination' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+                'from' => $page->firstItem(),
+                'to' => $page->lastItem(),
+            ],
+            'filters' => $filters,
+            // Counts cover both tabs regardless of which one is showing, so the
+            // header does not lie about the tab you are not on.
+            'counts' => [
+                'contractors' => $canContractors ? $this->contractorQuery($filters, $user, applyStatus: false)->count() : null,
+                'staff' => $canStaff ? $this->staffQuery($filters, applyStatus: false)->count() : null,
+            ],
+            'statuses' => array_map(
+                fn (string $status): array => ['value' => $status, 'label' => Str::headline($status)],
+                $onContractors ? self::CONTRACTOR_STATUSES : self::STAFF_STATUSES,
+            ),
+            'can' => [
+                'contractors' => $canContractors,
+                'staff' => $canStaff,
+                'invite' => $user->can('admin.users.create'),
+            ],
         ]);
+    }
+
+    /**
+     * The query string, normalised. The tab decides which sort whitelist
+     * applies, so a sort valid on one tab cannot leak onto the other.
+     *
+     * @return array{tab: string, search: string, status: string, sort: string, direction: string, per_page: int}
+     */
+    private function filters(Request $request, bool $canContractors, bool $canStaff): array
+    {
+        // The tab is a permission boundary, not just a view: asking for a tab
+        // you may not see falls back to one you may, rather than serving it.
+        $requested = (string) $request->string('tab', 'contractors');
+        $tab = match (true) {
+            $requested === 'staff' && $canStaff => 'staff',
+            $canContractors => 'contractors',
+            $canStaff => 'staff',
+            default => 'contractors', // viewAny already blocked anyone with neither
+        };
+
+        $allowedStatuses = $tab === 'contractors' ? self::CONTRACTOR_STATUSES : self::STAFF_STATUSES;
+        $status = (string) $request->string('status');
+        $sort = (string) $request->string('sort', 'name');
+        $perPage = $request->integer('per_page', 25);
+
+        return [
+            'tab' => $tab,
+            'search' => trim((string) $request->string('search')),
+            'status' => in_array($status, $allowedStatuses, true) ? $status : '',
+            'sort' => array_key_exists($sort, self::SORTS[$tab]) ? $sort : 'name',
+            'direction' => $request->string('direction')->lower()->toString() === 'desc' ? 'desc' : 'asc',
+            'per_page' => in_array($perPage, self::PER_PAGE, true) ? $perPage : 25,
+        ];
+    }
+
+    /**
+     * Everyone on the contractor side of the lifecycle — recruiters scoped to
+     * their own (ADR-0019).
+     *
+     * @param  array<string, mixed>  $filters
+     * @return Builder<Person>
+     */
+    private function contractorQuery(array $filters, Person $user, bool $applyStatus = true): Builder
+    {
+        return Person::query()
+            ->leftJoin('people as recruiters', 'recruiters.id', '=', 'people.primary_recruiter_id')
+            ->whereIn('people.status', self::CONTRACTOR_STATUSES)
+            ->when(
+                ! $user->hasAnyRole(PersonPolicy::GLOBAL_CONTRACTOR_VIEWERS),
+                fn (Builder $q) => $q->where('people.primary_recruiter_id', $user->id),
+            )
+            ->when($applyStatus && $filters['status'] !== '', fn (Builder $q) => $q->where('people.status', $filters['status']))
+            ->when($filters['search'] !== '', fn (Builder $q) => $this->applySearch($q, $filters['search']))
+            ->select('people.*')
+            ->with(['primaryRecruiter:id,name', 'workOrders.property:id,name', 'workOrders.position:id,name'])
+            ->orderBy(self::SORTS['contractors'][$filters['sort']] ?? 'people.name', $filters['direction'])
+            ->orderBy('people.id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return Builder<Person>
+     */
+    private function staffQuery(array $filters, bool $applyStatus = true): Builder
+    {
+        return Person::query()
+            ->whereIn('people.status', self::STAFF_STATUSES)
+            ->when($applyStatus && $filters['status'] !== '', fn (Builder $q) => $q->where('people.status', $filters['status']))
+            ->when($filters['search'] !== '', fn (Builder $q) => $this->applySearch($q, $filters['search']))
+            ->select('people.*')
+            ->with('roles:id,name')
+            ->orderBy(self::SORTS['staff'][$filters['sort']] ?? 'people.name', $filters['direction'])
+            ->orderBy('people.id');
+    }
+
+    /**
+     * @param  Builder<Person>  $query
+     */
+    private function applySearch(Builder $query, string $search): void
+    {
+        $like = '%'.$search.'%';
+
+        $query->where(fn (Builder $w) => $w
+            ->where('people.name', 'like', $like)
+            ->orWhere('people.email', 'like', $like)
+            ->orWhere('people.phone', 'like', $like));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function contractorRow(Person $p): array
+    {
+        $active = $p->workOrders->filter(fn (WorkOrder $wo): bool => $wo->status === WorkOrderStatus::Active);
+
+        return [
+            'id' => $p->id,
+            'name' => $p->name,
+            'email' => $p->email,
+            'phone' => $p->phone,
+            'status' => $p->status->value,
+            'status_label' => Str::headline($p->status->value),
+            'avatar' => $p->avatarUrl(),
+            'recruiter' => $p->primaryRecruiter?->name,
+            'properties' => $active->map(fn (WorkOrder $wo): ?string => $wo->property?->name)->filter()->unique()->values()->all(),
+            'positions' => $active->map(fn (WorkOrder $wo): ?string => $wo->position?->name)->filter()->unique()->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function staffRow(Person $p): array
+    {
+        return [
+            'id' => $p->id,
+            'name' => $p->name,
+            'email' => $p->email,
+            'phone' => $p->phone,
+            'status' => $p->status->value,
+            'status_label' => Str::headline($p->status->value),
+            'avatar' => $p->avatarUrl(),
+            'hire_date' => $p->hire_date?->format('M j, Y'),
+            'roles' => $p->getRoleNames()->map(fn (string $r): string => Str::headline($r))->values()->all(),
+        ];
     }
 
     public function show(Request $request, Person $person): Response
@@ -85,72 +288,6 @@ class PeopleController extends Controller
             'pto' => $canPto ? $this->ptoPayload($person) : null,
             'history' => $canHistory ? $this->historyRows($person) : null,
         ]);
-    }
-
-    /**
-     * Everyone on the contractor side of the lifecycle (active through
-     * terminated) — recruiters scoped to their own (ADR-0019).
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function contractorRows(Person $user): array
-    {
-        $query = Person::query()
-            ->whereIn('status', [
-                PersonStatus::ContractorActive->value,
-                PersonStatus::ContractorInactive->value,
-                PersonStatus::PendingTermination->value,
-                PersonStatus::Terminated->value,
-            ])
-            ->with(['primaryRecruiter:id,name', 'workOrders.property:id,name', 'workOrders.position:id,name'])
-            ->orderBy('name');
-
-        if (! $user->hasAnyRole(PersonPolicy::GLOBAL_CONTRACTOR_VIEWERS)) {
-            $query->where('primary_recruiter_id', $user->id);
-        }
-
-        return $query->get()
-            ->map(function (Person $p): array {
-                $active = $p->workOrders->filter(fn (WorkOrder $wo): bool => $wo->status === WorkOrderStatus::Active);
-
-                return [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'email' => $p->email,
-                    'phone' => $p->phone,
-                    'status' => $p->status->value,
-                    'status_label' => Str::headline($p->status->value),
-                    'avatar' => $p->avatarUrl(),
-                    'recruiter' => $p->primaryRecruiter?->name,
-                    'properties' => $active->map(fn (WorkOrder $wo): ?string => $wo->property?->name)->filter()->unique()->values()->all(),
-                    'positions' => $active->map(fn (WorkOrder $wo): ?string => $wo->position?->name)->filter()->unique()->values()->all(),
-                ];
-            })
-            ->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function staffRows(): array
-    {
-        return Person::query()
-            ->whereIn('status', [PersonStatus::StaffActive->value, PersonStatus::StaffInactive->value])
-            ->with('roles:id,name')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Person $p): array => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'email' => $p->email,
-                'phone' => $p->phone,
-                'status' => $p->status->value,
-                'status_label' => Str::headline($p->status->value),
-                'avatar' => $p->avatarUrl(),
-                'hire_date' => $p->hire_date?->format('M j, Y'),
-                'roles' => $p->getRoleNames()->map(fn (string $r): string => Str::headline($r))->values()->all(),
-            ])
-            ->all();
     }
 
     /**
