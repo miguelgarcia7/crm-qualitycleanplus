@@ -23,7 +23,7 @@ return new class extends Migration
             // (phase-final-cutover.md) — the app's own generation always sets it.
             $table->foreignId('timesheet_id')->nullable()->unique()->constrained('timesheets')->restrictOnDelete();
             $table->string('invoice_number')->unique();
-            $table->date('issue_date');
+            $table->date('issue_date')->index(); // the list defaults to newest-issued first
             $table->date('due_date');
             // When the client settled it. Carried from legacy (paid/overdue was a
             // live status there); overdue is derived: unpaid + past due_date.

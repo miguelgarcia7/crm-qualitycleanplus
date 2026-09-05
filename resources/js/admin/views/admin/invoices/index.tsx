@@ -1,24 +1,41 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
-import TablePagination from '@/components/table/TablePagination'
+import ServerPagination, { PaginationMeta } from '@/components/table/ServerPagination'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
-import { Head, Link } from '@inertiajs/react'
-import {
-  ColumnFiltersState,
-  createColumnHelper,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  Row as TableRow,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table'
-import { useMemo, useState } from 'react'
+import { Head, Link, router } from '@inertiajs/react'
+import { createColumnHelper, getCoreRowModel, Row as TableRow, SortingState, useReactTable } from '@tanstack/react-table'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 type Row = { id: number; invoice_number: string; property: string | null; issue_date: string; total: number; status: string; status_label: string }
-type Props = { invoices: Row[] }
+type Filters = {
+  search: string
+  status: string
+  property_id: number | null
+  sort: string
+  direction: string
+  per_page: number
+}
+type Props = {
+  invoices: Row[]
+  pagination: PaginationMeta
+  filters: Filters
+  statuses: { value: string; label: string }[]
+  properties: { id: number; name: string }[]
+}
+
+/** Drop empties so the URL carries only what is actually filtering. */
+const queryFrom = (filters: Filters, page: number): Record<string, string> => {
+  const params: Record<string, string> = {}
+  if (filters.search !== '') params.search = filters.search
+  if (filters.status !== '') params.status = filters.status
+  if (filters.property_id) params.property_id = String(filters.property_id)
+  if (filters.sort !== 'issue_date') params.sort = filters.sort
+  if (filters.direction !== 'desc') params.direction = filters.direction
+  if (filters.per_page !== 25) params.per_page = String(filters.per_page)
+  if (page > 1) params.page = String(page)
+  return params
+}
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 
@@ -31,11 +48,37 @@ const statusBadge: Record<string, string> = {
 
 const columnHelper = createColumnHelper<Row>()
 
-const Page = ({ invoices }: Props) => {
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+const Page = ({ invoices, pagination, filters, statuses, properties }: Props) => {
+  const [search, setSearch] = useState(filters.search)
+
+  /**
+   * Every control routes through here: the query string is the state, so a
+   * filtered view is a link someone can send and Back steps through filters.
+   */
+  const visit = (changes: Partial<Filters>, page = 1, replace = false) => {
+    router.get('/admin/invoices', queryFrom({ ...filters, ...changes }, page), {
+      preserveState: true,
+      preserveScroll: true,
+      replace,
+      only: ['invoices', 'pagination', 'filters'],
+    })
+  }
+
+  // Debounced so typing does not fire a request per keystroke; replaces
+  // history rather than pushing, so Back does not walk it letter by letter.
+  const typed = useRef(false)
+  useEffect(() => {
+    if (!typed.current || search === filters.search) return
+    const timer = setTimeout(() => visit({ search }, 1, true), 300)
+    return () => clearTimeout(timer)
+  }, [search]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => setSearch(filters.search), [filters.search])
+
+  const sorting: SortingState = useMemo(
+    () => [{ id: filters.sort, desc: filters.direction === 'desc' }],
+    [filters.sort, filters.direction],
+  )
 
   const columns = useMemo(
     () => [
@@ -60,8 +103,6 @@ const Page = ({ invoices }: Props) => {
       }),
       columnHelper.accessor('status', {
         header: 'Status',
-        filterFn: 'equalsString',
-        enableColumnFilter: true,
         cell: ({ row }) => (
           <span className={cn('badge badge-label', statusBadge[row.original.status] ?? 'bg-secondary/15 text-secondary')}>
             {row.original.status_label}
@@ -70,6 +111,7 @@ const Page = ({ invoices }: Props) => {
       }),
       {
         header: 'Actions',
+        enableSorting: false,
         cell: ({ row }: { row: TableRow<Row> }) => (
           <div className="flex justify-center gap-1.5">
             <Link
@@ -89,24 +131,18 @@ const Page = ({ invoices }: Props) => {
   const table = useReactTable({
     data: invoices,
     columns,
-    state: { sorting, globalFilter, columnFilters, pagination },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    state: { sorting },
+    // The database orders and slices; the table only renders what it is given.
+    manualSorting: true,
+    manualPagination: true,
+    pageCount: pagination.last_page,
+    onSortingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(sorting) : updater
+      const [first] = next
+      visit(first ? { sort: first.id, direction: first.desc ? 'desc' : 'asc' } : { sort: 'issue_date', direction: 'desc' })
+    },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: 'includesString',
-    enableColumnFilters: true,
   })
-
-  const pageIndex = table.getState().pagination.pageIndex
-  const pageSize = table.getState().pagination.pageSize
-  const totalItems = table.getFilteredRowModel().rows.length
-  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
-  const end = Math.min(start + pageSize - 1, totalItems)
 
   return (
     <>
@@ -120,27 +156,40 @@ const Page = ({ invoices }: Props) => {
               <Icon icon="search" className="input-icon" />
               <input
                 className="form-input"
-                placeholder="Search invoices..."
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder="Search invoice # or property..."
+                value={search}
+                onChange={(e) => {
+                  typed.current = true
+                  setSearch(e.target.value)
+                }}
               />
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             <span className="me-1 font-semibold text-nowrap">Filter By:</span>
-            <select
-              className="form-select w-auto"
-              value={(table.getColumn('status')?.getFilterValue() as string) ?? 'All'}
-              onChange={(e) => table.getColumn('status')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}
-            >
-              <option value="All">Status</option>
-              <option value="draft">Draft</option>
-              <option value="invoiced">Invoiced</option>
-              <option value="invoice_sent">Invoice Sent</option>
-              <option value="voided">Voided</option>
+            <select className="form-select w-auto" value={filters.status} onChange={(e) => visit({ status: e.target.value })}>
+              <option value="">Status</option>
+              {statuses.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
             </select>
-            <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+            {properties.length > 1 && (
+              <select
+                className="form-select w-auto min-w-40"
+                value={filters.property_id ?? ''}
+                onChange={(e) => visit({ property_id: e.target.value === '' ? null : Number(e.target.value) })}>
+                <option value="">All properties</option>
+                {properties.map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select className="form-select w-20" value={filters.per_page} onChange={(e) => visit({ per_page: Number(e.target.value) })}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}
@@ -150,22 +199,9 @@ const Page = ({ invoices }: Props) => {
 
         <DataTable table={table} emptyMessage="No invoices yet." />
 
-        {table.getRowModel().rows.length > 0 && (
+        {pagination.total > 0 && (
           <div className="card-footer">
-            <TablePagination
-              totalItems={totalItems}
-              start={start}
-              end={end}
-              itemsName="invoices"
-              pageIndex={pageIndex}
-              pageCount={table.getPageCount()}
-              canPreviousPage={table.getCanPreviousPage()}
-              canNextPage={table.getCanNextPage()}
-              previousPage={table.previousPage}
-              nextPage={table.nextPage}
-              setPageIndex={table.setPageIndex}
-              showInfo
-            />
+            <ServerPagination meta={pagination} itemsName="invoices" onPageChange={(page) => visit({}, page)} />
           </div>
         )}
       </div>

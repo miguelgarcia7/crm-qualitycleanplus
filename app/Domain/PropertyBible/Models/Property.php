@@ -2,6 +2,7 @@
 
 namespace App\Domain\PropertyBible\Models;
 
+use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
@@ -135,6 +136,14 @@ class Property extends Model
     public function payrollPeriods(): HasMany
     {
         return $this->hasMany(PayrollPeriod::class);
+    }
+
+    /**
+     * @return HasMany<Invoice, $this>
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     /**
