@@ -12,8 +12,9 @@ final paychecks, invoice voids — it just had no UI.
 
 ## Decisions
 
-- **Server-side pagination + filters** (`AuditLogController`), unlike the other list pages:
-  the log grows without bound, so the whole table is never shipped to the client. 25/page,
+- **Server-side pagination + filters** (`AuditLogController`) — the first page to do this,
+  because the log grows without bound, so the whole table is never shipped to the client.
+  The other ledger list pages followed in phase 09f; the policy is ADR-0029. 25/page,
   filters: description search, log name, event, subject type (options read from distinct
   values actually present).
 - Route-gated `audit.activity_log.view` (super_admin, admin, office_manager — matrix §Audit).

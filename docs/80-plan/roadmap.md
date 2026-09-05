@@ -27,6 +27,7 @@ Estimates are calendar-week ranges assuming one engineer working steadily. Adjus
 | 09c | Audit log viewer | days | ✅ Done — `phase-09c-audit-log.md` (server-side paginated/filtered viewer over the Spatie activity log at /admin/audit) |
 | 09d | Notification center + preferences | days | ✅ Done — `phase-09d-notifications.md` (live topbar bell + history page on both surfaces, per-category mutes on My Profile; in-app only, no mail/SMS by design) |
 | 09e | Pre-cutover architecture hardening | days | ✅ Done — `phase-09e-architecture-hardening.md` (hot-path indexes, restrict FKs on invoices/terminations, email-vs-soft-delete decision + intake fix, surface-aware TopBar, dead code removed) |
+| 09f | Server-side list pagination | days | ✅ Done — `phase-09f-list-pagination.md` (timesheets, work orders, invoices, people paginate/filter/sort in SQL per ADR-0029; shared windowed page control; config lists stay client-side) |
 | 10 | Cutover: data migration + parallel run + retire legacy | 3-4 weeks | Not started |
 
 **Total estimate: 25-35 weeks** (~6-8 months solo, much less with team).
