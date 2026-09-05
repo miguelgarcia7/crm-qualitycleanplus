@@ -61,7 +61,7 @@ PM logs into QC Minute
   approved        │         │            declined
   │               │         │               │
   │               │         │   Reason required (text + optional category)
-  │               │         │   Notification → Recruiter
+  │               │         │   Notification → Recruiter (in-app + email)
   │               │         │               │
   │               │         │               ▼
   │               │         │   Recruiter edits timesheet
@@ -76,14 +76,14 @@ PM logs into QC Minute
   │ invoice.status = invoiced              │
   │ timesheet.status = invoiced            │
   │ payroll_period.status = invoiced       │
-  │ Notification → Recruiter dashboard     │
+  │ Notification → Recruiter (in-app+mail) │
   │ NO automatic notification → PM         │
   └────────────────────────────────────────┘
   ▼
 Recruiter sees "Invoice ready to send" on dashboard
   Clicks "Send Invoice to Property"
   ┌────────────────────────────────────────┐
-  │ Email sent via Postmark (PDF attached) │
+  │ Email via Postmark — link, no PDF      │
   │ invoice.notification_sent_at = now     │
   │ invoice.status = invoice_sent          │
   │ timesheet.status = invoice_sent        │
@@ -126,9 +126,9 @@ DB::transaction(function () {
         ->withProperties(['note' => $request->note])
         ->log('Sent for approval');
     
-    $timesheet->property->propertyManagers->each(function ($pm) use ($timesheet) {
-        $pm->notify(new TimesheetPendingApproval($timesheet));
-    });
+    // In-app notice (instant) plus a queued email — see phase-09g.
+    Notification::send($pms, new TimesheetStatusChanged($timesheet, 'submitted', '…'));
+    Notification::send($pms, new TimesheetAwaitingApproval($timesheet));
 });
 ```
 

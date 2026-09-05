@@ -118,7 +118,8 @@ On Approve:
       - timesheet.invoice_id = invoice.id
       - timesheet.status = invoiced
       - payroll_period.status = invoiced
-  → Notification to recruiter: "Invoice ready to send"
+  → Notification to recruiter (in-app + email): "Invoice ready to send",
+    linking straight to the invoice
   → NO automatic notification to PM about the invoice
 
 On Decline:
@@ -127,7 +128,8 @@ On Decline:
   → timesheet.status = declined
   → timesheet.declined_at, declined_by, decline_reason, decline_category populated
   → payroll_period.status = open (recruiter needs to edit)
-  → Notification to recruiter with the reason
+  → Notification to recruiter (in-app + email) carrying the reason, linking to
+    the weekly grid they have to correct
 ```
 
 ## Decline loop

@@ -25,9 +25,10 @@ Estimates are calendar-week ranges assuming one engineer working steadily. Adjus
 | 09 | Reports + materialized rollups + exports | 2-3 weeks | ✅ Done — `phase-09-reports.md` (rollup layer per ADR-0028, report catalog, Excel/PDF exports, timesheet history; subscriptions deferred) |
 | 09b | People directory + person profiles | 1 week | ✅ Done — `phase-09b-people-directory.md` (contractor/staff directory, person profile w/ work orders, hours, adjustments, PTO, history; recruiter own-scoping via PersonPolicy) |
 | 09c | Audit log viewer | days | ✅ Done — `phase-09c-audit-log.md` (server-side paginated/filtered viewer over the Spatie activity log at /admin/audit) |
-| 09d | Notification center + preferences | days | ✅ Done — `phase-09d-notifications.md` (live topbar bell + history page on both surfaces, per-category mutes on My Profile; in-app only, no mail/SMS by design) |
+| 09d | Notification center + preferences | days | ✅ Done — `phase-09d-notifications.md` (live topbar bell + history page on both surfaces, per-category mutes on My Profile; in-app only — narrowed by 09g for the timesheet cycle) |
 | 09e | Pre-cutover architecture hardening | days | ✅ Done — `phase-09e-architecture-hardening.md` (hot-path indexes, restrict FKs on invoices/terminations, email-vs-soft-delete decision + intake fix, surface-aware TopBar, dead code removed) |
 | 09f | Server-side list pagination | days | ✅ Done — `phase-09f-list-pagination.md` (timesheets, work orders, invoices, people paginate/filter/sort in SQL per ADR-0029; shared windowed page control; config lists stay client-side) |
+| 09g | Transactional email for the timesheet cycle | days | ✅ Done — `phase-09g-transactional-email.md` (queued submit/approve/decline emails, opt-in mail channel on AppNotification, mail theme recoloured to Sage) |
 | 10 | Cutover: data migration + parallel run + retire legacy | 3-4 weeks | Not started |
 
 **Total estimate: 25-35 weeks** (~6-8 months solo, much less with team).

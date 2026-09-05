@@ -125,8 +125,14 @@ Decoupled from generation. The recruiter clicks "Send Invoice to Property" on th
 1. Modal confirms recipient email (default: property's primary billing contact)
 2. Optional cover message
 3. On confirm:
-   - PDF generated (Blade view rendered to PDF — separate service)
-   - Email sent via Postmark with PDF attached
+   - Email sent via Postmark carrying a **link**, not a PDF attachment — the
+     recipient views the invoice on QC Minute and downloads the PDF from there,
+     which keeps the mail small and the document behind a login
+   - Delivery is **synchronous**, and the status only moves once it succeeds:
+     `SendInvoice` marks an invoice sent after Postmark accepts it, so a failed
+     send leaves the invoice unsent rather than claiming otherwise. (The timesheet
+     emails in phase 09g are the opposite — queued — because their state changed
+     before the mail was attempted.)
    - `invoice.notification_sent_at`, `notification_sent_by`, `notification_recipient` populated
    - `invoice.status = invoice_sent`
    - `timesheet.status = invoice_sent`

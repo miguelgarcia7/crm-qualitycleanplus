@@ -17,13 +17,21 @@ in-app channel stays useful instead of fatiguing.
 **Locked with owner:** in-app (database) is the **only** channel — deliberately no
 mail and no SMS. Fatigue control = per-category mutes on My Profile.
 
+> **Narrowed in 09g (2026-09-05).** The timesheet cycle now also emails: a PM when a
+> week is submitted, the recruiter when it is approved or declined. An unseen in-app
+> notice there blocks billing, and the domain spec had always called for mail on this
+> cycle. Everything else — workflows, contracts, punch flags — remains in-app only,
+> and SMS is still not planned. See `phase-09g-transactional-email.md`.
+
 ## As built
 
 ### Write side (hardened, not new)
 
 - `app/Notifications/AppNotification.php` — abstract base: every notification declares a
   `category()` and `via()` returns `[]` when the recipient muted that category (the
-  notification is simply never stored).
+  notification is simply never stored). *09g added a `channels()` hook so a notification
+  can opt into mail; the default is still database-only and muting still silences every
+  channel.*
 - `app/Notifications/NotificationCategory.php` — enum, the single source of truth for
   the preference UI: `workflows` / `timesheets` / `contracts`, with `label()` +
   `description()`. Each stored payload now also carries `category` for the UI icon map.
