@@ -59,6 +59,10 @@ return new class extends Migration
 
             $table->index(['property_id', 'status']);
             $table->index(['person_id', 'status']);
+            // The list defaults to newest-first and offers start date as a
+            // sortable column; both order the whole table with a limit.
+            $table->index('created_at');
+            $table->index('start_date');
         });
     }
 

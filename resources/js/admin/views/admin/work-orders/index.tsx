@@ -1,21 +1,11 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
-import TablePagination from '@/components/table/TablePagination'
+import ServerPagination, { PaginationMeta } from '@/components/table/ServerPagination'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
-import { Head, Link, useForm } from '@inertiajs/react'
-import {
-  ColumnFiltersState,
-  createColumnHelper,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  Row as TableRow,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table'
-import { FormEvent, useMemo, useState } from 'react'
+import { Head, Link, router, useForm } from '@inertiajs/react'
+import { createColumnHelper, getCoreRowModel, Row as TableRow, SortingState, useReactTable } from '@tanstack/react-table'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 type DirectHire = {
   threshold_hours: number
@@ -45,10 +35,34 @@ type WorkOrderRow = {
 }
 type Option = { id: number; name: string }
 type Catalogs = { properties: Option[]; positions: Option[]; recruiters: Option[] }
+type Filters = {
+  search: string
+  status: string
+  property_id: number | null
+  sort: string
+  direction: string
+  per_page: number
+}
 type Props = {
   workOrders: WorkOrderRow[]
+  pagination: PaginationMeta
+  filters: Filters
+  statuses: { value: string; label: string }[]
   catalogs: Catalogs
   can: { create: boolean; transfer: boolean; temp: boolean }
+}
+
+/** Drop empties so the URL carries only what is actually filtering. */
+const queryFrom = (filters: Filters, page: number): Record<string, string> => {
+  const params: Record<string, string> = {}
+  if (filters.search !== '') params.search = filters.search
+  if (filters.status !== '') params.status = filters.status
+  if (filters.property_id) params.property_id = String(filters.property_id)
+  if (filters.sort !== 'created_at') params.sort = filters.sort
+  if (filters.direction !== 'desc') params.direction = filters.direction
+  if (filters.per_page !== 25) params.per_page = String(filters.per_page)
+  if (page > 1) params.page = String(page)
+  return params
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
@@ -59,14 +73,40 @@ type ModalState = { kind: 'transfer' | 'temp'; wo: WorkOrderRow } | null
 
 const columnHelper = createColumnHelper<WorkOrderRow>()
 
-const Page = ({ workOrders, catalogs, can }: Props) => {
+const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Props) => {
   const [modal, setModal] = useState<ModalState>(null)
-  const [globalFilter, setGlobalFilter] = useState('')
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [search, setSearch] = useState(filters.search)
 
-  const statuses = useMemo(() => [...new Set(workOrders.map((w) => w.status))].sort(), [workOrders])
+  /**
+   * Every control routes through here: the query string is the state, so a
+   * filtered view is a link someone can send and Back steps through filters.
+   * Only the props that actually change come back down the wire.
+   */
+  const visit = (changes: Partial<Filters>, page = 1, replace = false) => {
+    router.get('/admin/work-orders', queryFrom({ ...filters, ...changes }, page), {
+      preserveState: true,
+      preserveScroll: true,
+      replace,
+      only: ['workOrders', 'pagination', 'filters'],
+    })
+  }
+
+  // Debounced so typing does not fire a request per keystroke; replaces
+  // history rather than pushing, so Back does not walk the search letter by
+  // letter.
+  const typed = useRef(false)
+  useEffect(() => {
+    if (!typed.current || search === filters.search) return
+    const timer = setTimeout(() => visit({ search }, 1, true), 300)
+    return () => clearTimeout(timer)
+  }, [search]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => setSearch(filters.search), [filters.search])
+
+  const sorting: SortingState = useMemo(
+    () => (filters.sort === 'created_at' ? [] : [{ id: filters.sort, desc: filters.direction === 'desc' }]),
+    [filters.sort, filters.direction],
+  )
 
   const columns = useMemo(
     () => [
@@ -138,6 +178,7 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
       }),
       {
         header: 'Actions',
+        enableSorting: false,
         cell: ({ row }: { row: TableRow<WorkOrderRow> }) => {
           const w = row.original
           return (
@@ -177,24 +218,18 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
   const table = useReactTable({
     data: workOrders,
     columns,
-    state: { sorting, globalFilter, columnFilters, pagination },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: setColumnFilters,
-    onPaginationChange: setPagination,
+    state: { sorting },
+    // The database orders and slices; the table only renders what it is given.
+    manualSorting: true,
+    manualPagination: true,
+    pageCount: pagination.last_page,
+    onSortingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(sorting) : updater
+      const [first] = next
+      visit(first ? { sort: first.id, direction: first.desc ? 'desc' : 'asc' } : { sort: 'created_at', direction: 'desc' })
+    },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: 'includesString',
-    enableColumnFilters: true,
   })
-
-  const pageIndex = table.getState().pagination.pageIndex
-  const pageSize = table.getState().pagination.pageSize
-  const totalItems = table.getFilteredRowModel().rows.length
-  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
-  const end = Math.min(start + pageSize - 1, totalItems)
 
   return (
     <>
@@ -208,9 +243,12 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
               <Icon icon="search" className="input-icon" />
               <input
                 className="form-input"
-                placeholder="Search work orders..."
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder="Search contractor, property or position..."
+                value={search}
+                onChange={(e) => {
+                  typed.current = true
+                  setSearch(e.target.value)
+                }}
               />
             </div>
 
@@ -224,19 +262,26 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             <span className="me-1 font-semibold text-nowrap">Filter By:</span>
-            <select
-              className="form-select w-auto min-w-36"
-              value={(table.getColumn('status')?.getFilterValue() as string) ?? 'All'}
-              onChange={(e) => table.getColumn('status')?.setFilterValue(e.target.value === 'All' ? undefined : e.target.value)}
-            >
-              <option value="All">Status</option>
+            <select className="form-select w-auto min-w-36" value={filters.status} onChange={(e) => visit({ status: e.target.value })}>
+              <option value="">Status</option>
               {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
+                <option key={status.value} value={status.value}>
+                  {status.label}
                 </option>
               ))}
             </select>
-            <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+            <select
+              className="form-select w-auto min-w-40"
+              value={filters.property_id ?? ''}
+              onChange={(e) => visit({ property_id: e.target.value === '' ? null : Number(e.target.value) })}>
+              <option value="">All properties</option>
+              {catalogs.properties.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
+            <select className="form-select w-20" value={filters.per_page} onChange={(e) => visit({ per_page: Number(e.target.value) })}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}
@@ -246,22 +291,9 @@ const Page = ({ workOrders, catalogs, can }: Props) => {
 
         <DataTable table={table} emptyMessage="No work orders yet." />
 
-        {table.getRowModel().rows.length > 0 && (
+        {pagination.total > 0 && (
           <div className="card-footer">
-            <TablePagination
-              totalItems={totalItems}
-              start={start}
-              end={end}
-              itemsName="work orders"
-              pageIndex={pageIndex}
-              pageCount={table.getPageCount()}
-              canPreviousPage={table.getCanPreviousPage()}
-              canNextPage={table.getCanNextPage()}
-              previousPage={table.previousPage}
-              nextPage={table.nextPage}
-              setPageIndex={table.setPageIndex}
-              showInfo
-            />
+            <ServerPagination meta={pagination} itemsName="work orders" onPageChange={(page) => visit({}, page)} />
           </div>
         )}
       </div>
