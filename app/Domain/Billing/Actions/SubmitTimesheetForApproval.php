@@ -8,6 +8,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Concerns\LogsPropertyActivity;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
+use App\Notifications\TimesheetAwaitingApproval;
 use App\Notifications\TimesheetStatusChanged;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -41,6 +42,8 @@ class SubmitTimesheetForApproval
                 ->where('role', PropertyAssignmentRole::PropertyManager->value))
             ->get();
         Notification::send($pms, new TimesheetStatusChanged($timesheet, 'submitted', 'A timesheet is awaiting your approval.'));
+        // Queued, so a mail outage cannot fail a submit that already happened.
+        Notification::send($pms, new TimesheetAwaitingApproval($timesheet));
 
         $this->logProperty($timesheet->property, 'updated', 'Timesheet sent for approval');
 

@@ -1,11 +1,22 @@
 <?php
 
+use App\Domain\Billing\Actions\SubmitTimesheetForApproval;
+use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\People\Models\Person;
+use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
+use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Workflows\Models\Workflow;
+use App\Notifications\TimesheetAwaitingApproval;
 use App\Notifications\TimesheetStatusChanged;
 use App\Notifications\WorkflowNotice;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Transport\ArrayTransport;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
@@ -30,6 +41,24 @@ function storedNotice(Person $person, array $data = [], bool $read = false): str
     return $notification->id;
 }
 
+/** A submittable timesheet, its recruiter, and a PM assigned to the property. */
+function notifyScenario(): array
+{
+    $property = Property::factory()->create(['name' => 'Sunrise Villas']);
+    $monday = Carbon::now()->startOfWeek(Carbon::MONDAY)->subWeek();
+
+    $period = PayrollPeriod::factory()->forWeek($monday)->create(['property_id' => $property->id]);
+    $timesheet = Timesheet::factory()->create([
+        'property_id' => $property->id,
+        'payroll_period_id' => $period->id,
+        'status' => TimesheetStatus::Draft,
+    ]);
+
+    $pm = person('property_manager');
+    $property->assignments()->create(['person_id' => $pm->id, 'role' => PropertyAssignmentRole::PropertyManager->value]);
+
+    return ['property' => $property, 'timesheet' => $timesheet, 'pm' => $pm, 'recruiter' => person('recruiter')];
+}
 // --- Bell payload (shared Inertia prop) ---------------------------------------
 
 it('shares the bell payload with unread count and recent items', function () {
@@ -185,4 +214,73 @@ it('serves the bell and history on QC Minute with surface-relative links', funct
 
     $this->actingAs($pm)->get(qcminute("/notifications/{$id}/open"))
         ->assertRedirect(qcminute('/timesheets/9'));
+});
+
+// --- Timesheet submitted: email alongside the in-app notice -------------------------
+
+it('emails every property manager when a week is submitted', function () {
+    Notification::fake();
+    $s = notifyScenario();
+
+    app(SubmitTimesheetForApproval::class)->handle($s['timesheet'], $s['recruiter']);
+
+    // Both go out: the in-app notice immediately, the email on the queue.
+    Notification::assertSentTo($s['pm'], TimesheetStatusChanged::class);
+    Notification::assertSentTo($s['pm'], TimesheetAwaitingApproval::class);
+});
+
+it('queues the email so a mail outage cannot fail a submit that already happened', function () {
+    expect(new TimesheetAwaitingApproval(Timesheet::factory()->make()))
+        ->toBeInstanceOf(ShouldQueue::class);
+});
+
+it('points the property manager at QC Minute, not the back office they cannot reach', function () {
+    $s = notifyScenario();
+    $mail = (new TimesheetAwaitingApproval($s['timesheet']))->toMail($s['pm']);
+
+    $host = config('domains.qcminute');
+
+    expect($mail->actionUrl)->toContain("//{$host}/timesheets/{$s['timesheet']->id}")
+        ->and($mail->actionUrl)->not->toContain(config('domains.main'))
+        // The stock header links to APP_URL; anonymous Blade components have
+        // isolated scope, so the override rides on viewData.
+        ->and($mail->viewData['headerUrl'])->toContain($host);
+});
+
+it('sends no email to a property manager with no address on file', function () {
+    $s = notifyScenario();
+    $s['pm']->update(['email' => null]);
+
+    // Most legacy people identify by phone; mailing them would throw.
+    expect((new TimesheetAwaitingApproval($s['timesheet']))->via($s['pm']))->toBe([]);
+});
+
+it('muting the timesheets category silences the email as well as the notice', function () {
+    $s = notifyScenario();
+    $s['pm']->update(['muted_notifications' => ['timesheets']]);
+
+    expect((new TimesheetAwaitingApproval($s['timesheet']))->via($s['pm']))->toBe([])
+        ->and((new TimesheetStatusChanged($s['timesheet'], 'submitted', 'x'))->via($s['pm']))->toBe([]);
+});
+
+it('renders a real email carrying the property, the week and the review link', function () {
+    $s = notifyScenario();
+
+    // Actually render through the mailer — a MailMessage that looks right can
+    // still blow up in the Blade layer, which is how the invoice header bug hid.
+    $s['pm']->notifyNow(new TimesheetAwaitingApproval($s['timesheet']));
+
+    /** @var ArrayTransport $transport */
+    $transport = Mail::mailer()->getSymfonyTransport();
+    $messages = $transport->messages();
+    expect($messages)->toHaveCount(1);
+
+    $body = $messages[0]->toString();
+    $host = config('domains.qcminute');
+
+    expect($body)->toContain('Sunrise Villas')
+        ->and($body)->toContain('waiting for your approval')
+        ->and($body)->toContain("//{$host}/timesheets/{$s['timesheet']->id}")
+        // The header must not send a PM to the back office they cannot sign in to.
+        ->and($body)->not->toContain('//'.config('domains.main'));
 });
