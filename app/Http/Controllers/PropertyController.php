@@ -252,6 +252,7 @@ class PropertyController extends Controller
             'pm_name' => $property->pm_name,
             'pm_phone' => $property->pm_phone,
             'main_phone' => $property->main_phone,
+            'billing_email' => $property->billing_email,
             'address' => $property->address,
             'city' => $property->city,
             'state' => $property->state,

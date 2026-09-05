@@ -14,6 +14,7 @@ use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Shared\Models\File;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Notifications\NotificationCategory;
+use App\Notifications\PasswordResetLink;
 use Carbon\CarbonImmutable;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -178,6 +179,16 @@ class Person extends Authenticatable
     public function hasMutedNotifications(NotificationCategory $category): bool
     {
         return in_array($category->value, $this->muted_notifications ?? [], true);
+    }
+
+    /**
+     * Overrides the framework default so the link lands on the surface this
+     * person signs in on — the stock notification builds its URL from
+     * APP_URL, which is always the back office.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new PasswordResetLink($token));
     }
 
     /** Authenticated avatar URL (versioned for cache busting), or null. */

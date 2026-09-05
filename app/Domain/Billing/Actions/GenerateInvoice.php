@@ -152,6 +152,7 @@ class GenerateInvoice
             'zip' => $property->zip,
             'pm_name' => $property->pm_name,
             'main_phone' => $property->main_phone,
+            'billing_email' => $property->billing_email,
         ];
     }
 }

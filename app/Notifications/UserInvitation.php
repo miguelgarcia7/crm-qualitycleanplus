@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Domain\People\Models\Person;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -13,8 +14,12 @@ use Illuminate\Notifications\Notification;
  * the person signs in on: QC Minute for property managers, the back office
  * for internal staff. Mail-only: the recipient has no way to see in-app
  * notifications yet.
+ *
+ * Queued: the Person row and its role assignments are already committed by
+ * the time this is sent, so a mail failure here would leave an account with
+ * no way in and no retry — while reporting the invite as failed.
  */
-class UserInvitation extends Notification
+class UserInvitation extends Notification implements ShouldQueue
 {
     use Queueable;
 

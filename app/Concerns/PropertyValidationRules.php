@@ -23,6 +23,8 @@ trait PropertyValidationRules
             'pm_name' => ['nullable', 'string', 'max:255'],
             'pm_phone' => ['nullable', 'string', 'max:32'],
             'main_phone' => ['nullable', 'string', 'max:32'],
+            // Invoices are emailed here by default.
+            'billing_email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:64'],

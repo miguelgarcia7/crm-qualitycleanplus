@@ -41,6 +41,9 @@ return new class extends Migration
             $table->boolean('qr_clock_enabled')->default(false);
 
             // Billing
+            // Where invoices are emailed. The send modal defaults to this;
+            // the recruiter may still override it for a one-off AP address.
+            $table->string('billing_email')->nullable();
             $table->unsignedTinyInteger('closing_day')->nullable(); // day-of-month cycle ends
             $table->decimal('tax_rate', 5, 4)->default(0);          // e.g. 0.0875
 

@@ -9,6 +9,7 @@ type Property = {
   pm_name: string | null
   pm_phone: string | null
   main_phone: string | null
+  billing_email: string | null
   address: string | null
   city: string | null
   state: string | null
@@ -59,6 +60,7 @@ const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours
     pm_name: property?.pm_name ?? '',
     pm_phone: property?.pm_phone ?? '',
     main_phone: property?.main_phone ?? '',
+    billing_email: property?.billing_email ?? '',
     address: property?.address ?? '',
     city: property?.city ?? '',
     state: property?.state ?? '',
@@ -113,6 +115,16 @@ const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours
               </Field>
               <Field label="Hotel Main Phone" error={errors.main_phone}>
                 <input className="form-input" value={data.main_phone} onChange={(e) => setData('main_phone', e.target.value)} />
+              </Field>
+              <Field label="Billing Email" error={errors.billing_email}>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={data.billing_email}
+                  onChange={(e) => setData('billing_email', e.target.value)}
+                  placeholder="ap@hotel.com"
+                />
+                <p className="text-default-400 mt-1 text-xs">Where invoices are sent by default.</p>
               </Field>
               <Field label="Address" error={errors.address}>
                 <input className="form-input" value={data.address} onChange={(e) => setData('address', e.target.value)} />

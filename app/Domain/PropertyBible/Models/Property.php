@@ -52,6 +52,7 @@ class Property extends Model
         'longitude',
         'geofence_radius_meters',
         'qr_clock_enabled', // qr_token is deliberately NOT fillable — minted by the saving hook
+        'billing_email',
         'closing_day',
         'tax_rate',
         'direct_hire_threshold_minutes',
