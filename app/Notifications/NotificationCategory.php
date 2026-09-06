@@ -25,6 +25,19 @@ enum NotificationCategory: string
         };
     }
 
+    /**
+     * Whether this category also sends email, so the preferences screen can
+     * say that muting it silences more than the bell.
+     *
+     * Timesheets is the only one: TimesheetAwaitingApproval and
+     * TimesheetDecided (phase 09g). Muting is per category, not per channel,
+     * so switching it off stops both.
+     */
+    public function sendsEmail(): bool
+    {
+        return $this === self::Timesheets;
+    }
+
     public function description(): string
     {
         return match ($this) {

@@ -46,6 +46,7 @@ class ProfileController extends Controller
                     'value' => $category->value,
                     'label' => $category->label(),
                     'description' => $category->description(),
+                    'emails' => $category->sendsEmail(),
                 ], NotificationCategory::cases()),
             ],
         ]);

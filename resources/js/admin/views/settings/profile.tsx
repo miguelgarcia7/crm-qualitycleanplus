@@ -22,6 +22,8 @@ type NotificationCategory = {
   value: string
   label: string
   description: string
+  /** Muting this silences email as well as the bell. */
+  emails: boolean
 }
 
 type NotificationSettings = {
@@ -345,8 +347,9 @@ const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
   return (
     <form onSubmit={submit} className="max-w-lg">
       <p className="text-default-400 mb-5 text-sm">
-        Choose which in-app notifications you receive. Switching one off only mutes the bell — anything that
-        needs your action still shows up in My Tasks and on your dashboard.
+        Choose which notifications you receive. Switching one off silences every way it reaches you —
+        including email, where a category sends it. Anything that needs your action still shows up in My
+        Tasks and on your dashboard.
       </p>
 
       <div className="space-y-5">
@@ -355,7 +358,10 @@ const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
           return (
             <label key={category.value} className="flex cursor-pointer items-start justify-between gap-4">
               <span>
-                <span className="text-dark block font-medium">{category.label}</span>
+                <span className="text-dark block font-medium">
+                  {category.label}
+                  {category.emails && <span className="badge badge-label bg-info/15 text-info ms-2">Email too</span>}
+                </span>
                 <span className="text-default-400 text-sm">{category.description}</span>
               </span>
               <input

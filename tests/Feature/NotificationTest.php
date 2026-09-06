@@ -360,3 +360,18 @@ it('fires the decline email from the action, alongside the in-app notice', funct
 
     Notification::assertSentTo($s['recruiter'], TimesheetDecided::class);
 });
+
+it('tells the preferences screen which categories reach beyond the bell', function () {
+    $this->actingAs(person('admin'))->get(main('/admin/settings/profile'))
+        ->assertOk()
+        ->assertInertia(function (AssertableInertia $page) {
+            $categories = collect($page->toArray()['props']['notificationSettings']['categories']);
+
+            // The screen said muting "only mutes the bell", which stopped being
+            // true when the timesheet cycle started emailing.
+            expect($categories->firstWhere('value', 'timesheets')['emails'])->toBeTrue()
+                ->and($categories->firstWhere('value', 'workflows')['emails'])->toBeFalse()
+                ->and($categories->firstWhere('value', 'contracts')['emails'])->toBeFalse()
+                ->and($categories->firstWhere('value', 'time_tracking')['emails'])->toBeFalse();
+        });
+});
