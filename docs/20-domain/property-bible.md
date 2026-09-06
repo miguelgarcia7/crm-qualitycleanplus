@@ -31,6 +31,7 @@ Standard property identity. One row in `properties`.
 | Property Manager (name) | The PM's name, free text (separate from a `people` row — the PM might not have a login) |
 | Property Manager (phone) | Direct contact |
 | Hotel main phone | Front desk / switchboard |
+| Billing email | Where invoices are emailed. The send modal defaults to this; the recruiter may still override it for a one-off AP address. Frozen onto each invoice's `property_snapshot`, so changing it later never rewrites where a past invoice went. |
 | Address, city, state, zip | Postal address |
 | Timezone | IANA timezone string (e.g. `America/Phoenix`) — drives all time-tracking math |
 | Latitude / longitude | Used for geofencing (recruiter check-in + contractor QR clock-in). Set on the property form's interactive map (MapLibre + OSM, no API token): drag/click the pin, search an address, or accept the auto-dropped pin geocoded from the property's address. Mutually required; plain inputs remain as fallback. |

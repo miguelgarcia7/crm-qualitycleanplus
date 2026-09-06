@@ -39,7 +39,13 @@ Their `status` distinguishes lifecycle position (applicant / active / inactive /
 - Both submit to the same backend authenticator
 - Successful login + role allowed on that domain → redirect to role-appropriate dashboard
 - Successful login + role NOT allowed on that domain → "wrong door" page with link to correct domain
-- Password reset uses the standard Laravel Fortify flow (request → emailed token → set new)
+- Password reset uses the standard Laravel Fortify flow (request → emailed token → set new),
+  but **not** the stock notification: `Person::sendPasswordResetNotification()` sends
+  `PasswordResetLink`, which builds the URL for the surface the recipient signs in on.
+  Laravel's default builds it from `APP_URL` — always the back office — which sent
+  property managers and contractors to a domain they cannot sign in to. Fortify's auth
+  routes carry no domain constraint, so the stock link loaded but landed them in the
+  wrong place. Same problem the invitation email already solved by carrying its surface.
 - 2FA: not in scope for v1; flagged as a future addition
 
 ### Device authentication

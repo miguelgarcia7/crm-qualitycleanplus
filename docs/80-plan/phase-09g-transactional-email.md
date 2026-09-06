@@ -108,6 +108,32 @@ header bug hid. Also covered: the classes are genuinely `ShouldQueue`, a
 recipient with no address gets nothing, muting silences mail as well as the
 notice, and the PM mail contains QC Minute but not the back-office domain.
 
+## Audit of every sending path (2026-09-05)
+
+Adding two emails made "what actually sends mail?" worth answering properly. Five
+paths, no Mailables, no direct `Mail::` calls — catalogued in
+`20-domain/outbound-email.md`. The audit found three problems, all fixed:
+
+1. **Password reset went to the wrong surface.** Laravel's stock notification
+   builds its URL from `APP_URL` — always the back office — so property managers
+   and contractors got a link to a domain they cannot sign in to. Fortify's auth
+   routes carry no domain constraint, so it loaded rather than 404ing, which is
+   why nobody had noticed. `PasswordResetLink` now decides the host from the
+   recipient's role and `Person::sendPasswordResetNotification()` overrides the
+   framework hook, so every reset path gets it. The header logo needed the same
+   fix.
+2. **The invoice send modal had no default recipient.** Free text, typed from
+   memory, against nothing that checked it belonged to the property. This turned
+   out to be a half-built feature: the front end already read
+   `property_snapshot.billing_email`, but `properties` had no such column. Added
+   it, validated and editable on the Bible profile, and frozen onto the invoice
+   snapshot. It stays overridable — a one-off AP address is legitimate — but the
+   field is no longer empty.
+3. **Two sends were synchronous by accident.** `UserInvitation` and the reset ran
+   in-line even though their state was already committed, so a mail outage left a
+   new account with no way in while reporting the invite as failed. Both are
+   queued now. `InvoiceIssued` stays synchronous *on purpose*, and a test asserts
+   it is not `ShouldQueue` so nobody "fixes" it later.
 ## Out of scope / deferred
 
 - **Workflow, contract and punch-flag notifications stay in-app only.** 09d's
@@ -126,4 +152,5 @@ notice, and the PM mail contains QC Minute but not the back-office domain.
   in-app-only decision this narrows
 - `20-domain/timesheets.md`, `40-flows/timesheet-approval.md` — the cycle
 - `20-domain/invoicing.md` — `InvoiceIssued`, the synchronous counterexample
+- `20-domain/outbound-email.md` — every sending path, and the two rules behind them
 - `10-architecture/deployment-topology.md` — Postmark + the queue worker

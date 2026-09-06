@@ -122,7 +122,10 @@ If the job fails, the transaction rolls back; the timesheet stays in `approved` 
 
 Decoupled from generation. The recruiter clicks "Send Invoice to Property" on the invoice detail page:
 
-1. Modal confirms recipient email (default: property's primary billing contact)
+1. Modal confirms recipient email, defaulted from the invoice's frozen
+   `property_snapshot.billing_email` (set on the Property Bible profile). It stays
+   editable — a one-off AP address is a legitimate need — but it is no longer typed
+   from memory into an empty field.
 2. Optional cover message
 3. On confirm:
    - Email sent via Postmark carrying a **link**, not a PDF attachment — the
