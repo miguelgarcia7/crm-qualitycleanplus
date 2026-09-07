@@ -42,6 +42,16 @@ class TimesheetAwaitingApproval extends AppNotification implements ShouldQueue
         return ['mail'];
     }
 
+    /**
+     * Not mutable: this is the request that starts the approval, and a week
+     * nobody approves is a week nobody invoices. Muting Timesheets still
+     * silences the outcome notices, which are informational.
+     */
+    protected function mutable(): bool
+    {
+        return false;
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'https';

@@ -28,11 +28,26 @@ abstract class AppNotification extends Notification
     }
 
     /**
+     * Whether the recipient's category mute applies to this notification.
+     *
+     * False for transactional messages — a request for action addressed to a
+     * named person, where silence breaks a process someone else depends on.
+     * Approval systems generally do not let an approver switch off the request
+     * itself; the pressure valve is frequency, not silence. The invoice,
+     * invitation and reset emails are transactional in the same sense — they
+     * simply never extended this class, so they were never mutable.
+     */
+    protected function mutable(): bool
+    {
+        return true;
+    }
+
+    /**
      * @return list<string>
      */
     public function via(object $notifiable): array
     {
-        if ($notifiable instanceof Person && $notifiable->hasMutedNotifications($this->category())) {
+        if ($this->mutable() && $notifiable instanceof Person && $notifiable->hasMutedNotifications($this->category())) {
             return [];
         }
 

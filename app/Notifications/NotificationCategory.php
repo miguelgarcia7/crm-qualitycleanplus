@@ -42,7 +42,7 @@ enum NotificationCategory: string
     {
         return match ($this) {
             self::Workflows => 'Pay increases, transfers, staffing requests, and personal-info changes.',
-            self::Timesheets => 'Timesheets submitted for your approval, approved, or declined.',
+            self::Timesheets => 'Outcomes on timesheets you submitted — approved or declined. Requests to approve a week always arrive; they are waiting on your decision.',
             self::Contracts => 'Property contracts approaching their expiration date.',
             self::TimeTracking => 'QR punches recorded without verified GPS.',
         };

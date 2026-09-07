@@ -258,12 +258,15 @@ it('sends no email to a property manager with no address on file', function () {
     expect((new TimesheetAwaitingApproval($s['timesheet']))->via($s['pm']))->toBe([]);
 });
 
-it('muting the timesheets category silences the email as well as the notice', function () {
+it('muting a category silences its email as well as its notice', function () {
     $s = notifyScenario();
-    $s['pm']->update(['muted_notifications' => ['timesheets']]);
+    $s['recruiter']->update(['muted_notifications' => ['timesheets']]);
 
-    expect((new TimesheetAwaitingApproval($s['timesheet']))->via($s['pm']))->toBe([])
-        ->and((new TimesheetStatusChanged($s['timesheet'], 'submitted', 'x'))->via($s['pm']))->toBe([]);
+    // Muting is per category, not per channel — the outcome reaches the
+    // recruiter by neither route. (The approval *request* is transactional and
+    // ignores the mute; see the transactional block below.)
+    expect((new TimesheetDecided($s['timesheet'], approved: false))->via($s['recruiter']))->toBe([])
+        ->and((new TimesheetStatusChanged($s['timesheet'], 'declined', 'x'))->via($s['recruiter']))->toBe([]);
 });
 
 it('renders a real email carrying the property, the week and the review link', function () {
@@ -374,4 +377,40 @@ it('tells the preferences screen which categories reach beyond the bell', functi
                 ->and($categories->firstWhere('value', 'contracts')['emails'])->toBeFalse()
                 ->and($categories->firstWhere('value', 'time_tracking')['emails'])->toBeFalse();
         });
+});
+
+// --- Transactional vs mutable -------------------------------------------------------
+
+it('still sends the approval request to a property manager who muted timesheets', function () {
+    Notification::fake();
+    $s = notifyScenario();
+    $s['pm']->update(['muted_notifications' => ['timesheets']]);
+
+    app(SubmitTimesheetForApproval::class)->handle($s['timesheet'], $s['recruiter']);
+
+    // A week nobody approves is a week nobody invoices, so the request that
+    // starts the approval is transactional — the mute does not reach it.
+    Notification::assertSentTo($s['pm'], TimesheetAwaitingApproval::class);
+    Notification::assertSentTo($s['pm'], TimesheetStatusChanged::class);
+});
+
+it('still silences the outcome notices for a muted recruiter', function () {
+    $s = notifyScenario();
+    $s['recruiter']->update(['muted_notifications' => ['timesheets']]);
+
+    // Approved/declined are informational — muting them costs nobody else.
+    expect((new TimesheetDecided($s['timesheet'], approved: true))->via($s['recruiter']))->toBe([])
+        ->and((new TimesheetStatusChanged($s['timesheet'], 'approved', 'x'))->via($s['recruiter']))->toBe([])
+        ->and((new TimesheetStatusChanged($s['timesheet'], 'declined', 'x'))->via($s['recruiter']))->toBe([]);
+});
+
+it('keeps every other category fully mutable', function () {
+    $s = notifyScenario();
+    $person = person('office_manager');
+    $person->update(['muted_notifications' => ['timesheets']]);
+
+    // Only the approval request is transactional. Everything else in the
+    // category — and every other category — still answers to the switch.
+    expect((new TimesheetStatusChanged($s['timesheet'], 'approved', 'x'))->via($person))->toBe([])
+        ->and((new TimesheetStatusChanged($s['timesheet'], 'submitted', 'x'))->via($person))->toBe(['database']);
 });

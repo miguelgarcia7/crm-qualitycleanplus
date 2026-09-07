@@ -25,6 +25,16 @@ class TimesheetStatusChanged extends AppNotification
     }
 
     /**
+     * The submitted notice is the other half of the approval request, so it
+     * is transactional for the same reason the email is. Approved and
+     * declined are outcomes — informational, and mutable.
+     */
+    protected function mutable(): bool
+    {
+        return $this->event !== 'submitted';
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(object $notifiable): array
