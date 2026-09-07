@@ -66,7 +66,21 @@ class ProfileController extends Controller
         $person = $request->user();
         $person->update(['muted_notifications' => array_values(array_unique($validated['muted']))]);
 
-        return to_route('profile.edit');
+        return $this->backToProfile($request);
+    }
+
+    /**
+     * The profile page on the surface this request came from.
+     *
+     * Not to_route(): the same controller serves both surfaces and the named
+     * route is the back-office one. Not back() either — that depends on a
+     * Referer header the browser is free not to send.
+     */
+    private function backToProfile(Request $request): RedirectResponse
+    {
+        return redirect()->to($request->getHost() === config('domains.qcminute')
+            ? '/settings/profile'
+            : '/admin/settings/profile');
     }
 
     /**
@@ -82,7 +96,7 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return to_route('profile.edit');
+        return $this->backToProfile($request);
     }
 
     /**
@@ -101,7 +115,7 @@ class ProfileController extends Controller
 
         $action->handle($person, $photo);
 
-        return to_route('profile.edit');
+        return $this->backToProfile($request);
     }
 
     /**
@@ -114,6 +128,6 @@ class ProfileController extends Controller
 
         $action->remove($person);
 
-        return to_route('profile.edit');
+        return $this->backToProfile($request);
     }
 }

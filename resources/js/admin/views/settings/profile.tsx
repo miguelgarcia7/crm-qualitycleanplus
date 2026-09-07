@@ -64,6 +64,7 @@ const initialsOf = (name: string) =>
 // --- Avatar (photo or initials, with self-serve upload) ----------------------
 
 const Avatar = ({ person }: { person: PersonInfo }) => {
+  const base = useSettingsBase()
   const fileInput = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,7 +74,7 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
     if (!file) return
     setError(null)
     router.post(
-      '/admin/settings/avatar',
+      `${base}/avatar`,
       { avatar: file },
       {
         forceFormData: true,
@@ -93,7 +94,7 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
       title: 'Remove photo',
       message: <>Remove your profile photo? Your initials are shown instead.</>,
       confirmLabel: 'Remove',
-      onConfirm: () => router.delete('/admin/settings/avatar', { preserveScroll: true }),
+      onConfirm: () => router.delete(`${base}/avatar`, { preserveScroll: true }),
     })
   }
 
@@ -185,9 +186,21 @@ const IdentityCard = ({ person, roles }: { person: PersonInfo; roles: string[] }
   </div>
 )
 
+/**
+ * Settings live at /admin/settings on the back office and /settings on QC
+ * Minute, served by the same controllers — so every form here posts relative
+ * to the surface it was rendered on.
+ */
+const useSettingsBase = (): string => {
+  const { surface } = usePage().props as { surface?: string }
+
+  return surface === 'qcminute' ? '/settings' : '/admin/settings'
+}
+
 // --- Profile tab ---------------------------------------------------------------
 
 const ProfileTab = ({ person }: { person: PersonInfo }) => {
+  const base = useSettingsBase()
   const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
     name: person.name,
     email: person.email,
@@ -195,7 +208,7 @@ const ProfileTab = ({ person }: { person: PersonInfo }) => {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    patch('/admin/settings/profile', { preserveScroll: true })
+    patch(`${base}/profile`, { preserveScroll: true })
   }
 
   return (
@@ -249,6 +262,7 @@ const ProfileTab = ({ person }: { person: PersonInfo }) => {
 // --- Security tab ----------------------------------------------------------------
 
 const SecurityTab = () => {
+  const base = useSettingsBase()
   const { data, setData, put, processing, errors, reset, recentlySuccessful } = useForm({
     current_password: '',
     password: '',
@@ -257,7 +271,7 @@ const SecurityTab = () => {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    put('/admin/settings/password', {
+    put(`${base}/password`, {
       preserveScroll: true,
       onSuccess: () => reset(),
       onError: () => reset('current_password'),
@@ -332,6 +346,7 @@ const SecurityTab = () => {
 // --- Notifications tab -----------------------------------------------------------
 
 const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
+  const base = useSettingsBase()
   const { data, setData, patch, processing, recentlySuccessful } = useForm({
     muted: settings.muted,
   })
@@ -341,7 +356,7 @@ const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    patch('/admin/settings/notifications', { preserveScroll: true })
+    patch(`${base}/notifications`, { preserveScroll: true })
   }
 
   return (

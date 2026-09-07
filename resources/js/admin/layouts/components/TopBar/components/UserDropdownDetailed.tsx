@@ -49,11 +49,19 @@ const UserDropdown = () => {
           {auth.user?.email && <p className="text-default-400 truncate text-xs">{auth.user.email}</p>}
         </div>
 
-        {/* QC Minute has no settings area — its self-service page is My Info. */}
-        <Link href={onMinute ? '/my-info' : '/admin/settings/profile'} className="dropdown-item">
+        <Link href={onMinute ? '/settings/profile' : '/admin/settings/profile'} className="dropdown-item">
           <Icon icon="user-circle" className="me-1 fs-lg align-middle" />
-          <span className="align-middle">{onMinute ? 'My Info' : 'Profile'}</span>
+          <span className="align-middle">Profile</span>
         </Link>
+
+        {/* Self-service info changes go through an approval workflow, so they
+            stay separate from the settings a person edits directly. */}
+        {onMinute && (
+          <Link href="/my-info" className="dropdown-item">
+            <Icon icon="id-badge-2" className="me-1 fs-lg align-middle" />
+            <span className="align-middle">My Info</span>
+          </Link>
+        )}
 
         <div className="dropdown-divider"></div>
 

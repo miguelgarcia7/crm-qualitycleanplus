@@ -9,6 +9,8 @@ use App\Http\Controllers\Minute\MoreStaffController;
 use App\Http\Controllers\Minute\PayIncreaseController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Settings\PasswordController;
+use App\Http\Controllers\Settings\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -59,6 +61,17 @@ Route::get('kb/attachments/{file}', [KbController::class, 'downloadAttachment'])
 Route::get('kb/{article}', [KbController::class, 'show'])->middleware('can:kb.articles.view')->name('qcminute.kb.show');
 Route::post('kb/{article}/feedback', [KbController::class, 'feedback'])->middleware('can:kb.articles.view')->name('qcminute.kb.feedback');
 
+// Personal settings (profile, photo, password, notification preferences) —
+// same controllers as the back office. Property managers and contractors sign
+// in here and had no way to reach these at all, including the mute switches
+// that govern the timesheet emails addressed to them.
+Route::redirect('/settings', '/settings/profile');
+Route::get('settings/profile', [ProfileController::class, 'edit'])->name('qcminute.profile.edit');
+Route::patch('settings/profile', [ProfileController::class, 'update'])->name('qcminute.profile.update');
+Route::post('settings/avatar', [ProfileController::class, 'updateAvatar'])->name('qcminute.settings.avatar.update');
+Route::delete('settings/avatar', [ProfileController::class, 'destroyAvatar'])->name('qcminute.settings.avatar.destroy');
+Route::put('settings/password', [PasswordController::class, 'update'])->name('qcminute.settings.password.update');
+Route::patch('settings/notifications', [ProfileController::class, 'updateNotifications'])->name('qcminute.settings.notifications.update');
 // Notification center (Phase 09d) — same controller as the back office; the
 // shared TopBar bell posts to surface-relative paths.
 Route::get('notifications', [NotificationController::class, 'index'])->name('qcminute.notifications.index');
