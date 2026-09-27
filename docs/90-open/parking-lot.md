@@ -3,11 +3,52 @@
 | Field | Value |
 |---|---|
 | Status | Living document — items added as they surface, removed when resolved |
-| Last updated | 2026-08-30 |
+| Last updated | 2026-09-27 |
 | Owner | Product |
 
 Items we've identified but explicitly deferred. Each one has a context note so future-us (or a new session) can pick it up cold.
 
+## Reminders for pending timesheets and unsent invoices
+
+**Context:** Two places where the system starts a process, tells someone once,
+and then never follows up.
+
+1. **A timesheet sitting in `pending_approval`.** The PM is notified when the
+   recruiter submits — in-app and by email, and that request is transactional so
+   it cannot be muted (phase 09g). But nothing chases a PM who received it and
+   did nothing, and until they act the week cannot be invoiced.
+2. **An invoice sitting in `invoiced`.** Generated automatically on approval,
+   but sending is a deliberate recruiter action (ADR-0007). A week can stay
+   generated-but-unsent indefinitely.
+
+Both are visible to QCP staff — `BackOfficePulse` already computes a three-day
+approval SLA and counts "ready to send" — but visibility on a dashboard only
+works for whoever opens the dashboard.
+
+**Why this rather than more preference granularity:** when we looked at
+per-channel notification toggles, the conclusion was that mature approval
+systems (Concur, Coupa, Bill.com) do not let an approver switch off the request;
+they offer *frequency* control plus reminders and escalation. A PM chasing email
+is a support problem; a PM who is never reminded is a revenue problem.
+
+**Open questions:**
+- Cadence — daily until acted on, or once at the SLA boundary then escalate?
+- Escalation — after N days, copy the recruiter? The office manager? The hotel's
+  own hierarchy is outside our data.
+- Does the unsent-invoice reminder go to the recruiter who owns it, or to
+  whoever holds `invoices.send` at that property?
+- Digest vs per-item: a PM covering six properties should probably get one
+  email listing all pending weeks, not six.
+- Does a reminder respect the Timesheets category mute? (The original request
+  does not — same argument likely applies.)
+
+**Groundwork already there:** `APPROVAL_SLA_DAYS` in `BackOfficePulse`,
+`sent_for_approval_at` on timesheets, `notification_sent_at` on invoices, a
+scheduler with five daily jobs to hang it off, and a queued-mail path with a
+`TimesheetAwaitingApproval` template to model the wording on.
+
+**Decision needed by:** before go-live, if hotels are expected to approve
+promptly. Not a blocker for cutover.
 ## Gas / mileage deductions
 
 **Context:** Email 3 noted that gas deductions are dynamic and tied to actual worked schedules. The client confirmed these can remain inside the timekeeping/payroll system — they don't need to live in the CRM/back-office. We deferred design.
