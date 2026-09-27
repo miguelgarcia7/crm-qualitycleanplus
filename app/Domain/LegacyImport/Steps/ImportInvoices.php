@@ -2,6 +2,7 @@
 
 namespace App\Domain\LegacyImport\Steps;
 
+use App\Domain\Billing\Support\InvoiceSnapshot;
 use App\Domain\LegacyImport\Support\LegacyIdMap;
 use App\Domain\PropertyBible\Models\Property;
 use Illuminate\Support\Carbon;
@@ -84,10 +85,16 @@ class ImportInvoices
                     'issue_date' => Carbon::parse($invoice->created_at)->toDateString(),
                     'due_date' => Carbon::parse($invoice->due_date)->toDateString(),
                     'paid_at' => $invoice->status === 'paid' ? $invoice->updated_at : null,
+                    // Reshaped, not rewritten: legacy nests address as {street, city,
+                    // state, zip} while this app keeps those as siblings. Every value
+                    // is preserved (unknown keys included) — only the shape changes,
+                    // so one format lands in the table instead of two.
                     'property_snapshot' => $unfrozen
                         ? json_encode(['name' => $properties->get($propertyId)?->name, 'legacy_unfrozen' => true])
-                        : $invoice->property_snapshot,
-                    'invoicer_snapshot' => $invoice->invoicer_snapshot ?? json_encode(['legacy_unfrozen' => true]),
+                        : self::reshape($invoice->property_snapshot),
+                    'invoicer_snapshot' => $invoice->invoicer_snapshot === null
+                        ? json_encode(['legacy_unfrozen' => true])
+                        : self::reshape($invoice->invoicer_snapshot),
                     'tax_rate' => $invoice->tax_rate ?? 0,
                     'work_subtotal' => (int) ($invoice->work_subtotal ?? 0),
                     'adjustment_total' => (int) ($invoice->adjustment_total ?? 0),
@@ -178,6 +185,25 @@ class ImportInvoices
      *
      * @param  array<string, int>  $stats
      */
+    /**
+     * A legacy snapshot JSON string in this app's flat shape.
+     *
+     * The importer already translates every other legacy column into our
+     * vocabulary; carrying the snapshot through untouched was the odd one out,
+     * and it left readers guessing which of two shapes they had. Values are
+     * preserved exactly — this changes representation, not what was billed.
+     */
+    private static function reshape(string $json): string
+    {
+        $decoded = json_decode($json, true);
+
+        if (! is_array($decoded)) {
+            return $json; // unparseable — keep the original rather than lose it
+        }
+
+        return (string) json_encode(InvoiceSnapshot::flatten($decoded));
+    }
+
     private function periodForWeek(?Property $property, ?string $weekStart, array &$stats): int
     {
         if ($property === null || $weekStart === null) {

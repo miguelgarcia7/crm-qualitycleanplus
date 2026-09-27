@@ -3,6 +3,7 @@
 namespace App\Domain\Billing\Models;
 
 use App\Domain\Billing\Enums\InvoiceStatus;
+use App\Domain\Billing\Support\InvoiceSnapshot;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
@@ -40,6 +41,25 @@ class Invoice extends Model
     /**
      * @return array<string, string>
      */
+    /**
+     * The snapshots in this app's flat shape — see {@see InvoiceSnapshot}.
+     * Always use these for display; the raw attributes vary by origin.
+     *
+     * @return array<string, mixed>
+     */
+    public function propertySnapshotFlat(): array
+    {
+        return InvoiceSnapshot::flatten($this->property_snapshot);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function invoicerSnapshotFlat(): array
+    {
+        return InvoiceSnapshot::flatten($this->invoicer_snapshot);
+    }
+
     /**
      * Unpaid and past due. Derived rather than stored — a stored flag would
      * need a nightly job to stay true, and would be wrong between runs.

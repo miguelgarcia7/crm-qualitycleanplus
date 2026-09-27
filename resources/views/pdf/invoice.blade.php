@@ -21,8 +21,10 @@
 @php
     $money = fn ($c) => '$' . number_format(($c ?? 0) / 100, 2);
     $hrs = fn ($m) => number_format(($m ?? 0) / 60, 2);
-    $p = $invoice->property_snapshot;
-    $inv = $invoice->invoicer_snapshot;
+    // Flattened: legacy-issued invoices nest address as {street, city, state,
+    // zip}, and echoing that array was a fatal htmlspecialchars() error.
+    $p = $invoice->propertySnapshotFlat();
+    $inv = $invoice->invoicerSnapshotFlat();
 @endphp
 <body>
     <div class="row">
