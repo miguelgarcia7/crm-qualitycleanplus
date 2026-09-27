@@ -128,6 +128,7 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | `invoices.view` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ✅ | ✅ (own) | ⚪ | ✅ (own) | ⚪ |
 | `invoices.send` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own) | ⚪ | ⚪ | ⚪ |
+| `invoices.mark_paid` | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `invoices.void` | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `invoices.export` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ✅ | ✅ (own) | ⚪ | ✅ (own) | ⚪ |
 

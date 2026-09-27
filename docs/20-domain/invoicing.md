@@ -143,6 +143,47 @@ Decoupled from generation. The recruiter clicks "Send Invoice to Property" on th
 
 PM can also access invoices by logging into QC Minute — `notification_sent_at` is informational about whether they were emailed, not whether they've seen it.
 
+Payment itself still happens outside the system — QCP records it here once it lands (see **Recording payment**); nothing reconciles against a bank or accounting feed.
+
+## Recording payment
+
+Whether a client settled is tracked as a **timestamp, not a status**. `paid_at`
+(plus `paid_by`) sits alongside `invoices.status`, because the two are
+orthogonal: a sent invoice may be paid or not, and the state worth reporting on
+is "sent and still unpaid". Legacy QC Minute conflated them into one status
+field and so could not express it — which is why the import maps legacy `paid`
+onto `paid_at` rather than onto a status.
+
+```
+User on invoice detail page (admin or payroll)
+  → clicks "Mark paid" → confirm modal names the invoice and amount
+On confirm:
+  → invoice.paid_at = now
+  → invoice.paid_by = user.id
+  → Activity log ("Marked invoice QCM-XXXXX paid")
+```
+
+- **Reversible**, unlike voiding. Voiding retracts a frozen document and reopens
+  a payroll period (ADR-0006), so it is one-way; recording payment is a
+  bookkeeping fact, and marking the wrong invoice needs an undo rather than a
+  void-and-reissue. "Mark unpaid" clears both fields and logs it.
+- **Idempotent.** A second click returns without rewriting the date someone
+  recorded.
+- **A voided invoice cannot be marked paid** — it is not owed.
+- **One at a time, by design.** There is no bulk action: payment is recorded
+  per invoice as it is confirmed, and a batch control would mostly offer a way
+  to mark the wrong batch.
+
+### Overdue is derived, never stored
+
+`paid_at IS NULL`, status is not `voided`, and `due_date` is past. A stored flag
+would need a nightly job to keep true and would be wrong between runs. Surfaced
+as a badge on the invoice detail page and the list, and as a `payment` filter
+(paid / unpaid / overdue) on the list.
+
+Note after cutover: only the 1,267 invoices that were `paid` in legacy carry a
+`paid_at`, so everything else imported reads as overdue on its old due date.
+That reflects legacy's bookkeeping, not necessarily reality.
 ## Voiding
 
 Per ADR-0006. Allowed for super_admin and payroll only.
@@ -216,6 +257,7 @@ Recruiters and PMs can download an Excel version of the invoice (e.g. for proper
 | View invoices (own) | recruiter, property_manager, super_admin, office_manager, payroll |
 | View all invoices | super_admin, office_manager, payroll |
 | Send notification | recruiter (own), office_manager, super_admin |
+| Mark paid / unpaid | super_admin, admin, payroll (`invoices.mark_paid`) — sending an invoice and recording that it was settled are different jobs, so recruiters and office managers do not hold it |
 | Void | super_admin, payroll |
 | Reissue (create replacement) | super_admin, payroll |
 | Export Excel | viewers of the invoice |

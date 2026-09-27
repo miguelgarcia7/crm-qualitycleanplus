@@ -90,8 +90,14 @@ Recruiter sees "Invoice ready to send" on dashboard
   └────────────────────────────────────────┘
   ▼
 PM (if they didn't see it before) sees invoice in QC Minute
-PM pays through their own AP process
-(Out of system from here)
+PM pays through their own AP process — out of system
+  ┌────────────────────────────────────────┐
+  │ Payment lands; admin or payroll clicks │
+  │ "Mark paid" on the invoice             │
+  │ invoice.paid_at / paid_by = now / user  │
+  │ (reversible; nothing reconciles from an │
+  │  accounting feed — it is recorded here) │
+  └────────────────────────────────────────┘
 ```
 
 ## Step-by-step detail
