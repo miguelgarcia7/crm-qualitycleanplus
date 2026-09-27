@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Minute;
 
 use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Models\Invoice;
+use App\Domain\Billing\Support\InvoicePositionSummary;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -61,6 +63,9 @@ class InvoiceController extends Controller
                 'property_snapshot' => $invoice->propertySnapshotFlat(),
                 'invoicer_snapshot' => $invoice->invoicerSnapshotFlat(),
                 'subtotal' => $invoice->subtotal,
+                'work_subtotal' => $invoice->work_subtotal,
+                'adjustment_total' => $invoice->adjustment_total,
+                'tax_rate' => (float) $invoice->tax_rate,
                 'tax_amount' => $invoice->tax_amount,
                 'total' => $invoice->total,
                 'items' => $invoice->items->map(fn ($item): array => [
@@ -69,21 +74,20 @@ class InvoiceController extends Controller
                     'job_code' => $item->job_code,
                     'regular_minutes' => $item->regular_minutes,
                     'overtime_minutes' => $item->overtime_minutes,
+                    // Frozen at issue, so an old invoice always shows the rate it
+                    // was actually billed at (ADR-0005).
+                    'bill_rate' => $item->bill_rate,
+                    'ot_bill_rate' => $item->ot_bill_rate,
                     'total_bill' => $item->total_bill,
                 ])->values(),
-                'position_summary' => $invoice->items
-                    ->groupBy('position_name')
-                    ->map(fn ($items, string $position): array => [
-                        'position' => $position,
-                        'job_code' => $items->first()->job_code,
-                        'regular_minutes' => (int) $items->sum('regular_minutes'),
-                        'overtime_minutes' => (int) $items->sum('overtime_minutes'),
-                        'holiday_minutes' => (int) $items->sum('holiday_minutes'),
-                        'total_bill' => (int) $items->sum('total_bill'),
-                    ])
-                    ->values()
-                    ->all(),
+                // Payout is withheld here on purpose: a property manager sees what
+                // they are billed, never what QCP pays its contractors.
+                'position_summary' => array_map(
+                    fn (array $row): array => Arr::except($row, 'total_payout'),
+                    InvoicePositionSummary::for($invoice),
+                ),
             ],
+            'previewNotice' => config('qcp.invoice.preview_notice'),
         ]);
     }
 

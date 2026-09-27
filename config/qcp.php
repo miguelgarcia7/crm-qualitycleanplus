@@ -63,5 +63,16 @@ return [
     'invoice' => [
         'number_prefix' => 'INV',
         'payment_terms_days' => 30,
+
+        /*
+         * Shown on the invoice screens and the PDF. These documents are a
+         * working record; the billable one is issued elsewhere, and saying so
+         * on the artefact itself is the only place a client will read it.
+         * Set the notice to null to drop it everywhere.
+         */
+        'preview_notice' => [
+            'heading' => env('QCP_INVOICE_PREVIEW_HEADING', 'This invoice is a PREVIEW ONLY.'),
+            'body' => env('QCP_INVOICE_PREVIEW_BODY', 'Final invoices are issued through QuickBooks.'),
+        ],
     ],
 ];

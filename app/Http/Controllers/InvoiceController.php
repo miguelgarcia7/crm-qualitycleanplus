@@ -6,6 +6,7 @@ use App\Domain\Billing\Actions\MarkInvoicePaid;
 use App\Domain\Billing\Actions\SendInvoice;
 use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Models\Invoice;
+use App\Domain\Billing\Support\InvoicePositionSummary;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
@@ -200,6 +201,7 @@ class InvoiceController extends Controller
 
         return Inertia::render('admin/invoices/show', [
             'invoice' => $this->payload($invoice),
+            'previewNotice' => config('qcp.invoice.preview_notice'),
             'can' => [
                 'send' => $user instanceof Person && $user->can('send', $invoice) && $invoice->status->value !== 'voided',
                 'markPaid' => $user instanceof Person && $user->can('markPaid', $invoice) && $invoice->status->value !== 'voided',
@@ -254,6 +256,12 @@ class InvoiceController extends Controller
             'invoicer_snapshot' => $invoice->invoicerSnapshotFlat(),
             'work_subtotal' => $invoice->work_subtotal,
             'subtotal' => $invoice->subtotal,
+            'adjustment_total' => $invoice->adjustment_total,
+            // Frozen from the property at issue, so an old invoice keeps the
+            // rate it was billed under. The PDF already printed it; the
+            // screens showed only the amount, which cannot distinguish a zero
+            // rate from a failed calculation.
+            'tax_rate' => (float) $invoice->tax_rate,
             'tax_amount' => $invoice->tax_amount,
             'total' => $invoice->total,
             'notification_recipient' => $invoice->notification_recipient,
@@ -267,9 +275,13 @@ class InvoiceController extends Controller
                 'job_code' => $it->job_code,
                 'regular_minutes' => $it->regular_minutes,
                 'overtime_minutes' => $it->overtime_minutes,
+                // Frozen at issue, so an old invoice always shows the rate it
+                // was actually billed at (ADR-0005).
+                'bill_rate' => $it->bill_rate,
+                'ot_bill_rate' => $it->ot_bill_rate,
                 'total_bill' => $it->total_bill,
             ]),
-            'position_summary' => $this->positionSummary($invoice),
+            'position_summary' => InvoicePositionSummary::for($invoice),
         ];
     }
 
@@ -281,20 +293,4 @@ class InvoiceController extends Controller
      *
      * @return list<array<string, mixed>>
      */
-    private function positionSummary(Invoice $invoice): array
-    {
-        return $invoice->items
-            ->groupBy('position_name')
-            ->map(fn ($items, string $position): array => [
-                'position' => $position,
-                'job_code' => $items->first()->job_code,
-                'regular_minutes' => (int) $items->sum('regular_minutes'),
-                'overtime_minutes' => (int) $items->sum('overtime_minutes'),
-                'holiday_minutes' => (int) $items->sum('holiday_minutes'),
-                'total_bill' => (int) $items->sum('total_bill'),
-                'total_payout' => (int) $items->sum('total_payout'),
-            ])
-            ->values()
-            ->all();
-    }
 }
