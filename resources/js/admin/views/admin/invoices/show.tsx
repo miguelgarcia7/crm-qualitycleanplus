@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router, useForm } from '@inertiajs/react'
@@ -34,17 +35,50 @@ type Invoice = {
   tax_amount: number
   total: number
   notification_recipient: string | null
+  paid_at: string | null
+  paid_by: string | null
+  is_overdue: boolean
   items: Item[]
   position_summary: PositionSummary[]
 }
 
-type Props = { invoice: Invoice; can: { send: boolean } }
+type Props = { invoice: Invoice; can: { send: boolean; markPaid: boolean } }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
 const hrs = (m: number) => (m / 60).toFixed(2)
 
 const Page = ({ invoice, can }: Props) => {
   const [sending, setSending] = useState(false)
+
+  // Confirmed both ways: recording money that never arrived is as wrong as
+  // un-recording money that did.
+  const confirmPaid = () =>
+    confirmAction({
+      title: 'Mark paid',
+      message: (
+        <>
+          Record <strong className="text-default-900">{invoice.invoice_number}</strong> ({money(invoice.total)}) as settled by{' '}
+          {invoice.property_snapshot.name}?
+        </>
+      ),
+      confirmLabel: 'Mark paid',
+      tone: 'primary',
+      onConfirm: () => router.post(`/admin/invoices/${invoice.id}/paid`, {}, { preserveScroll: true }),
+    })
+
+  const confirmUnpaid = () =>
+    confirmAction({
+      title: 'Mark unpaid',
+      message: (
+        <>
+          Put <strong className="text-default-900">{invoice.invoice_number}</strong> back to owing? It was recorded paid on{' '}
+          {invoice.paid_at}
+          {invoice.paid_by ? ` by ${invoice.paid_by}` : ''}.
+        </>
+      ),
+      confirmLabel: 'Mark unpaid',
+      onConfirm: () => router.delete(`/admin/invoices/${invoice.id}/paid`, { preserveScroll: true }),
+    })
 
   return (
     <>
@@ -56,6 +90,11 @@ const Page = ({ invoice, can }: Props) => {
           <div className="flex items-center gap-3">
             <h4 className="card-title">{invoice.invoice_number}</h4>
             <span className="badge badge-label bg-secondary/15 text-secondary">{invoice.status_label}</span>
+            {invoice.paid_at ? (
+              <span className="badge badge-label bg-success/15 text-success">Paid {invoice.paid_at}</span>
+            ) : (
+              invoice.is_overdue && <span className="badge badge-label bg-danger/15 text-danger">Overdue</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Link href="/admin/invoices" className="btn btn-light text-nowrap">
@@ -65,6 +104,16 @@ const Page = ({ invoice, can }: Props) => {
             {can.send && (
               <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setSending(true)}>Send to Property</button>
             )}
+            {can.markPaid &&
+              (invoice.paid_at ? (
+                <button className="btn bg-light hover:text-primary px-4 py-1.5" onClick={confirmUnpaid}>
+                  Mark unpaid
+                </button>
+              ) : (
+                <button className="btn bg-success hover:bg-success/90 px-4 py-1.5 font-semibold text-white" onClick={confirmPaid}>
+                  <Icon icon="check" className="me-1 size-4" /> Mark paid
+                </button>
+              ))}
           </div>
         </div>
 

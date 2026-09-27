@@ -27,7 +27,10 @@ return new class extends Migration
             $table->date('due_date');
             // When the client settled it. Carried from legacy (paid/overdue was a
             // live status there); overdue is derived: unpaid + past due_date.
-            $table->timestamp('paid_at')->nullable();
+            // Payment is orthogonal to status — an invoice can be sent and paid —
+            // so it stays a timestamp rather than another InvoiceStatus case.
+            $table->timestamp('paid_at')->nullable()->index();
+            $table->foreignId('paid_by')->nullable()->constrained('people')->nullOnDelete();
 
             // Frozen snapshots
             $table->json('property_snapshot');

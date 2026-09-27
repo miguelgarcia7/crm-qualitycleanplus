@@ -263,6 +263,10 @@ Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.inde
 Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
 Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
 Route::post('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+// Payment is bookkeeping, not part of the document lifecycle — and it is
+// reversible, unlike voiding. Gated on invoices.mark_paid (admin, payroll).
+Route::post('invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('invoices.paid');
+Route::delete('invoices/{invoice}/paid', [InvoiceController::class, 'markUnpaid'])->name('invoices.unpaid');
 
 // Inventory (Phase 04, ADR-0012)
 Route::get('inventory', [InventoryController::class, 'index'])->middleware('can:inventory.items.view')->name('inventory.index');

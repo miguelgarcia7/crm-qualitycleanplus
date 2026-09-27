@@ -3,6 +3,7 @@
 namespace App\Domain\Billing\Models;
 
 use App\Domain\Billing\Enums\InvoiceStatus;
+use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
 use Carbon\CarbonImmutable;
@@ -20,6 +21,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property InvoiceStatus $status
  * @property CarbonImmutable $issue_date
  * @property CarbonImmutable $due_date
+ * @property CarbonImmutable|null $paid_at
+ * @property int|null $paid_by
  * @property array<string, mixed> $property_snapshot
  * @property array<string, mixed> $invoicer_snapshot
  * @property int $work_subtotal
@@ -37,6 +40,17 @@ class Invoice extends Model
     /**
      * @return array<string, string>
      */
+    /**
+     * Unpaid and past due. Derived rather than stored — a stored flag would
+     * need a nightly job to stay true, and would be wrong between runs.
+     */
+    public function isOverdue(): bool
+    {
+        return $this->paid_at === null
+            && $this->status !== InvoiceStatus::Voided
+            && $this->due_date->isPast();
+    }
+
     protected function casts(): array
     {
         return [
@@ -57,6 +71,7 @@ class Invoice extends Model
             'total_training_minutes' => 'integer',
             'frozen_at' => 'datetime',
             'notification_sent_at' => 'datetime',
+            'paid_at' => 'datetime',
         ];
     }
 
@@ -84,6 +99,14 @@ class Invoice extends Model
     public function payrollPeriod(): BelongsTo
     {
         return $this->belongsTo(PayrollPeriod::class);
+    }
+
+    /**
+     * @return BelongsTo<Person, $this>
+     */
+    public function paidBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'paid_by');
     }
 
     /**

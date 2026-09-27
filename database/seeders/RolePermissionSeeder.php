@@ -104,6 +104,7 @@ class RolePermissionSeeder extends Seeder
             // Invoices
             'invoices.view' => ['admin', 'office_manager', 'payroll', 'recruiter', 'property_manager'],
             'invoices.send' => ['admin', 'office_manager', 'recruiter'],
+            'invoices.mark_paid' => ['admin', 'payroll'],
             'invoices.void' => ['admin', 'payroll'],
             'invoices.export' => ['admin', 'office_manager', 'payroll', 'recruiter', 'property_manager'],
 

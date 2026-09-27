@@ -7,10 +7,21 @@ import { Head, Link, router } from '@inertiajs/react'
 import { createColumnHelper, getCoreRowModel, Row as TableRow, SortingState, useReactTable } from '@tanstack/react-table'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-type Row = { id: number; invoice_number: string; property: string | null; issue_date: string; total: number; status: string; status_label: string }
+type Row = {
+  id: number
+  invoice_number: string
+  property: string | null
+  issue_date: string
+  total: number
+  status: string
+  status_label: string
+  paid_at: string | null
+  is_overdue: boolean
+}
 type Filters = {
   search: string
   status: string
+  payment: string
   property_id: number | null
   sort: string
   direction: string
@@ -21,6 +32,7 @@ type Props = {
   pagination: PaginationMeta
   filters: Filters
   statuses: { value: string; label: string }[]
+  paymentStates: string[]
   properties: { id: number; name: string }[]
 }
 
@@ -29,6 +41,7 @@ const queryFrom = (filters: Filters, page: number): Record<string, string> => {
   const params: Record<string, string> = {}
   if (filters.search !== '') params.search = filters.search
   if (filters.status !== '') params.status = filters.status
+  if (filters.payment !== '') params.payment = filters.payment
   if (filters.property_id) params.property_id = String(filters.property_id)
   if (filters.sort !== 'issue_date') params.sort = filters.sort
   if (filters.direction !== 'desc') params.direction = filters.direction
@@ -48,7 +61,7 @@ const statusBadge: Record<string, string> = {
 
 const columnHelper = createColumnHelper<Row>()
 
-const Page = ({ invoices, pagination, filters, statuses, properties }: Props) => {
+const Page = ({ invoices, pagination, filters, statuses, paymentStates, properties }: Props) => {
   const [search, setSearch] = useState(filters.search)
 
   /**
@@ -100,6 +113,18 @@ const Page = ({ invoices, pagination, filters, statuses, properties }: Props) =>
       columnHelper.accessor('total', {
         header: 'Total',
         cell: ({ row }) => money(row.original.total),
+      }),
+      columnHelper.accessor('paid_at', {
+        header: 'Payment',
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.paid_at ? (
+            <span className="badge badge-label bg-success/15 text-success">Paid {row.original.paid_at}</span>
+          ) : row.original.is_overdue ? (
+            <span className="badge badge-label bg-danger/15 text-danger">Overdue</span>
+          ) : (
+            <span className="text-default-400">—</span>
+          ),
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -173,6 +198,14 @@ const Page = ({ invoices, pagination, filters, statuses, properties }: Props) =>
               {statuses.map((status) => (
                 <option key={status.value} value={status.value}>
                   {status.label}
+                </option>
+              ))}
+            </select>
+            <select className="form-select w-auto" value={filters.payment} onChange={(e) => visit({ payment: e.target.value })}>
+              <option value="">Payment</option>
+              {paymentStates.map((state) => (
+                <option key={state} value={state} className="capitalize">
+                  {state[0].toUpperCase() + state.slice(1)}
                 </option>
               ))}
             </select>

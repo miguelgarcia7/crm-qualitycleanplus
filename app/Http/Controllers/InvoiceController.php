@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Billing\Actions\MarkInvoicePaid;
 use App\Domain\Billing\Actions\SendInvoice;
 use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Models\Invoice;
@@ -35,6 +36,14 @@ class InvoiceController extends Controller
         'status' => 'invoices.status',
     ];
 
+    /**
+     * Payment state is a filter, not a status: an invoice can be sent and
+     * unpaid, and "overdue" is derived rather than stored.
+     *
+     * @var list<string>
+     */
+    private const PAYMENT_STATES = ['paid', 'unpaid', 'overdue'];
+
     private const PER_PAGE = [10, 25, 50];
 
     public function index(Request $request): Response
@@ -57,6 +66,8 @@ class InvoiceController extends Controller
                 'total' => $i->total,
                 'status' => $i->status->value,
                 'status_label' => $i->status->label(),
+                'paid_at' => $i->paid_at?->toDateString(),
+                'is_overdue' => $i->isOverdue(),
             ])->all(),
             'pagination' => [
                 'current_page' => $page->currentPage(),
@@ -73,24 +84,49 @@ class InvoiceController extends Controller
                 fn (InvoiceStatus $status): array => ['value' => $status->value, 'label' => $status->label()],
                 InvoiceStatus::cases(),
             ),
+            'paymentStates' => self::PAYMENT_STATES,
             'properties' => $this->propertyOptions($user),
         ]);
+    }
+
+    public function markPaid(Request $request, Invoice $invoice, MarkInvoicePaid $action): RedirectResponse
+    {
+        $this->authorize('markPaid', $invoice);
+
+        /** @var Person $user */
+        $user = $request->user();
+        $action->handle($invoice, $user);
+
+        return back()->with('success', "Invoice {$invoice->invoice_number} marked paid.");
+    }
+
+    public function markUnpaid(Request $request, Invoice $invoice, MarkInvoicePaid $action): RedirectResponse
+    {
+        $this->authorize('markPaid', $invoice);
+
+        /** @var Person $user */
+        $user = $request->user();
+        $action->undo($invoice, $user);
+
+        return back()->with('success', "Invoice {$invoice->invoice_number} marked unpaid.");
     }
 
     /**
      * The query string, normalised — every value checked against a whitelist.
      *
-     * @return array{search: string, status: string, property_id: int|null, sort: string, direction: string, per_page: int}
+     * @return array{search: string, status: string, payment: string, property_id: int|null, sort: string, direction: string, per_page: int}
      */
     private function filters(Request $request): array
     {
         $status = (string) $request->string('status');
+        $payment = (string) $request->string('payment');
         $sort = (string) $request->string('sort', 'issue_date');
         $perPage = $request->integer('per_page', 25);
 
         return [
             'search' => trim((string) $request->string('search')),
             'status' => InvoiceStatus::tryFrom($status) !== null ? $status : '',
+            'payment' => in_array($payment, self::PAYMENT_STATES, true) ? $payment : '',
             'property_id' => $request->integer('property_id') ?: null,
             'sort' => array_key_exists($sort, self::SORTS) ? $sort : 'issue_date',
             'direction' => $request->string('direction')->lower()->toString() === 'asc' ? 'asc' : 'desc',
@@ -115,6 +151,12 @@ class InvoiceController extends Controller
             )
             ->when($filters['status'] !== '', fn (Builder $q) => $q->where('invoices.status', $filters['status']))
             ->when($filters['property_id'] !== null, fn (Builder $q) => $q->where('invoices.property_id', $filters['property_id']))
+            ->when($filters['payment'] === 'paid', fn (Builder $q) => $q->whereNotNull('invoices.paid_at'))
+            ->when($filters['payment'] === 'unpaid', fn (Builder $q) => $q->whereNull('invoices.paid_at'))
+            ->when($filters['payment'] === 'overdue', fn (Builder $q) => $q
+                ->whereNull('invoices.paid_at')
+                ->where('invoices.status', '!=', InvoiceStatus::Voided->value)
+                ->whereDate('invoices.due_date', '<', now()->toDateString()))
             ->when($filters['search'] !== '', function (Builder $q) use ($filters): void {
                 $like = '%'.$filters['search'].'%';
                 $q->where(fn (Builder $w) => $w
@@ -158,7 +200,10 @@ class InvoiceController extends Controller
 
         return Inertia::render('admin/invoices/show', [
             'invoice' => $this->payload($invoice),
-            'can' => ['send' => $user instanceof Person && $user->can('send', $invoice) && $invoice->status->value !== 'voided'],
+            'can' => [
+                'send' => $user instanceof Person && $user->can('send', $invoice) && $invoice->status->value !== 'voided',
+                'markPaid' => $user instanceof Person && $user->can('markPaid', $invoice) && $invoice->status->value !== 'voided',
+            ],
         ]);
     }
 
@@ -212,6 +257,10 @@ class InvoiceController extends Controller
             'tax_amount' => $invoice->tax_amount,
             'total' => $invoice->total,
             'notification_recipient' => $invoice->notification_recipient,
+            'paid_at' => $invoice->paid_at?->toDateString(),
+            'paid_by' => $invoice->paidBy?->name,
+            // Derived, never stored: unpaid and past its due date.
+            'is_overdue' => $invoice->isOverdue(),
             'items' => $invoice->items->map(fn ($it): array => [
                 'contractor_name' => $it->contractor_name,
                 'position_name' => $it->position_name,

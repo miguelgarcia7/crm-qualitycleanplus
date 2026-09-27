@@ -23,6 +23,12 @@ class InvoicePolicy
         return $this->passes($user, $invoice, 'invoices.send');
     }
 
+    /** Recording payment is ownership/finance work, not the recruiter's. */
+    public function markPaid(Person $user, Invoice $invoice): bool
+    {
+        return $this->passes($user, $invoice, 'invoices.mark_paid');
+    }
+
     private function passes(Person $user, Invoice $invoice, string $permission): bool
     {
         if (! $user->can($permission)) {
