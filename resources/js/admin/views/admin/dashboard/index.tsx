@@ -1,5 +1,6 @@
 import Icon from '@/components/wrappers/Icon'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import { cn } from '@/utils/helpers'
 import { Head } from '@inertiajs/react'
 import ActivityCard, { ActivityRow } from './widgets/ActivityCard'
 import AlertBanner, { PulseAlert } from './widgets/AlertBanner'
@@ -40,6 +41,25 @@ const Page = ({ widgets }: Props) => {
   const { context } = widgets
   // The revenue-vs-payouts chart leads; anything else drops below.
   const [heroChart, ...restCharts] = widgets.charts
+
+  // Live ops read together — who is on now, where they are, and what just
+  // happened — so they share a row rather than stacking down one column.
+  const liveOps = [
+    widgets.onTheClockNow && <LiveRosterCard key="roster" data={widgets.onTheClockNow} />,
+    widgets.onTheClock && <OnTheClockCard key="by-property" data={widgets.onTheClock} />,
+    widgets.activity !== null && <ActivityCard key="activity" rows={widgets.activity} />,
+  ].filter(Boolean)
+
+  // The approval queue is a worklist, not a pulse reading — it sits with the
+  // weekly chart near the bottom rather than above the live cards.
+  const worklists = [
+    ...restCharts.map((trend, i) => <TrendChart key={`chart-${i}`} trend={trend} />),
+    widgets.approvals && <ApprovalsTable key="approvals" approvals={widgets.approvals} />,
+  ].filter(Boolean)
+
+  /** Columns that match what is actually there, so a gated card leaves no gap. */
+  const columnsFor = (count: number): string =>
+    count >= 3 ? 'xl:grid-cols-3' : count === 2 ? 'lg:grid-cols-2' : ''
 
   return (
     <>
@@ -86,25 +106,10 @@ const Page = ({ widgets }: Props) => {
         </div>
       </div>
 
-      <div className="mb-4 grid gap-4 xl:grid-cols-3">
-        {widgets.approvals && (
-          <div className="xl:col-span-2">
-            <ApprovalsTable approvals={widgets.approvals} />
-          </div>
-        )}
-        <div className={`flex flex-col gap-4 ${widgets.approvals ? '' : 'xl:col-span-3'}`}>
-          {widgets.onTheClockNow && <LiveRosterCard data={widgets.onTheClockNow} />}
-          {widgets.onTheClock && <OnTheClockCard data={widgets.onTheClock} />}
-          {widgets.decisions && <DecisionsCard decisions={widgets.decisions} />}
-        </div>
-      </div>
+      {liveOps.length > 0 && <div className={cn('mb-4 grid gap-4', columnsFor(liveOps.length))}>{liveOps}</div>}
 
-      {restCharts.length > 0 && (
-        <div className="mb-4 grid gap-4 lg:grid-cols-2">
-          {restCharts.map((trend, i) => (
-            <TrendChart key={i} trend={trend} />
-          ))}
-        </div>
+      {worklists.length > 0 && (
+        <div className={cn('mb-4 grid gap-4', worklists.length >= 2 ? 'lg:grid-cols-2' : '')}>{worklists}</div>
       )}
 
       {widgets.stats.length > 0 && (
@@ -115,12 +120,14 @@ const Page = ({ widgets }: Props) => {
         </div>
       )}
 
-      {(widgets.lists.length > 0 || widgets.activity !== null) && (
+      {(widgets.lists.length > 0 || widgets.decisions) && (
         <div className="grid gap-4 lg:grid-cols-2">
           {widgets.lists.map((widget, i) => (
             <ListCard key={i} widget={widget} />
           ))}
-          {widgets.activity !== null && <ActivityCard rows={widgets.activity} />}
+          {/* Recent activity moved up to the live-ops row, so this is where
+              "Needs a decision soon" lands. */}
+          {widgets.decisions && <DecisionsCard decisions={widgets.decisions} />}
         </div>
       )}
     </>

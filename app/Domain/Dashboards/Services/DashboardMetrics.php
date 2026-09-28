@@ -557,6 +557,8 @@ class DashboardMetrics
             ->with('causer')
             ->latest()
             ->latest('id')
+            // A glance, not a log viewer — the card links to /admin/audit for
+            // the rest rather than shipping a few thousand pixels of timeline.
             ->limit(8)
             ->get()
             ->map(fn (Activity $a): array => [

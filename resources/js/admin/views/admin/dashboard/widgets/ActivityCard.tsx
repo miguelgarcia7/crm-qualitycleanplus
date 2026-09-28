@@ -1,5 +1,4 @@
 import Icon from '@/components/wrappers/Icon'
-import { SimpleBar } from '@/components/wrappers/SimpleBar'
 import { cn } from '@/utils/helpers'
 import { Link } from '@inertiajs/react'
 
@@ -27,7 +26,9 @@ const ActivityCard = ({ rows }: { rows: ActivityRow[] }) => (
       </Link>
     </div>
 
-    <SimpleBar className="card-body" style={{ maxHeight: 426 }}>
+    {/* No scroller: the card shows eight entries and links out for the rest,
+        so there is never anything to scroll past. */}
+    <div className="card-body">
       {rows.length === 0 ? (
         <p className="text-default-400 text-sm">No activity yet.</p>
       ) : (
@@ -61,7 +62,18 @@ const ActivityCard = ({ rows }: { rows: ActivityRow[] }) => (
           })}
         </div>
       )}
-    </SimpleBar>
+    </div>
+
+    {/* The icon button in the header is easy to miss, so the way to the full
+        log is spelled out. */}
+    {rows.length > 0 && (
+      <div className="card-footer">
+        <Link href="/admin/audit" className="text-primary text-sm font-medium">
+          View all activity
+          <Icon icon="arrow-right" className="ms-1 inline size-4" />
+        </Link>
+      </div>
+    )}
   </div>
 )
 
