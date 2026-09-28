@@ -8,6 +8,60 @@
 
 Items we've identified but explicitly deferred. Each one has a context note so future-us (or a new session) can pick it up cold.
 
+## Work orders billed at a zero rate
+
+**Status: no change made — reviewed 2026-09-27 and deliberately left alone.**
+
+Surfaced by asking why one line on invoice QCM-01581 showed hours but a zero
+amount. Legacy's own data, carried faithfully by the import: the line had
+`rate = 0` while every other Food Runner on that invoice billed at `$21.00`.
+
+Across the whole legacy database:
+
+| | |
+|---|---|
+| Line items with worked minutes but rate 0 | **71** |
+| Invoices affected | **64** |
+| Work orders behind them | **10** |
+| Unbilled time | **2,211 hours** |
+| At legacy's average billed rate ($20.58/hr) | **≈ $45,500** |
+| Still at `property_rate` 0 today | 10 |
+| …paying the contractor anyway | **5** |
+
+**It was never "set to zero" — it was never set.** Legacy's `activity_log` shows
+work order 2478 created with `{"property_rate": 0, "contractor_rate": 1600}`;
+the only later edits changed dates. 8 of the 10 were born that way, created by
+**five different people** (Veronica Martinez, Mayra Munoz, Admin Recruiter, Ana
+Chavez, Fatima Ruiz). Five people independently doing the same thing reads as a
+form that accepts zero without comment, not individual carelessness.
+
+Note the compounding: ten unset rates produced 71 billing lines, because a
+single work order bills every week until someone notices. Nothing prompts anyone
+to.
+
+**Why nothing was changed:** the owner's reading is that this is likely
+intentional — hours tracked for a placement QCP does not bill the client for.
+A contractor paid but not billed is exactly what a non-billable placement looks
+like, and five people doing it supports a practice rather than a mistake. That
+also settles the validation question: `bill_rate` keeps `min:0`.
+
+**If it is ever revisited**, the options considered were:
+
+- A guard when an invoice generates with a zero-billed line that has worked
+  minutes — catches it in week one rather than month six, and works regardless
+  of how the rate reached zero.
+- Recording the number in `legacy:verify` as accepted drift, so it is stated
+  rather than rediscovered.
+- Tightening `bill_rate` to `min:1` with an explicit non-billable flag — only
+  worthwhile if non-billable placements turn out *not* to be a real case.
+
+The new app already closes the "never set" path: `bill_rate` is `required` on
+both the create and update work-order requests, and invoice amounts come from
+rate snapshots taken when the punch was recorded (ADR-0005). A typed zero still
+passes, which is the deliberate part.
+
+**Decision needed by:** nothing blocks on it. Revisit only if someone asks why an
+invoice shows hours at no charge.
 ## Reminders for pending timesheets and unsent invoices
 
 **Context:** Two places where the system starts a process, tells someone once,
