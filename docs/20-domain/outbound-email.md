@@ -54,6 +54,53 @@ The others are the opposite case: by the time mail is attempted the timesheet is
 already locked, or the `Person` row already committed. A synchronous failure
 there would report failure for work that succeeded, and invite a retry.
 
+## Transactional notifications ignore the category mute
+
+`AppNotification::mutable()` defaults to true. A notification that returns
+**false** is transactional: the recipient's category mute does not reach it.
+
+| Notification | Mutable |
+|---|---|
+| `TimesheetAwaitingApproval` (email to the PM) | **No** |
+| `TimesheetStatusChanged`, event `submitted` | **No** — the same request, other channel |
+| `TimesheetStatusChanged`, approved / declined | Yes |
+| `TimesheetDecided` (email to the recruiter) | Yes |
+| Everything else | Yes |
+
+The test is **whether silence breaks a process someone else depends on**. A
+request for action addressed to a named person is transactional; an outcome
+notice is informational. Before this, a property manager who muted Timesheets
+received nothing at all for the notification asking them to approve a week —
+one switch could silently stall billing.
+
+This is the split every mature approval system draws (Concur, Coupa, Bill.com):
+the approver cannot switch off the request, and the pressure valve is *frequency*
+— digests and reminders — rather than silence. That is why
+`90-open/parking-lot.md` ranks a reminder job above per-channel preferences.
+
+The invoice, invitation and reset emails are transactional in the same sense;
+they simply never extended `AppNotification`, so they were never mutable.
+
+**Both halves of a request must agree.** Muting only the email would have left a
+muted PM getting mail but no bell for the same event, which is why the
+`submitted` event of the in-app notice is transactional too.
+
+## Where a person changes their preferences
+
+`/admin/settings/profile#notifications` on the back office, and
+`/settings/profile#notifications` on QC Minute. Both surfaces run the **same**
+`settings/profile` component and the same controllers; routes exist on each, and
+the page posts relative to whichever surface rendered it (`useSettingsBase()` off
+the shared `surface` prop).
+
+QC Minute had no settings area at all until 2026-09-06 — so property managers and
+contractors, the audience the timesheet emails are addressed to, could not reach
+the switches governing them.
+
+The screen shows an **"Email too"** badge on any category that also sends mail,
+driven by `NotificationCategory::sendsEmail()` rather than hardcoded in the view.
+Muting remains **per category, not per channel**: there is no "in-app but not
+email" setting, and adding one would be a schema change to `muted_notifications`.
 ## What this depends on
 
 **A queue worker.** Four of the five sit in the `jobs` table until one picks them

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Importer + verify gate built and rehearsed green end-to-end (2026-09-01 dump) |
-| Last updated | 2026-09-01 |
+| Last updated | 2026-09-27 |
 | Owner | Engineering |
 
 ## As built
@@ -245,6 +245,39 @@ the connection on small Cloud instances); the load runs `--reconnect=FALSE` so a
 drop aborts loudly instead of silently skipping rows; every table count is
 compared afterwards. Sync days and cutover day run the same command.
 
+## Schema changes reach Cloud only through a rebuild
+
+**The app is pre-live, so migrations are edited in place** rather than stacked
+(the phase-09e convention). `php artisan migrate` therefore sees no new file and
+does nothing: a normal deploy does **not** carry a schema change to Laravel
+Cloud. Only `bin/legacy-sync --upload`, or a `migrate:fresh` on that database,
+will.
+
+The same applies to `RolePermissionSeeder` — a new permission row does not exist
+until the seeder runs, and a permission that does not exist cannot be granted, so
+the feature gated on it is simply invisible. That is exactly what happened on
+2026-09-27: `invoices.mark_paid` and `invoices.paid_by` were added, and the Mark
+Paid button did not appear locally until the database was rebuilt.
+
+Changed in place **since the 2026-09-01 rehearsal**, so any database created
+before that date is missing them:
+
+| Table | Change |
+|---|---|
+| `people` | index on `name` |
+| `properties` | `billing_email` |
+| `work_orders` | indexes on `created_at`, `start_date` |
+| `payroll_periods` | index on `week_start` |
+| `timesheets` | index on `sent_for_approval_at` |
+| `invoices` | `paid_by`, indexes on `paid_at`, `issue_date` |
+| `RolePermissionSeeder` | `invoices.mark_paid` (admin, payroll) |
+
+`billing_email` has no legacy source — legacy `properties` has no such column —
+so every property imports with it blank and someone has to fill them in.
+
+**This convention ends the moment real data lands in production.** From then on a
+schema change needs its own migration, because there is no longer a database that
+can be thrown away and rebuilt.
 ## Cutover runbook
 
 1. **Rehearsals** (now → ready): refresh dump → wipe/reseed → `legacy:import` →

@@ -145,6 +145,37 @@ PM can also access invoices by logging into QC Minute — `notification_sent_at`
 
 Payment itself still happens outside the system — QCP records it here once it lands (see **Recording payment**); nothing reconciles against a bank or accounting feed.
 
+## Frozen snapshots come in two shapes
+
+`property_snapshot` and `invoicer_snapshot` are frozen at issue (ADR-0006), and
+after the legacy import the same column holds **two different shapes**:
+
+```
+this app:   "address": "1720 Regal Row", "city": …, "state": …, "zip": …
+legacy:     "address": { "street": …, "city": …, "state": …, "zip": … }
+```
+
+Legacy QC Minute nested the address; this app keeps those as siblings. The
+importer reshapes as it writes (see below), but a database imported before
+2026-09-27 — including Laravel Cloud until it is refreshed — still holds the
+nested form.
+
+**Always read a snapshot through `InvoiceSnapshot::flatten()`**, or the model
+accessors `propertySnapshotFlat()` / `invoicerSnapshotFlat()`. Every reader does:
+the PDF view, the back-office invoice page and the QC Minute one.
+
+Why this matters more than it looks: echoing a nested `address` in Blade is a
+**fatal** `htmlspecialchars(): argument must be of type string, array given` —
+that broke Download PDF for 1,559 of 1,565 invoices. In React it fails
+**silently**, rendering a blank city/state/zip, which went unnoticed for longer.
+
+`ImportInvoices` now normalises legacy snapshots on the way in, preserving every
+value and changing only the shape. That is a deliberate exception to "a frozen
+document is preserved verbatim": the importer already translates every other
+legacy column into this app's vocabulary, and nothing about what was billed
+moves. Unknown keys survive — the legacy invoicer block carries a bank `account`
+(name, account number, routing number) that this app never renders and does not
+discard.
 ## Recording payment
 
 Whether a client settled is tracked as a **timestamp, not a status**. `paid_at`
