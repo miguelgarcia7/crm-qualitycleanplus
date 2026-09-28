@@ -26,7 +26,13 @@ export type ServerPaginationProps = {
  */
 const ServerPagination = ({ meta, onPageChange, itemsName = 'items', showInfo = true }: ServerPaginationProps) => {
   return (
-    <div className={cn('text-sm-start flex w-full items-center text-center', showInfo ? 'justify-between' : 'justify-end')}>
+    // Stacked on a phone — the count and an eleven-control strip do not share
+    // a 375px row. `text-sm-start` was a Bootstrap leftover that did nothing.
+    <div
+      className={cn(
+        'flex w-full flex-col items-center gap-3 text-center sm:flex-row sm:text-start',
+        showInfo ? 'sm:justify-between' : 'sm:justify-end',
+      )}>
       {showInfo && (
         <div className="text-default-400">
           Showing <span className="font-semibold">{meta.from ?? 0}</span> to <span className="font-semibold">{meta.to ?? 0}</span> of{' '}

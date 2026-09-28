@@ -78,13 +78,21 @@ const Pagination = ({ currentPage, lastPage, onPageChange, siblings = 1 }: Pagin
           </button>
         </li>
 
+        {/* A phone cannot fit first/last, prev/next and seven slots, so below sm
+            the numbers collapse to a position indicator and the arrows do the work. */}
+        <li className="page-item sm:hidden">
+          <span className="page-link pointer-events-none w-auto px-3 whitespace-nowrap">
+            {currentPage} / {lastPage}
+          </span>
+        </li>
+
         {pageWindow(currentPage, lastPage, siblings).map((slot, i) =>
           slot === 'gap' ? (
-            <li key={`gap-${i}`} className="page-item" aria-hidden="true">
+            <li key={`gap-${i}`} className="page-item hidden sm:block" aria-hidden="true">
               <span className="page-link pointer-events-none">…</span>
             </li>
           ) : (
-            <li key={slot} className={cn('page-item', currentPage === slot && 'active')}>
+            <li key={slot} className={cn('page-item hidden sm:block', currentPage === slot && 'active')}>
               <button
                 className="page-link"
                 onClick={() => go(slot)}
