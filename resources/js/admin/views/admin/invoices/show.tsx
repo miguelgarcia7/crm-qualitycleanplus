@@ -26,7 +26,6 @@ type PositionSummary = {
   training_minutes: number
   total_minutes: number
   total_bill: number
-  total_payout: number
 }
 type Invoice = {
   id: number
@@ -222,7 +221,6 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
                       <th className="text-end">HLD Hrs</th>
                       <th className="text-end">Total Hrs</th>
                       <th className="text-end">Billed</th>
-                      <th className="text-end">Payout</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -238,7 +236,6 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
                         <td className="text-end">{hrs(row.holiday_minutes)}</td>
                         <td className="text-end font-medium">{hrs(row.total_minutes)}</td>
                         <td className="text-end">{money(row.total_bill)}</td>
-                        <td className="text-end">{money(row.total_payout)}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -10,7 +10,6 @@ use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,9 +20,10 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
  * views what they were billed and downloads the PDF — generating, sending and
  * voiding all stay in the back office.
  *
- * The payload deliberately omits contractor payout figures. The back-office
- * position summary carries `total_payout` (QCP's margin); that must never reach
- * the property being billed.
+ * The payload carries no contractor payout figures — QCP's margin must never
+ * reach the property being billed. That is now structural rather than a strip
+ * applied here: {@see InvoicePositionSummary} stopped emitting payout when the
+ * back office dropped the column too.
  */
 class InvoiceController extends Controller
 {
@@ -80,12 +80,7 @@ class InvoiceController extends Controller
                     'ot_bill_rate' => $item->ot_bill_rate,
                     'total_bill' => $item->total_bill,
                 ])->values(),
-                // Payout is withheld here on purpose: a property manager sees what
-                // they are billed, never what QCP pays its contractors.
-                'position_summary' => array_map(
-                    fn (array $row): array => Arr::except($row, 'total_payout'),
-                    InvoicePositionSummary::for($invoice),
-                ),
+                'position_summary' => InvoicePositionSummary::for($invoice),
             ],
             'previewNotice' => config('qcp.invoice.preview_notice'),
         ]);

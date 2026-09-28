@@ -141,8 +141,9 @@ it('never sends a payout figure to a property manager', function () {
     $pm = person('property_manager');
     $invoice->property->assignments()->create(['person_id' => $pm->id, 'role' => 'property_manager']);
 
-    // The rollup is shared with the back office now; the omission has to stay
-    // deliberate rather than being an accident of two separate builders.
+    // Neither surface shows payout any more, so this is structural — the
+    // builder does not emit it at all. Pinned anyway: it is the invariant that
+    // matters, not how it currently happens to be enforced.
     $this->actingAs($pm)->get(qcminute("/invoices/{$invoice->id}"))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
@@ -247,4 +248,17 @@ it('signs an adjustment so a credit reads as a credit', function () {
     $invoice = Invoice::factory()->create(['adjustment_total' => -5000]);
 
     expect(view('pdf.invoice', ['invoice' => $invoice->load('items')])->render())->toContain('-$50.00');
+});
+
+it('keeps payout off the back-office invoice too', function () {
+    $invoice = Invoice::factory()->create();
+    InvoiceItem::factory()->create(['invoice_id' => $invoice->id, 'total_payout' => 12345]);
+
+    // An invoice is a billing document. Margin lives in the reports built for
+    // it, not on the page someone may be sharing their screen from.
+    $this->actingAs(person('payroll'))->get(main("/admin/invoices/{$invoice->id}"))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('invoice.position_summary.0.total_bill')
+            ->missing('invoice.position_summary.0.total_payout'));
 });

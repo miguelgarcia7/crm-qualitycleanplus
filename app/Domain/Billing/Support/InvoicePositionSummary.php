@@ -12,8 +12,8 @@ use Illuminate\Support\Collection;
  *
  * Built here rather than in each controller: the back office and QC Minute both
  * render it, and they had drifted already — one carried payout, the other did
- * not. That difference is deliberate and is kept, but as an explicit omission
- * by the caller rather than two builders quietly disagreeing.
+ * not. Neither does now, so a payout figure cannot reach either surface by
+ * accident rather than being stripped by whichever caller remembers to.
  */
 final class InvoicePositionSummary
 {
@@ -39,8 +39,10 @@ final class InvoicePositionSummary
                     + $i->overtime_minutes
                     + $i->holiday_minutes
                     + $i->training_minutes),
+                // No payout here. An invoice is a billing document; what QCP pays
+                // its contractors is margin, and it belongs in the reports that
+                // exist for it, not on the artefact a client may be looking at.
                 'total_bill' => (int) $items->sum('total_bill'),
-                'total_payout' => (int) $items->sum('total_payout'),
             ])
             ->values()
             ->all();
