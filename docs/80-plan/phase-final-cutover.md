@@ -245,6 +245,25 @@ the connection on small Cloud instances); the load runs `--reconnect=FALSE` so a
 drop aborts loudly instead of silently skipping rows; every table count is
 compared afterwards. Sync days and cutover day run the same command.
 
+If the load fails, retry with **`bin/legacy-sync --upload-only`**: it skips the
+rebuild and ships the local copy a previous run already verified. A green
+`legacy:verify` writes `storage/app/legacy-sync-verified.at`, and the rebuild
+deletes the stamp before it starts — so the stamp exists only while the database
+in front of you is one that passed the gate, and `--upload-only` refuses to run
+without it rather than shipping an unvetted copy. It still re-dumps from local,
+so the table comparison at the end still compares like with like.
+
+**A failed load usually means the public endpoint, not the credentials.** The
+reachability check is a TCP probe, and the AWS load balancer in front of ProxySQL
+answers whether or not the endpoint is enabled — so the script can get all the way
+through the dump and then die with `ERROR 1045 (28000): ProxySQL Error: Access
+denied`. The address in that error is the balancer's own, and it cycles between
+the hostname's AAAA records, so it says nothing about the client's IP or an
+allowlist. When the same credentials authenticate from a plain
+`mysql -h "$DB_HOST" -u "$DB_USERNAME" -e "SELECT 1"`, a 1045 means the endpoint
+is off or still provisioning. Expect one after a successful sync too — the last
+step is to disable the endpoint again.
+
 ## Schema changes reach Cloud only through a rebuild
 
 **The app is pre-live, so migrations are edited in place** rather than stacked
