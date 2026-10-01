@@ -3,22 +3,30 @@
 # legacy-sync — the QC Minute cutover pipeline in one command
 # (docs/80-plan/phase-final-cutover.md).
 #
-#   bin/legacy-sync            rebuild local qcpminute from the local `minute`
-#                              copy and run the legacy:verify gate
-#   bin/legacy-sync --upload   ... and, only if verify is green, dump the
-#                              verified database and load it into the Laravel
-#                              Cloud database from .env.rehearsal
-#   bin/legacy-sync --yes      skip the confirmation prompt
+#   bin/legacy-sync              rebuild local qcpminute from the local `minute`
+#                                copy and run the legacy:verify gate
+#   bin/legacy-sync --upload     ... and, only if verify is green, dump the
+#                                verified database and load it into the Laravel
+#                                Cloud database from .env.rehearsal
+#   bin/legacy-sync --upload-only  skip the rebuild and retry just the upload,
+#                                using the local database a previous run already
+#                                verified (refuses if no run has passed verify)
+#   bin/legacy-sync --yes        skip the confirmation prompt
 #
 # Refresh the local `minute` copy first (legacy app: db:sync-from-prod, or a
 # manual prod dump import). The upload stage needs the Cloud database's
-# public endpoint enabled and its credentials in .env.rehearsal.
+# public endpoint enabled and its credentials in .env.rehearsal. Note that the
+# reachability check below only proves TCP reaches the load balancer, not that
+# the endpoint is enabled — a ProxySQL "Access denied" (1045) during the load,
+# with otherwise-good credentials, means the endpoint is off or still
+# provisioning. The address in that error is the balancer's, not yours.
 #
 # Hard-won details baked in: verify runs unpiped so its exit code gates the
-# upload; the dump uses 64KB insert batches (larger ones drop the connection
-# on small Cloud instances); the load runs with --reconnect=FALSE so a dropped
-# connection aborts loudly instead of silently skipping statements; and every
-# table count is compared afterwards.
+# upload; a green verify leaves a stamp file so --upload-only can tell whether
+# the local copy was ever verified; the dump uses 64KB insert batches (larger
+# ones drop the connection on small Cloud instances); the load runs with
+# --reconnect=FALSE so a dropped connection aborts loudly instead of silently
+# skipping statements; and every table count is compared afterwards.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -27,41 +35,67 @@ PHP="${PHP_BIN:-php84}"
 ENVF=.env.rehearsal
 DUMP=storage/app/legacy-sync.sql
 LOAD_ERRORS=storage/app/legacy-sync-load-errors.log
+STAMP=storage/app/legacy-sync-verified.at
 
 UPLOAD=0
+UPLOAD_ONLY=0
 YES=0
 
 for arg in "$@"; do
     case "$arg" in
         --upload) UPLOAD=1 ;;
+        --upload-only) UPLOAD=1; UPLOAD_ONLY=1 ;;
         --yes) YES=1 ;;
-        --help|-h) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        --help|-h) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown option: $arg (try --help)"; exit 1 ;;
     esac
 done
 
 command -v "$PHP" >/dev/null || { echo "$PHP not found (set PHP_BIN to override)"; exit 1; }
 
+# The stamp exists only while the local database in front of us is one that
+# passed legacy:verify, so --upload-only can refuse to ship an unvetted copy.
+VERIFIED_AT=""
+if [ "$UPLOAD_ONLY" -eq 1 ]; then
+    [ -f "$STAMP" ] || {
+        echo "--upload-only needs a local database that already passed the verify gate,"
+        echo "and $STAMP is missing. Run bin/legacy-sync --upload instead."
+        exit 1
+    }
+    VERIFIED_AT=$(cat "$STAMP")
+fi
+
 if [ "$YES" -ne 1 ]; then
-    printf 'This WIPES the local qcpminute database and rebuilds it from `minute`'
-    [ "$UPLOAD" -eq 1 ] && printf ', then REPLACES the Laravel Cloud database'
+    if [ "$UPLOAD_ONLY" -eq 1 ]; then
+        printf 'This REPLACES the Laravel Cloud database with the local qcpminute copy '
+        printf 'verified at %s, and re-runs neither the import nor the verify gate' "$VERIFIED_AT"
+    else
+        printf 'This WIPES the local qcpminute database and rebuilds it from `minute`'
+        [ "$UPLOAD" -eq 1 ] && printf ', then REPLACES the Laravel Cloud database'
+    fi
     printf '. Continue? [y/N] '
     read -r answer
     [ "$answer" = "y" ] || [ "$answer" = "Y" ] || { echo "Aborted."; exit 1; }
 fi
 
-echo "==> Rebuilding local database from legacy"
-"$PHP" artisan migrate:fresh --no-interaction --quiet
-for seeder in RolePermissionSeeder DepartmentSeeder PositionSeeder InventorySeeder CompanySettingsSeeder; do
-    "$PHP" artisan db:seed --class="$seeder" --no-interaction --quiet
-done
-"$PHP" artisan legacy:import --force
+if [ "$UPLOAD_ONLY" -eq 1 ]; then
+    echo "==> Skipping the rebuild (verify last passed $VERIFIED_AT)"
+else
+    echo "==> Rebuilding local database from legacy"
+    rm -f "$STAMP"
+    "$PHP" artisan migrate:fresh --no-interaction --quiet
+    for seeder in RolePermissionSeeder DepartmentSeeder PositionSeeder InventorySeeder CompanySettingsSeeder; do
+        "$PHP" artisan db:seed --class="$seeder" --no-interaction --quiet
+    done
+    "$PHP" artisan legacy:import --force
 
-echo "==> Verifying (the gate — nothing ships unless this is green)"
-"$PHP" artisan legacy:verify
+    echo "==> Verifying (the gate — nothing ships unless this is green)"
+    "$PHP" artisan legacy:verify
+    date -u '+%Y-%m-%dT%H:%M:%SZ' > "$STAMP"
 
-echo "==> Refreshing report rollups"
-"$PHP" artisan reports:refresh-rollups --from=2024-08-01
+    echo "==> Refreshing report rollups"
+    "$PHP" artisan reports:refresh-rollups --from=2024-08-01
+fi
 
 if [ "$UPLOAD" -ne 1 ]; then
     echo "==> Done (local only). Re-run with --upload to push to Laravel Cloud."
@@ -90,7 +124,7 @@ ls -lh "$DUMP" | awk '{print "    dump:", $5}'
 echo "==> Loading into Laravel Cloud ($CLOUD_DB)"
 if ! MYSQL_PWD="$CLOUD_PW" mysql --reconnect=FALSE -h "$CLOUD_HOST" -P "$CLOUD_PORT" -u "$CLOUD_USER" \
         --default-character-set=utf8mb4 "$CLOUD_DB" < "$DUMP" 2> "$LOAD_ERRORS"; then
-    echo "LOAD FAILED — the Cloud database may be inconsistent. Re-run bin/legacy-sync --upload."
+    echo "LOAD FAILED — the Cloud database may be inconsistent. Re-run bin/legacy-sync --upload-only."
     cat "$LOAD_ERRORS"
     exit 1
 fi
@@ -111,7 +145,7 @@ done
 
 if [ "$mismatch" -ne 0 ]; then
     echo "Comparison failed. (Note: an activity_log off-by-one usually means someone logged"
-    echo "into the local app between dump and compare — re-run --upload to be sure.)"
+    echo "into the local app between dump and compare — re-run --upload-only to be sure.)"
     exit 1
 fi
 
