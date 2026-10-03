@@ -7,8 +7,9 @@ import { useEffect, useRef, useState } from 'react'
  * Interactive geofence editor for the property form (React-controlled, ADR-0027).
  * MapLibre GL over OSM raster tiles + Nominatim geocoding — no API token needed.
  * Drag the pin or click the map to set coordinates; the radius circle redraws
- * live; an address search and an auto-dropped starting pin (geocoded from the
- * property's address when no coordinates exist) cover the common cases. The
+ * live; an address search, an auto-dropped starting pin (geocoded from the
+ * property's address when no coordinates exist) and a "Use property address"
+ * button (re-geocodes after the address changes) cover the common cases. The
  * plain lat/lng inputs stay authoritative — this card reads and writes them.
  */
 
@@ -61,6 +62,8 @@ const GeofenceMapCard = ({
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [locateError, setLocateError] = useState<string | null>(null)
   const searchSeq = useRef(0)
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>(null)
 
@@ -220,6 +223,26 @@ const GeofenceMapCard = ({
     }, 400)
   }
 
+  // The pin only follows the address on its own when there are no coordinates
+  // yet; after an address change, this moves it (and the coordinates) there.
+  const locateFromAddress = async () => {
+    const q = addressQuery.trim()
+    setLocateError(null)
+    setLocating(true)
+    try {
+      const found = await geocode(q, 1)
+      if (found.length === 0) {
+        setLocateError(`Couldn't find "${q}". Search for it on the map, or drag the pin.`)
+        return
+      }
+      setCoordinates(parseFloat(found[0].lat), parseFloat(found[0].lon), true)
+    } catch {
+      setLocateError('The address lookup is unavailable right now. Drag the pin or enter the coordinates instead.')
+    } finally {
+      setLocating(false)
+    }
+  }
+
   const selectResult = (result: SearchResult) => {
     setResults([])
     setQuery('')
@@ -237,7 +260,7 @@ const GeofenceMapCard = ({
   return (
     <div className="space-y-2">
       <div className="relative">
-        <div ref={containerRef} className="border-default-200 h-80 w-full overflow-hidden rounded-lg border" />
+        <div ref={containerRef} className="border-default-200 h-120 w-full overflow-hidden rounded-lg border" />
 
         <div className="absolute start-2 top-2 w-72 max-w-[calc(100%-1rem)]">
           <div className="input-icon-group">
@@ -266,9 +289,22 @@ const GeofenceMapCard = ({
           )}
         </div>
       </div>
-      <p className="text-default-400 text-xs">
-        Drag the pin or click the map to set the location. The circle shows the geofence — contractors can only QR clock-in inside it.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <p className="text-default-400 text-xs">
+          Drag the pin or click the map to set the location. The circle shows the geofence — contractors can only QR clock-in inside it.
+        </p>
+        <button
+          type="button"
+          className="btn btn-light px-3 py-1.5 text-sm"
+          disabled={locating || addressQuery.trim().length < 3}
+          title={addressQuery.trim().length < 3 ? 'Enter the address first' : `Look up ${addressQuery}`}
+          onClick={locateFromAddress}
+        >
+          <Icon icon="map-pin" className="size-4" />
+          {locating ? 'Locating…' : 'Use property address'}
+        </button>
+      </div>
+      {locateError && <p className="text-danger text-xs">{locateError}</p>}
     </div>
   )
 }

@@ -62,7 +62,7 @@ a pay increase.
 |---|---|---|---|---|
 | **Acme Hotel** | 233 N Michigan Ave, Chicago, IL 60601 | (312) 555-0100 · accounts.payable@example.com | Rita | 5 |
 | **QCP Property** | 1720 Regal Row, Dallas, TX 75235 | (214) 333-4444 · qcp@example.com | Ray | Janitor, Housekeeper |
-| **MAG Solutions** | 1519 Palisaded Dr, Carrollton, TX 75007 | (214) 333-5555 · mag@example.com | Ray | Cook, Dishwasher |
+| **MAG Solutions** | 1519 Palisades Dr, Carrollton, TX 75007 | (214) 333-5555 · mag@example.com | Ray | Cook, Dishwasher |
 
 QCP Property and MAG Solutions each have a **rate history**: their Bible rates went
 up a few months ago, so the property page's Rates tab shows the old rate (closed) and
