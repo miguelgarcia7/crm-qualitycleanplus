@@ -44,7 +44,7 @@ const Page = ({ current, mine, can }: Props) => {
                 <div><label className="form-label">New name</label><input className="form-input" value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder={current.name} />{errors.name && <p className="text-danger mt-1 text-sm">{errors.name}</p>}</div>
                 <div><label className="form-label">New email</label><input type="email" className="form-input" value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder={current.email} />{errors.email && <p className="text-danger mt-1 text-sm">{errors.email}</p>}</div>
                 <div><label className="form-label">New phone</label><input className="form-input" value={data.phone} onChange={(e) => setData('phone', e.target.value)} placeholder={current.phone ?? ''} /></div>
-                <div><label className="form-label">Reason</label><textarea className="form-input" rows={2} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />{errors.reason && <p className="text-danger mt-1 text-sm">{errors.reason}</p>}</div>
+                <div><label className="form-label">Reason</label><textarea className="form-textarea" rows={2} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />{errors.reason && <p className="text-danger mt-1 text-sm">{errors.reason}</p>}</div>
                 <button type="submit" className="btn bg-primary hover:bg-primary-hover w-full py-2 font-semibold text-white" disabled={processing}>Submit for verification</button>
               </form>
             ) : <p className="text-default-500 text-sm">You don't have permission to request profile changes.</p>}

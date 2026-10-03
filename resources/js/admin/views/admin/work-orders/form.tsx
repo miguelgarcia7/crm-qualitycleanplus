@@ -301,7 +301,7 @@ const Page = ({ workOrder, catalogs }: Props) => {
               )}
             </Field>
             <Field label="Notes" error={errors.notes}>
-              <textarea className="form-input" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
+              <textarea className="form-textarea" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
             </Field>
 
             <div className="flex items-center gap-3">

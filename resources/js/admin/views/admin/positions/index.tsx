@@ -208,7 +208,7 @@ const Page = ({ positions, can }: Props) => {
                   </div>
                   <div>
                     <label className="form-label">Notes</label>
-                    <textarea className="form-input w-full" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
+                    <textarea className="form-textarea" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
                     {errors.notes && <p className="text-danger text-sm">{errors.notes}</p>}
                   </div>
                   <div className="flex items-center gap-2">

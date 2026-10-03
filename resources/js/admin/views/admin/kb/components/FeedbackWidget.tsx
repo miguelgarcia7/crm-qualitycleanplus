@@ -81,7 +81,7 @@ const FeedbackWidget = ({ endpoint, myVote }: { endpoint: string; myVote: string
               </select>
             </div>
             <textarea
-              className="form-input w-full"
+              className="form-textarea"
               rows={3}
               value={message}
               onChange={(e) => setMessage(e.target.value)}

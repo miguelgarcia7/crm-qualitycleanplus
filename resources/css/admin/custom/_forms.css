@@ -7,6 +7,13 @@
     transition-property: color, box-shadow;
 }
 
+/* Safari doesn't vertically centre a native date/time value the way it does
+   text: with the fixed height and py-0 above, the date sits near the top of
+   the box. Padding that fills the height centres it in every browser. */
+.form-input:is([type="date"], [type="time"], [type="datetime-local"], [type="month"]) {
+    @apply py-1.75;
+}
+
 .is-invalid {
     @apply border-danger! focus:border-danger! focus:ring-danger/20!;
 }

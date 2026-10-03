@@ -117,7 +117,7 @@ const DeclineModal = ({ timesheetId, onClose }: { timesheetId: number; onClose: 
           <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="form-label">Reason</label>
-              <textarea className="form-input" rows={3} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />
+              <textarea className="form-textarea" rows={3} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />
               {errors.reason && <p className="text-danger mt-1 text-sm">{errors.reason}</p>}
             </div>
             <div>

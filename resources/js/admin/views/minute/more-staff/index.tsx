@@ -127,7 +127,7 @@ const CreateModal = ({ properties, urgencies, onClose }: { properties: Property[
 
             <div>
               <label className="form-label">Reason</label>
-              <textarea className="form-input" rows={2} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />
+              <textarea className="form-textarea" rows={2} value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />
               {errors.reason && <p className="text-danger mt-1 text-sm">{errors.reason}</p>}
             </div>
             <div>

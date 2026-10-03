@@ -161,7 +161,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                 <div>
                   <label className="form-label">Summary</label>
                   <textarea
-                    className="form-input w-full"
+                    className="form-textarea"
                     rows={2}
                     value={data.summary}
                     onChange={(e) => setData('summary', e.target.value)}

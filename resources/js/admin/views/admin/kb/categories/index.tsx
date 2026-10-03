@@ -252,7 +252,7 @@ const Page = ({ categories }: Props) => {
                 <div>
                   <label className="form-label">Description</label>
                   <textarea
-                    className="form-input w-full"
+                    className="form-textarea"
                     rows={2}
                     value={data.description}
                     onChange={(e) => setData('description', e.target.value)}

@@ -62,7 +62,7 @@ const Page = ({ people, types, reasons }: Props) => {
 
             <div>
               <label className="form-label">Notes</label>
-              <textarea className="form-input" rows={3} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
+              <textarea className="form-textarea" rows={3} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
             </div>
 
             <label className="flex items-center gap-2 text-sm">
