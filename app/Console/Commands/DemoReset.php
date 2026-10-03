@@ -24,7 +24,7 @@ class DemoReset extends Command
 {
     protected $signature = 'demo:reset {--force : Skip the confirmation prompt}';
 
-    protected $description = 'Wipe the database and seed the Acme Hotel demo (refuses in production)';
+    protected $description = 'Wipe the database and seed the Acme Hotel demo (DEMO_MODE only, never production)';
 
     /** Structural seeders only — SampleDataSeeder's companies stay out of the demo. */
     private const SEEDERS = [
@@ -39,8 +39,10 @@ class DemoReset extends Command
 
     public function handle(): int
     {
-        if ($this->laravel->isProduction()) {
-            $this->error('demo:reset wipes the database, so it never runs in production.');
+        // Demo mode too, not just "not production": staging holds the real
+        // legacy data and need not run as APP_ENV=production.
+        if ($this->laravel->isProduction() || ! config('demo.enabled')) {
+            $this->error('demo:reset wipes the database: it only runs with DEMO_MODE=true, and never in production.');
 
             return self::FAILURE;
         }

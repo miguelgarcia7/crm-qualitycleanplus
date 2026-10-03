@@ -98,7 +98,15 @@ it('only simulates in demo mode', function () {
 });
 
 it('refuses to reset a production database', function () {
+    config(['demo.enabled' => true]);
     $this->app['env'] = 'production';
+
+    $this->artisan('demo:reset', ['--force' => true])->assertFailed();
+});
+
+it('refuses to reset outside demo mode, whatever the environment is called', function () {
+    config(['demo.enabled' => false]);
+    $this->app['env'] = 'staging';
 
     $this->artisan('demo:reset', ['--force' => true])->assertFailed();
 });

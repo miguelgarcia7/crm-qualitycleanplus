@@ -102,7 +102,8 @@ php84 artisan demo:reset
 
 **Deletes everything in the database** and creates the Acme Hotel demo: every
 account, the hotel, the contractors, and the last six weeks of hours, timesheets and
-invoices. It prints the account list when it's done, and won't run on production. Use
+invoices. It prints the account list when it's done. It only runs with
+`DEMO_MODE=true`, and never on production or staging. Use
 it to start over at any time. Your company details (Settings → Company: name,
 address, phone) are kept, and printed on the demo's invoices. On Cloud, add `--force` to skip the "are you sure?"
 question.
@@ -189,7 +190,7 @@ redeploy).
 
 | Setting | What it does |
 |---|---|
-| `DEMO_MODE=true` | Switches the demo on: contractors clock in and out by themselves, and search engines are told to ignore the site. Never set this on production. |
+| `DEMO_MODE=true` | Switches the demo on: `demo:reset` is allowed, contractors clock in and out by themselves, and search engines are told to ignore the site. Never set this on staging or production. |
 | `DEMO_PASSWORD=…` | The password for every demo account (default `password`). Set your own on Cloud before sharing the link, then run `demo:reset` so the accounts pick it up. |
 | `DB_DATABASE=…` | Locally: which database to use. `qcpminute` holds the real legacy data; `qcpminute_demo` is a separate copy you can keep for the demo. |
 
@@ -202,4 +203,4 @@ redeploy).
 | "This account cannot access…" | You're on the other website. Click **Sign out and use a different account**, then use the right site (see the account tables above). |
 | Nobody is on the clock | Check it's a weekday between about 7:00 and 5:30 Chicago time. Locally, make sure `schedule:work` is running, or run `demo:simulate` to catch up. |
 | The data looks old | Run `demo:simulate`. If things look broken, `demo:reset` starts over. |
-| No `demo:simulate` in `schedule:list` | Set `DEMO_MODE=true`. On Cloud, redeploy after changing it. |
+| No `demo:simulate` in `schedule:list`, or `demo:reset` says it only runs with `DEMO_MODE=true` | Set `DEMO_MODE=true`. On Cloud, redeploy after changing it. |
