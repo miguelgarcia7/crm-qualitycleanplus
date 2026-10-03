@@ -14,9 +14,13 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * QC Minute self-service: an employee (contractor / W-2 / PM) requests a change
- * to their own name/email/phone (ADR — change_personal_info). HR verifies and
- * applies it in the back office.
+ * QC Minute self-service: someone QCP employs or pays (a contractor, or office
+ * staff) requests a change to their own name/email/phone (ADR —
+ * change_personal_info). HR verifies and applies it in the back office.
+ *
+ * Gated on people.own_profile.request_change, which property managers don't
+ * hold (permissions matrix): they work for the hotel, not QCP, and edit their
+ * own name and email directly under Settings → Profile.
  */
 class ChangePersonalInfoController extends Controller
 {
