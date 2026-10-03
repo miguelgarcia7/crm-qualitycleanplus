@@ -1,5 +1,6 @@
 import GeofenceMapCard from '@/components/GeofenceMapCard'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import Icon from '@/components/wrappers/Icon'
 import { Head, Link, useForm } from '@inertiajs/react'
 import { FormEvent } from 'react'
 
@@ -76,6 +77,23 @@ const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours
     status: property?.status ?? 'active',
     time_source: property?.time_source ?? 'clock_in',
   })
+
+  // The saved poster code is live only while QR stays on; turning it on or off
+  // here takes effect when the form is saved.
+  const qrLive = editing && property.has_qr_token && property.qr_clock_enabled && data.qr_clock_enabled
+  const qrStatus = !data.qr_clock_enabled
+    ? {
+        label: editing && property.qr_clock_enabled ? 'Turns off when you save — the poster stops working' : 'Off',
+        text: 'text-default-400',
+        dot: 'bg-default-300',
+      }
+    : qrLive
+      ? { label: 'Active', text: 'text-success', dot: 'bg-success' }
+      : {
+          label: editing && property.has_qr_token ? 'Turns on when you save' : 'A QR code is created when you save',
+          text: 'text-warning',
+          dot: 'bg-warning',
+        }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -226,25 +244,33 @@ const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours
                 </Field>
               </div>
 
-              <div>
-                <label className="flex items-center gap-2" title={!data.latitude ? 'Set coordinates first' : undefined}>
-                  <input
-                    type="checkbox"
-                    className="form-checkbox"
-                    checked={data.qr_clock_enabled}
-                    disabled={!data.latitude && !data.qr_clock_enabled}
-                    onChange={(e) => setData('qr_clock_enabled', e.target.checked)}
-                  />
-                  <span className="font-medium">QR clock-in enabled</span>
-                </label>
-                <p className="text-default-400 mt-1 text-sm">
-                  {property?.has_qr_token
-                    ? 'This property has an active QR code — find the printable poster under "Clock-in QR" on the property page.'
-                    : data.qr_clock_enabled
-                      ? 'A unique QR code will be generated the first time you save with this enabled.'
-                      : 'Contractors clock in by scanning a poster QR code with their phone. Requires coordinates.'}
-                </p>
-                {errors.qr_clock_enabled && <p className="text-danger mt-1 text-sm">{errors.qr_clock_enabled}</p>}
+              <div className="border-default-200 flex flex-wrap items-start justify-between gap-4 rounded-lg border p-4">
+                <div>
+                  <label className="flex items-center gap-2.5" title={!data.latitude ? 'Set coordinates first' : undefined}>
+                    <input
+                      type="checkbox"
+                      className="form-switch"
+                      checked={data.qr_clock_enabled}
+                      disabled={!data.latitude && !data.qr_clock_enabled}
+                      onChange={(e) => setData('qr_clock_enabled', e.target.checked)}
+                    />
+                    <span className="font-medium">Enable QR clock-in</span>
+                  </label>
+                  <p className="text-default-400 mt-1 ps-10 text-sm">
+                    Contractors punch in by scanning this property's poster with their phone. Requires coordinates.
+                  </p>
+                  <p className={`mt-2 flex items-center gap-2 ps-10 text-sm font-medium ${qrStatus.text}`}>
+                    <span className={`size-2 rounded-full ${qrStatus.dot}`} />
+                    {qrStatus.label}
+                  </p>
+                  {errors.qr_clock_enabled && <p className="text-danger mt-1 ps-10 text-sm">{errors.qr_clock_enabled}</p>}
+                </div>
+
+                {qrLive && (
+                  <Link href={`/admin/properties/${property.id}/qr`} className="btn border-primary text-primary hover:bg-primary/10 border px-4 py-2">
+                    <Icon icon="printer" className="size-4" /> Print QR Poster
+                  </Link>
+                )}
               </div>
             </div>
 
