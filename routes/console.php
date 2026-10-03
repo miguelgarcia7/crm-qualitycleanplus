@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\ContractExpirationCheck;
+use App\Console\Commands\DemoSimulate;
 use App\Console\Commands\EnsurePayrollPeriods;
 use App\Console\Commands\ProcessPtoTenureCrossings;
 use App\Console\Commands\RefreshReportRollups;
@@ -31,3 +32,14 @@ Schedule::command(ProcessPtoTenureCrossings::class)->dailyAt('01:00');
 
 // Reports — nightly rollup backstop over the trailing 90 days (ADR-0028).
 Schedule::command(RefreshReportRollups::class)->dailyAt('01:30');
+
+// Demo environment only — Acme Hotel's simulated punches + billing steps
+// (docs/80-plan/demo-environment.md). Weekday working hours, written as one
+// cron expression because Laravel Cloud reads schedule:list to decide when
+// to wake a sleeping environment.
+if (config('demo.enabled')) {
+    Schedule::command(DemoSimulate::class)
+        ->cron('*/5 6-18 * * 1-5')
+        ->timezone('America/Chicago')
+        ->withoutOverlapping();
+}
