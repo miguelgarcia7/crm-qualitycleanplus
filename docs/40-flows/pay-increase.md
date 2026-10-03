@@ -365,3 +365,13 @@ If PM submits today and recruiter approves today:
 - `20-domain/workflows.md` — pay_increase catalog entry
 - `20-domain/work-orders.md` — pay increase WO transition mechanics
 - `10-architecture/permissions-matrix.md` — pay_increase permissions
+
+## As built (2026-10-03)
+
+The back-office form (`/admin/pay-increases`, both "New pay increase" and approving a PM request):
+
+- Shows **current vs new** pay and bill side by side with the change (+$ and %), and a summary line with the new margin before applying.
+- Overtime follows **1.5×** automatically; "Set overtime by hand" opens the two OT fields for the rare exception.
+- **Starts** offers this week and the next two open weeks, labelled in words ("Next week — Mon Oct 5 to Sun Oct 11"), defaulting to **next week**. Picking this week is allowed with a warning: hours already punched this week stay on the old work order at the old rate.
+- Server-side: the new rates may not lower pay or bill, at least one must go up, and the start week must be one of that property's offered weeks. The PM bill-rate floor still applies on approval.
+- Recruiters see only their own properties' pending requests; global roles see all.

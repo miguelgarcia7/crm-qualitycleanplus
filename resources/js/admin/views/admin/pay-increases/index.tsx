@@ -28,8 +28,12 @@ type Pending = {
   current: Rates
   suggested: Rates
   periods: PeriodOption[]
+  default_period_id: number | null
 }
-type WoOption = { id: number; contractor: string | null; property: string | null; position: string | null } & Rates & { periods: PeriodOption[] }
+type WoOption = { id: number; contractor: string | null; property: string | null; position: string | null } & Rates & {
+  periods: PeriodOption[]
+  default_period_id: number | null
+}
 type Props = { pending: Pending[]; workOrders: WoOption[]; can: { approve: boolean; initiate: boolean } }
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`
@@ -187,28 +191,172 @@ const Page = ({ pending, workOrders, can }: Props) => {
   )
 }
 
-const RateInputs = ({ data, setData }: { data: any; setData: (k: any, v: any) => void }) => (
-  <div className="grid grid-cols-2 gap-3">
-    {(['pay_rate', 'bill_rate', 'ot_pay_rate', 'ot_bill_rate'] as const).map((k) => (
-      <div key={k}>
-        <label className="form-label capitalize">{k.replaceAll('_', ' ')} ($/hr)</label>
-        <input type="number" step="0.01" min="0" className="form-input" value={data[k]} onChange={(e) => setData(k, e.target.value)} required />
+type RaiseData = {
+  pay_rate: string
+  bill_rate: string
+  ot_pay_rate: string
+  ot_bill_rate: string
+  effective_period_id: number | string
+  reason: string
+}
+
+const dollars = (cents: number) => (cents / 100).toFixed(2)
+const toCents = (v: string) => Math.round((parseFloat(v) || 0) * 100)
+const ot = (v: string) => dollars(Math.round(toCents(v) * 1.5))
+
+const initialRaise = (rates: Rates, periodId: number | null): RaiseData => ({
+  pay_rate: dollars(rates.pay_rate),
+  bill_rate: dollars(rates.bill_rate),
+  ot_pay_rate: dollars(rates.ot_pay_rate),
+  ot_bill_rate: dollars(rates.ot_bill_rate),
+  effective_period_id: periodId ?? '',
+  reason: '',
+})
+
+/** "+$1.00 (6.3%)" against the current rate; red when it goes down. */
+const Change = ({ from, to }: { from: number; to: number }) => {
+  const diff = to - from
+  if (diff === 0) return <span className="text-default-400 text-xs">No change</span>
+  const pct = from > 0 ? ` (${((diff / from) * 100).toFixed(1)}%)` : ''
+  return (
+    <span className={`text-xs font-medium ${diff > 0 ? 'text-success' : 'text-danger'}`}>
+      {diff > 0 ? '+' : '−'}
+      {money(Math.abs(diff))}
+      {pct}
+    </span>
+  )
+}
+
+/**
+ * Current vs new pay and bill, overtime at 1.5× unless set by hand, the week it
+ * starts, and a plain-language summary — shared by the recruiter's own raise
+ * and approving a PM's request.
+ */
+const RaiseFields = ({
+  current,
+  contractor,
+  property,
+  periods,
+  data,
+  setData,
+  errors,
+  billFloor,
+}: {
+  current: Rates
+  contractor: string | null
+  property: string | null
+  periods: PeriodOption[]
+  data: RaiseData
+  setData: (key: keyof RaiseData, value: string | number) => void
+  errors: Partial<Record<keyof RaiseData, string>>
+  billFloor?: number
+}) => {
+  const [manualOt, setManualOt] = useState(false)
+  const pay = toCents(data.pay_rate)
+  const bill = toCents(data.bill_rate)
+  const week = periods.find((p) => String(p.id) === String(data.effective_period_id))
+
+  const setRate = (key: 'pay_rate' | 'bill_rate', value: string) => {
+    setData(key, value)
+    if (!manualOt) setData(key === 'pay_rate' ? 'ot_pay_rate' : 'ot_bill_rate', ot(value))
+  }
+
+  const lowered = pay < current.pay_rate || bill < current.bill_rate
+  const unchanged = pay === current.pay_rate && bill === current.bill_rate
+
+  return (
+    <>
+      <div className="grid grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+        <span />
+        <span className="font-semibold">Pay</span>
+        <span className="font-semibold">Bill</span>
+
+        <span className="text-default-400 text-sm">Current</span>
+        <span className="text-default-500">{money(current.pay_rate)} / hr</span>
+        <span className="text-default-500">{money(current.bill_rate)} / hr</span>
+
+        <span className="text-sm font-semibold">New</span>
+        <input type="number" step="0.01" min="0" className="form-input" value={data.pay_rate} onChange={(e) => setRate('pay_rate', e.target.value)} required />
+        <input type="number" step="0.01" min="0" className="form-input" value={data.bill_rate} onChange={(e) => setRate('bill_rate', e.target.value)} required />
+
+        <span />
+        <Change from={current.pay_rate} to={pay} />
+        <Change from={current.bill_rate} to={bill} />
       </div>
-    ))}
+      {billFloor !== undefined && bill < billFloor && (
+        <p className="text-danger text-sm">The bill rate must be at least {money(billFloor)} / hr to honor the property manager&apos;s request.</p>
+      )}
+      {errors.pay_rate && <p className="text-danger text-sm">{errors.pay_rate}</p>}
+      {errors.bill_rate && <p className="text-danger text-sm">{errors.bill_rate}</p>}
+
+      {manualOt ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="form-label">Overtime pay ($/hr)</label>
+            <input type="number" step="0.01" min="0" className="form-input" value={data.ot_pay_rate} onChange={(e) => setData('ot_pay_rate', e.target.value)} required />
+          </div>
+          <div>
+            <label className="form-label">Overtime bill ($/hr)</label>
+            <input type="number" step="0.01" min="0" className="form-input" value={data.ot_bill_rate} onChange={(e) => setData('ot_bill_rate', e.target.value)} required />
+          </div>
+        </div>
+      ) : (
+        <div className="bg-light/60 text-default-500 flex flex-wrap items-center justify-between gap-2 rounded-md px-3 py-2 text-sm">
+          <span>
+            Overtime (1.5×): pay {money(toCents(data.ot_pay_rate))} · bill {money(toCents(data.ot_bill_rate))}
+          </span>
+          <button type="button" className="text-primary text-sm hover:underline" onClick={() => setManualOt(true)}>
+            Set overtime by hand
+          </button>
+        </div>
+      )}
+
+      <div>
+        <label className="form-label">Starts</label>
+        <select className="form-select" value={data.effective_period_id} onChange={(e) => setData('effective_period_id', e.target.value)} required>
+          {periods.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        {week?.label.startsWith('This week') && (
+          <p className="text-warning mt-1 text-xs">Hours already worked this week stay at the current rate; only new punches get the new one.</p>
+        )}
+        {errors.effective_period_id && <p className="text-danger mt-1 text-sm">{errors.effective_period_id}</p>}
+      </div>
+
+      {lowered ? (
+        <p className="bg-danger/10 text-danger rounded-md px-3 py-2 text-sm">A pay increase can&apos;t lower the pay or bill rate.</p>
+      ) : unchanged ? (
+        <p className="bg-light/60 text-default-500 rounded-md px-3 py-2 text-sm">Enter the new pay or bill rate above.</p>
+      ) : (
+        <p className="bg-success/10 text-success rounded-md px-3 py-2 text-sm">
+          {contractor} earns {money(pay)}/hr and {property} is billed {money(bill)}/hr
+          {week ? ` from ${week.label.split(' — ')[1]?.split(' to ')[0]}` : ''}. Margin goes from{' '}
+          {money(current.bill_rate - current.pay_rate)} to {money(bill - pay)}/hr.
+        </p>
+      )}
+    </>
+  )
+}
+
+const Modal = ({ title, subtitle, onClose, children }: { title: string; subtitle?: React.ReactNode; onClose: () => void; children: React.ReactNode }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="card-header">
+        <div>
+          <h4 className="card-title">{title}</h4>
+          {subtitle && <p className="text-default-400 text-sm">{subtitle}</p>}
+        </div>
+      </div>
+      <div className="card-body max-h-[80vh] overflow-y-auto">{children}</div>
+    </div>
   </div>
 )
 
 const ApproveModal = ({ pending, onClose }: { pending: Pending; onClose: () => void }) => {
-  const { data, setData, post, processing, errors } = useForm<{
-    pay_rate: string; bill_rate: string; ot_pay_rate: string; ot_bill_rate: string; effective_period_id: number | string; reason: string
-  }>({
-    pay_rate: String(pending.suggested.pay_rate / 100),
-    bill_rate: String(pending.suggested.bill_rate / 100),
-    ot_pay_rate: String(pending.suggested.ot_pay_rate / 100),
-    ot_bill_rate: String(pending.suggested.ot_bill_rate / 100),
-    effective_period_id: pending.periods[0]?.id ?? ('' as number | string),
-    reason: '',
-  })
+  const { data, setData, post, processing, errors } = useForm<RaiseData>(initialRaise(pending.suggested, pending.default_period_id))
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -216,56 +364,42 @@ const ApproveModal = ({ pending, onClose }: { pending: Pending; onClose: () => v
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header">
-          <div>
-            <h4 className="card-title">Approve pay increase — {pending.contractor}</h4>
-            <p className="text-default-400 text-sm">Current bill {money(pending.current.bill_rate)} · PM asked for +{money(pending.pm_requested_increase)}/hr</p>
-          </div>
+    <Modal
+      title={`Approve pay increase — ${pending.contractor}`}
+      subtitle={`${pending.position} @ ${pending.property} · ${pending.initiator ?? 'The property manager'} asked for +${money(pending.pm_requested_increase)}/hr on the bill rate`}
+      onClose={onClose}
+    >
+      <form onSubmit={submit} className="space-y-4">
+        {pending.reason && <p className="text-default-500 border-default-200 border-s-2 ps-3 text-sm italic">{pending.reason}</p>}
+        <RaiseFields
+          current={pending.current}
+          contractor={pending.contractor}
+          property={pending.property}
+          periods={pending.periods}
+          data={data}
+          setData={setData}
+          errors={errors}
+          billFloor={pending.current.bill_rate + pending.pm_requested_increase}
+        />
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Approve raise</button>
         </div>
-        <div className="card-body max-h-[75vh] overflow-y-auto">
-          <form onSubmit={submit} className="space-y-4">
-            <RateInputs data={data} setData={setData} />
-            {errors.bill_rate && <p className="text-danger text-sm">{errors.bill_rate}</p>}
-            <div>
-              <label className="form-label">Effective period</label>
-              <select className="form-select" value={data.effective_period_id} onChange={(e) => setData('effective_period_id', e.target.value)} required>
-                {pending.periods.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Approve &amp; create WO</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   )
 }
 
 const CreateModal = ({ workOrders, onClose }: { workOrders: WoOption[]; onClose: () => void }) => {
   const [woId, setWoId] = useState<number>(workOrders[0]?.id ?? 0)
   const wo = workOrders.find((w) => w.id === woId) ?? workOrders[0]
-  const { data, setData, post, processing } = useForm<{
-    work_order_id: number | string; pay_rate: string; bill_rate: string; ot_pay_rate: string; ot_bill_rate: string; effective_period_id: number | string; reason: string
-  }>({
-    work_order_id: wo?.id ?? ('' as number | string),
-    pay_rate: wo ? String(wo.pay_rate / 100) : '',
-    bill_rate: wo ? String(wo.bill_rate / 100) : '',
-    ot_pay_rate: wo ? String(wo.ot_pay_rate / 100) : '',
-    ot_bill_rate: wo ? String(wo.ot_bill_rate / 100) : '',
-    effective_period_id: wo?.periods[0]?.id ?? ('' as number | string),
-    reason: '',
-  })
+  const { data, setData, post, processing, errors, transform } = useForm<RaiseData>(initialRaise(wo, wo?.default_period_id ?? null))
+  transform((d) => ({ ...d, work_order_id: woId }))
 
   const pickWo = (id: number) => {
     setWoId(id)
     const next = workOrders.find((w) => w.id === id)
-    if (next) {
-      setData((d) => ({ ...d, work_order_id: next.id, pay_rate: String(next.pay_rate / 100), bill_rate: String(next.bill_rate / 100), ot_pay_rate: String(next.ot_pay_rate / 100), ot_bill_rate: String(next.ot_bill_rate / 100), effective_period_id: next.periods[0]?.id ?? '' }))
-    }
+    if (next) setData(initialRaise(next, next.default_period_id))
   }
 
   const submit = (e: FormEvent) => {
@@ -273,37 +407,40 @@ const CreateModal = ({ workOrders, onClose }: { workOrders: WoOption[]; onClose:
     post('/admin/pay-increases', { preserveScroll: true, onSuccess: onClose })
   }
 
+  // Grouped by property, so a long roster stays findable.
+  const byProperty: Record<string, WoOption[]> = {}
+  for (const w of workOrders) (byProperty[w.property ?? '—'] ??= []).push(w)
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="card w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header"><h4 className="card-title">New pay increase</h4></div>
-        <div className="card-body max-h-[75vh] overflow-y-auto">
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="form-label">Work order</label>
-              <select className="form-select" value={woId} onChange={(e) => pickWo(Number(e.target.value))}>
-                {workOrders.map((w) => <option key={w.id} value={w.id}>{w.contractor} — {w.position} @ {w.property}</option>)}
-              </select>
-            </div>
-            <RateInputs data={data} setData={setData} />
-            <div>
-              <label className="form-label">Effective period</label>
-              <select className="form-select" value={data.effective_period_id} onChange={(e) => setData('effective_period_id', e.target.value)} required>
-                {(wo?.periods ?? []).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="form-label">Reason</label>
-              <input className="form-input" value={data.reason} onChange={(e) => setData('reason', e.target.value)} />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Apply</button>
-            </div>
-          </form>
+    <Modal title="New pay increase" subtitle="Applies right away — no approval needed." onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="form-label">Contractor</label>
+          <select className="form-select" value={woId} onChange={(e) => pickWo(Number(e.target.value))}>
+            {Object.entries(byProperty).map(([property, rows]) => (
+              <optgroup key={property} label={property}>
+                {rows.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.contractor} — {w.position}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </div>
-      </div>
-    </div>
+        {wo && (
+          <RaiseFields current={wo} contractor={wo.contractor} property={wo.property} periods={wo.periods} data={data} setData={setData} errors={errors} />
+        )}
+        <div>
+          <label className="form-label">Reason</label>
+          <input className="form-input" placeholder="Annual review" value={data.reason} onChange={(e) => setData('reason', e.target.value)} />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn btn-light px-4 py-2" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>Apply raise</button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 

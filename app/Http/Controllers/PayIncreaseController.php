@@ -15,8 +15,10 @@ use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -32,6 +34,10 @@ class PayIncreaseController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+        // Recruiters work their own properties; global roles see everything.
+        $propertyIds = $user instanceof Person && ! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES)
+            ? $user->assignedProperties()->pluck('properties.id')->all()
+            : null;
 
         $pending = Workflow::query()
             ->where('type', WorkflowType::PayIncrease->value)
@@ -39,30 +45,34 @@ class PayIncreaseController extends Controller
             ->with(['initiator:id,name'])
             ->latest('id')
             ->get()
-            ->map(fn (Workflow $wf): ?array => $this->pendingPayload($wf))
+            ->map(fn (Workflow $wf): ?array => $this->pendingPayload($wf, $propertyIds))
             ->filter()
             ->values();
 
         // Active WOs the recruiter can raise directly (own-property scoped).
         $woQuery = WorkOrder::query()->where('status', WorkOrderStatus::Active->value)
-            ->with(['person:id,name', 'property:id,name', 'position:id,name']);
-        if ($user instanceof Person && ! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES)) {
-            $woQuery->whereIn('property_id', $user->assignedProperties()->pluck('properties.id')->all());
+            ->with(['person:id,name', 'property:id,name,timezone,closing_day', 'position:id,name'])
+            ->orderBy('property_id');
+        if ($propertyIds !== null) {
+            $woQuery->whereIn('property_id', $propertyIds);
         }
 
         return Inertia::render('admin/pay-increases/index', [
             'pending' => $pending,
-            'workOrders' => $woQuery->get()->map(fn (WorkOrder $wo): array => [
-                'id' => $wo->id,
-                'contractor' => $wo->person?->name,
-                'property' => $wo->property?->name,
-                'position' => $wo->position?->name,
-                'pay_rate' => $wo->pay_rate,
-                'bill_rate' => $wo->bill_rate,
-                'ot_pay_rate' => $wo->ot_pay_rate,
-                'ot_bill_rate' => $wo->ot_bill_rate,
-                'periods' => $this->periodOptions($wo->property_id),
-            ]),
+            'workOrders' => $woQuery->get()
+                ->sortBy(fn (WorkOrder $wo) => [$wo->property?->name, $wo->person?->name])
+                ->values()
+                ->map(fn (WorkOrder $wo): array => [
+                    'id' => $wo->id,
+                    'contractor' => $wo->person?->name,
+                    'property' => $wo->property?->name,
+                    'position' => $wo->position?->name,
+                    'pay_rate' => $wo->pay_rate,
+                    'bill_rate' => $wo->bill_rate,
+                    'ot_pay_rate' => $wo->ot_pay_rate,
+                    'ot_bill_rate' => $wo->ot_bill_rate,
+                    ...$this->periodChoices($wo->property),
+                ]),
             'can' => [
                 'approve' => $user instanceof Person && $user->can('workflows.pay_increase.approve'),
                 'initiate' => $user instanceof Person && $user->can('workflows.pay_increase.initiate'),
@@ -76,6 +86,7 @@ class PayIncreaseController extends Controller
         $validated = $this->validateRates($request);
         $workOrder = WorkOrder::findOrFail($validated['work_order_id']);
         $this->authorizeProperty($workOrder, 'workflows.pay_increase.initiate');
+        $this->ensureRaise($workOrder, $validated);
 
         $start->handle(WorkflowType::PayIncrease, $workOrder->person, $request->user(), [
             'work_order_id' => $workOrder->id,
@@ -94,6 +105,7 @@ class PayIncreaseController extends Controller
         $this->authorizeProperty($workOrder, 'workflows.pay_increase.approve');
 
         $validated = $this->validateRates($request, requireWorkOrder: false);
+        $this->ensureRaise($workOrder, $validated);
         $workflow->update(['data' => array_merge($workflow->data ?? [], ['approved' => $this->approvedBlock($validated)])]);
 
         $action->handle($step->fresh(), $request->user());
@@ -114,15 +126,19 @@ class PayIncreaseController extends Controller
     }
 
     /**
+     * @param  list<int>|null  $propertyIds  the viewer's properties; null = all
      * @return array<string, mixed>|null
      */
-    private function pendingPayload(Workflow $workflow): ?array
+    private function pendingPayload(Workflow $workflow, ?array $propertyIds): ?array
     {
-        $workOrder = WorkOrder::with(['person:id,name', 'property:id,name', 'position:id,name'])
+        $workOrder = WorkOrder::with(['person:id,name', 'property:id,name,timezone,closing_day', 'position:id,name'])
             ->find($workflow->data['work_order_id'] ?? 0);
         $step = $workflow->steps()->where('step_key', 'approve_pay_increase')->where('status', 'pending')->first();
 
         if ($workOrder === null || $step === null) {
+            return null;
+        }
+        if ($propertyIds !== null && ! in_array($workOrder->property_id, $propertyIds, true)) {
             return null;
         }
 
@@ -148,21 +164,74 @@ class PayIncreaseController extends Controller
                 'ot_pay_rate' => (int) round(($workOrder->pay_rate + $increase) * 1.5),
                 'ot_bill_rate' => (int) round(($workOrder->bill_rate + $increase) * 1.5),
             ],
-            'periods' => $this->periodOptions($workOrder->property_id),
+            ...$this->periodChoices($workOrder->property),
         ];
     }
 
-    /** Next two open payroll periods for a property (effective options). */
-    private function periodOptions(int $propertyId): array
+    /**
+     * The weeks a raise can start: this week and the next two, while open.
+     * Defaults to next week — a raise from this week only re-rates punches
+     * from now on, splitting the week across two rates.
+     *
+     * @return array{periods: list<array{id: int, label: string}>, default_period_id: int|null}
+     */
+    private function periodChoices(?Property $property): array
+    {
+        $periods = $property === null ? collect() : $this->startablePeriods($property);
+        $thisWeek = $property?->weekStartFor(now($property->timezone))->toDateString();
+
+        $options = $periods->map(function (PayrollPeriod $p) use ($thisWeek): array {
+            $start = $p->week_start->toDateString();
+            $range = $p->week_start->format('D M j').' to '.$p->week_end->format('D M j');
+            $name = match (true) {
+                $start === $thisWeek => 'This week',
+                $start === CarbonImmutable::parse($thisWeek)->addWeek()->toDateString() => 'Next week',
+                default => 'Week of '.$p->week_start->format('M j'),
+            };
+
+            return ['id' => $p->id, 'label' => "{$name} — {$range}", 'week_start' => $start];
+        });
+
+        $default = $options->first(fn (array $o) => $o['week_start'] > $thisWeek) ?? $options->first();
+
+        return [
+            'periods' => $options->map(fn (array $o) => ['id' => $o['id'], 'label' => $o['label']])->values()->all(),
+            'default_period_id' => $default['id'] ?? null,
+        ];
+    }
+
+    /** @return Collection<int, PayrollPeriod> */
+    private function startablePeriods(Property $property): Collection
     {
         return PayrollPeriod::query()
-            ->where('property_id', $propertyId)
+            ->where('property_id', $property->id)
             ->where('status', 'open')
+            ->whereDate('week_start', '>=', $property->weekStartFor(now($property->timezone))->toDateString())
             ->orderBy('week_start')
-            ->limit(2)
-            ->get()
-            ->map(fn (PayrollPeriod $p): array => ['id' => $p->id, 'label' => $p->week_start->toDateString()])
-            ->all();
+            ->limit(3)
+            ->get();
+    }
+
+    /**
+     * A pay increase raises at least one rate and lowers neither, and starts in
+     * one of the work order's own startable weeks.
+     *
+     * @param  array<string, mixed>  $v
+     */
+    private function ensureRaise(WorkOrder $workOrder, array $v): void
+    {
+        $pay = (int) round(((float) $v['pay_rate']) * 100);
+        $bill = (int) round(((float) $v['bill_rate']) * 100);
+
+        if ($pay < $workOrder->pay_rate || $bill < $workOrder->bill_rate) {
+            throw ValidationException::withMessages(['pay_rate' => 'A pay increase cannot lower the pay or bill rate.']);
+        }
+        if ($pay === $workOrder->pay_rate && $bill === $workOrder->bill_rate) {
+            throw ValidationException::withMessages(['pay_rate' => 'Enter a higher pay or bill rate.']);
+        }
+        if (! $this->startablePeriods($workOrder->property)->contains('id', (int) $v['effective_period_id'])) {
+            throw ValidationException::withMessages(['effective_period_id' => 'Pick this week or a coming week at this property.']);
+        }
     }
 
     /**

@@ -146,3 +146,67 @@ it('forbids a role without approve permission', function () {
             'effective_period_id' => $s['period']->id,
         ])->assertForbidden();
 });
+
+it('shows a recruiter only their own properties\' requests', function () {
+    $s = payIncreaseScenario();
+    $this->actingAs($s['pm'])->post(qcminute('/pay-increases'), ['work_order_id' => $s['wo']->id, 'increase_amount' => 1, 'reason' => 'x']);
+
+    $mine = person('recruiter');
+    $s['property']->assignments()->create(['person_id' => $mine->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+    $other = Person::factory()->create();
+    $other->assignRole('recruiter');
+
+    $this->actingAs($mine)->get(main('/admin/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('pending', 1));
+    $this->actingAs($other)->get(main('/admin/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('pending', 0));
+});
+
+it('offers this week and the coming weeks, defaulting to next week', function () {
+    $s = payIncreaseScenario();
+    $next = PayrollPeriod::factory()->create([
+        'property_id' => $s['property']->id,
+        'week_start' => $s['period']->week_start->copy()->addWeek()->toDateString(),
+        'week_end' => $s['period']->week_end->copy()->addWeek()->toDateString(),
+        'status' => PayrollPeriodStatus::Open,
+    ]);
+
+    $this->actingAs(person('admin'))->get(main('/admin/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('workOrders.0.default_period_id', $next->id)
+            ->where('workOrders.0.periods.0.id', $s['period']->id)
+            ->where('workOrders.0.periods.0.label', fn (string $label) => str_starts_with($label, 'This week — '))
+            ->where('workOrders.0.periods.1.label', fn (string $label) => str_starts_with($label, 'Next week — ')));
+});
+
+it('refuses a "raise" that lowers or keeps the rates', function (float $pay, float $bill) {
+    $s = payIncreaseScenario();
+
+    $this->actingAs(person('admin'))
+        ->post(main('/admin/pay-increases'), [
+            'work_order_id' => $s['wo']->id,
+            'pay_rate' => $pay, 'bill_rate' => $bill, 'ot_pay_rate' => $pay * 1.5, 'ot_bill_rate' => $bill * 1.5,
+            'effective_period_id' => $s['period']->id,
+        ])->assertSessionHasErrors('pay_rate');
+
+    expect($s['wo']->fresh()->status)->toBe(WorkOrderStatus::Active);
+})->with([
+    'unchanged' => [20, 30],
+    'pay lowered' => [19, 31],
+]);
+
+it('refuses a start week from another property', function () {
+    $s = payIncreaseScenario();
+    $elsewhere = PayrollPeriod::factory()->create([
+        'property_id' => Property::factory()->create()->id,
+        'week_start' => $s['period']->week_start, 'week_end' => $s['period']->week_end,
+        'status' => PayrollPeriodStatus::Open,
+    ]);
+
+    $this->actingAs(person('admin'))
+        ->post(main('/admin/pay-increases'), [
+            'work_order_id' => $s['wo']->id,
+            'pay_rate' => 21, 'bill_rate' => 31, 'ot_pay_rate' => 31.5, 'ot_bill_rate' => 46.5,
+            'effective_period_id' => $elsewhere->id,
+        ])->assertSessionHasErrors('effective_period_id');
+});
