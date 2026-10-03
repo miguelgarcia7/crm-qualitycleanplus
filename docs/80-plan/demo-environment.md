@@ -9,6 +9,8 @@
 A self-running demo company for testing every role and showing the client the system
 working: one login per role, one property (**Acme Hotel**), five contractors with six
 weeks of history, and contractors clocking in and out live through the working day.
+For the day-to-day how-to (accounts, roles, commands), see [../demo-guide.md](../demo-guide.md);
+this page is the engineering reference.
 
 ## What gets seeded
 
