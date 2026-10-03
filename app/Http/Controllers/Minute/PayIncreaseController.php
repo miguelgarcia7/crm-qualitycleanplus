@@ -41,9 +41,13 @@ class PayIncreaseController extends Controller
 
         return Inertia::render('minute/pay-increases/index', [
             'requests' => $requests,
+            // The bill rate is the hotel's own number, shown so the PM can see
+            // what an increase does to their rate. Never add pay_rate here:
+            // PMs must not see what QCP pays the contractor (ADR-0020).
             'workOrders' => $this->assignableWorkOrders($pm)->map(fn (WorkOrder $wo): array => [
                 'id' => $wo->id,
                 'label' => "{$wo->person?->name} — {$wo->position?->name} @ {$wo->property?->name}",
+                'bill_rate' => $wo->bill_rate,
             ])->values(),
             'can' => ['initiate' => $pm->can('workflows.pay_increase.initiate')],
         ]);

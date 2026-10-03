@@ -3,7 +3,7 @@ import { Head, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
 
 type Req = { id: number; status: string; increase: number; reason: string | null; created_at: string | null }
-type WoOption = { id: number; label: string }
+type WoOption = { id: number; label: string; bill_rate: number }
 type Props = { requests: Req[]; workOrders: WoOption[]; can: { initiate: boolean } }
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`
@@ -63,6 +63,11 @@ const CreateModal = ({ workOrders, onClose }: { workOrders: WoOption[]; onClose:
     post('/pay-increases', { preserveScroll: true, onSuccess: onClose })
   }
 
+  // The hotel's side only: what it pays QCP per hour now, and after the increase.
+  const selected = workOrders.find((w) => String(w.id) === String(data.work_order_id))
+  const increaseCents = Math.round(Number(data.increase_amount) * 100)
+  const newBillRate = selected && increaseCents > 0 ? selected.bill_rate + increaseCents : null
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -74,11 +79,22 @@ const CreateModal = ({ workOrders, onClose }: { workOrders: WoOption[]; onClose:
               <select className="form-select" value={data.work_order_id} onChange={(e) => setData('work_order_id', e.target.value)} required>
                 {workOrders.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
               </select>
+              {selected && (
+                <p className="text-default-400 mt-2 text-sm">
+                  Your current rate:{' '}
+                  <span className="text-body-color font-semibold">{money(selected.bill_rate)} / hr</span>
+                </p>
+              )}
             </div>
             <div>
               <label className="form-label">Increase per hour ($)</label>
               <input type="number" step="0.01" min="0.01" className="form-input" value={data.increase_amount} onChange={(e) => setData('increase_amount', e.target.value)} required />
               {errors.increase_amount && <p className="text-danger mt-1 text-sm">{errors.increase_amount}</p>}
+              {newBillRate !== null && (
+                <p className="mt-2 text-sm">
+                  Your new rate will be: <span className="font-semibold">{money(newBillRate)} / hr</span>
+                </p>
+              )}
               <p className="text-default-400 mt-1 text-xs">A recruiter reviews and sets the final rates.</p>
             </div>
             <div>

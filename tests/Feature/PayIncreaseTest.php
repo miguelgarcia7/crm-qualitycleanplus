@@ -17,6 +17,7 @@ use App\Notifications\WorkflowNotice;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
 
@@ -43,6 +44,20 @@ function payIncreaseScenario(): array
 
     return compact('wo', 'property', 'contractor', 'pm', 'period');
 }
+
+it('shows the PM their bill rate for each contractor, and never the pay rate', function () {
+    $s = payIncreaseScenario();
+
+    $this->actingAs($s['pm'])
+        ->get(qcminute('/pay-increases'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('minute/pay-increases/index')
+            ->where('workOrders.0.id', $s['wo']->id)
+            ->where('workOrders.0.bill_rate', 3000)
+            ->missing('workOrders.0.pay_rate')
+            ->missing('workOrders.0.ot_pay_rate'));
+});
 
 it('lets a PM submit and a recruiter approve a pay increase', function () {
     Notification::fake();
