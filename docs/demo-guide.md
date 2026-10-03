@@ -103,7 +103,8 @@ php84 artisan demo:reset
 **Deletes everything in the database** and creates the Acme Hotel demo: every
 account, the hotel, the contractors, and the last six weeks of hours, timesheets and
 invoices. It prints the account list when it's done, and won't run on production. Use
-it to start over at any time. On Cloud, add `--force` to skip the "are you sure?"
+it to start over at any time. Your company details (Settings → Company: name,
+address, phone) are kept, and printed on the demo's invoices. On Cloud, add `--force` to skip the "are you sure?"
 question.
 
 ### Catch up to right now

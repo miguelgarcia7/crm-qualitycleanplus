@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Domain\Demo\DemoRoster;
+use App\Domain\Settings\Models\Setting;
 use Database\Seeders\AcmeHotelSeeder;
 use Database\Seeders\CompanySettingsSeeder;
 use Database\Seeders\DepartmentSeeder;
@@ -11,6 +12,7 @@ use Database\Seeders\InventorySeeder;
 use Database\Seeders\PositionSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Rebuilds the database as the Acme Hotel demo (docs/80-plan/demo-environment.md):
@@ -48,7 +50,13 @@ class DemoReset extends Command
             return self::FAILURE;
         }
 
+        // Settings survive the wipe: the company identity set at
+        // /admin/settings/company isn't demo data, and invoices freeze it when
+        // they're generated — so it must be back before the history is billed.
+        $settings = Schema::hasTable('settings') ? Setting::query()->pluck('value', 'key')->all() : [];
+
         $this->call('migrate:fresh', ['--force' => true]);
+        Setting::put($settings);
         foreach (self::SEEDERS as $seeder) {
             $this->call('db:seed', ['--class' => $seeder, '--force' => true]);
         }

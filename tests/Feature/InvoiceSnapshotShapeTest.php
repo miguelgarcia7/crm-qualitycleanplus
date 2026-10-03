@@ -89,6 +89,30 @@ it('renders a PDF for a legacy-shaped invoice', function () {
         ->and(strlen($pdf))->toBeGreaterThan(1000);
 });
 
+it('prints the company address and phone under its name on the PDF', function () {
+    $invoice = Invoice::factory()->create(['invoicer_snapshot' => [
+        'name' => 'Quality Cleaning Plus, Inc.', 'address' => '1720 Regal Row, Suite 126', 'city' => 'Dallas',
+        'state' => 'Texas', 'zip' => '75007', 'phone' => '214-271-5595', 'email' => 'billing@qualitycleanplus.com',
+    ]]);
+
+    $html = view('pdf.invoice', ['invoice' => $invoice->load('items')])->render();
+
+    expect($html)->toContain('1720 Regal Row, Suite 126<br>')
+        ->toContain('Dallas, Texas 75007<br>')
+        ->toContain('214-271-5595 · billing@qualitycleanplus.com');
+});
+
+it('prints no blank lines for an invoice frozen before the company details existed', function () {
+    $invoice = Invoice::factory()->create(['invoicer_snapshot' => [
+        'name' => 'Quality Cleaning Plus', 'address' => '', 'city' => '', 'state' => '', 'zip' => '', 'phone' => '', 'email' => '',
+    ]]);
+
+    $html = view('pdf.invoice', ['invoice' => $invoice->load('items')])->render();
+
+    expect($html)->toContain('Quality Cleaning Plus')
+        ->not->toMatch('/<h1>Quality Cleaning Plus<\/h1>\s*<div class="muted">/');
+});
+
 it('serves the download endpoint for a legacy-shaped invoice', function () {
     $invoice = Invoice::factory()->create([
         'property_snapshot' => legacyPropertySnapshot(),

@@ -35,11 +35,27 @@
     <div class="row">
         <div class="col">
             <h1>{{ $inv['name'] ?? 'Quality Cleaning Plus' }}</h1>
-            <div class="muted">
-                {{ $inv['address'] ?? '' }}<br>
-                {{ $inv['city'] ?? '' }} {{ $inv['state'] ?? '' }} {{ $inv['zip'] ?? '' }}<br>
-                {{ $inv['phone'] ?? '' }} {{ $inv['email'] ?? '' }}
-            </div>
+            @php
+                // Only the lines this invoice's snapshot has — one frozen before
+                // the company details were filled in would otherwise print as
+                // a stack of blank lines under the name.
+                $cityLine = trim(implode(' ', array_filter([
+                    trim(($inv['city'] ?? '').(filled($inv['state'] ?? null) ? ', '.$inv['state'] : ''), ', '),
+                    $inv['zip'] ?? null,
+                ])));
+                $companyLines = array_values(array_filter([
+                    $inv['address'] ?? null,
+                    $cityLine,
+                    implode(' · ', array_filter([$inv['phone'] ?? null, $inv['email'] ?? null])),
+                ], 'filled'));
+            @endphp
+            @if ($companyLines)
+                <div class="muted">
+                    @foreach ($companyLines as $line)
+                        {{ $line }}@if (! $loop->last)<br>@endif
+                    @endforeach
+                </div>
+            @endif
         </div>
         <div class="col" style="text-align: right;">
             <h1>INVOICE</h1>
