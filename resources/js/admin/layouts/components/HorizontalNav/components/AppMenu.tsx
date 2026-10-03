@@ -1,5 +1,5 @@
 import Icon from '@/components/wrappers/Icon'
-import { menuItems } from '@/layouts/components/data'
+import { useMenuItems } from '@/layouts/components/useMenuItems'
 import type { MenuItemType } from '@/types'
 import { cn } from '@/utils/helpers'
 import { Link } from '@inertiajs/react'
@@ -75,9 +75,11 @@ const MenuItem = ({ item, linkClass, wrapperClass, level }: { item: MenuItemType
 }
 
 const AppMenu = () => {
+  const items = useMenuItems()
+
   return (
     <ul className="navbar-nav">
-      {menuItems.map((item, idx) => (
+      {items.map((item, idx) => (
         <Fragment key={idx}>{item.children ? <MenuItemWithChildren item={item} wrapperClass="nav-item" togglerClass="nav-link" /> : <MenuItem item={item} linkClass="nav-link" wrapperClass="nav-item" />}</Fragment>
       ))}
     </ul>

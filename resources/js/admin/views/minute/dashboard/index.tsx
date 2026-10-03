@@ -2,24 +2,28 @@ import PageBreadcrumb from '@/components/PageBreadcrumb'
 import StatCard, { Stat } from '@/views/admin/dashboard/widgets/StatCard'
 import ListCard, { ListWidget } from '@/views/admin/dashboard/widgets/ListCard'
 import TrendChart, { Trend } from '@/views/admin/dashboard/widgets/TrendChart'
+import { hasPermission } from '@/layouts/components/useMenuItems'
 import { Head, Link, usePage } from '@inertiajs/react'
 
 type Widgets = { stats: Stat[]; lists: ListWidget[]; charts: Trend[] }
 type Props = { widgets: Widgets | null }
 
+// Shortcut cards, gated like the sidebar (each permission is the one its page
+// enforces) — contractors sign in here too, and shouldn't be offered PM pages.
 const cards = [
-  { href: '/timesheets', title: 'Timesheets', desc: 'Review and approve weekly hours.' },
-  { href: '/invoices', title: 'Invoices', desc: 'View and download invoices for your property.' },
-  { href: '/contractors', title: 'Contractors', desc: 'Who is placed with you, and direct-hire eligibility.' },
-  { href: '/pay-increases', title: 'Pay Increases', desc: 'Request a raise for a contractor.' },
-  { href: '/staffing-requests', title: 'Staffing Requests', desc: 'Ask for more contractors at your property.' },
-  { href: '/my-info', title: 'My Info', desc: 'Request a change to your name, email, or phone.' },
+  { href: '/timesheets', title: 'Timesheets', desc: 'Review and approve weekly hours.', permission: 'timesheets.view_live' },
+  { href: '/invoices', title: 'Invoices', desc: 'View and download invoices for your property.', permission: 'invoices.view' },
+  { href: '/contractors', title: 'Contractors', desc: 'Who is placed with you, and direct-hire eligibility.', permission: 'people.contractors.view' },
+  { href: '/pay-increases', title: 'Pay Increases', desc: 'Request a raise for a contractor.', permission: 'workflows.pay_increase.initiate' },
+  { href: '/staffing-requests', title: 'Staffing Requests', desc: 'Ask for more contractors at your property.', permission: 'workflows.more_staff.initiate' },
+  { href: '/my-info', title: 'My Info', desc: 'Request a change to your name, email, or phone.', permission: 'people.own_profile.request_change' },
+  { href: '/kb', title: 'Knowledge Base', desc: 'Guides and answers for day-to-day work.', permission: 'kb.articles.view' },
 ]
 
 const Page = ({ widgets }: Props) => {
   const props = usePage().props as { auth?: { user?: { name?: string }; permissions?: string[] } }
   const user = props.auth?.user
-  const canReadKb = (props.auth?.permissions ?? []).includes('kb.articles.view')
+  const permissions = props.auth?.permissions ?? []
 
   return (
     <>
@@ -60,7 +64,7 @@ const Page = ({ widgets }: Props) => {
       )}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {(canReadKb ? [...cards, { href: '/kb', title: 'Knowledge Base', desc: 'Guides and answers for day-to-day work.' }] : cards).map((card) => (
+        {cards.filter((card) => hasPermission(card.permission, permissions)).map((card) => (
           <Link key={card.href} href={card.href} className="card rounded-2xl transition hover:shadow-lg">
             <div className="card-body p-6">
               <h5 className="font-semibold">{card.title}</h5>

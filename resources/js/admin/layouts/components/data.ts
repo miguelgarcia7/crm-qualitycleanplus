@@ -123,3 +123,49 @@ export const menuItems: MenuItemType[] = [
     ],
   },
 ]
+
+/*
+| QC Minute sidebar menu — the property manager / contractor surface, served
+| from the root of its own domain. Gated the same way; each `permission` is the
+| one its page enforces, so nobody is shown a link that answers 403. The
+| dashboard's shortcut cards are built from this list too.
+*/
+
+export const minuteMenuItems: MenuItemType[] = [
+  {
+    icon: 'dashboard',
+    slug: 'minute-main',
+    label: 'Main',
+    isTitle: true,
+    children: [{ url: '/', slug: 'minute-dashboard', label: 'Dashboard', icon: 'dashboard' }],
+  },
+  {
+    icon: 'building',
+    slug: 'minute-property',
+    label: 'My property',
+    isTitle: true,
+    children: [
+      { url: '/timesheets', slug: 'minute-timesheets', label: 'Timesheets', icon: 'clock', permission: 'timesheets.view_live' },
+      { url: '/invoices', slug: 'minute-invoices', label: 'Invoices', icon: 'file-invoice', permission: 'invoices.view' },
+      { url: '/contractors', slug: 'minute-contractors', label: 'Contractors', icon: 'users', permission: 'people.contractors.view' },
+    ],
+  },
+  {
+    icon: 'checklist',
+    slug: 'minute-requests',
+    label: 'Requests',
+    isTitle: true,
+    children: [
+      { url: '/pay-increases', slug: 'minute-pay-increases', label: 'Pay Increases', icon: 'trending-up', permission: 'workflows.pay_increase.initiate' },
+      { url: '/staffing-requests', slug: 'minute-staffing', label: 'Staffing Requests', icon: 'user-plus', permission: 'workflows.more_staff.initiate' },
+      { url: '/my-info', slug: 'minute-my-info', label: 'My Info', icon: 'user-edit', permission: 'people.own_profile.request_change' },
+    ],
+  },
+  {
+    icon: 'book',
+    slug: 'minute-help',
+    label: 'Help',
+    isTitle: true,
+    children: [{ url: '/kb', slug: 'minute-kb', label: 'Knowledge Base', icon: 'book', permission: 'kb.articles.view' }],
+  },
+]
