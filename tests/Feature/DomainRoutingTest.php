@@ -43,6 +43,18 @@ it('blocks a w2 employee from qc minute (wrong door)', function () {
         ->assertForbidden();
 });
 
+it('gives a wrong-door account a way to sign out from the 403 page', function () {
+    $this->actingAs(person('w2_employee'))
+        ->get(qcminute('/'))
+        ->assertForbidden()
+        ->assertSee('This account cannot access QC Minute.')
+        ->assertSee('action="/logout"', escape: false)
+        ->assertSee('Sign out and use a different account');
+
+    $this->post(qcminute('/logout'))->assertRedirect();
+    $this->assertGuest();
+});
+
 it('records a login in the activity log', function () {
     $admin = person('super_admin');
 
