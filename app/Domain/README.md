@@ -37,6 +37,7 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | `Marketing` | Marketing-site data (Phase 08b-i): `ContactInquiry` — Job Seeker + Business leads from the public contact forms |
 | `KnowledgeBase` | Versioned KB articles (Phase 08c): `KbArticle` (immutable `KbArticleVersion` snapshot before every edit), hierarchical `KbCategory`, auto-created `KbTag`, role-based visibility via `kb_article_role` (zero roles = all authed readers; super_admin bypass), `KbSearch` (FULLTEXT/LIKE), `SubmitKbFeedback` vote dedupe; readers on both surfaces |
 | `Reports` | Report rollups + exports (Phase 09, ADR-0028): `ReportWeeklyRollup` (operational, week × property × position from `time_summaries`) and `ReportMonthlyRevenue` (financial, month × property from non-voided invoices), `RefreshWeeklyRollup`/`RefreshMonthlyRevenue` cell rebuilds (triggered by summary recompute + invoice freeze/void; nightly `reports:refresh-rollups` backstop), `ArrayReportExport` (generic Excel sheet) |
+| `Demo` | The Acme Hotel demo environment (docs/80-plan/demo-environment.md): `DemoRoster` (logins, contractors, shift plans), `SimulateClock` (planned punches through the real clock actions) and `AdvanceDemoBilling` (weekly submit → approve → send → paid cadence), run by `demo:reset` / `demo:simulate`. Inert unless `DEMO_MODE=true`; never runs in production |
 | `Shared` | Generic primitives reused across contexts (e.g. the polymorphic `File` model, the polymorphic `Feedback` model + `FeedbackType`) |
 
 ## Wiring notes

@@ -36,13 +36,15 @@ class EnsurePayrollPeriods extends Command
                 for ($i = -1; $i <= $ahead; $i++) {
                     $weekStart = $anchor->addWeeks($i);
 
-                    $period = $property->payrollPeriods()->firstOrCreate(
-                        ['week_start' => $weekStart->toDateString()],
-                        [
+                    // whereDate: a bare-string match misses a week_start stored
+                    // with a time part (SQLite), and the insert then trips the
+                    // unique index.
+                    $period = $property->payrollPeriods()->whereDate('week_start', $weekStart->toDateString())->first()
+                        ?? $property->payrollPeriods()->create([
+                            'week_start' => $weekStart->toDateString(),
                             'week_end' => $weekStart->addDays(6)->toDateString(),
                             'status' => PayrollPeriodStatus::Open,
-                        ],
-                    );
+                        ]);
 
                     // Every period gets a draft timesheet (ADR-0007).
                     $period->timesheet()->firstOrCreate(

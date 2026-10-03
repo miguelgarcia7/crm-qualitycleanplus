@@ -42,20 +42,26 @@ class RefreshMonthlyRevenue
                 return;
             }
 
-            ReportMonthlyRevenue::updateOrCreate(
-                ['property_id' => $propertyId, 'month_start' => $month->toDateString()],
-                [
-                    'invoice_count' => $invoices->count(),
-                    'work_subtotal' => (int) $invoices->sum('work_subtotal'),
-                    'adjustment_total' => (int) $invoices->sum('adjustment_total'),
-                    'tax_amount' => (int) $invoices->sum('tax_amount'),
-                    'invoiced_total' => (int) $invoices->sum('total'),
-                    'payout_total' => (int) InvoiceItem::query()
-                        ->whereIn('invoice_id', $invoices->pluck('id'))
-                        ->sum('total_payout'),
-                    'last_refreshed_at' => now(),
-                ],
-            );
+            // Looked up by whereDate for the same reason as the delete above: a
+            // bare-string match misses a month_start stored with a time part
+            // (SQLite), and the insert then trips the unique index.
+            $cell = ReportMonthlyRevenue::query()
+                ->where('property_id', $propertyId)
+                ->whereDate('month_start', $month->toDateString())
+                ->first()
+                ?? new ReportMonthlyRevenue(['property_id' => $propertyId, 'month_start' => $month->toDateString()]);
+
+            $cell->fill([
+                'invoice_count' => $invoices->count(),
+                'work_subtotal' => (int) $invoices->sum('work_subtotal'),
+                'adjustment_total' => (int) $invoices->sum('adjustment_total'),
+                'tax_amount' => (int) $invoices->sum('tax_amount'),
+                'invoiced_total' => (int) $invoices->sum('total'),
+                'payout_total' => (int) InvoiceItem::query()
+                    ->whereIn('invoice_id', $invoices->pluck('id'))
+                    ->sum('total_payout'),
+                'last_refreshed_at' => now(),
+            ])->save();
         });
     }
 }
