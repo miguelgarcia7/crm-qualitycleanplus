@@ -1,28 +1,32 @@
-# Demo Environment — Acme Hotel
+# Demo Environment
 
 | Field | Value |
 |---|---|
 | Status | Built; running locally and on the Cloud `staging` environment (2026-10-03) |
-| Last updated | 2026-10-03 |
+| Last updated | 2026-10-03 (QCP Property, MAG Solutions, second recruiter, recruiting) |
 | Owner | Engineering |
 
-A self-running demo company for testing every role and showing the client the system
-working: one login per role, one property (**Acme Hotel**), five contractors with six
-weeks of history, and contractors clocking in and out live through the working day.
+Self-running demo companies for testing every role and showing the client the system
+working: a login for every role, three properties (**Acme Hotel**, **QCP Property**,
+**MAG Solutions**), nine contractors with six weeks of history, contractors clocking
+in and out live through the working day, and a few job postings and applicants.
 For the day-to-day how-to (accounts, roles, commands), see [../demo-guide.md](../demo-guide.md);
 this page is the engineering reference.
 
 ## What gets seeded
 
 `php artisan demo:reset` = `migrate:fresh` → structural seeders (roles, departments,
-positions, holidays, inventory categories, company settings) → `AcmeHotelSeeder`.
-`SampleDataSeeder` is deliberately not run, so Acme is the only company in the system.
+positions, holidays, inventory categories, company settings) → `DemoSeeder`.
+`SampleDataSeeder` is deliberately not run, so the demo companies are the only ones in
+the system. Everything — logins, companies, rate history, contractors, raises — is
+declared in `app/Domain/Demo/DemoRoster.php`.
 
-- **Logins** (all share `DEMO_PASSWORD`, default `password`), defined in
-  `app/Domain/Demo/DemoRoster.php`:
+- **Logins** (all share `DEMO_PASSWORD`, default `password`):
   - Back office (`DOMAIN_MAIN/admin`): `super-admin@`, `admin@`, `office-manager@`,
-    `front-desk@`, `hr@`, `payroll@`, `recruiter@`, `w2@` — all `@example.com`.
-  - QC Minute (`DOMAIN_QCMINUTE`): `pm@example.com` and the five contractors.
+    `front-desk@`, `hr@`, `payroll@`, `recruiter@` (Acme), `recruiter2@` (QCP Property
+    and MAG Solutions), `w2@` — all `@example.com`.
+  - QC Minute (`DOMAIN_QCMINUTE`): a property manager per company (`pm@`, `pm.qcp@`,
+    `pm.mag@`) and the nine contractors.
 - **Acme Hotel** — Chicago, Mon–Sun weeks, 6.25% tax, QR clock-in on, the default
   holidays (Labor Day falls inside the history, so one week shows holiday pay), a
   lobby tablet with activation code `ACME01`.
@@ -35,6 +39,17 @@ positions, holidays, inventory categories, company settings) → `AcmeHotelSeede
   | Aisha Brown | Laundry Attendant | ~8:00–4:00 | Lobby tablet | 13 weeks ago |
   | Tom Nguyen | Public Space Attendant | ~8:00–4:00 | Lobby tablet | 9 weeks ago |
   | Sofia Ramirez | Banquet Server | ~8:00–4:00 | QR | 3 weeks ago |
+
+- **QCP Property** (Dallas) and **MAG Solutions** (Carrollton) — two positions each,
+  with a Bible rate history (an old rate closed the day before a raise a few months
+  ago). Two contractors each, all on the ~8–4 shift; each was hired on an earlier rate
+  and got a **pay raise 2–5 weeks ago**: `SupersedeWorkOrder` with source
+  `pay_increase`, effective on a Monday, so the weeks before it are punched and
+  invoiced at the old rate and the weeks after at the new one. MAG has a tablet
+  (`MAG001`); QCP is QR only.
+- **Recruiting** — three job postings (two published, one draft) and three applicants
+  through `SubmitApplication`: one new, one reviewing with a pending background check,
+  one rejected.
 
   Every shift has a ~30-minute unpaid lunch (four punches a day). The ~8–4 shift nets
   ~7.5h/day and at most ~38.6h/week whatever the jitter, so **only James's work order
@@ -63,10 +78,11 @@ demo commands refuse in production). Each run:
    | Invoice emailed | that Tuesday 10:00 |
    | Marked paid (by payroll) | ~3 weeks after close |
 
-Both steps stamp each action at its **planned** time, not the cron tick that noticed it
-(`TravelsInTime`), and read progress back from the data — so they're idempotent, a
-missed run or a sleeping environment catches up on the next run, and the seeder builds
-the six-week history by running the very same code from six weeks ago to now. Anything
+Both steps run for each demo company. They stamp each action at its **planned** time,
+not the cron tick that noticed it (`TravelsInTime`), and read progress back from the
+data — so they're idempotent, a missed run or a sleeping environment catches up on the
+next run, and the seeder builds the six-week history by running the very same code
+from six weeks ago to now (pausing at each pay raise to supersede the work order). Anything
 a viewer does by hand (declining a timesheet, approving early, clocking someone in on
 the tablet) is picked up from where it stands rather than overwritten.
 

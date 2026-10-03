@@ -1,8 +1,9 @@
-# Demo Guide — Acme Hotel
+# Demo Guide
 
-The demo is a fake company, **Acme Hotel**, with one login for every role and five
-contractors who clock in and out by themselves through the work week. Use it to test
-each role, or to show the system to the client.
+The demo has three fake companies — **Acme Hotel**, **QCP Property** and **MAG
+Solutions** — with a login for every role and nine contractors who clock in and out
+by themselves through the work week. Use it to test each role, or to show the system
+to the client.
 
 How it works under the hood, and how the Laravel Cloud `staging` environment is set up:
 [80-plan/demo-environment.md](80-plan/demo-environment.md).
@@ -16,7 +17,7 @@ The system has two websites. Each account signs in to one of them.
 | Website | Local (Herd) | Cloud (staging) | Who signs in here |
 |---|---|---|---|
 | **Back office** | `qcpminute.test/admin` | `crm-qualitycleanplus-staging-bapqoc.laravel.cloud/admin` | QCP office staff |
-| **QC Minute** | `qcminute.test` | `demo.qcpstaffing.com` | The hotel's manager and contractors |
+| **QC Minute** | `qcminute.test` | `demo.qcpstaffing.com` | Each company's property manager, and the contractors |
 
 **Password for every account:** `password` locally. On Cloud it's whatever
 `DEMO_PASSWORD` is set to.
@@ -38,17 +39,38 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 | **Front Desk** | `front-desk@example.com` | Handles supplies and walk-ins: inventory, purchase orders, filling supply requests, the new-hire onboarding checklist, returning equipment. |
 | **HR** | `hr@example.com` | Handles people: applicants, contractors and staff, terminations and transfers, PTO approvals, knowledge-base articles. |
 | **Payroll** | `payroll@example.com` | Handles money: rates, contracts, hour imports, marking invoices paid or void, payroll and financial reports. |
-| **Recruiter** | `recruiter@example.com` | Owns Acme Hotel day to day: its contractors and work orders, fixing punches, submitting each week's timesheet to the hotel, sending invoices, property visits. |
+| **Recruiter** | `recruiter@example.com` | Rita. Owns **Acme Hotel** day to day: its contractors and work orders, fixing punches, submitting each week's timesheet to the hotel, sending invoices, property visits, job postings and applicants. |
+| **Recruiter** | `recruiter2@example.com` | Ray. Same job for **QCP Property** and **MAG Solutions**. Compare the two to see that a recruiter only sees their own companies. |
 | **W-2 Employee** | `w2@example.com` | A regular office employee: their own profile, PTO requests, supply requests, the knowledge base. |
 
-### QC Minute — the hotel side
+### QC Minute — the companies' side
 
 | Role | Email | What they do |
 |---|---|---|
-| **Property Manager** | `pm@example.com` | Acme Hotel's manager. Sees who's working and their hours, **approves or declines weekly timesheets**, sees invoices, and can ask for more staff or a pay increase. |
-| **Contractor** | see below | A worker placed at the hotel. Sees their own profile, work orders and hours, plus knowledge-base articles. |
+| **Property Manager** | `pm@example.com` | Pat, Acme Hotel's manager. |
+| **Property Manager** | `pm.qcp@example.com` | Quinn, QCP Property's manager. |
+| **Property Manager** | `pm.mag@example.com` | Megan, MAG Solutions' manager. |
+| **Contractor** | see below | A worker placed at a company. Sees their own profile, work orders and hours, plus knowledge-base articles. |
 
-### The five contractors
+Each property manager sees only their own company: who's working and their hours,
+**approving or declining weekly timesheets**, invoices, and asking for more staff or
+a pay increase.
+
+### The companies
+
+| Company | Address | Phone · Email | Recruiter | Jobs |
+|---|---|---|---|---|
+| **Acme Hotel** | 233 N Michigan Ave, Chicago, IL 60601 | (312) 555-0100 · accounts.payable@example.com | Rita | 5 |
+| **QCP Property** | 1720 Regal Row, Dallas, TX 75235 | (214) 333-4444 · qcp@example.com | Ray | Janitor, Housekeeper |
+| **MAG Solutions** | 1519 Palisaded Dr, Carrollton, TX 75007 | (214) 333-5555 · mag@example.com | Ray | Cook, Dishwasher |
+
+QCP Property and MAG Solutions each have a **rate history**: their Bible rates went
+up a few months ago, so the property page's Rates tab shows the old rate (closed) and
+the current one.
+
+### The contractors
+
+**Acme Hotel**
 
 | Name | Email | Job | Usual hours | Clocks in with | Phone (for clock-in) |
 |---|---|---|---|---|---|
@@ -58,9 +80,38 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 | Tom Nguyen | `tom.nguyen@example.com` | Public Space Attendant | 8:00–4:00 | Lobby tablet | (312) 555-0144 |
 | Sofia Ramirez | `sofia.ramirez@example.com` | Banquet Server | 8:00–4:00 | Phone (QR) | (312) 555-0145 |
 
+**QCP Property** and **MAG Solutions** — each of these got a pay raise during the
+last six weeks, so their work orders show the old rate, the raise, and hours at both.
+
+| Name | Email | Company | Job | Pay (was → now) | Raise from | Clocks in with | Phone |
+|---|---|---|---|---|---|---|---|
+| Carlos Mendez | `carlos.mendez@example.com` | QCP Property | Janitor | $14.00 → $15.50 | 4 weeks ago | Phone (QR) | (214) 555-0151 |
+| Linda Park | `linda.park@example.com` | QCP Property | Housekeeper | $15.50 → $16.25 | 2 weeks ago | Phone (QR) | (214) 555-0152 |
+| Andre Wilson | `andre.wilson@example.com` | MAG Solutions | Cook | $17.00 → $18.50 | 5 weeks ago | Phone (QR) | (972) 555-0161 |
+| Grace Kim | `grace.kim@example.com` | MAG Solutions | Dishwasher | $14.50 → $15.25 | 3 weeks ago | Front office tablet | (972) 555-0162 |
+
+All four work about 8:00–4:00.
+
 Everyone takes a ~30-minute lunch around noon, so there are four punches a day.
 **James is the only one who goes over 40 hours a week**, which is what you need for
-testing overtime on timesheets and invoices. Times are Chicago time, Monday–Friday.
+testing overtime on timesheets and invoices. Times are Chicago time (Dallas is in the
+same time zone), Monday–Friday.
+
+### Recruiting
+
+| Job posting | Company | Status |
+|---|---|---|
+| Housekeeper | Acme Hotel | Published (on the public job board) |
+| Janitor | QCP Property | Published |
+| Line Cook | MAG Solutions | Draft |
+
+| Applicant | Applied for | Stage |
+|---|---|---|
+| Elena Torres | Housekeeper, Acme Hotel | New (submitted yesterday) |
+| Marcus Lee | Janitor, QCP Property | Reviewing; background check pending |
+| Nina Patel | Janitor, QCP Property | Rejected |
+
+Applicants don't have logins.
 
 ---
 
@@ -69,9 +120,11 @@ testing overtime on timesheets and invoices. Times are Chicago time, Monday–Fr
 | Where | What to look for |
 |---|---|
 | Dashboard → **On the clock** | During work hours, everyone currently clocked in. Before lunch, after lunch, and after 4:00 (only James) all look different. |
-| Timesheets | **This week** is still filling up. **Last week** is waiting for the property manager to approve it. |
+| Timesheets | At each company, **this week** is still filling up and **last week** is waiting for its property manager to approve it. |
 | Invoices | Older weeks are invoiced and emailed; the oldest are marked **paid**. |
 | James's hours | Overtime every week. |
+| Carlos, Linda, Andre or Grace → Work Orders | The old work order (closed) and the pay-increase one that replaced it. |
+| Applicants, Job Postings | Three of each, at different stages. |
 | The Labor Day week | Holiday pay (1.5×) on Monday, September 7. |
 
 **What happens on its own each week:**
@@ -100,9 +153,9 @@ Run these in the project folder. Locally use `php84 artisan …`. On Cloud, use 
 php84 artisan demo:reset
 ```
 
-**Deletes everything in the database** and creates the Acme Hotel demo: every
-account, the hotel, the contractors, and the last six weeks of hours, timesheets and
-invoices. It prints the account list when it's done. It only runs with
+**Deletes everything in the database** and creates the demo: every account, the
+three companies, the contractors, job postings and applicants, and the last six weeks
+of hours, timesheets and invoices. It prints the account list when it's done. It only runs with
 `DEMO_MODE=true`, and never with `APP_ENV=production`. Use
 it to start over at any time. Your company details (Settings → Company: name,
 address, phone) are kept, and printed on the demo's invoices. On Cloud, add `--force` to skip the "are you sure?"
@@ -170,13 +223,14 @@ Rebuilds the local database from the legacy `minute` copy, replacing the demo. R
 - **Clock in on the lobby tablet.** Open `qcminute.test/device` (or
   `demo.qcpstaffing.com/device` on Cloud), enter activation code **`ACME01`**, then
   type a contractor's phone number. The tablet doesn't check location, so it works
-  from anywhere. The code changes once it's used. To pair another tablet, sign in as
+  from anywhere. The code changes once it's used. MAG Solutions has a tablet too:
+  code **`MAG001`**, for Grace Kim. To pair another tablet, sign in as
   Super Admin and open **Devices** (`/admin/devices`) to get a new code.
 - **Clock in by phone (QR).** As Admin, open Acme Hotel's property page, then
   **Clock-in QR**. The QR checks the phone's location against the hotel in Chicago, so
   it will turn you away if your phone says you're somewhere else.
-- **Approve a timesheet.** Sign in as `pm@example.com` in QC Minute and approve last
-  week. An invoice appears right away.
+- **Approve a timesheet.** Sign in as `pm@example.com` (or `pm.qcp@`, `pm.mag@`) in
+  QC Minute and approve last week. An invoice appears right away.
 
 A contractor who is already clocked in can't clock in again. Clock them out first,
 or try it outside work hours.
