@@ -4,7 +4,7 @@ The demo is a fake company, **Acme Hotel**, with one login for every role and fi
 contractors who clock in and out by themselves through the work week. Use it to test
 each role, or to show the system to the client.
 
-How it works under the hood, and how to set up the Laravel Cloud demo environment:
+How it works under the hood, and how the Laravel Cloud `staging` environment is set up:
 [80-plan/demo-environment.md](80-plan/demo-environment.md).
 
 ---
@@ -13,9 +13,9 @@ How it works under the hood, and how to set up the Laravel Cloud demo environmen
 
 The system has two websites. Each account signs in to one of them.
 
-| Website | Local (Herd) | Cloud demo | Who signs in here |
+| Website | Local (Herd) | Cloud (staging) | Who signs in here |
 |---|---|---|---|
-| **Back office** | `qcpminute.test/admin` | `<demo-env>.laravel.cloud/admin` | QCP office staff |
+| **Back office** | `qcpminute.test/admin` | `crm-qualitycleanplus-staging-bapqoc.laravel.cloud/admin` | QCP office staff |
 | **QC Minute** | `qcminute.test` | `demo.qcpstaffing.com` | The hotel's manager and contractors |
 
 **Password for every account:** `password` locally. On Cloud it's whatever
@@ -92,7 +92,7 @@ the demo carries on from there.
 ## Commands
 
 Run these in the project folder. Locally use `php84 artisan …`. On Cloud, use the
-demo environment's **Commands** tab and type `php artisan …`.
+`staging` environment's **Commands** tab and type `php artisan …`.
 
 ### Start fresh
 
@@ -103,7 +103,7 @@ php84 artisan demo:reset
 **Deletes everything in the database** and creates the Acme Hotel demo: every
 account, the hotel, the contractors, and the last six weeks of hours, timesheets and
 invoices. It prints the account list when it's done. It only runs with
-`DEMO_MODE=true`, and never on production or staging. Use
+`DEMO_MODE=true`, and never with `APP_ENV=production`. Use
 it to start over at any time. Your company details (Settings → Company: name,
 address, phone) are kept, and printed on the demo's invoices. On Cloud, add `--force` to skip the "are you sure?"
 question.
@@ -185,12 +185,12 @@ or try it outside work hours.
 
 ## Settings
 
-Set these in `.env` locally, or in the Cloud demo environment's variables (then
+Set these in `.env` locally, or in the Cloud `staging` environment's variables (then
 redeploy).
 
 | Setting | What it does |
 |---|---|
-| `DEMO_MODE=true` | Switches the demo on: `demo:reset` is allowed, contractors clock in and out by themselves, and search engines are told to ignore the site. Never set this on staging or production. |
+| `DEMO_MODE=true` | Switches the demo on: `demo:reset` is allowed, contractors clock in and out by themselves, and search engines are told to ignore the site. Remove it before loading real data. |
 | `DEMO_PASSWORD=…` | The password for every demo account (default `password`). Set your own on Cloud before sharing the link, then run `demo:reset` so the accounts pick it up. |
 | `DB_DATABASE=…` | Locally: which database to use. `qcpminute` holds the real legacy data; `qcpminute_demo` is a separate copy you can keep for the demo. |
 

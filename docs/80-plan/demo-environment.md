@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Built; verified locally on MySQL (scratch DB `qcpminute_demo`). Cloud `demo` environment not yet created |
+| Status | Built; running locally and on the Cloud `staging` environment (2026-10-03) |
 | Last updated | 2026-10-03 |
 | Owner | Engineering |
 
@@ -91,72 +91,61 @@ For live punches keep `php84 artisan schedule:work` running (plus `queue:work` f
 mail/broadcasts, and Reverb for live grid refresh). `php84 artisan demo:simulate` catches
 up by hand at any time.
 
-## Laravel Cloud environments
+## Laravel Cloud — the `staging` environment
 
-The app (`crm-qualitycleanplus`) runs one Cloud environment per purpose. Each has its
-own database, so the legacy data and the demo can never overwrite each other.
+The Cloud app `crm-qualitycleanplus` has **one environment, `staging`**, which runs the
+Acme demo until the real legacy data is loaded. (It was auto-created as "production" and
+renamed: nothing is live yet. A real `production` environment, with
+`qualitycleanplus.com` / `qcpstaffing.com`, comes at cutover.)
 
-| Environment | Holds | `APP_ENV` | `DEMO_MODE` | Domains |
-|---|---|---|---|---|
-| **staging** | The legacy data, loaded by `bin/legacy-sync --upload` — real people and invoices | `production` | not set | its `*.laravel.cloud` address |
-| **demo** | Acme Hotel, reset with `demo:reset` | `demo` | `true` | its `*.laravel.cloud` address (back office) + `demo.qcpstaffing.com` (QC Minute) |
-| **production** | Not created yet — made at cutover with the real domains | `production` | not set | `qualitycleanplus.com`, `qcpstaffing.com` |
+| | |
+|---|---|
+| Back office | `https://crm-qualitycleanplus-staging-bapqoc.laravel.cloud/admin` |
+| QC Minute | `https://demo.qcpstaffing.com` (Cloudflare `qcpstaffing.com` zone, CNAME **DNS only**) |
+| Database | `production` MySQL 8.4 cluster — the database name predates the rename |
+| File storage | Laravel Object Storage bucket `crm_qualitycleanplus_staging`, private, attached as default disk **`s3`** |
+| PHP | 8.4 (matches the project; the environment had defaulted to 8.5) |
 
-Staging keeps `APP_ENV=production` on purpose: the Cloud *name* is just a label, while
-`APP_ENV=production` is what blocks `migrate:fresh` / `db:wipe`, stops `db:seed` adding the
-sample companies, and enforces strong passwords — all wanted on real data. The demo
-commands also require `DEMO_MODE=true`, so they can't run on staging whatever `APP_ENV` says.
+### Variables
 
-### 1. Rename the existing environment to `staging`
+Cloud injects the database, app key and bucket credentials. The custom variables that
+make it the demo:
 
-The environment Cloud created first is named `production`, but it holds the legacy
-rehearsal data, not a live system.
+```
+APP_ENV=staging
+APP_URL=https://crm-qualitycleanplus-staging-bapqoc.laravel.cloud
+DOMAIN_MAIN=crm-qualitycleanplus-staging-bapqoc.laravel.cloud
+DOMAIN_QCMINUTE=demo.qcpstaffing.com
+DEMO_MODE=true
+DEMO_PASSWORD=<shared with the client>
+MAIL_MAILER=log
+QCP_INVOICER_NAME / _ADDRESS / _CITY / _STATE / _ZIP / _PHONE / _EMAIL
+```
 
-1. Environment → **Settings → General → Name**: `staging`. Save, then **redeploy**.
-2. Its free address changes (from `crm-qualitycleanplus-production-2vodwt.laravel.cloud`
-   to a `…-staging-….laravel.cloud` one). Update `APP_URL` and `DOMAIN_MAIN` to it in the
-   environment's variables, and redeploy again.
-3. Locally, update `APP_URL` and `DOMAIN_MAIN` in `.env.rehearsal` to match.
-   `bin/legacy-sync` only uses that file's database credentials, and the database
-   doesn't change with the rename, so syncs keep working.
-4. Keep `APP_ENV=production` (see above) and leave `DEMO_MODE` unset.
-5. Network → Domains: **detach `demo.qcpstaffing.com`** — it moves to the demo
-   environment in step 2.
+- `APP_ENV` must not be `production` while it's the demo — both demo commands refuse it.
+- `MAIL_MAILER=log` because the demo emails `@example.com` addresses, which would bounce
+  through Postmark. The Postmark key stays in the variables for later.
+- **Never** add custom `FILESYSTEM_DISK` or `AWS_*` variables: custom variables override
+  what Cloud injects for the bucket. Blank ones copied from a local `.env` caused
+  `A "region" configuration value is required for the "s3" service` on the first reset.
+- The **Scheduler** toggle on the App cluster must be on for live punches.
 
-### 2. Create the `demo` environment
+### Reset or refresh the demo
 
-1. **Replicate** `staging` → name `demo`, branch `main`. Before the first deploy, confirm
-   it created a **new** database (and bucket / WebSocket server) — never staging's,
-   which holds the real data. Scale-to-zero Flex compute is fine.
-2. **Domains** — the environment's free `*.laravel.cloud` address serves the back office;
-   QC Minute needs its own host. In the **demo** environment's Network settings add
-   `demo.qcpstaffing.com` (wildcard: no; Cloudflare DNS: yes; proxied: no). In
-   Cloudflare (`qcpstaffing.com` zone) make sure the records match what Cloud shows,
-   **DNS only (grey cloud)**. Refresh until Connected. Don't make it the primary domain.
-3. **Environment variables** (Replicate copied staging's). First, delete any custom
-   `DB_*` variables that came across — custom variables override the credentials Cloud
-   injects for the demo's own database, and would point the demo at staging's real data.
-   Then set:
-   ```
-   APP_ENV=demo
-   APP_URL=https://<demo-env>.laravel.cloud
-   DOMAIN_MAIN=<demo-env>.laravel.cloud
-   DOMAIN_QCMINUTE=demo.qcpstaffing.com
-   DEMO_MODE=true
-   DEMO_PASSWORD=<shared with the client>
-   MAIL_MAILER=log
-   ```
-   `APP_ENV` must not be `production` (the demo commands refuse it). `MAIL_MAILER=log`
-   keeps approval/invoice mail from going anywhere.
-4. **Scheduler** — enable the Scheduler toggle on the App cluster. Deploy commands stay
-   `php artisan migrate --force` only — never `demo:reset`, which would wipe on each deploy.
-5. **Company details** — add `QCP_INVOICER_NAME`, `_ADDRESS`, `_CITY`, `_STATE`, `_ZIP`,
-   `_PHONE` and `_EMAIL` to the variables (and redeploy) before seeding: the seed copies
-   them into Settings → Company, and the demo's invoices print them. (Or seed first, fill
-   in Settings → Company as Admin, then run `demo:reset` again — it keeps them.)
-6. **Seed** — Commands tab: `php artisan demo:reset --force`. Re-run it any time for a
-   clean slate (the history is always "the last six weeks" from that moment; company
-   details are kept).
-7. **Share** the two URLs, the account list `demo:reset` prints, and `DEMO_PASSWORD`.
-   `NoIndexInDemoMode` adds `X-Robots-Tag: noindex` on both hosts (Cloud only does that
-   for `*.laravel.cloud`).
+Commands tab: `php artisan demo:reset --force`. It wipes the database, keeps the
+`settings` table (company details), and rebuilds six weeks of history ending now. Deploy
+commands stay `php artisan migrate --force` only — never `demo:reset`.
+
+### Switching staging to the real data (when ready)
+
+1. Remove `DEMO_MODE`; set `APP_ENV=production` — that blocks `migrate:fresh` /
+   `db:wipe`, keeps the sample seeders out, and enforces strong passwords on real data.
+2. Restore real mail (`MAIL_MAILER` back to Postmark) only once you want real emails sent.
+3. Redeploy, then run `bin/legacy-sync --upload` from the Mac (needs the database's
+   public endpoint temporarily enabled — see phase-final-cutover.md).
+
+### If a separate demo is wanted later
+
+Replicate `staging` into a `demo` environment, give it its **own** database (delete any
+copied `DB_*` variables) and its own bucket, move `demo.qcpstaffing.com` to it, and set
+the variables above there. Staging can then hold the real data.
