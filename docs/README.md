@@ -10,6 +10,8 @@ If you're new here, read in this order:
 4. `80-plan/roadmap.md` — phase-by-phase build sequence
 5. `reviews/2026-05-21-client-review.md` — client-facing summary (most accessible read for non-engineers)
 
+Testing or showing the app? `demo-guide.md` — the Acme Hotel demo: every account, what each role does, and the commands to run it.
+
 Then dip into the per-area folders as needed.
 
 ## Folder map
