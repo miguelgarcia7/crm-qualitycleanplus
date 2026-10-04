@@ -34,7 +34,9 @@ type WorkOrderRow = {
   start_date: string
 }
 type Option = { id: number; name: string }
-type Catalogs = { properties: Option[]; positions: Option[]; recruiters: Option[] }
+/** An open PM staffing request a transfer can fill. */
+type StaffingRequest = { id: number; property_id: number; position_id: number; summary: string; label: string }
+type Catalogs = { properties: Option[]; positions: Option[]; recruiters: Option[]; moreStaffRequests?: StaffingRequest[] }
 type Filters = {
   search: string
   status: string
@@ -75,6 +77,13 @@ const columnHelper = createColumnHelper<WorkOrderRow>()
 
 const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Props) => {
   const [modal, setModal] = useState<ModalState>(null)
+  // "Transfer someone in" on a staffing request lands here with
+  // ?staffing_request=<id>: the Transfer form then starts on that request.
+  const [fillingRequest, setFillingRequest] = useState<StaffingRequest | null>(() => {
+    if (typeof window === 'undefined') return null
+    const id = Number(new URLSearchParams(window.location.search).get('staffing_request'))
+    return (catalogs.moreStaffRequests ?? []).find((r) => r.id === id) ?? null
+  })
   const [search, setSearch] = useState(filters.search)
 
   /**
@@ -236,6 +245,19 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
       <Head title="Work Orders" />
       <PageBreadcrumb title="Work Orders" subtitle="Operations" />
 
+      {fillingRequest && (
+        <div className="bg-primary/10 text-primary mb-4 flex flex-wrap items-center justify-between gap-2 rounded-md px-4 py-3 text-sm">
+          <span>
+            Transferring someone in for <strong>{fillingRequest.summary}</strong>: find the contractor below and choose <strong>Transfer</strong> — it&apos;s linked to
+            the request.
+          </span>
+          <span className="flex gap-4">
+            <Link href="/admin/staffing-requests" className="font-medium hover:underline">Back to requests</Link>
+            <button type="button" className="font-medium hover:underline" onClick={() => setFillingRequest(null)}>Dismiss</button>
+          </span>
+        </div>
+      )}
+
       <div className="card">
         <div className="card-header">
           <div className="flex flex-wrap gap-3">
@@ -298,7 +320,7 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
         )}
       </div>
 
-      {modal?.kind === 'transfer' && <TransferModal wo={modal.wo} catalogs={catalogs} onClose={() => setModal(null)} />}
+      {modal?.kind === 'transfer' && <TransferModal wo={modal.wo} catalogs={catalogs} filling={fillingRequest} onClose={() => setModal(null)} />}
       {modal?.kind === 'temp' && <TempModal wo={modal.wo} catalogs={catalogs} onClose={() => setModal(null)} />}
     </>
   )
@@ -346,11 +368,12 @@ const Shell = ({ title, subtitle, onClose, children }: { title: string; subtitle
   </div>
 )
 
-const TransferModal = ({ wo, catalogs, onClose }: { wo: WorkOrderRow; catalogs: Catalogs; onClose: () => void }) => {
+const TransferModal = ({ wo, catalogs, filling, onClose }: { wo: WorkOrderRow; catalogs: Catalogs; filling: StaffingRequest | null; onClose: () => void }) => {
   const { data, setData, post, processing, errors } = useForm({
     effective_date: new Date().toISOString().slice(0, 10),
-    new_property_id: wo.property_id as number | string,
-    new_position_id: wo.position_id as number | string,
+    new_property_id: (filling?.property_id ?? wo.property_id) as number | string,
+    new_position_id: (filling?.position_id ?? wo.position_id) as number | string,
+    more_staff_request_id: (filling?.id ?? '') as number | string,
     new_recruiter_id: '' as number | string,
     pay_rate: String(wo.pay_rate / 100),
     bill_rate: String(wo.bill_rate / 100),
@@ -360,6 +383,18 @@ const TransferModal = ({ wo, catalogs, onClose }: { wo: WorkOrderRow; catalogs: 
     notes: '',
   })
   const lookup = useRateLookup(setData as any)
+  // Starting from a staffing request: price the move at the new property's rates.
+  useEffect(() => {
+    if (filling) lookup(filling.property_id, filling.position_id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Open requests at the property they're moving to — a transfer can fill one.
+  const requestsHere = (catalogs.moreStaffRequests ?? []).filter((r) => String(r.property_id) === String(data.new_property_id))
+  const pickProperty = (propertyId: string) => {
+    setData((d) => ({ ...d, new_property_id: propertyId, more_staff_request_id: '' }))
+    lookup(propertyId, data.new_position_id)
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -372,7 +407,7 @@ const TransferModal = ({ wo, catalogs, onClose }: { wo: WorkOrderRow; catalogs: 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="form-label">New property</label>
-            <select className="form-select" value={data.new_property_id} onChange={(e) => { setData('new_property_id', e.target.value); lookup(e.target.value, data.new_position_id) }}>
+            <select className="form-select" value={data.new_property_id} onChange={(e) => pickProperty(e.target.value)}>
               {catalogs.properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
@@ -397,6 +432,19 @@ const TransferModal = ({ wo, catalogs, onClose }: { wo: WorkOrderRow; catalogs: 
           </div>
         </div>
         <RateFields data={data} setData={setData} />
+        {requestsHere.length > 0 && (
+          <div>
+            <label className="form-label">Fills a staffing request (optional)</label>
+            <select className="form-select" value={data.more_staff_request_id} onChange={(e) => setData('more_staff_request_id', e.target.value)}>
+              <option value="">No — not for a request</option>
+              {requestsHere.map((r) => (
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
+            <p className="text-default-400 mt-1 text-xs">Counts toward the request, and its property manager is told who is coming.</p>
+            {errors.more_staff_request_id && <p className="text-danger mt-1 text-sm">{errors.more_staff_request_id}</p>}
+          </div>
+        )}
         <div>
           <label className="form-label">Reason</label>
           <input className="form-input" value={data.reason} onChange={(e) => setData('reason', e.target.value)} required />

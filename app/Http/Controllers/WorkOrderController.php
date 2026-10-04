@@ -295,12 +295,14 @@ class WorkOrderController extends Controller
             'positions' => Position::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'moreStaffRequests' => MoreStaffRequest::query()
                 ->whereIn('status', [MoreStaffStatus::Submitted, MoreStaffStatus::InProgress])
-                ->with('position:id,name')
+                ->with(['position:id,name', 'property:id,name'])
                 ->orderBy('property_id')
                 ->get()
                 ->map(fn (MoreStaffRequest $r): array => [
                     'id' => $r->id,
                     'property_id' => $r->property_id,
+                    'position_id' => $r->position_id,
+                    'summary' => "{$r->quantity_requested} {$r->position?->name} at {$r->property?->name}",
                     'label' => "#{$r->id} · {$r->position?->name} ({$r->quantity_fulfilled} of {$r->quantity_requested} placed)",
                 ])->all(),
         ];

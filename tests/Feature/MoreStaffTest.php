@@ -8,7 +8,9 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Workflows\Enums\WorkflowStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\WorkOrders\Enums\MoreStaffStatus;
+use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
+use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Notifications\WorkflowNotice;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
@@ -229,4 +231,45 @@ it('shows the PM their notes and who has been placed', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('requests.0.reason', 'Banquet season')
             ->has('requests.0.placed', 1));
+});
+
+it('fills a staffing request with a transfer from another property', function () {
+    $s = moreStaffScenario();
+    $request = submitStaffRequest($s, quantity: 1);
+    $contractor = Person::factory()->create(['status' => PersonStatus::ContractorActive]);
+    $elsewhere = WorkOrder::factory()->create(['person_id' => $contractor->id, 'status' => WorkOrderStatus::Active]);
+
+    $this->actingAs(person('admin'))
+        ->post(main("/admin/work-orders/{$elsewhere->id}/transfer"), [
+            'effective_date' => Carbon::now()->toDateString(),
+            'new_property_id' => $s['property']->id,
+            'new_position_id' => $s['position']->id,
+            'pay_rate' => 20, 'bill_rate' => 30, 'ot_pay_rate' => 30, 'ot_bill_rate' => 45,
+            'reason' => 'covering the request',
+            'more_staff_request_id' => $request->id,
+        ])->assertRedirect(main('/admin/staffing-requests'));
+
+    $new = WorkOrder::query()->where('parent_wo_id', $elsewhere->id)->firstOrFail();
+    expect($new->more_staff_request_id)->toBe($request->id)
+        ->and($request->fresh()->quantity_fulfilled)->toBe(1)
+        ->and($request->fresh()->status)->toBe(MoreStaffStatus::Fulfilled);
+    Notification::assertSentTo($s['pm'], WorkflowNotice::class);
+});
+
+it('refuses to link a transfer to a request at a different property', function () {
+    $s = moreStaffScenario();
+    $request = submitStaffRequest($s);
+    $elsewhere = WorkOrder::factory()->create(['status' => WorkOrderStatus::Active]);
+
+    $this->actingAs(person('admin'))
+        ->post(main("/admin/work-orders/{$elsewhere->id}/transfer"), [
+            'effective_date' => Carbon::now()->toDateString(),
+            'new_property_id' => Property::factory()->create()->id,
+            'new_position_id' => $s['position']->id,
+            'pay_rate' => 20, 'bill_rate' => 30, 'ot_pay_rate' => 30, 'ot_bill_rate' => 45,
+            'reason' => 'x',
+            'more_staff_request_id' => $request->id,
+        ])->assertSessionHasErrors('more_staff_request_id');
+
+    expect($elsewhere->fresh()->status)->toBe(WorkOrderStatus::Active);
 });

@@ -7,6 +7,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Workflows\Actions\StartWorkflow;
 use App\Domain\Workflows\Enums\WorkflowType;
+use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,18 @@ class WorkOrderWorkflowController extends Controller
             'ot_bill_rate' => ['required', 'numeric', 'min:0'],
             'reason' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // Filling a PM's staffing request at the new property (ADR-0021, Option B).
+            'more_staff_request_id' => [
+                'nullable', 'integer',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    $staffing = MoreStaffRequest::find($value);
+                    if ($staffing === null || ! $staffing->status->isOpen()) {
+                        $fail('That staffing request is no longer open.');
+                    } elseif ($staffing->property_id !== (int) $request->input('new_property_id')) {
+                        $fail('The staffing request must be for the property they are moving to.');
+                    }
+                },
+            ],
         ]);
 
         $start->handle(WorkflowType::Transfer, $workOrder->person, $request->user(), [
@@ -48,7 +61,13 @@ class WorkOrderWorkflowController extends Controller
             'ot_bill_rate' => $this->cents($validated['ot_bill_rate']),
             'reason' => $validated['reason'],
             'notes' => $validated['notes'] ?? null,
+            'more_staff_request_id' => isset($validated['more_staff_request_id']) ? (int) $validated['more_staff_request_id'] : null,
         ]);
+
+        // Filled a staffing request: back to the queue, where its progress shows.
+        if (isset($validated['more_staff_request_id'])) {
+            return to_route('backoffice.more-staff.index')->with('success', "Transferred {$workOrder->person?->name} — placed on the staffing request.");
+        }
 
         return back()->with('success', 'Transfer applied.');
     }

@@ -25,7 +25,7 @@ type Req = {
   placed: string[]
 }
 type Decided = Req & { decided_by: string | null; decided_at: string | null; note: string | null }
-type Props = { requests: Req[]; history: Decided[]; can: { place: boolean; decline: boolean; cancel: boolean } }
+type Props = { requests: Req[]; history: Decided[]; can: { place: boolean; transfer: boolean; decline: boolean; cancel: boolean } }
 
 const URGENCY: Record<string, string> = {
   urgent: 'bg-danger/15 text-danger',
@@ -192,6 +192,15 @@ const Page = ({ requests, history, can }: Props) => {
                       <button type="button" className="btn bg-danger/10 text-danger hover:bg-danger px-3 py-1.5 text-sm hover:text-white" onClick={() => decline(r)}>
                         Decline
                       </button>
+                    )}
+                    {can.transfer && (
+                      <Link
+                        href={`/admin/work-orders?status=active&staffing_request=${r.id}`}
+                        className="btn btn-light px-3 py-1.5 text-sm"
+                        title="Move a contractor from another property onto this request"
+                      >
+                        <Icon icon="arrows-exchange" className="size-4" /> Transfer someone in
+                      </Link>
                     )}
                     {can.place && (
                       <Link href={`/admin/work-orders/create?staffing_request=${r.id}`} className="btn bg-primary hover:bg-primary-hover px-3 py-1.5 text-sm text-white">

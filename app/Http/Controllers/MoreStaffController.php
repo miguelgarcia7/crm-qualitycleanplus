@@ -56,6 +56,7 @@ class MoreStaffController extends Controller
             'history' => $history->map(fn (MoreStaffRequest $r): array => [...$this->row($r), ...$this->decision($r, $deciders)])->values(),
             'can' => [
                 'place' => $user->can('create', WorkOrder::class),
+                'transfer' => $user->can('workflows.transfer.initiate'),
                 'decline' => $user->can('workflows.more_staff.decline'),
                 'cancel' => $user->can('workflows.more_staff.cancel_others'),
             ],

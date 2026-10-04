@@ -10,6 +10,7 @@ use App\Domain\Workflows\Definitions\WorkflowDefinition;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Domain\WorkOrders\Actions\RecordMoreStaffPlacement;
 use App\Domain\WorkOrders\Actions\SupersedeWorkOrder;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Models\WorkOrder;
@@ -19,11 +20,15 @@ use Carbon\CarbonImmutable;
 /**
  * Permanent transfer of a contractor to a new property/position (ADR-0019).
  * Fully automatic: a single system step closes the old WO and opens the new one,
- * reassigns the primary recruiter, remaps scheduled charges, and notifies.
+ * links it to a staffing request it fills (if any), reassigns the primary
+ * recruiter, remaps scheduled charges, and notifies.
  */
 class TransferDefinition extends WorkflowDefinition
 {
-    public function __construct(private SupersedeWorkOrder $supersede) {}
+    public function __construct(
+        private SupersedeWorkOrder $supersede,
+        private RecordMoreStaffPlacement $placement,
+    ) {}
 
     public function type(): WorkflowType
     {
@@ -57,6 +62,13 @@ class TransferDefinition extends WorkflowDefinition
             'ot_pay_rate' => (int) $data['ot_pay_rate'],
             'ot_bill_rate' => (int) $data['ot_bill_rate'],
         ], WorkOrderSource::Transfer, CarbonImmutable::parse($data['effective_date']), $workflow->initiator);
+
+        // Moved in to fill a PM's staffing request: link the new WO so it counts
+        // toward the request, exactly as a new hire placed on it would.
+        if (isset($data['more_staff_request_id'])) {
+            $new->update(['more_staff_request_id' => (int) $data['more_staff_request_id']]);
+            $this->placement->handle($new, $workflow->initiator);
+        }
 
         if ($newRecruiterId !== null && $contractor->primary_recruiter_id !== $newRecruiterId) {
             $contractor->update(['primary_recruiter_id' => $newRecruiterId]);
