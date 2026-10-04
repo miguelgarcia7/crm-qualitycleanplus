@@ -65,3 +65,11 @@ it('records a login in the activity log', function () {
 
     expect(Activity::where('event', 'login')->count())->toBe(1);
 });
+
+it('signs out to the sign-in page of the same site, not the marketing home', function (string $site) {
+    $url = $site === 'main' ? main(...) : qcminute(...);
+    $this->actingAs(person('admin'))
+        ->post($url('/logout'), [], ['X-Inertia' => 'true'])
+        ->assertRedirect($url('/login'));
+    $this->assertGuest();
+})->with(['main', 'qcminute']);
