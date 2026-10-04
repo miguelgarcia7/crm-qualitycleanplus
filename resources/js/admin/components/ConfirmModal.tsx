@@ -1,5 +1,14 @@
 import Icon from '@/components/wrappers/Icon'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+
+/** A text field inside the dialog — e.g. the reason for declining. */
+export type ConfirmInput = {
+  label: string
+  placeholder?: string
+  /** The confirm button stays inactive until something is typed. */
+  required?: boolean
+  initial?: string
+}
 
 type ConfirmModalProps = {
   title: string
@@ -9,7 +18,9 @@ type ConfirmModalProps = {
   cancelLabel?: string
   /** Destructive actions get a red confirm button. */
   tone?: 'danger' | 'primary'
-  onConfirm: () => void
+  input?: ConfirmInput
+  /** Receives the typed text when the dialog has an input ('' otherwise). */
+  onConfirm: (value: string) => void
   onClose: () => void
 }
 
@@ -27,9 +38,18 @@ const ConfirmModal = ({
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
   tone = 'danger',
+  input,
   onConfirm,
   onClose,
 }: ConfirmModalProps) => {
+  const [value, setValue] = useState(input?.initial ?? '')
+  const blocked = input?.required === true && value.trim() === ''
+  const confirm = () => {
+    if (blocked) return
+    onConfirm(value.trim())
+    onClose()
+  }
+
   // Escape closes, matching what a browser dialog does.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -58,6 +78,25 @@ const ConfirmModal = ({
 
         <div className="card-body p-5">
           <div className="text-default-600 text-sm">{message}</div>
+          {input && (
+            <div className="mt-4">
+              <label className="form-label" htmlFor="confirm-modal-input">
+                {input.label}
+              </label>
+              <textarea
+                id="confirm-modal-input"
+                autoFocus
+                rows={3}
+                className="form-textarea"
+                placeholder={input.placeholder}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) confirm()
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="card-footer flex items-center justify-end gap-2">
@@ -66,12 +105,10 @@ const ConfirmModal = ({
           </button>
           <button
             type="button"
-            autoFocus
-            className={`btn font-semibold text-white ${tone === 'danger' ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary-hover'}`}
-            onClick={() => {
-              onConfirm()
-              onClose()
-            }}>
+            autoFocus={!input}
+            disabled={blocked}
+            className={`btn font-semibold text-white disabled:opacity-50 ${tone === 'danger' ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary-hover'}`}
+            onClick={confirm}>
             {confirmLabel}
           </button>
         </div>

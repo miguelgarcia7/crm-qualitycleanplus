@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { Head, router, useForm } from '@inertiajs/react'
 import { FormEvent, useState } from 'react'
@@ -52,7 +53,15 @@ const Page = ({ queue, mine, people, can }: Props) => {
                     <td className="text-end whitespace-nowrap">
                       <div className="flex justify-end gap-1.5">
                         <button className="btn bg-success/15 text-success hover:bg-success hover:text-white" onClick={() => router.post(`/admin/info-changes/${q.id}/approve`, {}, { preserveScroll: true })}>Approve</button>
-                        <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() => { const reason = window.prompt('Reason for declining?'); if (reason) router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }) }}>Decline</button>
+                        <button className="btn bg-danger/15 text-danger hover:bg-danger hover:text-white" onClick={() =>
+                            confirmAction({
+                              title: 'Decline info change',
+                              message: <>Decline the change to <strong>{q.person}</strong>&apos;s details?</>,
+                              input: { label: 'Reason', required: true },
+                              confirmLabel: 'Decline',
+                              onConfirm: (reason) => router.post(`/admin/info-changes/${q.id}/decline`, { reason }, { preserveScroll: true }),
+                            })
+                          }>Decline</button>
                       </div>
                     </td>
                   </tr>

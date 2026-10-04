@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -43,14 +44,28 @@ const Page = ({ requests, can }: Props) => {
 
   const urgencies = useMemo(() => [...new Set(requests.map((r) => r.urgency))], [requests])
 
-  const decline = (id: number) => {
-    const reason = window.prompt('Reason for declining?')
-    if (reason) router.post(`/admin/staffing-requests/${id}/decline`, { reason }, { preserveScroll: true })
-  }
-  const cancel = (id: number) => {
-    const reason = window.prompt('Reason for cancelling?')
-    if (reason) router.post(`/admin/staffing-requests/${id}/cancel`, { reason }, { preserveScroll: true })
-  }
+  const what = (r: Req) => (
+    <>
+      <strong>{r.quantity_requested} {r.position}</strong> at <strong>{r.property}</strong>
+    </>
+  )
+  const decline = (r: Req) =>
+    confirmAction({
+      title: 'Decline staffing request',
+      message: <>Decline the request for {what(r)}? {r.requested_by ?? 'The property manager'} sees your reason.</>,
+      input: { label: 'Reason', required: true },
+      confirmLabel: 'Decline',
+      onConfirm: (reason) => router.post(`/admin/staffing-requests/${r.id}/decline`, { reason }, { preserveScroll: true }),
+    })
+  const cancel = (r: Req) =>
+    confirmAction({
+      title: 'Cancel staffing request',
+      message: <>Cancel the request for {what(r)}?</>,
+      input: { label: 'Reason', required: true },
+      confirmLabel: 'Cancel request',
+      cancelLabel: 'Keep it',
+      onConfirm: (reason) => router.post(`/admin/staffing-requests/${r.id}/cancel`, { reason }, { preserveScroll: true }),
+    })
 
   const columns = useMemo(
     () => [
@@ -97,7 +112,7 @@ const Page = ({ requests, can }: Props) => {
             {can.decline && (
               <button
                 className="btn btn-icon bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
-                onClick={() => decline(row.original.id)}
+                onClick={() => decline(row.original)}
                 title="Decline"
               >
                 <Icon icon="x" className="text-base" />
@@ -106,7 +121,7 @@ const Page = ({ requests, can }: Props) => {
             {can.cancel && (
               <button
                 className="btn btn-icon border-default-300 hover:border-default-400 border"
-                onClick={() => cancel(row.original.id)}
+                onClick={() => cancel(row.original)}
                 title="Cancel request"
               >
                 <Icon icon="x" className="text-base" />

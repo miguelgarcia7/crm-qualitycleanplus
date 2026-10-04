@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { Head, router, useForm } from '@inertiajs/react'
 import { FormEvent, useMemo, useState } from 'react'
@@ -49,7 +50,16 @@ const Page = ({ properties, requests, urgencies, can }: Props) => {
                     {(r.status === 'submitted' || r.status === 'in_progress') && (
                       <button
                         className="btn btn-sm btn-light"
-                        onClick={() => { const reason = window.prompt('Reason for cancelling?'); if (reason) router.post(`/staffing-requests/${r.id}/cancel`, { reason }, { preserveScroll: true }) }}
+                        onClick={() =>
+                          confirmAction({
+                            title: 'Cancel staffing request',
+                            message: <>Cancel the request for <strong>{r.quantity_requested} {r.position}</strong> at <strong>{r.property}</strong>?</>,
+                            input: { label: 'Reason', placeholder: 'No longer needed', required: true },
+                            confirmLabel: 'Cancel request',
+                            cancelLabel: 'Keep it',
+                            onConfirm: (reason) => router.post(`/staffing-requests/${r.id}/cancel`, { reason }, { preserveScroll: true }),
+                          })
+                        }
                       >Cancel</button>
                     )}
                   </td>

@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -103,10 +104,15 @@ const Page = ({ workflow, person, record, steps, context, can }: Props) => {
     .join('')
     .toUpperCase()
 
-  const cancel = () => {
-    const reason = window.prompt('Reason for cancelling?')
-    if (reason) router.post(`/admin/terminations/${workflow.id}/cancel`, { reason }, { preserveScroll: true })
-  }
+  const cancel = () =>
+    confirmAction({
+      title: 'Cancel termination',
+      message: <>Cancel the termination of <strong>{person.name}</strong>?</>,
+      input: { label: 'Reason', required: true },
+      confirmLabel: 'Cancel termination',
+      cancelLabel: 'Keep it',
+      onConfirm: (reason) => router.post(`/admin/terminations/${workflow.id}/cancel`, { reason }, { preserveScroll: true }),
+    })
 
   return (
     <>

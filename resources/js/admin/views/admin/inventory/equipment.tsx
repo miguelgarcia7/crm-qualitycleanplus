@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { Head, Link, router } from '@inertiajs/react'
@@ -7,8 +8,16 @@ type Props = { assignments: Assignment[]; can: { return: boolean } }
 
 const Page = ({ assignments, can }: Props) => {
   const resolve = (a: Assignment, returned: boolean) => {
-    const notes = returned ? '' : window.prompt('Notes (item not returned / lost)?') ?? ''
-    router.post(`/admin/inventory/equipment/${a.id}/return`, { returned, notes }, { preserveScroll: true })
+    const post = (notes: string) => router.post(`/admin/inventory/equipment/${a.id}/return`, { returned, notes }, { preserveScroll: true })
+    if (returned) return post('')
+
+    confirmAction({
+      title: 'Mark not returned',
+      message: <><strong>{a.person}</strong> did not return <strong>{a.quantity} × {a.item}</strong>.</>,
+      input: { label: 'Notes', placeholder: 'Lost, damaged, kept…' },
+      confirmLabel: 'Mark not returned',
+      onConfirm: post,
+    })
   }
 
   return (

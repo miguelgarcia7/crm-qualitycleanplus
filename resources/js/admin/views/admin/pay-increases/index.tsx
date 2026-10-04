@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -47,10 +48,14 @@ const Page = ({ pending, workOrders, can }: Props) => {
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
-  const decline = (workflowId: number) => {
-    const reason = window.prompt('Reason for declining?')
-    if (reason) router.post(`/admin/pay-increases/${workflowId}/decline`, { reason }, { preserveScroll: true })
-  }
+  const decline = (p: Pending) =>
+    confirmAction({
+      title: 'Decline pay increase',
+      message: <>Decline the <strong>+{money(p.pm_requested_increase)}/hr</strong> request for <strong>{p.contractor}</strong>? {p.initiator ?? 'The property manager'} sees your reason.</>,
+      input: { label: 'Reason', placeholder: 'Budget is set until January', required: true },
+      confirmLabel: 'Decline',
+      onConfirm: (reason) => router.post(`/admin/pay-increases/${p.workflow_id}/decline`, { reason }, { preserveScroll: true }),
+    })
 
   const columns = useMemo(
     () => [
@@ -92,7 +97,7 @@ const Page = ({ pending, workOrders, can }: Props) => {
                 </button>
                 <button
                   className="btn btn-icon bg-danger hover:bg-danger-hover size-8 rounded-full text-white"
-                  onClick={() => decline(row.original.workflow_id)}
+                  onClick={() => decline(row.original)}
                   title="Decline"
                 >
                   <Icon icon="x" className="text-base" />

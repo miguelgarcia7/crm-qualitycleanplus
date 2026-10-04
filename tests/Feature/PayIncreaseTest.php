@@ -10,6 +10,7 @@ use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Workflows\Enums\WorkflowStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\Workflow;
+use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
@@ -209,4 +210,68 @@ it('refuses a start week from another property', function () {
             'pay_rate' => 21, 'bill_rate' => 31, 'ot_pay_rate' => 31.5, 'ot_bill_rate' => 46.5,
             'effective_period_id' => $elsewhere->id,
         ])->assertSessionHasErrors('effective_period_id');
+});
+
+/** The PM's request for $1.00/hr on the scenario's work order. */
+function pmRequest(array $s): Workflow
+{
+    test()->actingAs($s['pm'])->post(qcminute('/pay-increases'), ['work_order_id' => $s['wo']->id, 'increase_amount' => 1, 'reason' => 'great work']);
+
+    return Workflow::query()->where('type', WorkflowType::PayIncrease->value)->latest('id')->firstOrFail();
+}
+
+it('shows the PM who each request is for, the rate asked for, and its status', function () {
+    $s = payIncreaseScenario();
+    pmRequest($s);
+
+    $this->actingAs($s['pm'])->get(qcminute('/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('requests.0.contractor', $s['contractor']->name)
+            ->where('requests.0.current_bill_rate', 3000)
+            ->where('requests.0.increase', 100)
+            ->where('requests.0.status', 'in_progress')
+            ->where('requests.0.can_change', true)
+            ->missing('requests.0.pay_rate'));
+});
+
+it('lets the PM change a waiting request, but not once a recruiter has acted', function () {
+    $s = payIncreaseScenario();
+    $workflow = pmRequest($s);
+
+    $this->actingAs($s['pm'])
+        ->patch(qcminute("/pay-increases/{$workflow->id}"), ['increase_amount' => 1.5, 'reason' => 'covers weekends too'])
+        ->assertRedirect();
+    expect($workflow->fresh()->data)->toMatchArray(['pm_requested_increase_cents' => 150, 'reason' => 'covers weekends too']);
+
+    $this->actingAs(person('admin'))->post(main("/admin/pay-increases/{$workflow->id}/decline"), ['reason' => 'budget']);
+
+    $this->actingAs($s['pm'])
+        ->patch(qcminute("/pay-increases/{$workflow->id}"), ['increase_amount' => 2, 'reason' => 'x'])
+        ->assertSessionHasErrors('request');
+});
+
+it('lets the PM cancel a waiting request, which leaves the recruiters\' queue and tasks', function () {
+    $s = payIncreaseScenario();
+    $workflow = pmRequest($s);
+    $recruiter = person('recruiter');
+    $s['property']->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+    expect(WorkflowStep::query()->openForPerson($recruiter)->count())->toBe(1);
+
+    $this->actingAs($s['pm'])->post(qcminute("/pay-increases/{$workflow->id}/cancel"))->assertRedirect();
+
+    expect($workflow->fresh()->status)->toBe(WorkflowStatus::Cancelled)
+        ->and(WorkflowStep::query()->openForPerson($recruiter)->count())->toBe(0);
+    $this->actingAs($recruiter)->get(main('/admin/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('pending', 0));
+});
+
+it('keeps other property managers away from a request', function () {
+    $s = payIncreaseScenario();
+    $workflow = pmRequest($s);
+    $otherPm = Person::factory()->create();
+    $otherPm->assignRole('property_manager');
+
+    $this->actingAs($otherPm)->post(qcminute("/pay-increases/{$workflow->id}/cancel"))->assertForbidden();
+    $this->actingAs($otherPm)->patch(qcminute("/pay-increases/{$workflow->id}"), ['increase_amount' => 5, 'reason' => 'x'])->assertForbidden();
+    expect($workflow->fresh()->status)->toBe(WorkflowStatus::InProgress);
 });

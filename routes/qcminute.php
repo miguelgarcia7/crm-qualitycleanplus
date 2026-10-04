@@ -45,6 +45,8 @@ Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('q
 // Property-manager pay increase requests (Phase 04b, ADR-0020)
 Route::get('pay-increases', [PayIncreaseController::class, 'index'])->name('qcminute.pay-increases.index');
 Route::post('pay-increases', [PayIncreaseController::class, 'store'])->name('qcminute.pay-increases.store');
+Route::patch('pay-increases/{workflow}', [PayIncreaseController::class, 'update'])->name('qcminute.pay-increases.update');
+Route::post('pay-increases/{workflow}/cancel', [PayIncreaseController::class, 'cancel'])->name('qcminute.pay-increases.cancel');
 
 // Property-manager staffing requests (Phase 04b-iii, ADR-0021)
 Route::get('staffing-requests', [MoreStaffController::class, 'index'])->name('qcminute.more-staff.index');

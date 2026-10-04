@@ -1,4 +1,4 @@
-import ConfirmModal from '@/components/ConfirmModal'
+import ConfirmModal, { ConfirmInput } from '@/components/ConfirmModal'
 import { useEffect, useState } from 'react'
 
 export type ConfirmRequest = {
@@ -8,7 +8,9 @@ export type ConfirmRequest = {
   confirmLabel?: string
   cancelLabel?: string
   tone?: 'danger' | 'primary'
-  onConfirm: () => void
+  /** Ask for text too — a reason — in place of window.prompt(). */
+  input?: ConfirmInput
+  onConfirm: (value: string) => void
 }
 
 type Listener = (request: ConfirmRequest | null) => void
@@ -53,6 +55,7 @@ const ConfirmHost = () => {
       confirmLabel={request.confirmLabel}
       cancelLabel={request.cancelLabel}
       tone={request.tone}
+      input={request.input}
       onConfirm={request.onConfirm}
       onClose={() => setRequest(null)}
     />

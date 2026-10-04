@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
@@ -51,10 +52,14 @@ const Page = ({ categories, variants, contractors, mine, queue, can }: Props) =>
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
   const approve = (r: Req) => router.post(`/admin/requests/${r.id}/approve`, {}, { preserveScroll: true })
-  const deny = (r: Req) => {
-    const reason = window.prompt('Reason for denial?')
-    if (reason) router.post(`/admin/requests/${r.id}/deny`, { reason }, { preserveScroll: true })
-  }
+  const deny = (r: Req) =>
+    confirmAction({
+      title: 'Deny request',
+      message: <>Deny <strong>{r.quantity} × {r.item}</strong> for <strong>{r.beneficiary}</strong>?</>,
+      input: { label: 'Reason', required: true },
+      confirmLabel: 'Deny',
+      onConfirm: (reason) => router.post(`/admin/requests/${r.id}/deny`, { reason }, { preserveScroll: true }),
+    })
 
   const columns = useMemo(
     () => [

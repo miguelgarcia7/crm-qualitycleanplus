@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import { Head, router } from '@inertiajs/react'
 import { useState } from 'react'
@@ -22,12 +23,17 @@ const Page = ({ tasks }: Props) => {
     router.post(`/admin/workflow-steps/${task.id}/complete`, {}, { onFinish: () => setBusy(null), preserveScroll: true })
   }
 
-  const reject = (task: Task) => {
-    const reason = window.prompt('Reason for rejecting this task?')
-    if (!reason) return
-    setBusy(task.id)
-    router.post(`/admin/workflow-steps/${task.id}/reject`, { reason }, { onFinish: () => setBusy(null), preserveScroll: true })
-  }
+  const reject = (task: Task) =>
+    confirmAction({
+      title: 'Reject task',
+      message: <>Reject <strong>{task.name}</strong>{task.initiator ? <> from {task.initiator}</> : null}?</>,
+      input: { label: 'Reason', required: true },
+      confirmLabel: 'Reject',
+      onConfirm: (reason) => {
+        setBusy(task.id)
+        router.post(`/admin/workflow-steps/${task.id}/reject`, { reason }, { onFinish: () => setBusy(null), preserveScroll: true })
+      },
+    })
 
   return (
     <>
