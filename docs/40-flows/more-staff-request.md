@@ -369,3 +369,11 @@ The job posting and the request are loosely linked (no hard FK; just contextual 
 - `20-domain/work-orders.md` — `more_staff_request_id` field on WOs
 - `10-architecture/permissions-matrix.md` — more_staff permissions
 - `40-flows/transfer.md`, `40-flows/temporary-assignment.md` — related placement flows
+
+## As built (2026-10-04)
+
+- **Back office `/admin/staffing-requests`** has **Open** and **History** tabs. Each open request is a card: quantity, position and property; who asked and when; the needed-by date in words ("in 10 days", "3 days overdue"); urgency; the PM's **reason** and **notes**; a progress bar naming who has been placed.
+- **Place contractor** sits on each request and opens a new work order (`/admin/work-orders/create?staffing_request=<id>`) with the property, position and request link already set (Bible rates fill in as usual). Saving returns to the queue. The old page-level "Place a contractor" button is gone. **Decline** is a labelled button with the reason dialog; super-admins also get **Cancel request**.
+- **History** lists fulfilled, declined and cancelled requests with who closed them (the last placement's recruiter, or whoever declined/cancelled), when, and why.
+- **QC Minute**: the notes field is "Notes for the recruiter (optional)" — they are shown to the recruiter. The PM's list shows their reason and notes, who has been placed, and a decline/cancel reason.
+- Not yet: linking a **Transfer** to a request (Option B above) — the transfer form has no request link.

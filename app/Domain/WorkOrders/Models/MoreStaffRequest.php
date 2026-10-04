@@ -24,6 +24,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property MoreStaffUrgency $urgency
  * @property CarbonImmutable $by_date
  * @property CarbonImmutable|null $fulfilled_at
+ * @property CarbonImmutable|null $declined_at
+ * @property CarbonImmutable|null $cancelled_at
  */
 class MoreStaffRequest extends Model
 {

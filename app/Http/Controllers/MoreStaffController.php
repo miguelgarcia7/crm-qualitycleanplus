@@ -9,8 +9,10 @@ use App\Domain\Workflows\Actions\RejectStep;
 use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
+use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -18,8 +20,10 @@ use Inertia\Response;
 
 /**
  * Recruiter-facing more-staff queue (ADR-0021): open staffing requests for the
- * recruiter's properties, sorted by urgency. Recruiters fulfill by linking work
- * orders (handled on WO create) or decline here; super-admins can cancel.
+ * recruiter's properties, sorted by urgency, plus the decided ones (History).
+ * Recruiters fulfill a request with "Place contractor" — a new work order
+ * prefilled and linked to it (WorkOrderController::create) — or decline here;
+ * super-admins can cancel.
  */
 class MoreStaffController extends Controller
 {
@@ -28,34 +32,30 @@ class MoreStaffController extends Controller
         $user = $request->user();
         abort_unless($user instanceof Person && $user->can('workflows.more_staff.fulfill'), 403);
 
-        $query = MoreStaffRequest::query()
-            ->whereIn('status', [MoreStaffStatus::Submitted, MoreStaffStatus::InProgress])
-            ->with(['property:id,name', 'position:id,name', 'initiatedBy:id,name']);
+        $propertyIds = $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES) ? null : $user->assignedProperties()->pluck('properties.id')->all();
+        $query = fn (array $statuses) => MoreStaffRequest::query()
+            ->whereIn('status', $statuses)
+            ->when($propertyIds !== null, fn ($q) => $q->whereIn('property_id', $propertyIds))
+            ->with(['property:id,name', 'position:id,name', 'initiatedBy:id,name', 'workOrders.person:id,name', 'workOrders.createdBy:id,name']);
 
-        if (! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES)) {
-            $query->whereIn('property_id', $user->assignedProperties()->pluck('properties.id')->all());
-        }
-
-        $rows = $query->get()
+        $open = $query([MoreStaffStatus::Submitted, MoreStaffStatus::InProgress])->get()
             ->sortByDesc(fn (MoreStaffRequest $r): array => [$r->urgency->weight(), -$r->by_date->getTimestamp()])
             ->values()
-            ->map(fn (MoreStaffRequest $r): array => [
-                'id' => $r->id,
-                'property' => $r->property?->name,
-                'position' => $r->position?->name,
-                'quantity_requested' => $r->quantity_requested,
-                'quantity_fulfilled' => $r->quantity_fulfilled,
-                'by_date' => $r->by_date->toDateString(),
-                'urgency' => $r->urgency->value,
-                'status' => $r->status->value,
-                'reason' => $r->reason,
-                'requested_by' => $r->initiatedBy?->name,
-                'is_overdue' => $r->isOverdue(),
-            ]);
+            ->map(fn (MoreStaffRequest $r): array => $this->row($r));
+
+        $history = $query([MoreStaffStatus::Fulfilled, MoreStaffStatus::Declined, MoreStaffStatus::Cancelled])
+            ->latest('updated_at')
+            ->limit(200)
+            ->get();
+        $deciders = Person::query()
+            ->whereIn('id', $history->flatMap(fn (MoreStaffRequest $r) => [$r->declined_by, $r->cancelled_by])->filter()->unique())
+            ->pluck('name', 'id');
 
         return Inertia::render('admin/more-staff/index', [
-            'requests' => $rows,
+            'requests' => $open,
+            'history' => $history->map(fn (MoreStaffRequest $r): array => [...$this->row($r), ...$this->decision($r, $deciders)])->values(),
             'can' => [
+                'place' => $user->can('create', WorkOrder::class),
                 'decline' => $user->can('workflows.more_staff.decline'),
                 'cancel' => $user->can('workflows.more_staff.cancel_others'),
             ],
@@ -87,6 +87,66 @@ class MoreStaffController extends Controller
         $action->handle($workflow, $request->user(), $validated['reason']);
 
         return back()->with('success', 'Staffing request cancelled.');
+    }
+
+    /**
+     * One request as the queue shows it: what, where, when, why, the PM's
+     * notes, and who has been placed so far.
+     *
+     * @return array<string, mixed>
+     */
+    private function row(MoreStaffRequest $r): array
+    {
+        $today = now()->startOfDay();
+
+        return [
+            'id' => $r->id,
+            'property' => $r->property?->name,
+            'position' => $r->position?->name,
+            'quantity_requested' => $r->quantity_requested,
+            'quantity_fulfilled' => $r->quantity_fulfilled,
+            'by_date' => $r->by_date->format('D M j'),
+            'days_left' => (int) $today->diffInDays($r->by_date->copy()->startOfDay(), false),
+            'urgency' => $r->urgency->value,
+            'urgency_label' => $r->urgency->label(),
+            'status' => $r->status->value,
+            'status_label' => $r->status->label(),
+            'reason' => $r->reason,
+            'notes' => $r->notes,
+            'requested_by' => $r->initiatedBy?->name,
+            'requested_at' => $r->created_at?->format('M j'),
+            'is_overdue' => $r->isOverdue(),
+            'placed' => $r->workOrders->sortBy('id')->map(fn ($wo) => $wo->person?->name)->filter()->values()->all(),
+        ];
+    }
+
+    /**
+     * Who closed a decided request, when, and why.
+     *
+     * @param  Collection<int, string>  $deciders  person id => name
+     * @return array{decided_by: string|null, decided_at: string|null, note: string|null}
+     */
+    private function decision(MoreStaffRequest $r, Collection $deciders): array
+    {
+        return match ($r->status) {
+            // Fulfilled by the placements themselves: the last one's recruiter
+            // closed it out.
+            MoreStaffStatus::Fulfilled => [
+                'decided_by' => $r->workOrders->sortBy('id')->last()?->createdBy?->name,
+                'decided_at' => $r->fulfilled_at?->format('M j, Y'),
+                'note' => null,
+            ],
+            MoreStaffStatus::Declined => [
+                'decided_by' => $deciders->get($r->declined_by),
+                'decided_at' => $r->declined_at?->format('M j, Y'),
+                'note' => $r->decline_reason,
+            ],
+            default => [
+                'decided_by' => $deciders->get($r->cancelled_by),
+                'decided_at' => $r->cancelled_at?->format('M j, Y'),
+                'note' => $r->cancel_reason,
+            ],
+        };
     }
 
     private function fulfillStep(MoreStaffRequest $moreStaffRequest): WorkflowStep

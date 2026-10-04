@@ -33,7 +33,11 @@ type DirectHire = {
 const MAX_ELIGIBILITY_HOURS = 2080
 const ELIGIBILITY_STEP_HOURS = 40
 
+/** The staffing request a new work order is filling ("Place contractor"). */
+type PlacingFor = { id: number; property_id: number; position_id: number; summary: string; requested_by: string | null; progress: string }
+
 type Props = {
+  placingFor?: PlacingFor | null
   workOrder: WorkOrder | null
   catalogs: { contractors: Option[]; properties: Option[]; positions: Option[]; moreStaffRequests?: MoreStaffOption[] }
 }
@@ -57,14 +61,14 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
   </div>
 )
 
-const Page = ({ workOrder, catalogs }: Props) => {
+const Page = ({ workOrder, catalogs, placingFor = null }: Props) => {
   const directHire = workOrder?.direct_hire ?? null
   const editing = workOrder !== null
 
   const { data, setData, post, patch, processing, errors } = useForm({
     person_id: workOrder?.person_id ? String(workOrder.person_id) : '',
-    property_id: workOrder?.property_id ? String(workOrder.property_id) : '',
-    position_id: workOrder?.position_id ? String(workOrder.position_id) : '',
+    property_id: workOrder?.property_id ? String(workOrder.property_id) : placingFor ? String(placingFor.property_id) : '',
+    position_id: workOrder?.position_id ? String(workOrder.position_id) : placingFor ? String(placingFor.position_id) : '',
     pay_rate: workOrder ? toDollars(workOrder.pay_rate) : '',
     bill_rate: workOrder ? toDollars(workOrder.bill_rate) : '',
     ot_pay_rate: workOrder ? toDollars(workOrder.ot_pay_rate) : '',
@@ -74,7 +78,7 @@ const Page = ({ workOrder, catalogs }: Props) => {
     status: workOrder?.status ?? 'active',
     notes: workOrder?.notes ?? '',
     direct_hire_threshold_hours: workOrder?.direct_hire_threshold_hours ?? '',
-    more_staff_request_id: '',
+    more_staff_request_id: placingFor ? String(placingFor.id) : '',
   })
 
   const linkableRequests = (catalogs.moreStaffRequests ?? []).filter((r) => String(r.property_id) === data.property_id)
@@ -150,6 +154,18 @@ const Page = ({ workOrder, catalogs }: Props) => {
       <div className="card rounded-2xl">
         <div className="card-body p-6">
           <form onSubmit={submit} className="space-y-6">
+            {placingFor && (
+              <div className="bg-primary/10 text-primary flex flex-wrap items-center justify-between gap-2 rounded-md px-4 py-3 text-sm">
+                <span>
+                  Placing for <strong>{placingFor.summary}</strong>
+                  {placingFor.requested_by ? ` — ${placingFor.requested_by}'s staffing request` : ''} ({placingFor.progress}). Pick the contractor and confirm the
+                  rates; it's linked to the request.
+                </span>
+                <Link href="/admin/staffing-requests" className="font-medium hover:underline">
+                  Back to requests
+                </Link>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Field label="Contractor" error={errors.person_id}>
                 <select className="form-select" value={data.person_id} onChange={(e) => setData('person_id', e.target.value)} disabled={editing} required>

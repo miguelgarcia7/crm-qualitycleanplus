@@ -13,6 +13,7 @@ use App\Notifications\WorkflowNotice;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia;
 
 beforeEach(function () {
     Notification::fake();
@@ -165,4 +166,67 @@ it('blocks a contractor from submitting a staffing request', function () {
         'quantity' => 1, 'by_date' => Carbon::now()->addWeek()->toDateString(),
         'urgency' => 'normal', 'reason' => 'x',
     ])->assertForbidden();
+});
+
+it('shows the recruiter the request in full: reason, the PM\'s notes, and who is placed', function () {
+    $s = moreStaffScenario();
+    test()->actingAs($s['pm'])->post(qcminute('/staffing-requests'), [
+        'property_id' => $s['property']->id, 'position_id' => $s['position']->id, 'quantity' => 2,
+        'by_date' => Carbon::now()->addDays(10)->toDateString(), 'urgency' => 'high',
+        'reason' => 'Banquet season', 'notes' => 'Weekend availability',
+    ]);
+    $request = MoreStaffRequest::query()->latest('id')->firstOrFail();
+    placeContractor($s, $request);
+
+    $this->actingAs($s['recruiter'])->get(main('/admin/staffing-requests'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('requests.0.reason', 'Banquet season')
+            ->where('requests.0.notes', 'Weekend availability')
+            ->where('requests.0.days_left', 10)
+            ->has('requests.0.placed', 1)
+            ->where('can.place', true));
+});
+
+it('keeps declined requests in History with who declined and why', function () {
+    $s = moreStaffScenario();
+    $request = submitStaffRequest($s);
+
+    $this->actingAs($s['recruiter'])->post(main("/admin/staffing-requests/{$request->id}/decline"), ['reason' => 'No houseman available']);
+
+    $this->actingAs($s['recruiter'])->get(main('/admin/staffing-requests'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('requests', 0)
+            ->where('history.0.id', $request->id)
+            ->where('history.0.status', 'declined')
+            ->where('history.0.decided_by', $s['recruiter']->name)
+            ->where('history.0.note', 'No houseman available'));
+});
+
+it('starts "Place contractor" from the request and returns to the queue', function () {
+    $s = moreStaffScenario();
+    $request = submitStaffRequest($s);
+
+    $this->actingAs(person('admin'))->get(main("/admin/work-orders/create?staffing_request={$request->id}"))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('placingFor.id', $request->id)
+            ->where('placingFor.property_id', $s['property']->id)
+            ->where('placingFor.position_id', $s['position']->id));
+
+    $contractor = Person::factory()->create(['status' => PersonStatus::ContractorActive]);
+    $this->actingAs(person('admin'))->post(main('/admin/work-orders'), [
+        'person_id' => $contractor->id, 'property_id' => $s['property']->id, 'position_id' => $s['position']->id,
+        'pay_rate' => 20, 'bill_rate' => 30, 'ot_pay_rate' => 30, 'ot_bill_rate' => 45,
+        'start_date' => Carbon::now()->toDateString(), 'more_staff_request_id' => $request->id,
+    ])->assertRedirect(main('/admin/staffing-requests'));
+});
+
+it('shows the PM their notes and who has been placed', function () {
+    $s = moreStaffScenario();
+    $request = submitStaffRequest($s);
+    placeContractor($s, $request);
+
+    $this->actingAs($s['pm'])->get(qcminute('/staffing-requests'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('requests.0.reason', 'Banquet season')
+            ->has('requests.0.placed', 1));
 });

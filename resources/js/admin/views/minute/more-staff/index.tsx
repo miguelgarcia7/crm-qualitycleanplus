@@ -10,6 +10,7 @@ type Req = {
   id: number; property: string; position: string; quantity_requested: number
   quantity_fulfilled: number; by_date: string; urgency: string; status: string
   status_label: string; is_overdue: boolean
+  reason: string | null; notes: string | null; placed: string[]; decision_note: string | null
 }
 type Props = { properties: Property[]; requests: Req[]; urgencies: Option[]; can: { initiate: boolean } }
 
@@ -35,17 +36,27 @@ const Page = ({ properties, requests, urgencies, can }: Props) => {
           <table className="table table-hover text-sm">
             <thead className="thead-sm">
               <tr className="bg-light/25 text-2xs uppercase">
-                <th>Property</th><th>Position</th><th className="text-center">Progress</th><th>By date</th><th>Status</th><th className="text-end"></th>
+                <th>Request</th><th>Progress</th><th>By date</th><th>Status</th><th className="text-end"></th>
               </tr>
             </thead>
             <tbody>
               {requests.length ? requests.map((r) => (
                 <tr key={r.id}>
-                  <td className="font-medium">{r.property}</td>
-                  <td>{r.position}</td>
-                  <td className="text-center">{r.quantity_fulfilled} / {r.quantity_requested}</td>
+                  <td className="max-w-80">
+                    <span className="font-medium">{r.quantity_requested} × {r.position}</span>
+                    <span className="text-default-400"> · {r.property}</span>
+                    {r.reason && <p className="text-default-400 text-xs">{r.reason}</p>}
+                    {r.notes && <p className="text-default-400 text-xs">Your notes: {r.notes}</p>}
+                  </td>
+                  <td>
+                    {r.quantity_fulfilled} of {r.quantity_requested} placed
+                    {r.placed.length > 0 && <p className="text-default-400 text-xs">{r.placed.join(', ')}</p>}
+                  </td>
                   <td>{r.by_date}{r.is_overdue && <span className="badge badge-label bg-danger/15 text-danger ms-2">Overdue</span>}</td>
-                  <td><span className={`badge badge-label ${statusBadge(r.status)}`}>{r.status_label}</span></td>
+                  <td>
+                    <span className={`badge badge-label ${statusBadge(r.status)}`}>{r.status_label}</span>
+                    {r.decision_note && <p className="text-default-400 mt-1 text-xs">{r.decision_note}</p>}
+                  </td>
                   <td className="text-end">
                     {(r.status === 'submitted' || r.status === 'in_progress') && (
                       <button
@@ -64,7 +75,7 @@ const Page = ({ properties, requests, urgencies, can }: Props) => {
                     )}
                   </td>
                 </tr>
-              )) : <tr><td colSpan={6} className="text-default-400 py-4 text-center">No requests yet.</td></tr>}
+              )) : <tr><td colSpan={5} className="text-default-400 py-4 text-center">No requests yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -141,8 +152,15 @@ const CreateModal = ({ properties, urgencies, onClose }: { properties: Property[
               {errors.reason && <p className="text-danger mt-1 text-sm">{errors.reason}</p>}
             </div>
             <div>
-              <label className="form-label">Notes (optional)</label>
-              <input className="form-input" value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
+              <label className="form-label">Notes for the recruiter (optional)</label>
+              <textarea
+                className="form-textarea"
+                rows={2}
+                placeholder="Shift, skills, who they report to, dress code…"
+                value={data.notes}
+                onChange={(e) => setData('notes', e.target.value)}
+              />
+              <p className="text-default-400 mt-1 text-xs">The recruiter sees these with your request.</p>
             </div>
 
             <div className="flex justify-end gap-2">

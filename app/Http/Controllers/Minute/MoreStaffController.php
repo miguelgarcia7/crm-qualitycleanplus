@@ -44,10 +44,14 @@ class MoreStaffController extends Controller
 
         $requests = MoreStaffRequest::query()
             ->where('initiated_by', $pm->id)
-            ->with(['property:id,name', 'position:id,name'])
+            ->with(['property:id,name', 'position:id,name', 'workOrders.person:id,name'])
             ->latest('id')
             ->get()
             ->map(fn (MoreStaffRequest $r): array => [
+                'reason' => $r->reason,
+                'notes' => $r->notes,
+                'placed' => $r->workOrders->sortBy('id')->map(fn ($wo) => $wo->person?->name)->filter()->values()->all(),
+                'decision_note' => $r->decline_reason ?? $r->cancel_reason,
                 'id' => $r->id,
                 'property' => $r->property?->name,
                 'position' => $r->position?->name,

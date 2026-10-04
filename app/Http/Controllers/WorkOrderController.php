@@ -167,14 +167,38 @@ class WorkOrderController extends Controller
             ->orderBy('work_orders.id', 'desc');
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $this->authorize('create', WorkOrder::class);
 
         return Inertia::render('admin/work-orders/form', [
             'workOrder' => null,
             'catalogs' => $this->catalogs(),
+            'placingFor' => $this->placingFor($request->integer('staffing_request')),
         ]);
+    }
+
+    /**
+     * "Place contractor" on a staffing request: the new work order starts with
+     * the request's property and position, already linked to it.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function placingFor(int $requestId): ?array
+    {
+        $request = $requestId > 0 ? MoreStaffRequest::with(['property:id,name', 'position:id,name', 'initiatedBy:id,name'])->find($requestId) : null;
+        if ($request === null || ! $request->status->isOpen()) {
+            return null;
+        }
+
+        return [
+            'id' => $request->id,
+            'property_id' => $request->property_id,
+            'position_id' => $request->position_id,
+            'summary' => "{$request->quantity_requested} {$request->position?->name} at {$request->property?->name}",
+            'requested_by' => $request->initiatedBy?->name,
+            'progress' => "{$request->quantity_fulfilled} of {$request->quantity_requested} placed",
+        ];
     }
 
     public function store(StoreWorkOrderRequest $request, CreateWorkOrder $action, RecordMoreStaffPlacement $placement): RedirectResponse
@@ -182,6 +206,11 @@ class WorkOrderController extends Controller
         $workOrder = $action->handle($this->toCentsData($request->validated()), $request->user());
 
         $placement->handle($workOrder, $request->user());
+
+        // Placed from a staffing request: back to the queue, where its progress shows.
+        if ($workOrder->more_staff_request_id !== null) {
+            return to_route('backoffice.more-staff.index')->with('success', "Placed {$workOrder->person?->name}.");
+        }
 
         return to_route('work-orders.index')->with('success', 'Work order created.');
     }
