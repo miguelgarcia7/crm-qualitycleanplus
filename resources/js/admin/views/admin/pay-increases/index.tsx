@@ -4,7 +4,9 @@ import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
 import Icon from '@/components/wrappers/Icon'
 import { Head, router, useForm } from '@inertiajs/react'
+import { cn } from '@/utils/helpers'
 import {
+  ColumnDef,
   createColumnHelper,
   getCoreRowModel,
   getFilteredRowModel,
@@ -12,9 +14,10 @@ import {
   getSortedRowModel,
   Row as TableRow,
   SortingState,
+  Table,
   useReactTable,
 } from '@tanstack/react-table'
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 type Rates = { pay_rate: number; bill_rate: number; ot_pay_rate: number; ot_bill_rate: number }
 type PeriodOption = { id: number; label: string }
@@ -35,18 +38,126 @@ type WoOption = { id: number; contractor: string | null; property: string | null
   periods: PeriodOption[]
   default_period_id: number | null
 }
-type Props = { pending: Pending[]; workOrders: WoOption[]; can: { approve: boolean; initiate: boolean } }
+type Change = { pay_rate: number; bill_rate: number }
+type Outcome = 'approved' | 'applied' | 'declined' | 'cancelled'
+type Decided = {
+  id: number
+  contractor: string | null
+  position: string | null
+  property: string | null
+  requested_by: string | null
+  requested_at: string | null
+  pm_requested_increase: number
+  from: Change
+  to: Change | null
+  effective: string | null
+  outcome: Outcome
+  decided_by: string | null
+  decided_at: string | null
+  reason: string | null
+  note: string | null
+}
+type Props = { pending: Pending[]; history: Decided[]; workOrders: WoOption[]; can: { approve: boolean; initiate: boolean } }
 
 const money = (c: number) => `$${(c / 100).toFixed(2)}`
 
-const columnHelper = createColumnHelper<Pending>()
+const OUTCOMES: Record<Outcome, { label: string; className: string }> = {
+  approved: { label: 'Approved', className: 'bg-success/15 text-success' },
+  applied: { label: 'Applied directly', className: 'bg-primary/15 text-primary' },
+  declined: { label: 'Declined', className: 'bg-danger/15 text-danger' },
+  cancelled: { label: 'Cancelled', className: 'bg-secondary/15 text-secondary' },
+}
 
-const Page = ({ pending, workOrders, can }: Props) => {
-  const [approving, setApproving] = useState<Pending | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [globalFilter, setGlobalFilter] = useState('')
+const TABS = [
+  { key: 'waiting', label: 'Waiting for approval' },
+  { key: 'history', label: 'History' },
+] as const
+type TabKey = (typeof TABS)[number]['key']
+
+const pendingColumns = createColumnHelper<Pending>()
+const historyColumns = createColumnHelper<Decided>()
+
+/** Contractor name over "position · property" — shared by both tables. */
+const Who = ({ name, position, property }: { name: string | null; position: string | null; property: string | null }) => (
+  <div>
+    <span className="font-medium">{name}</span>
+    <p className="text-default-400 text-xs">
+      {position}
+      {property ? ` · ${property}` : ''}
+    </p>
+  </div>
+)
+
+/** A searchable, sortable, paginated table over in-memory rows. */
+const usePagedTable = <T,>(data: T[], columns: ColumnDef<T, any>[], globalFilter: string, pageSize: number) => {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize })
+
+  return useReactTable({
+    data,
+    columns,
+    state: { sorting, globalFilter, pagination: { ...pagination, pageSize } },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+  })
+}
+
+const Footer = <T,>({ table, itemsName }: { table: Table<T>; itemsName: string }) => {
+  const { pageIndex, pageSize } = table.getState().pagination
+  const totalItems = table.getFilteredRowModel().rows.length
+  if (table.getRowModel().rows.length === 0) return null
+  const start = pageIndex * pageSize + 1
+
+  return (
+    <div className="card-footer">
+      <TablePagination
+        totalItems={totalItems}
+        start={start}
+        end={Math.min(start + pageSize - 1, totalItems)}
+        itemsName={itemsName}
+        pageIndex={pageIndex}
+        pageCount={table.getPageCount()}
+        canPreviousPage={table.getCanPreviousPage()}
+        canNextPage={table.getCanNextPage()}
+        previousPage={table.previousPage}
+        nextPage={table.nextPage}
+        setPageIndex={table.setPageIndex}
+        showInfo
+      />
+    </div>
+  )
+}
+
+const Page = ({ pending, history, workOrders, can }: Props) => {
+  // My Tasks' "Review" lands here with ?review=<id>: open that request's
+  // approval form straight away, then tidy the URL.
+  const [approving, setApproving] = useState<Pending | null>(() => {
+    if (typeof window === 'undefined') return null
+    const id = Number(new URLSearchParams(window.location.search).get('review'))
+    return pending.find((p) => p.workflow_id === id) ?? null
+  })
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('review=')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+    }
+  }, [])
+  const [creating, setCreating] = useState(false)
+  const [search, setSearch] = useState('')
+  const [outcome, setOutcome] = useState<Outcome | ''>('')
+  const [pageSize, setPageSize] = useState(10)
+
+  // The tab lives in the URL hash so History is linkable and survives refresh.
+  const tabFromHash = (): TabKey => (typeof window !== 'undefined' && window.location.hash === '#history' ? 'history' : 'waiting')
+  const [tab, setTab] = useState<TabKey>(tabFromHash)
+  const selectTab = (key: TabKey) => {
+    setTab(key)
+    window.history.replaceState(null, '', `#${key}`)
+  }
 
   const decline = (p: Pending) =>
     confirmAction({
@@ -57,28 +168,25 @@ const Page = ({ pending, workOrders, can }: Props) => {
       onConfirm: (reason) => router.post(`/admin/pay-increases/${p.workflow_id}/decline`, { reason }, { preserveScroll: true }),
     })
 
-  const columns = useMemo(
+  const waitingCols = useMemo(
     () => [
-      columnHelper.accessor('contractor', {
+      pendingColumns.accessor('contractor', {
         header: 'Contractor',
+        cell: ({ row }) => <Who name={row.original.contractor} position={row.original.position} property={row.original.property} />,
+      }),
+      pendingColumns.accessor('initiator', { header: 'Requested By' }),
+      pendingColumns.accessor('pm_requested_increase', {
+        header: 'Asked For',
         cell: ({ row }) => (
           <div>
-            <span className="font-medium">{row.original.contractor}</span>
-            <p className="text-default-400 text-xs">{row.original.position}</p>
+            <span className="font-medium">+{money(row.original.pm_requested_increase)}/hr</span>
+            <p className="text-default-400 text-xs">
+              bill {money(row.original.current.bill_rate)} → {money(row.original.current.bill_rate + row.original.pm_requested_increase)}
+            </p>
           </div>
         ),
       }),
-      columnHelper.accessor('property', {
-        header: 'Property',
-      }),
-      columnHelper.accessor('initiator', {
-        header: 'Requested By',
-      }),
-      columnHelper.accessor('pm_requested_increase', {
-        header: 'PM Increase',
-        cell: ({ row }) => `${money(row.original.pm_requested_increase)}/hr`,
-      }),
-      columnHelper.accessor('reason', {
+      pendingColumns.accessor('reason', {
         header: 'Reason',
         cell: ({ row }) => <span className="text-default-400">{row.original.reason}</span>,
       }),
@@ -112,25 +220,78 @@ const Page = ({ pending, workOrders, can }: Props) => {
     [can.approve],
   )
 
-  const table = useReactTable({
-    data: pending,
-    columns,
-    state: { sorting, globalFilter, pagination },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: 'includesString',
-  })
+  const historyCols = useMemo(
+    () => [
+      historyColumns.accessor('contractor', {
+        header: 'Contractor',
+        cell: ({ row }) => <Who name={row.original.contractor} position={row.original.position} property={row.original.property} />,
+      }),
+      historyColumns.accessor((r) => `${r.requested_by ?? ''} ${r.reason ?? ''}`, {
+        id: 'requested',
+        header: 'Requested',
+        cell: ({ row }) => {
+          const r = row.original
+          return (
+            <div>
+              <span>{r.outcome === 'applied' ? 'Direct raise' : r.requested_by}</span>
+              <p className="text-default-400 text-xs">{r.requested_at}</p>
+              {r.reason && <p className="text-default-400 text-xs italic">“{r.reason}”</p>}
+            </div>
+          )
+        },
+      }),
+      historyColumns.display({
+        id: 'change',
+        header: 'Change',
+        cell: ({ row }) => {
+          const r = row.original
+          if (r.to) {
+            return (
+              <div className="text-nowrap">
+                <p>Pay {money(r.from.pay_rate)} → <span className="font-medium">{money(r.to.pay_rate)}</span></p>
+                <p className="text-default-400 text-xs">Bill {money(r.from.bill_rate)} → {money(r.to.bill_rate)}</p>
+              </div>
+            )
+          }
+          return r.pm_requested_increase > 0 ? (
+            <div className="text-nowrap">
+              <p>+{money(r.pm_requested_increase)}/hr asked</p>
+              <p className="text-default-400 text-xs">Bill {money(r.from.bill_rate)} → {money(r.from.bill_rate + r.pm_requested_increase)}</p>
+            </div>
+          ) : null
+        },
+      }),
+      historyColumns.accessor((r) => `${OUTCOMES[r.outcome].label} ${r.note ?? ''}`, {
+        id: 'outcome',
+        header: 'Outcome',
+        cell: ({ row }) => {
+          const r = row.original
+          return (
+            <div className="max-w-64">
+              <span className={`badge badge-label ${OUTCOMES[r.outcome].className}`}>{OUTCOMES[r.outcome].label}</span>
+              {r.effective && <p className="text-default-400 mt-1 text-xs">From {r.effective}</p>}
+              {r.note && <p className="text-default-500 mt-1 text-xs">{r.note}</p>}
+            </div>
+          )
+        },
+      }),
+      historyColumns.accessor((r) => r.decided_by ?? '', {
+        id: 'decided',
+        header: 'Decided',
+        cell: ({ row }) => (
+          <div>
+            <span>{row.original.decided_by ?? '—'}</span>
+            <p className="text-default-400 text-xs">{row.original.decided_at}</p>
+          </div>
+        ),
+      }),
+    ],
+    [],
+  )
 
-  const pageIndex = table.getState().pagination.pageIndex
-  const pageSize = table.getState().pagination.pageSize
-  const totalItems = table.getFilteredRowModel().rows.length
-  const start = totalItems === 0 ? 0 : pageIndex * pageSize + 1
-  const end = Math.min(start + pageSize - 1, totalItems)
+  const historyRows = useMemo(() => (outcome ? history.filter((h) => h.outcome === outcome) : history), [history, outcome])
+  const waitingTable = usePagedTable(pending, waitingCols, search, pageSize)
+  const historyTable = usePagedTable(historyRows, historyCols, search, pageSize)
 
   return (
     <>
@@ -138,17 +299,45 @@ const Page = ({ pending, workOrders, can }: Props) => {
       <PageBreadcrumb title="Pay Increases" subtitle="Workflows" />
 
       <div className="card">
+        <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.key}
+              onClick={() => selectTab(t.key)}
+              className={cn(
+                'hover:text-primary -mb-px inline-flex items-center gap-2 px-4 py-2 text-center font-medium focus:outline-hidden',
+                tab === t.key ? 'border-primary text-primary border-b' : '',
+              )}
+            >
+              {t.label}
+              {t.key === 'waiting' && pending.length > 0 && <span className="badge bg-warning/15 text-warning rounded-full px-2 text-xs">{pending.length}</span>}
+            </button>
+          ))}
+        </nav>
+
         <div className="card-header">
           <div className="flex flex-wrap gap-3">
             <div className="input-icon-group">
               <Icon icon="search" className="input-icon" />
               <input
                 className="form-input"
-                placeholder="Search pending increases..."
-                value={globalFilter}
-                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder={tab === 'waiting' ? 'Search waiting requests...' : 'Search history...'}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+
+            {tab === 'history' && (
+              <select className="form-select w-48" value={outcome} onChange={(e) => setOutcome(e.target.value as Outcome | '')}>
+                <option value="">All outcomes</option>
+                {(Object.keys(OUTCOMES) as Outcome[]).map((o) => (
+                  <option key={o} value={o}>{OUTCOMES[o].label}</option>
+                ))}
+              </select>
+            )}
 
             {can.initiate && workOrders.length > 0 && (
               <button className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => setCreating(true)}>
@@ -160,7 +349,7 @@ const Page = ({ pending, workOrders, can }: Props) => {
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             <span className="text-default-400 text-sm text-nowrap">Rows per page</span>
-            <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
+            <select className="form-select w-20" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}
@@ -168,25 +357,16 @@ const Page = ({ pending, workOrders, can }: Props) => {
           </div>
         </div>
 
-        <DataTable table={table} emptyMessage="No pending pay increases." />
-
-        {table.getRowModel().rows.length > 0 && (
-          <div className="card-footer">
-            <TablePagination
-              totalItems={totalItems}
-              start={start}
-              end={end}
-              itemsName="pay increases"
-              pageIndex={pageIndex}
-              pageCount={table.getPageCount()}
-              canPreviousPage={table.getCanPreviousPage()}
-              canNextPage={table.getCanNextPage()}
-              previousPage={table.previousPage}
-              nextPage={table.nextPage}
-              setPageIndex={table.setPageIndex}
-              showInfo
-            />
-          </div>
+        {tab === 'waiting' ? (
+          <>
+            <DataTable table={waitingTable} emptyMessage="Nothing waiting — every request has been decided. See History." />
+            <Footer table={waitingTable} itemsName="requests" />
+          </>
+        ) : (
+          <>
+            <DataTable table={historyTable} emptyMessage={outcome ? `No ${OUTCOMES[outcome].label.toLowerCase()} pay increases yet.` : 'No decided pay increases yet.'} />
+            <Footer table={historyTable} itemsName="pay increases" />
+          </>
         )}
       </div>
 

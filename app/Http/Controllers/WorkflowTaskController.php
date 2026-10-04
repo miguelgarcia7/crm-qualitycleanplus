@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Workflows\Actions\CompleteStep;
 use App\Domain\Workflows\Actions\RejectStep;
 use App\Domain\Workflows\Concerns\LogsWorkflowActivity;
+use App\Domain\Workflows\Definitions\WorkflowRegistry;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,7 @@ class WorkflowTaskController extends Controller
 {
     use LogsWorkflowActivity;
 
-    public function index(Request $request): Response
+    public function index(Request $request, WorkflowRegistry $registry): Response
     {
         $person = $request->user();
 
@@ -37,6 +38,8 @@ class WorkflowTaskController extends Controller
                 'workflow_id' => $step->workflow_id,
                 'workflow_type' => WorkflowType::from($step->workflow->type)->label(),
                 'name' => $step->name,
+                'summary' => $registry->for($step->workflow->workflowType())->taskSummary($step->workflow),
+                'review_url' => $registry->for($step->workflow->workflowType())->reviewUrl($step->workflow, $step),
                 'step_type' => $step->step_type->label(),
                 'initiator' => $step->workflow->initiator?->name,
                 'created_at' => $step->created_at?->toDateTimeString(),

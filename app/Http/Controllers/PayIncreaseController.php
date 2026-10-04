@@ -59,6 +59,7 @@ class PayIncreaseController extends Controller
 
         return Inertia::render('admin/pay-increases/index', [
             'pending' => $pending,
+            'history' => $this->historyRows($propertyIds),
             'workOrders' => $woQuery->get()
                 ->sortBy(fn (WorkOrder $wo) => [$wo->property?->name, $wo->person?->name])
                 ->values()
@@ -166,6 +167,85 @@ class PayIncreaseController extends Controller
             ],
             ...$this->periodChoices($workOrder->property),
         ];
+    }
+
+    /**
+     * Decided pay increases, newest first: approved by a recruiter, applied
+     * directly, declined, or cancelled by the PM — with who decided and why.
+     *
+     * @param  list<int>|null  $propertyIds  the viewer's properties; null = all
+     * @return list<array<string, mixed>>
+     */
+    private function historyRows(?array $propertyIds): array
+    {
+        $workflows = Workflow::query()
+            ->where('type', WorkflowType::PayIncrease->value)
+            ->whereIn('status', [WorkflowStatus::Completed->value, WorkflowStatus::Rejected->value, WorkflowStatus::Cancelled->value])
+            ->with(['initiator:id,name', 'steps'])
+            ->latest('completed_at')
+            ->latest('id')
+            ->limit(200)
+            ->get();
+
+        $workOrders = WorkOrder::query()
+            ->whereIn('id', $workflows->map(fn (Workflow $wf) => $wf->data['work_order_id'] ?? null)->filter())
+            ->with(['person:id,name', 'property:id,name', 'position:id,name'])
+            ->get()
+            ->keyBy('id');
+        $deciderIds = $workflows->flatMap(fn (Workflow $wf) => [$wf->completed_by, ...$wf->steps->pluck('completed_by')])->filter()->unique();
+        $names = Person::query()->whereIn('id', $deciderIds)->pluck('name', 'id');
+        $periods = PayrollPeriod::query()
+            ->whereIn('id', $workflows->map(fn (Workflow $wf) => $wf->data['approved']['effective_period_id'] ?? null)->filter())
+            ->pluck('week_start', 'id');
+
+        return $workflows
+            ->map(function (Workflow $wf) use ($workOrders, $names, $periods, $propertyIds): ?array {
+                $data = $wf->data ?? [];
+                $wo = $workOrders->get($data['work_order_id'] ?? 0);
+                if ($wo === null || ($propertyIds !== null && ! in_array($wo->property_id, $propertyIds, true))) {
+                    return null;
+                }
+
+                $direct = ($data['source'] ?? null) === 'recruiter';
+                $approved = is_array($data['approved'] ?? null) ? $data['approved'] : null;
+                $outcome = match ($wf->status) {
+                    WorkflowStatus::Completed => $direct ? 'applied' : 'approved',
+                    WorkflowStatus::Rejected => 'declined',
+                    default => 'cancelled',
+                };
+                // A direct raise is decided by whoever applied it; an approval
+                // by whoever completed the step; a decline or cancel is on the
+                // workflow itself.
+                $deciderId = match ($outcome) {
+                    'applied' => $wf->initiator_id,
+                    'approved' => $wf->steps->firstWhere('step_key', 'approve_pay_increase')?->completed_by,
+                    default => $wf->completed_by,
+                };
+                $effective = $approved !== null ? $periods->get($approved['effective_period_id'] ?? 0) : null;
+
+                return [
+                    'id' => $wf->id,
+                    'contractor' => $wo->person?->name,
+                    'position' => $wo->position?->name,
+                    'property' => $wo->property?->name,
+                    'requested_by' => $wf->initiator?->name,
+                    'requested_at' => $wf->created_at?->format('M j, Y'),
+                    'pm_requested_increase' => (int) ($data['pm_requested_increase_cents'] ?? 0),
+                    // The work order a request was made against keeps its
+                    // rates once superseded, so it is always the "before".
+                    'from' => ['pay_rate' => $wo->pay_rate, 'bill_rate' => $wo->bill_rate],
+                    'to' => $approved !== null ? ['pay_rate' => (int) $approved['pay_rate'], 'bill_rate' => (int) $approved['bill_rate']] : null,
+                    'effective' => $effective !== null ? CarbonImmutable::parse($effective)->format('M j, Y') : null,
+                    'outcome' => $outcome,
+                    'decided_by' => $deciderId !== null ? $names->get($deciderId) ?? $wf->initiator?->name : null,
+                    'decided_at' => $wf->completed_at?->format('M j, Y'),
+                    'reason' => $data['reason'] ?? null,
+                    'note' => $outcome === 'declined' || $outcome === 'cancelled' ? $wf->cancel_reason : null,
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     /**

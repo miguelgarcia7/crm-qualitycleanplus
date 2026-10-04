@@ -38,4 +38,19 @@ abstract class WorkflowDefinition
 
     /** Runs after the workflow is cancelled. */
     public function onCancelled(Workflow $workflow): void {}
+
+    /** What My Tasks shows under the step name — who and what it's about. */
+    public function taskSummary(Workflow $workflow): ?string
+    {
+        return null;
+    }
+
+    /**
+     * Where a step is decided, when that needs more than Complete/Reject (a
+     * form). My Tasks then links there instead of offering the buttons.
+     */
+    public function reviewUrl(Workflow $workflow, WorkflowStep $step): ?string
+    {
+        return null;
+    }
 }

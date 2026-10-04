@@ -6,6 +6,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\Workflows\Enums\StepActor;
 use App\Domain\Workflows\Enums\StepStatus;
 use App\Domain\Workflows\Enums\StepType;
+use App\Domain\Workflows\Support\TaskVisibility;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -72,7 +73,8 @@ class WorkflowStep extends Model
 
     /**
      * Pending steps that are the current step of their workflow and assigned to
-     * this person (directly or via one of their roles) — the My Tasks inbox.
+     * this person (directly or via one of their roles) — the My Tasks inbox —
+     * less property-bound ones for properties they don't work (TaskVisibility).
      *
      * @param  Builder<WorkflowStep>  $query
      */
@@ -81,7 +83,10 @@ class WorkflowStep extends Model
         $roles = $person->getRoleNames()->all();
 
         $query->where('status', StepStatus::Pending)
-            ->whereHas('workflow', fn (Builder $w) => $w->whereColumn('workflows.current_step_index', 'workflow_steps.step_index'))
+            ->whereHas('workflow', function (Builder $w) use ($person): void {
+                $w->whereColumn('workflows.current_step_index', 'workflow_steps.step_index');
+                TaskVisibility::scope($w, $person);
+            })
             ->where(function (Builder $q) use ($person, $roles): void {
                 $q->where('assigned_to', $person->id);
 

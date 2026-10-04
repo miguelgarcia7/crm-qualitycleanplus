@@ -19,6 +19,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
 
@@ -273,5 +274,84 @@ it('keeps other property managers away from a request', function () {
 
     $this->actingAs($otherPm)->post(qcminute("/pay-increases/{$workflow->id}/cancel"))->assertForbidden();
     $this->actingAs($otherPm)->patch(qcminute("/pay-increases/{$workflow->id}"), ['increase_amount' => 5, 'reason' => 'x'])->assertForbidden();
+    expect($workflow->fresh()->status)->toBe(WorkflowStatus::InProgress);
+});
+
+it('keeps decided requests in History with who decided and why', function () {
+    $s = payIncreaseScenario();
+    $workflow = pmRequest($s);
+    $recruiter = person('recruiter');
+    $s['property']->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+
+    $this->actingAs($recruiter)->post(main("/admin/pay-increases/{$workflow->id}/decline"), ['reason' => 'Budget is set until January']);
+
+    $this->actingAs($recruiter)->get(main('/admin/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('pending', 0)
+            ->has('history', 1)
+            ->where('history.0.contractor', $s['contractor']->name)
+            ->where('history.0.outcome', 'declined')
+            ->where('history.0.decided_by', $recruiter->name)
+            ->where('history.0.note', 'Budget is set until January')
+            ->where('history.0.pm_requested_increase', 100)
+            ->where('history.0.to', null));
+
+    // A recruiter on other properties doesn't see it.
+    $other = Person::factory()->create();
+    $other->assignRole('recruiter');
+    $this->actingAs($other)->get(main('/admin/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('history', 0));
+});
+
+it('records approved raises in History with the before and after rates', function () {
+    $s = payIncreaseScenario();
+    $workflow = pmRequest($s);
+
+    $this->actingAs(person('admin'))->post(main("/admin/pay-increases/{$workflow->id}/approve"), [
+        'pay_rate' => 21, 'bill_rate' => 31, 'ot_pay_rate' => 31.5, 'ot_bill_rate' => 46.5,
+        'effective_period_id' => $s['period']->id,
+    ]);
+
+    $this->actingAs(person('admin'))->get(main('/admin/pay-increases'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('history.0.outcome', 'approved')
+            ->where('history.0.from', ['pay_rate' => 2000, 'bill_rate' => 3000])
+            ->where('history.0.to', ['pay_rate' => 2100, 'bill_rate' => 3100])
+            ->where('history.0.effective', $s['period']->week_start->format('M j, Y')));
+});
+
+it('writes each step of a request to the contractor\'s history', function () {
+    $s = payIncreaseScenario();
+    $workflow = pmRequest($s);
+    $this->actingAs(person('admin'))->post(main("/admin/pay-increases/{$workflow->id}/decline"), ['reason' => 'budget']);
+
+    $log = Activity::query()->where('subject_type', $s['contractor']->getMorphClass())->where('subject_id', $s['contractor']->id)
+        ->where('event', 'pay_increase')->oldest('id')->pluck('description')->all();
+
+    expect($log)->toHaveCount(2)
+        ->and($log[0])->toStartWith('Pay increase requested by')
+        ->and($log[1])->toBe('Pay increase declined: budget');
+});
+
+it('sends the approval task only to the property\'s recruiters, with a Review link', function () {
+    $s = payIncreaseScenario();
+    $workflow = pmRequest($s);
+    $step = $workflow->steps()->where('step_key', 'approve_pay_increase')->firstOrFail();
+
+    $mine = person('recruiter');
+    $s['property']->assignments()->create(['person_id' => $mine->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+    $other = Person::factory()->create();
+    $other->assignRole('recruiter');
+
+    $this->actingAs($mine)->get(main('/admin/tasks'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('tasks', 1)
+            ->where('tasks.0.review_url', "/admin/pay-increases?review={$workflow->id}")
+            ->where('tasks.0.summary', fn (string $summary) => str_contains($summary, $s['contractor']->name) && str_ends_with($summary, '+$1.00/hr')));
+
+    $this->actingAs($other)->get(main('/admin/tasks'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('tasks', 0));
+    $this->actingAs($other)->post(main("/admin/workflow-steps/{$step->id}/reject"), ['reason' => 'not mine'])->assertForbidden();
+
     expect($workflow->fresh()->status)->toBe(WorkflowStatus::InProgress);
 });

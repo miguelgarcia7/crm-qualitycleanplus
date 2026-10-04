@@ -5,11 +5,13 @@ namespace App\Domain\Workflows\Policies;
 use App\Domain\People\Models\Person;
 use App\Domain\Workflows\Enums\StepStatus;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Domain\Workflows\Support\TaskVisibility;
 
 /**
  * Authorizes acting on workflow steps via the shared My Tasks surface. A step is
  * actionable when it is the workflow's current pending step, the user is its
- * assignee (by person or by role), and the user holds the step's required
+ * assignee (by person or by role) — for property-bound workflows, at that
+ * property (TaskVisibility) — and the user holds the step's required
  * permission (if any).
  */
 class WorkflowPolicy
@@ -25,6 +27,10 @@ class WorkflowPolicy
         }
 
         if (! $this->isAssignee($user, $step)) {
+            return false;
+        }
+
+        if (! TaskVisibility::allows($user, $step->workflow)) {
             return false;
         }
 

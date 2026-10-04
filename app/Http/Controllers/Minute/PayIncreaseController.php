@@ -95,6 +95,15 @@ class PayIncreaseController extends Controller
             'reason' => $validated['reason'],
         ])]);
 
+        $contractor = WorkOrder::find($workflow->data['work_order_id'] ?? 0)?->person;
+        if ($contractor !== null) {
+            activity('people')
+                ->performedOn($contractor)
+                ->event('pay_increase')
+                ->withProperties(['workflow_id' => $workflow->id])
+                ->log(sprintf('Pay increase request changed by %s: +$%s/hr on the bill rate — "%s"', $pm->name, number_format((float) $validated['increase_amount'], 2), $validated['reason']));
+        }
+
         return back()->with('success', 'Pay increase request updated.');
     }
 
