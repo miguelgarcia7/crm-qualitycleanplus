@@ -472,6 +472,7 @@
                                     @include('site.elements.recaptcha', ['action' => 'application'])
 
                                     <button type="submit" class="btn btn-yellow">Submit Application</button>
+                                    @include('site.elements.recaptcha_notice')
                                 </div>
                             </div>
 

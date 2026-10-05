@@ -107,6 +107,7 @@
                                         <span id="form_submit_spinner" style="display:none;" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                         <span class="visually-hidden">Loading...</span>
                                     </button>
+                                    @include('site.elements.recaptcha_notice')
                                 </div>
                             </div>
                         </form>

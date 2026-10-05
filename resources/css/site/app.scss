@@ -542,6 +542,12 @@ ul.uix-list li::before {
 
 /*Content*/
 
+// The floating reCAPTCHA badge is hidden; Google's required wording is shown
+// under each protected form instead (site/elements/recaptcha_notice).
+.grecaptcha-badge {
+    visibility: hidden;
+}
+
 .ui_animate {
     opacity: 0;
 }
