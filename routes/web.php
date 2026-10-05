@@ -5,7 +5,10 @@ use App\Http\Middleware\AllowedOnBackoffice;
 use App\Http\Middleware\AllowedOnQcMinute;
 use App\Http\Middleware\SetSiteLocale;
 use App\Http\Middleware\UseMarketingVite;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /*
 | Surface routes (ADR-0024). Two domains, three surfaces — config-driven so
@@ -48,6 +51,7 @@ Route::domain(config('domains.qcminute'))
 
 // QC Minute is an app, not a public site — keep crawlers out entirely.
 Route::domain(config('domains.qcminute'))
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])
     ->get('/robots.txt', [SeoController::class, 'disallowAll'])
     ->name('qcminute.robots');
 

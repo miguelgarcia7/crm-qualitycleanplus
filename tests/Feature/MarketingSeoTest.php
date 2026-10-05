@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Recruiting\Models\JobPosting;
+use Illuminate\Support\Facades\DB;
 
 /** Act as the real public site (production, not demo). */
 function asProductionSite(): void
@@ -101,4 +102,32 @@ it('keeps the thank-you page out of the index and shares images from this host',
     $this->get(main('/job-openings'))
         ->assertSee('<meta property="og:image" content="'.main('/images/social-media-website-work.png').'" />', false)
         ->assertDontSee('<meta name="robots"', false);
+});
+
+it('serves the sitemap from cache until a posting changes', function () {
+    asProductionSite();
+    $this->get(main('/sitemap.xml'))->assertOk();
+
+    // Written behind the model's back: no event, so the cached copy stands.
+    DB::table('job_postings')->insert([
+        'status' => 'published', 'title' => 'Silent Posting', 'slug' => 'silent-posting',
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
+    $this->get(main('/sitemap.xml'))->assertDontSee('silent-posting');
+
+    // Any posting change through the app rebuilds it.
+    $posting = JobPosting::factory()->published()->create();
+    $this->get(main('/sitemap.xml'))->assertSee($posting->slug)->assertSee('silent-posting');
+
+    $posting->update(['status' => 'closed']);
+    $this->get(main('/sitemap.xml'))->assertDontSee($posting->slug);
+});
+
+it('lets crawlers and caches reuse robots and the sitemap, without a session', function () {
+    asProductionSite();
+
+    foreach (['/robots.txt' => 'max-age=86400, public', '/sitemap.xml' => 'max-age=3600, public'] as $path => $cache) {
+        $response = $this->get(main($path))->assertOk()->assertHeader('Cache-Control', $cache);
+        expect($response->headers->getCookies())->toBe([]);
+    }
 });

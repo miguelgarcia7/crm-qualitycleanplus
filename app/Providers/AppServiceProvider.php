@@ -12,6 +12,7 @@ use App\Domain\KnowledgeBase\Policies\KbArticlePolicy;
 use App\Domain\Marketing\Models\Testimonial;
 use App\Domain\Marketing\Policies\TestimonialPolicy;
 use App\Domain\Marketing\Support\SiteLocale;
+use App\Domain\Marketing\Support\SitemapCache;
 use App\Domain\People\Definitions\ChangePersonalInfoDefinition;
 use App\Domain\People\Definitions\TerminationDefinition;
 use App\Domain\People\Models\Person;
@@ -96,6 +97,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerWorkflows();
         $this->configureRateLimiting();
+
+        // The cached sitemap lists published postings; any posting change rebuilds it.
+        JobPosting::saved(fn () => SitemapCache::forget());
+        JobPosting::deleted(fn () => SitemapCache::forget());
 
         // Every marketing view links through the current language (SiteLocale).
         View::composer('site.*', fn (\Illuminate\View\View $view) => $view->with('site', new SiteLocale));

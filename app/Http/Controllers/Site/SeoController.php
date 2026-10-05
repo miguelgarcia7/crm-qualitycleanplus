@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Site;
 
 use App\Domain\Marketing\Support\Seo;
 use App\Domain\Marketing\Support\SiteLocale;
+use App\Domain\Marketing\Support\SitemapCache;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Http\Controllers\Controller;
 use Carbon\CarbonInterface;
@@ -12,9 +13,10 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
- * robots.txt and sitemap.xml for the marketing site. Generated rather than
- * static so they follow the environment ({@see Seo::indexable()}) and the
- * host they're served on.
+ * robots.txt and sitemap.xml for the marketing site. Served by the app rather
+ * than as static files so they follow the environment ({@see Seo::indexable()})
+ * and stay current with job postings. The sitemap is built once and kept in
+ * {@see SitemapCache}; both carry HTTP cache headers so crawlers reuse them.
  */
 class SeoController extends Controller
 {
@@ -41,30 +43,35 @@ class SeoController extends Controller
             'Sitemap: '.$request->getSchemeAndHttpHost().'/sitemap.xml',
         ];
 
-        return response(implode("\n", $lines)."\n", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+        return $this->text(implode("\n", $lines)."\n");
     }
 
     /** QC Minute's domain is an app for property managers and contractors, not a public site. */
     public function disallowAll(): Response
     {
-        return response("User-agent: *\nDisallow: /\n", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+        return $this->text("User-agent: *\nDisallow: /\n");
     }
 
-    public function sitemap(SiteLocale $site): Response
+    public function sitemap(Request $request, SiteLocale $site): Response
     {
         abort_unless(Seo::indexable(), 404);
 
-        /** @var list<array{page: string, parameters: list<JobPosting>, updated: CarbonInterface|null}> $entries */
-        $entries = array_map(fn (string $page): array => ['page' => $page, 'parameters' => [], 'updated' => null], self::PAGES);
+        $xml = SitemapCache::remember($request->getSchemeAndHttpHost(), function () use ($site): string {
+            /** @var list<array{page: string, parameters: list<JobPosting>, updated: CarbonInterface|null}> $entries */
+            $entries = array_map(fn (string $page): array => ['page' => $page, 'parameters' => [], 'updated' => null], self::PAGES);
 
-        // Each open posting's application page, so postings can surface in search.
-        foreach (JobPosting::query()->published()->latest()->get() as $posting) {
-            $entries[] = ['page' => 'application.apply', 'parameters' => [$posting], 'updated' => $posting->updated_at];
-        }
+            // Each open posting's application page, so postings can surface in search.
+            foreach (JobPosting::query()->published()->latest()->get() as $posting) {
+                $entries[] = ['page' => 'application.apply', 'parameters' => [$posting], 'updated' => $posting->updated_at];
+            }
 
-        return response()
-            ->view('site.sitemap', ['entries' => $entries, 'site' => $site, 'locales' => array_keys(SiteLocale::LOCALES)])
-            ->header('Content-Type', 'application/xml; charset=UTF-8');
+            return view('site.sitemap', ['entries' => $entries, 'site' => $site, 'locales' => array_keys(SiteLocale::LOCALES)])->render();
+        });
+
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
     }
 
     /** www.qualitycleanplus.com — where legacy links and the search index point — redirects to the site. */
@@ -73,5 +80,14 @@ class SeoController extends Controller
         $target = $request->getScheme().'://'.config('domains.main').$request->getRequestUri();
 
         return redirect()->away($target, 301);
+    }
+
+    /** A day's HTTP cache: robots rules only change with a deploy. */
+    private function text(string $body): Response
+    {
+        return response($body, 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 }

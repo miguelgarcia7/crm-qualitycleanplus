@@ -6,7 +6,10 @@ use App\Http\Controllers\Site\JobBoardController;
 use App\Http\Controllers\Site\PageController;
 use App\Http\Controllers\Site\SeoController;
 use App\Http\Controllers\Site\TestimonialPhotoController;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /*
 | Marketing surface — qualitycleanplus.com "/" — public, server-rendered Blade
@@ -64,8 +67,12 @@ Route::post('/es/contactenos/consultas-para-negocios', [ContactController::class
 | SEO (marketing-site-audit.md) — generated so they follow the environment
 | (Seo::indexable): production invites crawlers, everything else stays out.
 */
-Route::get('/robots.txt', [SeoController::class, 'robots'])->name('marketing.robots');
-Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('marketing.sitemap');
+// No session or cookies: crawlers don't need one, and a Set-Cookie would stop
+// caches from reusing these responses.
+Route::withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->group(function (): void {
+    Route::get('/robots.txt', [SeoController::class, 'robots'])->name('marketing.robots');
+    Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('marketing.sitemap');
+});
 
 // Legacy pages that no longer exist here.
 Route::permanentRedirect('/partners/baseball', '/');
