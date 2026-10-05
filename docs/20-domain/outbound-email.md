@@ -2,12 +2,12 @@
 
 Every path that sends mail, who triggers it, and what guarantees it carries.
 
-There are **five**. There are no Mailable classes and no direct `Mail::` calls —
+There are **six**. There are no Mailable classes and no direct `Mail::` calls —
 everything goes through Laravel notifications, so this list is complete as long
 as that stays true. Grep check: a notification sends mail only if its `via()` (or
 `channels()`) returns `mail`.
 
-## The five
+## The six
 
 | Email | Trigger | Recipient | Surface it links to | Queued |
 |---|---|---|---|---|
@@ -16,6 +16,7 @@ as that stays true. Grep check: a notification sends mail only if its `via()` (o
 | **Timesheet decided** (`TimesheetDecided`) | PM approves or declines | The recruiter who submitted | Back office | Yes |
 | **User invitation** (`UserInvitation`) | Admin invites a user (`admin.users.create`) | The new person | Role-dependent | Yes |
 | **Password reset** (`PasswordResetLink`) | Anyone posts `/forgot-password` | Whoever owns the address | Role-dependent | Yes |
+| **Contact lead** (`ContactInquiryReceived`) | A visitor submits a marketing contact form (job seeker or business) | The addresses in `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO` (on demand, not a `Person`; blank = not sent). Reply-to is the visitor | None — the lead is in the body | Yes |
 
 **Nothing else emails.** Workflow notices (pay increase, transfer, temporary
 assignment, more staff, personal-info change), contract expiry, punch flags,
@@ -42,7 +43,7 @@ header rides on `MailMessage::$viewData` (see `phase-09g`).
 |---|---|---|
 | When | The work is already durable before mail is attempted | A status only becomes true if delivery succeeds |
 | Failure mode | Retries silently; nothing is lost | Throws in-line, and the caller reports it |
-| Here | timesheet ×2, invitation, password reset | invoice |
+| Here | timesheet ×2, invitation, password reset, contact lead | invoice |
 
 `SendInvoice` marks an invoice `invoice_sent` **only after Postmark accepts it**,
 and `InvoiceController::send()` catches the transport exception and tells the

@@ -32,18 +32,23 @@ ADR-0024's three-bundle wording is stale on that point.
 
 ## Must fix before cutover
 
-1. **Contact leads go nowhere.** Both contact forms write `contact_inquiries` rows only —
-   no email, no back-office screen (`ContactInquiry.php` docblock: "not wired to
-   notifications yet"). Legacy emails every submission (see *Legacy contact routing*).
+1. ~~**Contact leads go nowhere.**~~ Fixed 2026-10-04: `ContactInquiryReceived` (queued)
+   emails each stored inquiry to `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO`
+   (comma-separated; Spanish shares them), reply-to the visitor, sent from
+   `MAIL_FROM_ADDRESS`, with the reCAPTCHA verdict as a "Spam check" line. Needs a queue
+   worker and the vars set on Cloud. Still no back-office inbox for `contact_inquiries`.
 2. ~~**Draft/closed postings are publicly reachable.**~~ Fixed 2026-10-04:
    `ApplicationController::apply` 404s unless `status->isPublic()`; `store` links only a
    published posting (a posting closed mid-form is dropped, the application still lands
    with the typed position). Covered in `tests/Feature/JobApplicationTest.php`.
 3. ~~**No spam protection or throttle** on the 3 public POSTs.~~ Fixed 2026-10-04:
    reCAPTCHA v3 (`App\Rules\Recaptcha`, `site.elements.recaptcha`) on both contact forms
-   (action `contact`) and the application (`application`), checking success, score,
-   action and hostname; off while `RECAPTCHA_*` keys are blank; fails open (logged) if
-   Google is unreachable. Plus `throttle:marketing-forms` (10/min, 60/hour per IP).
+   (action `contact`) and the application (`application`). **Middle ground** (revised
+   with #1): rejects only a missing token or a score Google gave below
+   `RECAPTCHA_MIN_SCORE`; anything that prevents a verdict (Google error such as
+   `browser-error`, unreachable, token for another form/host) is let through, logged,
+   and flagged in the lead email. Off while `RECAPTCHA_*` keys are blank. Plus
+   `throttle:marketing-forms` (10/min, 60/hour per IP).
    The key's domain list must include every host the forms run on (local `.test`,
    staging, production) or Google returns `browser-error`.
 4. ~~**Page titles / `og:site_name` read "Minute".**~~ Fixed locally 2026-10-04:

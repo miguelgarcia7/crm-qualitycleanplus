@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Site;
 use App\Domain\Marketing\Models\ContactInquiry;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Site\StoreContactInquiryRequest;
+use App\Notifications\ContactInquiryReceived;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Public marketing contact forms (Phase 08b-i): "Job Seekers" general inquiries
  * and "Business" staffing/services inquiries. Submissions are stored as
- * {@see ContactInquiry} rows.
+ * {@see ContactInquiry} rows and emailed to that type's recipients
+ * (`qcp.marketing.contact_recipients`).
  */
 class ContactController extends Controller
 {
@@ -43,7 +46,7 @@ class ContactController extends Controller
     {
         $data = $request->validated();
 
-        ContactInquiry::create([
+        $inquiry = ContactInquiry::create([
             'type' => $type,
             'first_name' => $data['contact_first_name'],
             'last_name' => $data['contact_last_name'],
@@ -58,5 +61,13 @@ class ContactController extends Controller
             'call_back_time' => $data['contact_call_back_time'] ?? null,
             'message' => $data['contact_message'] ?? null,
         ]);
+
+        /** @var list<string> $recipients */
+        $recipients = config("qcp.marketing.contact_recipients.{$type}", []);
+
+        if ($recipients !== []) {
+            Notification::route('mail', $recipients)
+                ->notify(new ContactInquiryReceived($inquiry, $request->recaptcha()->summary()));
+        }
     }
 }

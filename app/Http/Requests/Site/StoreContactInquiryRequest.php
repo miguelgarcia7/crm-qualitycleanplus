@@ -2,8 +2,7 @@
 
 namespace App\Http\Requests\Site;
 
-use App\Rules\Recaptcha;
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Http\Requests\Site\Concerns\ChecksRecaptcha;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -12,18 +11,24 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreContactInquiryRequest extends FormRequest
 {
+    use ChecksRecaptcha;
+
+    protected function recaptchaAction(): string
+    {
+        return 'contact';
+    }
+
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * @return array<string, array<int, string|ValidationRule>>
+     * @return array<string, array<int, string>>
      */
     public function rules(): array
     {
         return [
-            'g-recaptcha-response' => [new Recaptcha('contact')],
             'contact_first_name' => ['required', 'string', 'max:255'],
             'contact_last_name' => ['required', 'string', 'max:255'],
             'contact_email' => ['required', 'email', 'max:255'],

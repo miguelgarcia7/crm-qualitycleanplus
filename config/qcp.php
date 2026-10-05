@@ -75,4 +75,16 @@ return [
             'body' => env('QCP_INVOICE_PREVIEW_BODY', 'Final invoices are issued through QuickBooks.'),
         ],
     ],
+
+    /*
+    | Who receives the marketing site's contact-form leads, keyed by
+    | contact_inquiries.type. Comma-separated in .env; English and Spanish
+    | forms share them. Blank = stored only, not emailed.
+    */
+    'marketing' => [
+        'contact_recipients' => [
+            'job_seeker' => array_values(array_filter(array_map('trim', explode(',', (string) env('MARKETING_JOB_SEEKERS_TO', ''))))),
+            'business' => array_values(array_filter(array_map('trim', explode(',', (string) env('MARKETING_BUSINESS_TO', ''))))),
+        ],
+    ],
 ];

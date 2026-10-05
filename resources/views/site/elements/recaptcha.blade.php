@@ -1,10 +1,11 @@
 {{--
     reCAPTCHA v3 for a public form — include inside the <form> with the action the
     server expects: @include('site.elements.recaptcha', ['action' => 'contact']).
-    resources/js/site/app.js fetches the token on submit; App\Rules\Recaptcha checks
-    it. Renders only the error slot while the keys are unset.
+    resources/js/site/app.js fetches the token on submit; the form request's
+    ChecksRecaptcha concern scores it. Renders only the error slot while the keys
+    are unset.
 --}}
-@if (\App\Rules\Recaptcha::enabled())
+@if (\App\Domain\Marketing\Support\Recaptcha::enabled())
     <input type="hidden" name="g-recaptcha-response" data-recaptcha-action="{{ $action }}">
     @once
         @push('scripts')
