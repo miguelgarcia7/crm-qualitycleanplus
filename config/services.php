@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    // Google Analytics 4 for the marketing site — loaded only on the real public
+    // site (production, not demo; App\Domain\Marketing\Support\Seo).
+    'google_analytics' => [
+        'measurement_id' => env('GOOGLE_ANALYTICS_ID', 'G-ZQSBDK2ZRN'),
+    ],
+
     // Google reCAPTCHA v3 (score-based, invisible) on the public marketing forms.
     // Off when either key is blank (local, tests, hosts not on the key's domain list).
     'recaptcha' => [

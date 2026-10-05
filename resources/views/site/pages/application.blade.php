@@ -3,7 +3,7 @@
 @include('site.elements.meta_data',[
     'meta_title' =>         __('site/application.meta.title'),
     'meta_description' =>   __('site/application.meta.description'),
-    'meta_image' => 'https://www.qualitycleanplus.com/images/social-media-website-work.png',
+    'meta_image' => '/images/social-media-website-work.png',
     ])
 
 @php

@@ -3,7 +3,7 @@
 @include('site.elements.meta_data',[
     'meta_title' =>         __('site/jobs.meta.title'),
     'meta_description' =>   __('site/jobs.meta.description'),
-    'meta_image' => 'https://www.qualitycleanplus.com/images/social-media-website-work.png',
+    'meta_image' => '/images/social-media-website-work.png',
     ])
 
 @section('content')

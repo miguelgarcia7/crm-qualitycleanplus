@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Site\SeoController;
 use App\Http\Middleware\AllowedOnBackoffice;
 use App\Http\Middleware\AllowedOnQcMinute;
 use App\Http\Middleware\SetSiteLocale;
@@ -20,6 +21,12 @@ Route::domain(config('domains.main'))
     ->middleware([UseMarketingVite::class, SetSiteLocale::class])
     ->group(base_path('routes/marketing.php'));
 
+// www.qualitycleanplus.com is where legacy links and the search index point;
+// send it to the site, keeping the path (needs the www host attached in Cloud).
+Route::domain('www.'.config('domains.main'))->group(function (): void {
+    Route::get('/{path?}', [SeoController::class, 'toApex'])->where('path', '.*')->name('marketing.www');
+});
+
 Route::domain(config('domains.main'))
     ->prefix('admin')
     ->middleware(['auth', AllowedOnBackoffice::class])
@@ -38,6 +45,11 @@ Route::domain(config('domains.qcminute'))
     ->prefix('device')
     ->middleware('throttle:60,1')
     ->group(base_path('routes/device.php'));
+
+// QC Minute is an app, not a public site — keep crawlers out entirely.
+Route::domain(config('domains.qcminute'))
+    ->get('/robots.txt', [SeoController::class, 'disallowAll'])
+    ->name('qcminute.robots');
 
 Route::domain(config('domains.qcminute'))
     ->middleware(['auth', AllowedOnQcMinute::class])

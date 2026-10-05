@@ -312,6 +312,10 @@ can be thrown away and rebuilt.
 6. **Marketing go-live** (when `qualitycleanplus.com` points here): drop the temporary
    "(New)" marker from `APP_NAME` — it shows in public page titles and `og:site_name`
    (see `marketing-site-audit.md`, must-fix 4).
+   Also: attach `www.qualitycleanplus.com` to the Cloud environment (the app 301s it to the
+   bare domain, keeping legacy links and indexed URLs alive), set `APP_ENV=production`
+   with `DEMO_MODE` off (robots.txt, sitemap and analytics only switch on then), then
+   submit `https://qualitycleanplus.com/sitemap.xml` in Google Search Console.
 
 ## Decision log (settled 2026-08-30/31)
 

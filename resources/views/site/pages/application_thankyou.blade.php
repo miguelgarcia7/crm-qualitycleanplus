@@ -3,6 +3,7 @@
 @include('site.elements.meta_data',[
     'meta_title' =>         __('site/thanks.meta.title'),
     'meta_description' =>   __('site/thanks.meta.description'),
+    'noindex' => true,
     ])
 
 @section('content')

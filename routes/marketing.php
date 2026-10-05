@@ -4,6 +4,7 @@ use App\Http\Controllers\Site\ApplicationController;
 use App\Http\Controllers\Site\ContactController;
 use App\Http\Controllers\Site\JobBoardController;
 use App\Http\Controllers\Site\PageController;
+use App\Http\Controllers\Site\SeoController;
 use App\Http\Controllers\Site\TestimonialPhotoController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,8 @@ Route::get('/job-openings', [JobBoardController::class, 'index'])->name('marketi
 Route::get('/application', [ApplicationController::class, 'index'])->name('marketing.application');
 Route::post('/application', [ApplicationController::class, 'store'])->middleware('throttle:marketing-forms')->name('marketing.application.store');
 Route::get('/application/thank-you', [ApplicationController::class, 'thankYou'])->name('marketing.application.thank-you');
+// Legacy linked postings by numeric id (old ids don't map to postings here).
+Route::permanentRedirect('/application/{legacyId}', '/application')->whereNumber('legacyId');
 Route::get('/application/{posting}', [ApplicationController::class, 'apply'])->name('marketing.application.apply');
 
 // Contact forms — Job Seekers + Business inquiries (GET form, POST store).
@@ -50,8 +53,19 @@ Route::get('/es/ofertas-de-trabajo', [JobBoardController::class, 'index'])->name
 Route::get('/es/solicitud', [ApplicationController::class, 'index'])->name('marketing.es.application');
 Route::post('/es/solicitud', [ApplicationController::class, 'store'])->middleware('throttle:marketing-forms')->name('marketing.es.application.store');
 Route::get('/es/solicitud/gracias', [ApplicationController::class, 'thankYou'])->name('marketing.es.application.thank-you');
+Route::permanentRedirect('/es/solicitud/{legacyId}', '/es/solicitud')->whereNumber('legacyId');
 Route::get('/es/solicitud/{posting}', [ApplicationController::class, 'apply'])->name('marketing.es.application.apply');
 Route::get('/es/contactenos/solicitantes-de-empleo', [ContactController::class, 'jobSeekers'])->name('marketing.es.contact.job-seekers');
 Route::post('/es/contactenos/solicitantes-de-empleo', [ContactController::class, 'storeJobSeeker'])->middleware('throttle:marketing-forms')->name('marketing.es.contact.job-seekers.store');
 Route::get('/es/contactenos/consultas-para-negocios', [ContactController::class, 'businessInquiries'])->name('marketing.es.contact.business');
 Route::post('/es/contactenos/consultas-para-negocios', [ContactController::class, 'storeBusinessInquiry'])->middleware('throttle:marketing-forms')->name('marketing.es.contact.business.store');
+
+/*
+| SEO (marketing-site-audit.md) — generated so they follow the environment
+| (Seo::indexable): production invites crawlers, everything else stays out.
+*/
+Route::get('/robots.txt', [SeoController::class, 'robots'])->name('marketing.robots');
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('marketing.sitemap');
+
+// Legacy pages that no longer exist here.
+Route::permanentRedirect('/partners/baseball', '/');

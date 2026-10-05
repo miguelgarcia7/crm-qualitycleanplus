@@ -80,8 +80,8 @@ ADR-0024's three-bundle wording is stale on that point.
 | Hero video | ✅ | Broken reference (`public/media` absent) | Remove (D5) |
 | `/partners/baseball` | ✅ | ❌ | Not porting (D4) |
 | Nav login link + language switcher | ✅ | ❌ stripped | Switcher needed for D1 |
-| Google Analytics `G-ZQSBDK2ZRN` | ✅ | ✅ but loads in every env incl. demo | Gate to production |
-| Sitemap / hreflang / JSON-LD | ❌ | ❌ | SEO gap in both (hreflang needed for D1) |
+| Google Analytics `G-ZQSBDK2ZRN` | ✅ | ✅ production only (`GOOGLE_ANALYTICS_ID`) | ✅ Done 2026-10-05 |
+| Sitemap / hreflang / JSON-LD | ❌ | ✅ `/sitemap.xml` (both languages + open postings), hreflang, EmploymentAgency JSON-LD | ✅ Done 2026-10-05 |
 | Privacy / terms pages | ❌ | ❌ | Gap — the application collects DOB + felony data |
 | Branded 404 / 419 | ❌ | ❌ (only `errors/403`) | Gap in both |
 
@@ -247,6 +247,31 @@ translation source — it has typos to fix ("limpiez", "negocion", "Quienes Noso
 - `identity-and-auth.md:75` says `POST /apply` (actual `POST /application`) and line 80 /
   `deployment-topology.md:37` say applications notify recruiters (not implemented).
 - `domain-routing.md:105`, `identity-and-auth.md:38` say `/admin/login`; actual `/login`.
+
+## SEO clean-up — done 2026-10-05
+
+- **robots.txt / sitemap.xml are generated** (`SeoController`; the static
+  `public/robots.txt` is gone). `Seo::indexable()` = production and not demo: only then
+  does robots.txt allow crawling (minus `/admin` and the sign-in pages) and point at
+  `/sitemap.xml`; everywhere else, and always on the QC Minute domain, it disallows all
+  and the sitemap 404s. The sitemap lists every page in both languages with hreflang
+  alternates, plus each published posting's application page; thank-you pages are
+  `noindex` and left out.
+- **www → apex 301** keeping path + query (`www.{DOMAIN_MAIN}` catch-all). Legacy links and
+  the search index use `www.qualitycleanplus.com`; the host must be attached to the
+  Cloud environment at cutover or those links 404.
+- **Legacy URLs redirected:** `/partners/baseball` → `/`; numeric posting links
+  (`/application/{id}`, `/es/solicitud/{id}`) → the application form.
+- **Analytics** only on the real public site; id in `GOOGLE_ANALYTICS_ID`.
+- **Head tags:** canonical = the page itself (was always the www homepage), hreflang +
+  x-default, `twitter:card`; the invalid twitter handle, malformed `DC.date.issued` and
+  the missing `safari-pinned-tab.svg` are gone; share images use this host.
+- **Structured data:** schema.org `EmploymentAgency` (address, phone, hours, socials) on
+  the home page in both languages.
+- **Not done (opportunities):** Google for Jobs needs `JobPosting` structured data on a
+  page per posting with its full description — the single-posting page (08b-i Inc 2) is
+  still unbuilt. Home `<title>` says "Residential and Commercial" while the hero says
+  "The Hospitality Experts" — a copy decision.
 
 ## Suggested order
 
