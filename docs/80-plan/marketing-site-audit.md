@@ -57,11 +57,12 @@ ADR-0024's three-bundle wording is stale on that point.
    `og:site_name` are public/SEO-visible). Still to do: set it on the Cloud staging env and
    `.env.example`. Note one `APP_NAME` also drives the back-office/QC Minute tab titles and
    the session cookie name (changing it logs everyone out once).
-5. **Public form can attach to existing staff records.** `SubmitApplication::resolvePerson`
-   (`app/Domain/Recruiting/Actions/SubmitApplication.php:67-74`) matches any `Person` by
-   email — staff, contractor or archived — and restores soft-deleted rows. Intended as
-   "rehire reuses the row", but it is triggerable by anyone typing an email. Decide whether
-   a match on a non-applicant should instead create a pending application for review.
+5. ~~**Public form can attach to existing staff records.**~~ Fixed 2026-10-05 (option b):
+   only a live applicant re-applying is linked automatically. Any other email match
+   (staff, contractor, archived) lands on a new applicant with a placeholder email,
+   flagged with `matched_person_id`; the recruiter links it ("Same person", restoring an
+   archived record and archiving the placeholder) or dismisses it before review starts.
+   See people-lifecycle.md, "Email & soft deletes".
 
 ## Parity
 

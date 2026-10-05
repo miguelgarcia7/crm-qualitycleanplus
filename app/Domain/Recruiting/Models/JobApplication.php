@@ -32,11 +32,13 @@ class JobApplication extends Model
      */
     protected $fillable = [
         'person_id',
+        'matched_person_id',
         'job_posting_id',
         'first_name',
         'middle_name',
         'last_name',
         'second_last_name',
+        'submitted_email',
         'desired_position',
         'desired_salary',
         'desired_start_date',
@@ -82,6 +84,18 @@ class JobApplication extends Model
     public function person(): BelongsTo
     {
         return $this->belongsTo(Person::class);
+    }
+
+    /**
+     * An existing person (staff, contractor or archived) whose email this
+     * application was submitted with — unresolved until a recruiter links or
+     * dismisses it. Includes soft-deleted people.
+     *
+     * @return BelongsTo<Person, $this>
+     */
+    public function matchedPerson(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'matched_person_id')->withTrashed();
     }
 
     /**

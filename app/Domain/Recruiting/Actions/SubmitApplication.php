@@ -26,10 +26,17 @@ class SubmitApplication
     public function handle(array $data, ?JobPosting $posting = null): JobApplication
     {
         return DB::transaction(function () use ($data, $posting) {
-            $person = $this->resolvePerson($data);
+            $email = isset($data['email']) && $data['email'] !== '' ? (string) $data['email'] : null;
+            $match = $email === null ? null : Person::withTrashed()->where('email', $email)->first();
+
+            $person = $match !== null && ! $match->trashed() && $match->status->isApplicant()
+                ? $match
+                : $this->createApplicant($data, $match === null ? $email : null);
 
             return JobApplication::create([
                 'person_id' => $person->id,
+                'matched_person_id' => $person->is($match) ? null : $match?->id,
+                'submitted_email' => $email,
                 'job_posting_id' => $posting?->id,
                 'first_name' => $data['first_name'],
                 'middle_name' => $data['middle_name'] ?? null,
@@ -54,27 +61,12 @@ class SubmitApplication
 
     /**
      * @param  array<string, mixed>  $data
+     * @param  string|null  $email  null when none was given or it belongs to someone
+     *                              else — `people.email` is unique across soft-deleted
+     *                              rows too, so a placeholder stands in
      */
-    private function resolvePerson(array $data): Person
+    private function createApplicant(array $data, ?string $email): Person
     {
-        $email = isset($data['email']) && $data['email'] !== '' ? (string) $data['email'] : null;
-
-        if ($email !== null) {
-            // Include soft-deleted rows: email is unique across them by design (one
-            // identity per human — rehire reuses the row, people-lifecycle.md), so a
-            // returning person resurfaces their original record instead of colliding
-            // with it at the database constraint.
-            $existing = Person::withTrashed()->where('email', $email)->first();
-
-            if ($existing !== null) {
-                if ($existing->trashed()) {
-                    $existing->restore();
-                }
-
-                return $existing;
-            }
-        }
-
         $phone = isset($data['phone']) && $data['phone'] !== '' ? (string) $data['phone'] : null;
 
         return Person::create([

@@ -148,6 +148,8 @@ Route::get('applicants', [ApplicantController::class, 'index'])->name('backoffic
 Route::get('applicants/{application}', [ApplicantController::class, 'show'])->name('backoffice.applicants.show');
 Route::post('applicants/{application}/start-review', [ApplicantController::class, 'startReview'])->name('backoffice.applicants.start-review');
 Route::post('applicants/{application}/reject', [ApplicantController::class, 'reject'])->name('backoffice.applicants.reject');
+Route::post('applicants/{application}/match/link', [ApplicantController::class, 'linkMatch'])->name('backoffice.applicants.match.link');
+Route::post('applicants/{application}/match/dismiss', [ApplicantController::class, 'dismissMatch'])->name('backoffice.applicants.match.dismiss');
 Route::post('applicants/{application}/onboarding/i9/verify', [ApplicantController::class, 'verifyI9'])->name('backoffice.applicants.verify-i9');
 Route::post('applicants/{application}/onboarding/{item}/waive', [ApplicantController::class, 'waive'])->name('backoffice.applicants.waive');
 Route::get('applicants/{application}/onboarding/{item}/download', [ApplicantController::class, 'downloadDocument'])->name('backoffice.applicants.download');

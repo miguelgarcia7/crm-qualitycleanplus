@@ -20,6 +20,7 @@ type ApplicationRow = {
   id: number
   name: string
   email: string | null
+  email_match: boolean
   phone: string | null
   city: string
   desired_position: string | null
@@ -85,6 +86,11 @@ const Page = ({ applications, filter }: Props) => {
               {row.original.name}
             </Link>
             {row.original.email && <p className="text-default-400 text-xs">{row.original.email}</p>}
+            {row.original.email_match && (
+              <span className="badge badge-label bg-warning/15 text-warning mt-1" title="Email matches an existing person — link or dismiss on the application">
+                Email match
+              </span>
+            )}
           </div>
         ),
       }),

@@ -148,9 +148,19 @@ Consequences:
 - Validation (`Rule::unique(Person::class)`) checks the whole table, matching the DB
   constraint — a live user can't claim a soft-deleted person's email; they get a clean
   validation error.
-- Public application intake (`SubmitApplication::resolvePerson`) looks up email
-  `withTrashed()` and **restores** a soft-deleted match, so a returning person resurfaces
-  their original record instead of hitting the unique constraint.
+- Public application intake (`SubmitApplication`) looks up email `withTrashed()`. A
+  **live applicant** re-applying links to their own row (never overwritten). **Any other
+  match** — staff, contractor, or anyone soft-deleted — is *not* attached or restored
+  automatically, because anyone can type anyone's email: the application lands on a new
+  applicant row with a placeholder email (`applicant+…@qcp.invalid`), keeps the typed
+  address in `job_applications.submitted_email`, and points at the match via
+  `matched_person_id`. A recruiter resolves it on the application before review starts
+  (2026-10-05):
+  - **Same person** (`LinkApplicationToMatchedPerson`): the application moves onto the
+    original row — restored if soft-deleted — and the placeholder is archived. One
+    identity again, `application_date` and history preserved.
+  - **Different person**: the flag is cleared; the new applicant keeps the placeholder
+    email (the real one stays on the application, since the unique constraint holds).
 - Anonymized rows clear the email entirely (audit-and-pii.md), freeing it for reuse.
   NB: when the anonymization flow is built, `people.email` must become nullable —
   it is currently `NOT NULL`.

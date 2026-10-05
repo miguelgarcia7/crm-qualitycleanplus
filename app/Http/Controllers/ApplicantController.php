@@ -8,12 +8,14 @@ use App\Domain\People\Actions\UploadOnboardingDocument;
 use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Support\OnboardingChecklist;
+use App\Domain\Recruiting\Actions\LinkApplicationToMatchedPerson;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Shared\Models\File;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,7 +44,8 @@ class ApplicantController extends Controller
             ->map(fn (JobApplication $a): array => [
                 'id' => $a->id,
                 'name' => $a->person->name,
-                'email' => str_ends_with((string) $a->person->email, '@qcp.invalid') ? null : $a->person->email,
+                'email' => $this->displayEmail($a->person, $a),
+                'email_match' => $a->matched_person_id !== null,
                 'phone' => $a->person->phone,
                 'city' => trim(implode(', ', array_filter([$a->person->city, $a->person->state]))),
                 'desired_position' => $a->desired_position,
@@ -63,7 +66,7 @@ class ApplicantController extends Controller
     {
         $this->authorize('view', $application);
 
-        $application->load(['person', 'jobPosting:id,title,slug', 'reviewedBy:id,name']);
+        $application->load(['person', 'matchedPerson', 'jobPosting:id,title,slug', 'reviewedBy:id,name']);
         /** @var Person $person */
         $person = $application->person;
         /** @var Person $user */
@@ -96,7 +99,7 @@ class ApplicantController extends Controller
                 'id' => $person->id,
                 'name' => $person->name,
                 'status' => $person->status->value,
-                'email' => str_ends_with((string) $person->email, '@qcp.invalid') ? null : $person->email,
+                'email' => $this->displayEmail($person, $application),
                 'phone' => $person->phone,
                 'dob' => $person->dob?->toFormattedDateString(),
                 'address' => trim(implode(', ', array_filter([$person->address, $person->apartment_number, $person->city, $person->state, $person->zip]))),
@@ -108,6 +111,12 @@ class ApplicantController extends Controller
                 'emergency_contact_address' => $person->emergency_contact_address,
                 'application_date' => $person->application_date?->toFormattedDateString(),
                 'has_work_orders' => $person->workOrders()->exists(),
+            ],
+            'match' => $application->matchedPerson === null ? null : [
+                'id' => $application->matchedPerson->id,
+                'name' => $application->matchedPerson->name,
+                'status_label' => Str::headline($application->matchedPerson->status->value),
+                'archived' => $application->matchedPerson->trashed(),
             ],
             'other_applications' => $person->jobApplications()
                 ->whereKeyNot($application->id)
@@ -136,6 +145,7 @@ class ApplicantController extends Controller
         $this->authorize('review', $application);
 
         abort_unless($application->status === JobApplicationStatus::Submitted, 422, 'Only submitted applications can move to reviewing.');
+        abort_if($application->matched_person_id !== null, 422, 'Link or dismiss the email match before starting review.');
 
         $application->update([
             'status' => JobApplicationStatus::Reviewing,
@@ -144,6 +154,27 @@ class ApplicantController extends Controller
         ]);
 
         return back()->with('success', 'Application moved to reviewing.');
+    }
+
+    /** The applicant is the existing person their email matched — see {@see LinkApplicationToMatchedPerson}. */
+    public function linkMatch(JobApplication $application, LinkApplicationToMatchedPerson $action): RedirectResponse
+    {
+        $this->authorize('review', $application);
+
+        $action->handle($application);
+
+        return redirect()->route('backoffice.applicants.show', $application)
+            ->with('success', "Linked to {$application->fresh()?->person?->name}'s existing record.");
+    }
+
+    /** Not the same person: keep the new applicant record as it is. */
+    public function dismissMatch(JobApplication $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+
+        $application->update(['matched_person_id' => null]);
+
+        return back()->with('success', 'Kept as a separate applicant.');
     }
 
     public function reject(Request $request, JobApplication $application): RedirectResponse
@@ -277,5 +308,19 @@ class ApplicantController extends Controller
         $action->handle($application, $actor);
 
         return back()->with('success', 'Promotion reversed — back to applicant.');
+    }
+
+    /**
+     * The applicant's real address. Their person row carries a placeholder when
+     * they gave none or their email belongs to someone else (an unresolved or
+     * dismissed match), in which case what they typed lives on the application.
+     */
+    private function displayEmail(Person $person, JobApplication $application): ?string
+    {
+        if (! str_ends_with((string) $person->email, '@qcp.invalid')) {
+            return $person->email;
+        }
+
+        return $application->submitted_email;
     }
 }

@@ -57,6 +57,7 @@ type Props = {
     application_date: string | null
     has_work_orders: boolean
   }
+  match: { id: number; name: string; status_label: string; archived: boolean } | null
   other_applications: { id: number; status_label: string; desired_position: string | null; submitted_at: string }[]
   checklist: ChecklistItem[]
   checklist_complete: boolean
@@ -218,7 +219,7 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
   )
 }
 
-const Page = ({ application: app, person, other_applications, checklist, checklist_complete, can }: Props) => {
+const Page = ({ application: app, person, match, other_applications, checklist, checklist_complete, can }: Props) => {
   const { errors } = usePage().props as { errors: Record<string, string> }
   const [showReject, setShowReject] = useState(false)
   const rejectForm = useForm({ reason: '' })
@@ -254,6 +255,23 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
     })
   }
 
+  const linkMatch = () => {
+    if (!match) return
+    confirmAction({
+      title: 'Link to existing record',
+      message: (
+        <>
+          Move this application onto <strong>{match.name}</strong>'s record{match.archived ? ', restoring it from the archive' : ''}? The new applicant record
+          made at intake is archived. Their existing details are not overwritten.
+        </>
+      ),
+      confirmLabel: 'Link',
+      tone: 'primary',
+      onConfirm: () => router.post(`/admin/applicants/${app.id}/match/link`, {}, { preserveScroll: true }),
+    })
+  }
+  const dismissMatch = () => router.post(`/admin/applicants/${app.id}/match/dismiss`, {}, { preserveScroll: true })
+
   const isPending = app.status === 'submitted' || app.status === 'reviewing'
   const initials = person.name
     .split(' ')
@@ -272,7 +290,7 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
           ← Queue
         </Link>
         <span className="grow" />
-        {can.review && app.status === 'submitted' && (
+        {can.review && app.status === 'submitted' && !match && (
           <button className="btn btn-sm bg-primary text-white" onClick={startReview}>
             Start review
           </button>
@@ -305,6 +323,36 @@ const Page = ({ application: app, person, other_applications, checklist, checkli
             {Object.values(errors).map((message, i) => (
               <p key={i}>{message}</p>
             ))}
+          </div>
+        </div>
+      )}
+
+      {match && (
+        <div className="card border-warning mb-4 border">
+          <div className="card-body flex flex-wrap items-center gap-3 p-4 text-sm">
+            <Icon icon="alert-triangle" className="text-warning shrink-0 text-lg" />
+            <p className="grow">
+              The email on this application belongs to an existing person:{' '}
+              {match.archived ? (
+                <strong>{match.name}</strong>
+              ) : (
+                <Link href={`/admin/people/${match.id}`} className="font-semibold underline">
+                  {match.name}
+                </Link>
+              )}{' '}
+              ({match.status_label}
+              {match.archived ? ', archived' : ''}). It was not attached to their record automatically. Is this the same person?
+            </p>
+            {can.review && app.status === 'submitted' && (
+              <div className="flex gap-2">
+                <button className="btn btn-sm bg-primary text-white" onClick={linkMatch}>
+                  Same person — link
+                </button>
+                <button className="btn btn-sm btn-light" onClick={dismissMatch}>
+                  Different person
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
