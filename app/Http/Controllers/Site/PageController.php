@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Site;
 
+use App\Domain\Marketing\Models\Testimonial;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 
@@ -13,9 +14,10 @@ class PageController extends Controller
 {
     public function home(): View
     {
-        // Testimonials are not modelled yet (deferred); pass an empty collection
-        // so the home view hides the section rather than erroring.
-        return view('site.pages.home', ['testimonials' => collect()]);
+        // Newest first, like the legacy site; the view hides the section when empty.
+        return view('site.pages.home', [
+            'testimonials' => Testimonial::query()->active()->latest()->latest('id')->get(),
+        ]);
     }
 
     public function services(): View

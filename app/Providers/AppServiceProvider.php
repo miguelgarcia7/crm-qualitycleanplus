@@ -9,6 +9,8 @@ use App\Domain\Billing\Policies\TimesheetPolicy;
 use App\Domain\Inventory\Definitions\SupplyRequestDefinition;
 use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\KnowledgeBase\Policies\KbArticlePolicy;
+use App\Domain\Marketing\Models\Testimonial;
+use App\Domain\Marketing\Policies\TestimonialPolicy;
 use App\Domain\People\Definitions\ChangePersonalInfoDefinition;
 use App\Domain\People\Definitions\TerminationDefinition;
 use App\Domain\People\Models\Person;
@@ -87,6 +89,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(JobPosting::class, JobPostingPolicy::class);
         Gate::policy(JobApplication::class, JobApplicationPolicy::class);
         Gate::policy(KbArticle::class, KbArticlePolicy::class);
+        Gate::policy(Testimonial::class, TestimonialPolicy::class);
         Gate::policy(Person::class, PersonPolicy::class);
 
         $this->registerWorkflows();

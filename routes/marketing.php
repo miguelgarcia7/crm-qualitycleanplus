@@ -4,6 +4,7 @@ use App\Http\Controllers\Site\ApplicationController;
 use App\Http\Controllers\Site\ContactController;
 use App\Http\Controllers\Site\JobBoardController;
 use App\Http\Controllers\Site\PageController;
+use App\Http\Controllers\Site\TestimonialPhotoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,3 +34,4 @@ Route::get('/contact-us/job-seekers', [ContactController::class, 'jobSeekers'])-
 Route::post('/contact-us/job-seekers', [ContactController::class, 'storeJobSeeker'])->middleware('throttle:marketing-forms')->name('marketing.contact.job-seekers.store');
 Route::get('/contact-us/business-inquiries', [ContactController::class, 'businessInquiries'])->name('marketing.contact.business');
 Route::post('/contact-us/business-inquiries', [ContactController::class, 'storeBusinessInquiry'])->middleware('throttle:marketing-forms')->name('marketing.contact.business.store');
+Route::get('/testimonials/{testimonial}/photo', TestimonialPhotoController::class)->name('marketing.testimonials.photo');

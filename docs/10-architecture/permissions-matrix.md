@@ -64,6 +64,14 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 
 > One permission covers the posting lifecycle (create/edit/publish/close/delete). Waiving onboarding-checklist items is additionally restricted to hr/admin/super_admin roles (people-lifecycle.md); promotion reversal is promoter-or-super_admin (policy-enforced).
 
+## Marketing site (2026-10-05)
+
+| Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `marketing.testimonials.manage` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+
+> Testimonials on the public home page (`/admin/testimonials`): create, edit, hide, delete.
+
 ## Work orders
 
 | Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |

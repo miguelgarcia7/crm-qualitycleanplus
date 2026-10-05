@@ -18,14 +18,10 @@
 
                         <div class="qc-card">
                             <div class="qc-image">
-                                @if($testimonial->photo != '')
-                                <img src="{{ $testimonial->photo }}" class="img-fluid">
-                                @else
-                                <img src="/images/ph-profile.png" class="img-fluid">
-                                @endif
+                                <img src="{{ $testimonial->photoUrl() ?? '/images/ph-profile.png' }}" class="img-fluid" alt="">
                             </div>
                             <div class="qc-source">
-                                <div class="qc-media"><img src="/images/icons/social-media-{{ strtolower($testimonial->social_media) }}.svg" width="30"></div>
+                                <div class="qc-media"><img src="/images/icons/social-media-{{ $testimonial->source->value }}.svg" width="30" alt="{{ $testimonial->source->label() }}"></div>
                                 <div class="qc-name">{{ $testimonial->name }}</div>
                                 <div></div>
                             </div>

@@ -88,6 +88,24 @@ return [
             'engine' => null,
         ],
 
+        // Read-only source for selective imports from the legacy Quality Cleaning
+        // Plus CMS (phase 2 — testimonials so far; legacy:import-testimonials).
+        'legacy_qcp' => [
+            'driver' => 'mysql',
+            'host' => env('LEGACY_QCP_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('LEGACY_QCP_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('LEGACY_QCP_DB_DATABASE', 'qualitycleanplus'),
+            'username' => env('LEGACY_QCP_DB_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('LEGACY_QCP_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'timezone' => '+00:00',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

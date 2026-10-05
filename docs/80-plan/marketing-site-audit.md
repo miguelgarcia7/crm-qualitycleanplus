@@ -76,7 +76,7 @@ ADR-0024's three-bundle wording is stale on that point.
 | Business inquiry form | Email to staff | DB only | ❌ **Regression** |
 | reCAPTCHA v3 on contact forms | ✅ | ❌ stripped | ❌ Regression (D3) |
 | Spanish `/es/*` | ✅ 10 pages (2 broken) | ❌ | ❌ Required (D1) |
-| Testimonials carousel | ✅ `testimonials` table, CMS-managed | View exists, always empty collection | ❌ Required (D2) |
+| Testimonials carousel | ✅ `testimonials` table, CMS-managed | ✅ `Testimonial` model, `/admin/testimonials` (Website › Testimonials), imported from legacy | ✅ Done 2026-10-05 (D2) |
 | Hero video | ✅ | Broken reference (`public/media` absent) | Remove (D5) |
 | `/partners/baseball` | ✅ | ❌ | Not porting (D4) |
 | Nav login link + language switcher | ✅ | ❌ stripped | Switcher needed for D1 |
@@ -161,16 +161,22 @@ Directions", thank-you title). Existing ES copy in legacy `resources/views/site/
 translation source — it has typos to fix ("limpiez", "negocion", "Quienes Nosotros",
 "pronoto").
 
-## Testimonials (D2)
+## Testimonials (D2) — built 2026-10-05
 
-- Legacy table `testimonials`: `name`, `quote`, `photo`, `social_media`, `rating`, `status`
-  (public: `status = 1`, newest first). Photos under legacy `public/media/YYYY/MM/`; social
-  icons `/images/icons/social-media-{facebook,google,instagram,tiktok,twitter}.svg`.
-- Rebuild view `resources/views/site/components/testimonials.blade.php` already expects
-  those fields; `PageController::home` passes `collect()`.
-- Work: model + migration + back-office CRUD + public query; import step from the
-  `qualitycleanplus` DB with photos copied to object storage. Show on ES home too (legacy
-  omitted it).
+- **Model:** `App\Domain\Marketing\Models\Testimonial` — name, quote (≤1000), `source`
+  (`TestimonialSource`: google/facebook/instagram/tiktok/twitter — names the badge icon),
+  rating 1–5, `is_active`, optional photo as a `File` on the default (private) disk.
+- **Back office:** `/admin/testimonials` under a new **Website** nav group; list + side form
+  (photo upload/replace/remove), Hide/Show, delete. Permission
+  `marketing.testimonials.manage` (admin, office_manager).
+- **Site:** home page shows active ones newest first; photos stream from
+  `/testimonials/{id}/photo?v={file}` (public cache, active only — the bucket is private).
+- **Import:** `php artisan legacy:import-testimonials --media-root=<legacy public/>` over the
+  `legacy_qcp` connection (`LEGACY_QCP_DB_*`, default database `qualitycleanplus`).
+  Idempotent via `legacy_id_map` (`qcp_testimonial`); a re-run refreshes text/rating/
+  visibility from legacy (overwriting edits made here) and copies a photo only once.
+  Local run 2026-10-05: 19 imported (16 on site), 3 photos copied.
+- **Not yet:** the Spanish home page should show the same testimonials (D1).
 
 ## Ported bugs (present in both)
 

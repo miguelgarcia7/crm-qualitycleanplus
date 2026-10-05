@@ -49,6 +49,9 @@ class RolePermissionSeeder extends Seeder
             // Recruiting (Phase 08b-ii) — advertised openings on the public job board
             'job_postings.manage' => ['admin', 'office_manager', 'hr', 'recruiter'],
 
+            // Marketing site — testimonials on the public home page
+            'marketing.testimonials.manage' => ['admin', 'office_manager'],
+
             // People
             'people.applicants.view' => ['admin', 'office_manager', 'front_desk', 'hr', 'recruiter'],
             'people.applicants.edit' => ['admin', 'office_manager', 'hr', 'recruiter'],

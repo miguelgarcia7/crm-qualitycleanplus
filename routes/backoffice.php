@@ -42,6 +42,7 @@ use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SupplyRequestController;
 use App\Http\Controllers\TerminationController;
+use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\TimeEntryController;
 use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\UserInviteController;
@@ -159,6 +160,14 @@ Route::post('applicants/{application}/promote', [ApplicantController::class, 'pr
 Route::post('applicants/{application}/reverse', [ApplicantController::class, 'reverse'])->name('backoffice.applicants.reverse');
 
 // Job postings — manage the public job board (Phase 08b-ii)
+// Marketing site — testimonials on the public home page (marketing-site-audit.md, D2)
+Route::get('testimonials', [TestimonialController::class, 'index'])->name('backoffice.testimonials.index');
+Route::post('testimonials', [TestimonialController::class, 'store'])->name('backoffice.testimonials.store');
+Route::match(['put', 'patch'], 'testimonials/{testimonial}', [TestimonialController::class, 'update'])->name('backoffice.testimonials.update');
+Route::post('testimonials/{testimonial}/toggle', [TestimonialController::class, 'toggle'])->name('backoffice.testimonials.toggle');
+Route::delete('testimonials/{testimonial}', [TestimonialController::class, 'destroy'])->name('backoffice.testimonials.destroy');
+Route::get('testimonials/{testimonial}/photo', [TestimonialController::class, 'photo'])->name('backoffice.testimonials.photo');
+
 Route::get('job-postings', [JobPostingController::class, 'index'])->name('backoffice.job-postings.index');
 Route::post('job-postings', [JobPostingController::class, 'store'])->name('backoffice.job-postings.store');
 Route::match(['put', 'patch'], 'job-postings/{posting}', [JobPostingController::class, 'update'])->name('backoffice.job-postings.update');
