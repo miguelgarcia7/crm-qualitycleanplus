@@ -268,10 +268,46 @@ translation source — it has typos to fix ("limpiez", "negocion", "Quienes Noso
   the missing `safari-pinned-tab.svg` are gone; share images use this host.
 - **Structured data:** schema.org `EmploymentAgency` (address, phone, hours, socials) on
   the home page in both languages.
-- **Not done (opportunities):** Google for Jobs needs `JobPosting` structured data on a
-  page per posting with its full description — the single-posting page (08b-i Inc 2) is
-  still unbuilt. Home `<title>` says "Residential and Commercial" while the hero says
-  "The Hospitality Experts" — a copy decision.
+- **Not done:** Google for Jobs — parked, see below. Home `<title>` says "Residential and
+  Commercial" while the hero says "The Hospitality Experts" — a copy decision.
+
+## Parked: posting pages for Google for Jobs (2026-10-05)
+
+**Status: on hold — waiting on approval to publish pay** (a minimum or a range). Without
+pay on the listing it's probably not worth doing: Google ranks and shows listings
+without pay worse, and applicants skip them. Revisit once that's decided.
+
+**What it is.** Google for Jobs builds its job-search results from job pages that carry
+schema.org `JobPosting` structured data. Free; for a staffing company often the biggest
+applicant source after Indeed. Google requires **one page per job** with the job visible
+on it (not allowed on a list page like `/job-openings`), and these fields — required:
+title, full description, date posted, hiring organization, job location (an address);
+recommended: employment type, **salary**, an end date. Closed jobs must stop claiming to
+be open (marked expired / noindex) and leave the sitemap.
+
+**Why we can't today.** `/job-openings` is a list (title, hours, location).
+`/application/{slug}` is the form; its sidebar shows title/location/hours but **not**
+the description (`content`) or `pay_range`, though both exist in the admin.
+
+**What would be built.**
+- `/job-openings/{slug}` and `/es/ofertas-de-trabajo/{slug}`: title, description, pay,
+  hours, location, Apply → the form. The job list links to it; the sitemap lists it
+  instead of the form pages.
+- `JobPosting` JSON-LD from the posting; closed postings show "this job has been filled"
+  with a link to current openings, `noindex`, and drop out of the (cached) sitemap.
+- About the size of the testimonials work: page, structured data, a few posting fields,
+  Spanish, tests.
+
+**Decisions needed before building.**
+1. **Pay (the blocker).** Approval to show a minimum or a range. `pay_range` is free text
+   ("$15 – $18 / hr"); Google needs structured min / max / unit (hour, year…), so the
+   posting form would gain those fields.
+2. **Location.** Google needs an address, at least city + state. (a) city/state only —
+   recommended, doesn't reveal which client property is staffed; or (b) the linked
+   property's full address. Postings without a property only have free-text
+   `location_label`, so city/state would become structured fields.
+3. **Employment type.** Contractors are 1099 → `CONTRACTOR` (or `TEMPORARY`); same for
+   every posting, or per posting?
 
 ## Suggested order
 
