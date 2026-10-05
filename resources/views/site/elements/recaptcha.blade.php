@@ -17,3 +17,7 @@
 @error('g-recaptcha-response')
     <div class="form-text text-danger mb-2">{{ $message }}</div>
 @enderror
+{{-- Set by SiteErrorPage when a form is sent after its session expired. --}}
+@error('form')
+    <div class="form-text text-danger mb-2">{{ $message }}</div>
+@enderror

@@ -83,7 +83,7 @@ ADR-0024's three-bundle wording is stale on that point.
 | Google Analytics `G-ZQSBDK2ZRN` | ✅ | ✅ production only (`GOOGLE_ANALYTICS_ID`) | ✅ Done 2026-10-05 |
 | Sitemap / hreflang / JSON-LD | ❌ | ✅ `/sitemap.xml` (both languages + open postings), hreflang, EmploymentAgency JSON-LD | ✅ Done 2026-10-05 |
 | Privacy / terms pages | ❌ | ❌ | Gap — the application collects DOB + felony data |
-| Branded 404 / 419 | ❌ | ❌ (only `errors/403`) | Gap in both |
+| Branded error pages | ❌ | ✅ 403/404/419/429/500/503 in the site layout, EN/ES (`SiteErrorPage`); expired forms return with answers kept | ✅ Done 2026-10-05 (marketing only) |
 
 ## Legacy contact routing
 
@@ -270,6 +270,23 @@ translation source — it has typos to fix ("limpiez", "negocion", "Quienes Noso
   the home page in both languages.
 - **Not done:** Google for Jobs — parked, see below. Home `<title>` says "Residential and
   Commercial" while the hero says "The Hospitality Experts" — a copy decision.
+
+## Error pages — done 2026-10-05
+
+`App\Domain\Marketing\Support\SiteErrorPage`, hooked as an exception `respond` callback
+in `bootstrap/app.php`, swaps the finished error response for `site.pages.error` (site
+layout, nav + footer, `noindex`) when it's a visitor's page on the main domain: not
+`/admin`, not the sign-in screens, not JSON/Inertia. Covers 403, 404, 419, 429 (keeps
+`Retry-After`), 500 (only with debug off — the stack trace stays while debugging) and 503
+(maintenance). Language from the path (`/es` → Spanish); an unknown URL never reaches the
+marketing route group, so it also sets the locale and the site's Vite bundle itself.
+
+A form posted after its session expired (419) doesn't get an error page: it goes back to
+the form with the answers kept (minus `_token` / reCAPTCHA token) and a "please send it
+again" note by the submit button — the long application isn't lost.
+
+Back office, QC Minute and the sign-in screens keep Laravel's pages (the 403 there has the
+sign-out button). Branding those is a separate, Inertia-side piece of work.
 
 ## Parked: posting pages for Google for Jobs (2026-10-05)
 

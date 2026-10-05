@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Marketing\Support\SiteErrorPage;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\NoIndexInDemoMode;
@@ -7,6 +8,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -31,5 +34,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['device/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // The public marketing site's own error pages (404, 419, 429, 500, …).
+        $exceptions->respond(fn (Response $response, Throwable $e, Request $request) => SiteErrorPage::respond($response, $e, $request));
     })->create();
