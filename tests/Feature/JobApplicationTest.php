@@ -3,6 +3,7 @@
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
+use App\Domain\Recruiting\Enums\JobPostingStatus;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
 
@@ -43,6 +44,21 @@ it('renders the application form pre-filled for a posting', function () {
     $posting = JobPosting::factory()->published()->create(['title' => 'Banquet Server']);
 
     $this->get(main('/application/'.$posting->slug))->assertOk()->assertSee('Banquet Server');
+});
+
+it('hides draft and closed postings from the application form', function (JobPostingStatus $status) {
+    $posting = JobPosting::factory()->create(['status' => $status]);
+
+    $this->get(main('/application/'.$posting->slug))->assertNotFound();
+})->with([JobPostingStatus::Draft, JobPostingStatus::Closed]);
+
+it('does not link an application to a posting that is not published', function () {
+    $posting = JobPosting::factory()->closed()->create();
+
+    $this->post(main('/application'), applicationPayload(['job_id' => $posting->id]))
+        ->assertRedirect(route('marketing.application.thank-you'));
+
+    expect(JobApplication::query()->firstOrFail()->job_posting_id)->toBeNull();
 });
 
 it('does not capture thank-you as a posting slug', function () {

@@ -23,13 +23,18 @@ class ApplicationController extends Controller
 
     public function apply(JobPosting $posting): View
     {
+        abort_unless($posting->status->isPublic(), 404);
+
         return view('site.pages.application', ['job' => $posting]);
     }
 
     public function store(StoreApplicationRequest $request, SubmitApplication $action): RedirectResponse
     {
+        // Only a published posting is linked. One closed while the applicant was
+        // filling the form is dropped rather than rejected — the application still
+        // lands, carrying the position they typed.
         $posting = $request->filled('job_id')
-            ? JobPosting::query()->find($request->integer('job_id'))
+            ? JobPosting::query()->published()->find($request->integer('job_id'))
             : null;
 
         $action->handle($request->validated(), $posting);

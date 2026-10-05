@@ -309,6 +309,9 @@ can be thrown away and rebuilt.
    (contractors by phone).
 5. Parallel-observation window per `current-systems.md`; legacy retired after N clean
    weeks. Archive the final legacy dump (covers the skipped `activity_log` history).
+6. **Marketing go-live** (when `qualitycleanplus.com` points here): drop the temporary
+   "(New)" marker from `APP_NAME` — it shows in public page titles and `og:site_name`
+   (see `marketing-site-audit.md`, must-fix 4).
 
 ## Decision log (settled 2026-08-30/31)
 
