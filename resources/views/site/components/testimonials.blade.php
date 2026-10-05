@@ -1,7 +1,7 @@
 <div class="row">
     <div class="col section-text text-center ui_animate"  data-animate-delay=".2">
-        <h2 title="Our Customers">Testimonials</h2>
-        <p>See what our staffing and customers have to say.</p>
+        <h2 title="{{ __('site/home.testimonials.tooltip') }}">{{ __('site/home.testimonials.title') }}</h2>
+        <p>{{ __('site/home.testimonials.text') }}</p>
     </div>
 </div>
 <div class="row">

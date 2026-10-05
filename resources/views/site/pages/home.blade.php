@@ -1,8 +1,8 @@
 @extends('site.layouts.website')
 
 @include('site.elements.meta_data',[
-    'meta_title' =>         'Quality Cleaning Experts for Residential and Commercial',
-    'meta_description' =>   'Our mission is to deliver the best service in the industry with the best people and quality.',
+    'meta_title' =>         __('site/home.meta.title'),
+    'meta_description' =>   __('site/home.meta.description'),
     ])
 
 @section('css_after')
@@ -19,9 +19,9 @@
                 <div class="row circle">
                     <div class="col-md-7 col-lg-6">
                         <div class="hero-intro ui_animate" data-animate-delay=".1">
-                            <h1>The Hospitality Experts</h1>
-                            <p>We offer a wide range of services and strive to deliver reliable, fast, and top of the line quality.</p>
-                            <a href="/contact-us" class="btn btn-lg btn-yellow me-4">Contact Us</a> <a href="/job-openings" class="btn btn-lg btn-yellow">Job Openings</a>
+                            <h1>{{ __('site/home.hero.title') }}</h1>
+                            <p>{{ __('site/home.hero.text') }}</p>
+                            <a href="{{ $site->route('contact') }}" class="btn btn-lg btn-yellow me-4">{{ __('site/layout.nav.contact') }}</a> <a href="{{ $site->route('job-openings') }}" class="btn btn-lg btn-yellow">{{ __('site/layout.nav.job_openings') }}</a>
                         </div>
                     </div>
                     <div class="col-md-5 col-lg-5 offset-lg-1 ui_animate" data-animate-delay=".2">
@@ -43,9 +43,9 @@
             <div class="container our_services">
                 <div class="row">
                     <div class="col section-text text-center ui_animate" data-animate-delay=".3">
-                        <div class="eyebrow">Your one stop shop</div>
-                        <h2 title="Our Services">Featured Services</h2>
-                        <p>We offer a wide range of services for your business in the areas of hospitality, cleaning, construction and more.</p>
+                        <div class="eyebrow">{{ __('site/home.services.eyebrow') }}</div>
+                        <h2 title="{{ __('site/layout.nav.services_title') }}">{{ __('site/home.services.title') }}</h2>
+                        <p>{{ __('site/home.services.text') }}</p>
                     </div>
                 </div>
 
@@ -53,8 +53,8 @@
                     <div class="col-sm-12 col-md-6 col-lg-3 mb-3">
                         <div class="cta-box ui_animate" style="background-image: url('/images/home-hospitality.jpg');" data-animate-delay=".3">
                             <div class="cta-text">
-                                <h5>Hospitality</h5>
-                                <p>Managers, Front Desk, Housekeeping, and much more.</p>
+                                <h5>{{ __('site/home.services.hospitality.title') }}</h5>
+                                <p>{{ __('site/home.services.hospitality.text') }}</p>
                             </div>
                         </div>
                     </div>
@@ -62,24 +62,24 @@
                         <div class="cta-box ui_animate" style="background-image: url('/images/home-banquets.jpg');" data-animate-delay=".4">
 
                             <div class="cta-text">
-                                <h5>Food and Beverage/Banquets</h5>
-                                <p>Stewarding, Dishwashing, Servers, and much more.</p>
+                                <h5>{{ __('site/home.services.banquets.title') }}</h5>
+                                <p>{{ __('site/home.services.banquets.text') }}</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-sm-12 col-md-6 col-lg-3 mb-3">
                         <div class="cta-box ui_animate" style="background-image: url('/images/home-remodeling.jpg');" data-animate-delay=".5">
                             <div class="cta-text">
-                                <h5>Remodeling</h5>
-                                <p>Remodeling, Painters, Maintenance, and much more.</p>
+                                <h5>{{ __('site/home.services.remodeling.title') }}</h5>
+                                <p>{{ __('site/home.services.remodeling.text') }}</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-sm-12 col-md-6 col-lg-3 mb-3">
                         <div class="cta-box ui_animate" style="background-image: url('/images/home-light-industrial.jpg');" data-animate-delay=".6">
                             <div class="cta-text">
-                                <h5>Light Industrial</h5>
-                                <p>Packaging, Day Porter, Assembly and much more.</p>
+                                <h5>{{ __('site/home.services.light_industrial.title') }}</h5>
+                                <p>{{ __('site/home.services.light_industrial.text') }}</p>
                             </div>
                         </div>
                     </div>

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AllowedOnBackoffice;
 use App\Http\Middleware\AllowedOnQcMinute;
+use App\Http\Middleware\SetSiteLocale;
 use App\Http\Middleware\UseMarketingVite;
 use Illuminate\Support\Facades\Route;
 
@@ -13,9 +14,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 // DOMAIN 1 — qualitycleanplus.com : marketing ("/") + back office ("/admin")
-// Marketing uses its own Vite bundle (public/build/site) via UseMarketingVite.
+// Marketing uses its own Vite bundle (public/build/site) via UseMarketingVite,
+// and is Spanish under /es (SetSiteLocale).
 Route::domain(config('domains.main'))
-    ->middleware(UseMarketingVite::class)
+    ->middleware([UseMarketingVite::class, SetSiteLocale::class])
     ->group(base_path('routes/marketing.php'));
 
 Route::domain(config('domains.main'))

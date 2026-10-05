@@ -32,14 +32,14 @@ class ContactController extends Controller
     {
         $this->record($request, 'job_seeker');
 
-        return back()->with('message', 'Thank you! Your information has been submitted successfully.');
+        return back()->with('message', __('site/forms.submitted'));
     }
 
     public function storeBusinessInquiry(StoreContactInquiryRequest $request): RedirectResponse
     {
         $this->record($request, 'business');
 
-        return back()->with('message', 'Thank you! Your information has been submitted successfully.');
+        return back()->with('message', __('site/forms.submitted'));
     }
 
     private function record(StoreContactInquiryRequest $request, string $type): void
@@ -67,7 +67,10 @@ class ContactController extends Controller
 
         if ($recipients !== []) {
             Notification::route('mail', $recipients)
-                ->notify(new ContactInquiryReceived($inquiry, $request->recaptcha()->summary()));
+                ->notify(
+                    // Staff read English whatever language the visitor used.
+                    (new ContactInquiryReceived($inquiry, $request->recaptcha()->summary(), app()->getLocale()))->locale('en'),
+                );
         }
     }
 }

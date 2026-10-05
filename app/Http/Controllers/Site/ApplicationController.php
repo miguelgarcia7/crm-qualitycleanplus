@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Site;
 
+use App\Domain\Marketing\Support\SiteLocale;
 use App\Domain\Recruiting\Actions\SubmitApplication;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Http\Controllers\Controller;
@@ -39,7 +40,7 @@ class ApplicationController extends Controller
 
         $action->handle($request->validated(), $posting);
 
-        return redirect()->route('marketing.application.thank-you');
+        return redirect()->to((new SiteLocale)->route('application.thank-you'));
     }
 
     public function thankYou(): View

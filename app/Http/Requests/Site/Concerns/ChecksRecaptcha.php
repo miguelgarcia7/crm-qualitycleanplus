@@ -40,10 +40,7 @@ trait ChecksRecaptcha
             );
 
             if ($this->recaptcha->rejects()) {
-                $validator->errors()->add(
-                    'g-recaptcha-response',
-                    "We couldn't confirm this submission came from a person. Please try again, or call us at 214-271-5595.",
-                );
+                $validator->errors()->add('g-recaptcha-response', __('site/forms.not_a_person'));
             }
         }];
     }

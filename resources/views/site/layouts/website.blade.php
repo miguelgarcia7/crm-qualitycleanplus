@@ -1,5 +1,5 @@
 <!doctype html>
-<html class="no-js" lang="en">
+<html class="no-js" lang="{{ $site->current() }}">
 <head>
     @include('site.elements.browser_data')
 

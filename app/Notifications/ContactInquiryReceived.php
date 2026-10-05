@@ -24,10 +24,12 @@ class ContactInquiryReceived extends Notification implements ShouldQueue
 
     /**
      * @param  string  $spamCheck  {@see RecaptchaAssessment::summary()}
+     * @param  string  $siteLocale  the site language the visitor used
      */
     public function __construct(
         private readonly ContactInquiry $inquiry,
         private readonly string $spamCheck,
+        private readonly string $siteLocale = 'en',
     ) {}
 
     /**
@@ -49,6 +51,11 @@ class ContactInquiryReceived extends Notification implements ShouldQueue
             ->replyTo($inquiry->email, $name)
             ->greeting($kind)
             ->line("{$name} sent this through the website contact form. Reply to this email to answer them directly.");
+
+        // Staff read English; flag a Spanish-site lead so the reply can be in Spanish.
+        if ($this->siteLocale === 'es') {
+            $mail->line('**Language:** Spanish — sent from the Spanish site.');
+        }
 
         $location = trim(implode(', ', array_filter([$inquiry->city, trim($inquiry->state.' '.$inquiry->zip)])));
 

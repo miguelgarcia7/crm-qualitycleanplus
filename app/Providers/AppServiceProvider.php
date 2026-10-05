@@ -11,6 +11,7 @@ use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\KnowledgeBase\Policies\KbArticlePolicy;
 use App\Domain\Marketing\Models\Testimonial;
 use App\Domain\Marketing\Policies\TestimonialPolicy;
+use App\Domain\Marketing\Support\SiteLocale;
 use App\Domain\People\Definitions\ChangePersonalInfoDefinition;
 use App\Domain\People\Definitions\TerminationDefinition;
 use App\Domain\People\Models\Person;
@@ -46,6 +47,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use RuntimeException;
@@ -94,6 +96,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerWorkflows();
         $this->configureRateLimiting();
+
+        // Every marketing view links through the current language (SiteLocale).
+        View::composer('site.*', fn (\Illuminate\View\View $view) => $view->with('site', new SiteLocale));
 
         // Audit logins (Phase 01 acceptance + ADR-0010 audit trail).
         Event::listen(Login::class, function (Login $event): void {

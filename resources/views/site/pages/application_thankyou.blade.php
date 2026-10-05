@@ -1,8 +1,8 @@
 @extends('site.layouts.website')
 
 @include('site.elements.meta_data',[
-    'meta_title' =>         'Thank You',
-    'meta_description' =>   '',
+    'meta_title' =>         __('site/thanks.meta.title'),
+    'meta_description' =>   __('site/thanks.meta.description'),
     ])
 
 @section('content')
@@ -15,7 +15,7 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="hero-intro">
-                            <h1 class="ui_animate">Thank You</h1>
+                            <h1 class="ui_animate">{{ __('site/thanks.title') }}</h1>
                         </div>
                     </div>
                 </div>
@@ -29,9 +29,9 @@
             <div class="container our_services">
                 <div class="row">
                     <div class="col-md-8 section-text ui_animate" data-animate-delay=".2">
-                        <h2>Your application has been submitted.</h2>
-                        <p>We will contact you soon.</p>
-                        <p>Have any questions? Call us 214-271-5595</p>
+                        <h2>{{ __('site/thanks.submitted') }}</h2>
+                        <p>{{ __('site/thanks.contact_soon') }}</p>
+                        <p>{{ __('site/thanks.questions') }}</p>
 
                     </div>
 

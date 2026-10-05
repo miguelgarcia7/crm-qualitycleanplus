@@ -75,7 +75,7 @@ ADR-0024's three-bundle wording is stale on that point.
 | Job-seeker contact form | Email to staff | DB only | ❌ **Regression** |
 | Business inquiry form | Email to staff | DB only | ❌ **Regression** |
 | reCAPTCHA v3 on contact forms | ✅ | ❌ stripped | ❌ Regression (D3) |
-| Spanish `/es/*` | ✅ 10 pages (2 broken) | ❌ | ❌ Required (D1) |
+| Spanish `/es/*` | ✅ 10 pages (2 broken) | ✅ all 9 pages, shared views + `lang/{en,es}/site/*` | ✅ Done 2026-10-05 (D1) |
 | Testimonials carousel | ✅ `testimonials` table, CMS-managed | ✅ `Testimonial` model, `/admin/testimonials` (Website › Testimonials), imported from legacy | ✅ Done 2026-10-05 (D2) |
 | Hero video | ✅ | Broken reference (`public/media` absent) | Remove (D5) |
 | `/partners/baseball` | ✅ | ❌ | Not porting (D4) |
@@ -134,11 +134,26 @@ keys in `config/services.php`; server check of `success`, `score` threshold, `ac
 `hostname`; a real error message rendered in the form; plus `throttle` middleware on the
 marketing POSTs as a second layer. Script only on form pages (keeps the bundle light).
 
-## Spanish (D1) — scope
+## Spanish (D1) — built 2026-10-05
 
-Legacy builds Spanish by **duplicating** views and `es_*` controller methods with hardcoded
-copy; `lang/` is unused. Do not port that pattern — use lang files + a `/es` route prefix
-sharing one set of views.
+As built: one set of views; copy in `lang/{en,es}/site/*.php` (layout, forms, home,
+services, about, contact, job_seekers, business, jobs, application, thanks — identical key
+structure in both languages). `SetSiteLocale` sets Spanish for anything under `/es`;
+every page has a `marketing.es.*` route with the legacy slugs below. Views get `$site`
+(`App\Domain\Marketing\Support\SiteLocale`) and build every link through it, so Spanish
+pages link to Spanish pages and forms post to Spanish routes (validation errors and the
+thank-you page come back in Spanish; `lang/es/validation.php` covers the form rules and
+field names). The nav switcher and `hreflang` (+ `x-default` = English) point at the same
+page in the other language; canonical is now the page's own URL; `og:locale` and
+`<html lang>` follow the language. Lead emails stay English for staff, with a
+"Language: Spanish" line when sent from the Spanish site. Covered by
+`tests/Feature/MarketingSpanishTest.php`.
+
+Spanish wording came from the legacy ES views with accents/typos fixed, register made
+consistently formal (usted), and everything legacy left in English translated. Worth a
+native-speaker pass on new terms: "Mozos de limpieza" (Houseman), "Ayudantes de mesero"
+(Bussers), "Montaje de banquetes" (Set Up), "Auxiliares de cocina" (Stewarding), "Empaque"
+(Packaging), "Meseros" (Servers).
 
 Legacy ES URLs (keep these slugs for SEO continuity, or 301 them):
 

@@ -1,8 +1,8 @@
 @extends('site.layouts.website')
 
 @include('site.elements.meta_data',[
-    'meta_title' =>         'Contact Us',
-    'meta_description' =>   'Give us a call and let our team of experts find the right solution for your business.',
+    'meta_title' =>         __('site/contact.meta.title'),
+    'meta_description' =>   __('site/contact.meta.description'),
     ])
 
 @section('content')
@@ -14,7 +14,7 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="hero-intro">
-                            <h1 class="ui_animate">Contact Us</h1>
+                            <h1 class="ui_animate">{{ __('site/contact.title') }}</h1>
                         </div>
                     </div>
                 </div>
@@ -27,44 +27,45 @@
             <div class="container our_services">
                 <div class="row">
                     <div class="col-md-10 section-text ui_animate" data-animate-delay=".2">
-                        <h2 title="Contact Details">Get In Touch</h2>
+                        <h2 title="{{ __('site/contact.details') }}">{{ __('site/contact.get_in_touch') }}</h2>
 
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-12 col-lg-4 ui_diviter mb-5 ui_animate" data-animate-delay=".3">
-                        <h3>Job Seekers</h3>
+                        <h3>{{ __('site/contact.job_seekers.title') }}</h3>
 
                         <p>
-                            <a href="/job-openings">View Open Positions</a><br />
+                            <a href="{{ $site->route('job-openings') }}">{{ __('site/contact.job_seekers.openings') }}</a><br />
                         </p>
                         <p>
-                            <a href="/contact-us/job-seekers">Contact Us</a><br />
+                            <a href="{{ $site->route('contact.job-seekers') }}">{{ __('site/contact.job_seekers.contact') }}</a><br />
                         </p>
 
                     </div>
 
                     <div class="col-md-12 col-lg-4 ui_diviter mb-5 ui_animate" data-animate-delay=".4">
-                        <h3>Businesses</h3>
-                        <p><a href="/contact-us/business-inquiries">Staffing & Services Inquiries</a></p>
+                        <h3>{{ __('site/contact.businesses.title') }}</h3>
+                        <p><a href="{{ $site->route('contact.business') }}">{{ __('site/contact.businesses.inquiries') }}</a></p>
 
                     </div>
 
                     <div class="col-md-12 col-lg-4 ui_animate" data-animate-delay=".3">
-                        <h3>General Information</h3>
+                        <h3>{{ __('site/contact.general.title') }}</h3>
                         <p>
-                            <span class="small">Phone:</span><br /><a href="tel:214-271-5595">214-271-5595</a><br />
-                            <span class="small">Email:</span><br /><a rel="nofollow" href="javascript:uix_con_todo('d.aguilar')">Contact Us</a><br />
-                            <span class="small">Address:</span><br /><a href="https://goo.gl/maps/cPtH6aCdfyP2Baxo7" target="_blank" rel="nofollow">1720 Regal Row Suite 126<br />Dallas, Texas 75235</a><br /><br />
-                            <a href="https://goo.gl/maps/cPtH6aCdfyP2Baxo7" target="_blank" rel="nofollow">Get Driving Directions</a><br /><br />
+                            <span class="small">{{ __('site/layout.footer.phone') }}:</span><br /><a href="tel:214-271-5595">214-271-5595</a><br />
+                            <span class="small">{{ __('site/layout.footer.email') }}:</span><br /><a rel="nofollow" href="javascript:uix_con_todo('d.aguilar')">{{ __('site/layout.footer.email_link') }}</a><br />
+                            <span class="small">{{ __('site/contact.general.address') }}:</span><br /><a href="https://goo.gl/maps/cPtH6aCdfyP2Baxo7" target="_blank" rel="nofollow">1720 Regal Row, Suite 126<br />Dallas, Texas 75235</a><br /><br />
+                            <a href="https://goo.gl/maps/cPtH6aCdfyP2Baxo7" target="_blank" rel="nofollow">{{ __('site/contact.general.directions') }}</a><br /><br />
                         </p>
 
-                        <h4>Business Hours</h4>
+                        <h4>{{ __('site/layout.footer.hours_title') }}</h4>
                         <p>
-                            Mon-Thur: 9:30am - 5:30pm<br />
-                            Friday: 9:30am - 6pm<br />
-                            Sat and Sun: Closed<br /><br />
+                            @foreach (__('site/layout.footer.hours') as $line)
+                                {{ $line }}<br />
+                            @endforeach
+                            <br />
                         </p>
 
                     </div>

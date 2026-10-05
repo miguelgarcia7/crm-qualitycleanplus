@@ -35,3 +35,23 @@ Route::post('/contact-us/job-seekers', [ContactController::class, 'storeJobSeeke
 Route::get('/contact-us/business-inquiries', [ContactController::class, 'businessInquiries'])->name('marketing.contact.business');
 Route::post('/contact-us/business-inquiries', [ContactController::class, 'storeBusinessInquiry'])->middleware('throttle:marketing-forms')->name('marketing.contact.business.store');
 Route::get('/testimonials/{testimonial}/photo', TestimonialPhotoController::class)->name('marketing.testimonials.photo');
+
+/*
+| Spanish (marketing-site-audit.md D1) — the same pages under `marketing.es.*`,
+| keeping the legacy site's Spanish slugs so existing links and rankings carry
+| over. SetSiteLocale switches to Spanish for anything under /es; views link
+| through SiteLocale, which picks the route for the current language.
+*/
+Route::get('/es', [PageController::class, 'home'])->name('marketing.es.home');
+Route::get('/es/servicios', [PageController::class, 'services'])->name('marketing.es.services');
+Route::get('/es/quienes_somos', [PageController::class, 'aboutUs'])->name('marketing.es.about');
+Route::get('/es/contactenos', [PageController::class, 'contactUs'])->name('marketing.es.contact');
+Route::get('/es/ofertas-de-trabajo', [JobBoardController::class, 'index'])->name('marketing.es.job-openings');
+Route::get('/es/solicitud', [ApplicationController::class, 'index'])->name('marketing.es.application');
+Route::post('/es/solicitud', [ApplicationController::class, 'store'])->middleware('throttle:marketing-forms')->name('marketing.es.application.store');
+Route::get('/es/solicitud/gracias', [ApplicationController::class, 'thankYou'])->name('marketing.es.application.thank-you');
+Route::get('/es/solicitud/{posting}', [ApplicationController::class, 'apply'])->name('marketing.es.application.apply');
+Route::get('/es/contactenos/solicitantes-de-empleo', [ContactController::class, 'jobSeekers'])->name('marketing.es.contact.job-seekers');
+Route::post('/es/contactenos/solicitantes-de-empleo', [ContactController::class, 'storeJobSeeker'])->middleware('throttle:marketing-forms')->name('marketing.es.contact.job-seekers.store');
+Route::get('/es/contactenos/consultas-para-negocios', [ContactController::class, 'businessInquiries'])->name('marketing.es.contact.business');
+Route::post('/es/contactenos/consultas-para-negocios', [ContactController::class, 'storeBusinessInquiry'])->middleware('throttle:marketing-forms')->name('marketing.es.contact.business.store');
