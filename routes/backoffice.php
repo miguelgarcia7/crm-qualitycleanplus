@@ -164,7 +164,6 @@ Route::post('applicants/{application}/reverse', [ApplicantController::class, 're
 Route::get('testimonials', [TestimonialController::class, 'index'])->name('backoffice.testimonials.index');
 Route::post('testimonials', [TestimonialController::class, 'store'])->name('backoffice.testimonials.store');
 Route::match(['put', 'patch'], 'testimonials/{testimonial}', [TestimonialController::class, 'update'])->name('backoffice.testimonials.update');
-Route::post('testimonials/{testimonial}/toggle', [TestimonialController::class, 'toggle'])->name('backoffice.testimonials.toggle');
 Route::delete('testimonials/{testimonial}', [TestimonialController::class, 'destroy'])->name('backoffice.testimonials.destroy');
 Route::get('testimonials/{testimonial}/photo', [TestimonialController::class, 'photo'])->name('backoffice.testimonials.photo');
 

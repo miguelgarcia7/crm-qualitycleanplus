@@ -87,16 +87,6 @@ class TestimonialController extends Controller
         return back()->with('success', 'Testimonial updated.');
     }
 
-    /** Show on / hide from the home page. */
-    public function toggle(Testimonial $testimonial): RedirectResponse
-    {
-        $this->authorize('update', $testimonial);
-
-        $testimonial->update(['is_active' => ! $testimonial->is_active]);
-
-        return back()->with('success', $testimonial->is_active ? 'Testimonial is on the site.' : 'Testimonial hidden.');
-    }
-
     public function destroy(Testimonial $testimonial, UpdateTestimonialPhoto $photos): RedirectResponse
     {
         $this->authorize('delete', $testimonial);

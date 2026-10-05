@@ -80,13 +80,13 @@ it('updates text, replaces the photo, then removes it', function () {
     expect($t->fresh()->photo_file_id)->toBeNull();
 });
 
-it('hides and shows a testimonial', function () {
+it('hides and shows a testimonial from the edit form', function () {
     $t = Testimonial::factory()->create();
 
-    $this->actingAs(person('admin'))->post(main("/admin/testimonials/{$t->id}/toggle"))->assertRedirect();
+    $this->actingAs(person('admin'))->put(main("/admin/testimonials/{$t->id}"), testimonialPayload(['is_active' => 0]))->assertSessionHasNoErrors();
     expect($t->fresh()->is_active)->toBeFalse();
 
-    $this->actingAs(person('admin'))->post(main("/admin/testimonials/{$t->id}/toggle"))->assertRedirect();
+    $this->actingAs(person('admin'))->put(main("/admin/testimonials/{$t->id}"), testimonialPayload(['is_active' => 1]))->assertSessionHasNoErrors();
     expect($t->fresh()->is_active)->toBeTrue();
 });
 

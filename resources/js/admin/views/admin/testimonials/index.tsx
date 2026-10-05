@@ -185,13 +185,12 @@ const Page = ({ testimonials, sources }: Props) => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 
-  const toggle = (t: Testimonial) => router.post(`/admin/testimonials/${t.id}/toggle`, {}, { preserveScroll: true })
   const destroy = (t: Testimonial) => {
     confirmAction({
       title: 'Delete testimonial',
       message: (
         <>
-          Delete the testimonial from <strong>{t.name}</strong>? To take it off the site but keep it, hide it instead.
+          Delete the testimonial from <strong>{t.name}</strong>? To take it off the site but keep it, edit it and untick “Show on the website” instead.
         </>
       ),
       onConfirm: () => router.delete(`/admin/testimonials/${t.id}`, { preserveScroll: true }),
@@ -249,17 +248,6 @@ const Page = ({ testimonials, sources }: Props) => {
           const t = row.original
           return (
             <div className="flex justify-end gap-1.5">
-              <button
-                className={cn(
-                  'btn',
-                  t.is_active
-                    ? 'bg-secondary/15 text-secondary hover:bg-secondary hover:text-white'
-                    : 'bg-success/15 text-success hover:bg-success hover:text-white',
-                )}
-                onClick={() => toggle(t)}
-              >
-                {t.is_active ? 'Hide' : 'Show'}
-              </button>
               <button
                 className="btn btn-icon border-default-300 hover:border-default-400 border"
                 onClick={() => setModal(t)}
