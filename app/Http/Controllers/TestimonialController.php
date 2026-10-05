@@ -39,7 +39,8 @@ class TestimonialController extends Controller
                 'rating' => $t->rating,
                 'is_active' => $t->is_active,
                 'photo_url' => $t->photo_file_id === null ? null : "/admin/testimonials/{$t->id}/photo?v={$t->photo_file_id}",
-                'created_at' => $t->created_at?->toFormattedDateString(),
+                'created_at' => $t->created_at?->toIso8601String(),
+                'created_at_display' => $t->created_at?->toFormattedDateString(),
             ]);
 
         return Inertia::render('admin/testimonials/index', [
