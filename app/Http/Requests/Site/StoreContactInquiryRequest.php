@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Site;
 
+use App\Rules\Recaptcha;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -16,11 +18,12 @@ class StoreContactInquiryRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, string|ValidationRule>>
      */
     public function rules(): array
     {
         return [
+            'g-recaptcha-response' => [new Recaptcha('contact')],
             'contact_first_name' => ['required', 'string', 'max:255'],
             'contact_last_name' => ['required', 'string', 'max:255'],
             'contact_email' => ['required', 'email', 'max:255'],

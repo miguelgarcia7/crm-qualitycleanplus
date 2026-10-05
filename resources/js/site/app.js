@@ -56,6 +56,42 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// reCAPTCHA v3 (resources/views/site/elements/recaptcha.blade.php): fetch a token
+// at submit time — tokens expire after two minutes, and the application form takes
+// longer than that — then submit. If Google's script never loaded (blocked), submit
+// anyway so the server answers with its message instead of the button doing nothing.
+document.querySelectorAll('input[data-recaptcha-action]').forEach(function (input) {
+    const form = input.form;
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const button = form.querySelector('[type="submit"]');
+        if (button) {
+            button.disabled = true;
+            const spinner = button.querySelector('.spinner-border');
+            if (spinner) spinner.style.display = '';
+        }
+
+        if (!window.grecaptcha) {
+            form.submit();
+            return;
+        }
+
+        window.grecaptcha.ready(function () {
+            window.grecaptcha
+                .execute(window.recaptchaSiteKey, { action: input.dataset.recaptchaAction })
+                .then(
+                    function (token) {
+                        input.value = token;
+                        form.submit();
+                    },
+                    function () { form.submit(); },
+                );
+        });
+    });
+});
+
 // Obfuscated email helper used by the footer/contact "Contact Us" links
 // (href="javascript:uix_con_todo('d.aguilar')") to deter scrapers.
 window.uix_con_todo = function (user) {

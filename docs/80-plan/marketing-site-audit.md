@@ -28,7 +28,7 @@ ADR-0024's three-bundle wording is stale on that point.
 | D3 | Spam protection | **Required.** Google reCAPTCHA v3 (free tier), as legacy uses today. |
 | D4 | `/partners/baseball` | **Do not port.** |
 | D5 | Home hero video | **Do not port.** Replace the `<video>` hero with a static image. |
-| D6 | Contact-form recipients | Open — legacy routing documented below; confirm who receives what in the rebuild. |
+| D6 | Contact-form recipients | **`.env`-configured, one list per form** (`MARKETING_JOB_SEEKERS_TO`, `MARKETING_BUSINESS_TO`, comma-separated). **Spanish forms use the same recipients as English** (no separate a.aguilar route). Blank = stored but not emailed. |
 
 ## Must fix before cutover
 
@@ -39,7 +39,13 @@ ADR-0024's three-bundle wording is stale on that point.
    `ApplicationController::apply` 404s unless `status->isPublic()`; `store` links only a
    published posting (a posting closed mid-form is dropped, the application still lands
    with the typed position). Covered in `tests/Feature/JobApplicationTest.php`.
-3. **No spam protection or throttle** on the 3 public POSTs (`routes/marketing.php`).
+3. ~~**No spam protection or throttle** on the 3 public POSTs.~~ Fixed 2026-10-04:
+   reCAPTCHA v3 (`App\Rules\Recaptcha`, `site.elements.recaptcha`) on both contact forms
+   (action `contact`) and the application (`application`), checking success, score,
+   action and hostname; off while `RECAPTCHA_*` keys are blank; fails open (logged) if
+   Google is unreachable. Plus `throttle:marketing-forms` (10/min, 60/hour per IP).
+   The key's domain list must include every host the forms run on (local `.test`,
+   staging, production) or Google returns `browser-error`.
 4. ~~**Page titles / `og:site_name` read "Minute".**~~ Fixed locally 2026-10-04:
    `APP_NAME="Quality Cleaning Plus (New)"`. **"(New)" is a deliberate temporary marker**
    to tell the rebuild apart from the live legacy site — **drop it at cutover** (titles and

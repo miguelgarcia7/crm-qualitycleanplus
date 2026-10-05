@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // Google reCAPTCHA v3 (score-based, invisible) on the public marketing forms.
+    // Off when either key is blank (local, tests, hosts not on the key's domain list).
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+        'min_score' => (float) env('RECAPTCHA_MIN_SCORE', 0.5),
+    ],
+
 ];

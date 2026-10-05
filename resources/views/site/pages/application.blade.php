@@ -469,6 +469,8 @@
 
                             <div class="row">
                                 <div class="col-sm-12 mb-3">
+                                    @include('site.elements.recaptcha', ['action' => 'application'])
+
                                     <button type="submit" class="btn btn-yellow">Submit Application</button>
                                 </div>
                             </div>

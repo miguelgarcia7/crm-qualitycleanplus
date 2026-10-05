@@ -35,12 +35,15 @@ use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Policies\WorkOrderPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use RuntimeException;
@@ -87,6 +90,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Person::class, PersonPolicy::class);
 
         $this->registerWorkflows();
+        $this->configureRateLimiting();
 
         // Audit logins (Phase 01 acceptance + ADR-0010 audit trail).
         Event::listen(Login::class, function (Login $event): void {
@@ -99,6 +103,20 @@ class AppServiceProvider extends ServiceProvider
                 ->event('login')
                 ->log('Logged in');
         });
+    }
+
+    /**
+     * Public marketing form POSTs (contact ×2, application), shared per IP — a
+     * backstop behind reCAPTCHA. Loose enough for a job fair where many applicants
+     * share one Wi-Fi, and validation-error resubmits count too.
+     */
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('marketing-forms', fn (Request $request) => [
+            // Distinct keys: limits sharing a key share one counter.
+            Limit::perMinute(10)->by('minute:'.$request->ip()),
+            Limit::perHour(60)->by('hour:'.$request->ip()),
+        ]);
     }
 
     /**

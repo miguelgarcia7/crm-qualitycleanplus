@@ -24,12 +24,12 @@ Route::get('/job-openings', [JobBoardController::class, 'index'])->name('marketi
 // Employment application. Declare the static + thank-you routes before the
 // {posting} wildcard so "thank-you" isn't captured as a posting slug.
 Route::get('/application', [ApplicationController::class, 'index'])->name('marketing.application');
-Route::post('/application', [ApplicationController::class, 'store'])->name('marketing.application.store');
+Route::post('/application', [ApplicationController::class, 'store'])->middleware('throttle:marketing-forms')->name('marketing.application.store');
 Route::get('/application/thank-you', [ApplicationController::class, 'thankYou'])->name('marketing.application.thank-you');
 Route::get('/application/{posting}', [ApplicationController::class, 'apply'])->name('marketing.application.apply');
 
 // Contact forms — Job Seekers + Business inquiries (GET form, POST store).
 Route::get('/contact-us/job-seekers', [ContactController::class, 'jobSeekers'])->name('marketing.contact.job-seekers');
-Route::post('/contact-us/job-seekers', [ContactController::class, 'storeJobSeeker'])->name('marketing.contact.job-seekers.store');
+Route::post('/contact-us/job-seekers', [ContactController::class, 'storeJobSeeker'])->middleware('throttle:marketing-forms')->name('marketing.contact.job-seekers.store');
 Route::get('/contact-us/business-inquiries', [ContactController::class, 'businessInquiries'])->name('marketing.contact.business');
-Route::post('/contact-us/business-inquiries', [ContactController::class, 'storeBusinessInquiry'])->name('marketing.contact.business.store');
+Route::post('/contact-us/business-inquiries', [ContactController::class, 'storeBusinessInquiry'])->middleware('throttle:marketing-forms')->name('marketing.contact.business.store');

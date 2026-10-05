@@ -56,6 +56,35 @@ function qcminute(string $path = ''): string
     return 'http://'.config('domains.qcminute').$path;
 }
 
+/** A valid public job application (marketing form) payload. */
+function applicationPayload(array $overrides = []): array
+{
+    return array_merge([
+        'first_name' => 'Maria',
+        'last_name' => 'Lopez',
+        'email' => 'maria@example.com',
+        'phone' => '214-555-0123',
+        'address' => '100 Main St',
+        'city' => 'Dallas',
+        'state' => 'TX',
+        'zip' => '75201',
+        'position' => 'Housekeeper',
+        'desired_salary' => '16',
+        'start_date' => now()->addWeek()->toDateString(),
+        'dob' => '1990-05-01',
+        'transportation' => '1',
+        'work_at_qcp' => '0',
+        'usa_citizen' => '1',
+        'another_staff_agency' => '0',
+        'convicted_felon' => '0',
+        'full_name' => 'Jose Lopez',
+        'emergency_phone' => '214-555-0199',
+        'relationship' => 'Spouse',
+        'full_address' => '100 Main St, Dallas TX',
+        'acknowledgement' => '1',
+    ], $overrides);
+}
+
 /** Create a person with the given role assigned (requires RolePermissionSeeder). */
 function person(string $role): Person
 {

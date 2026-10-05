@@ -101,16 +101,12 @@
 
                             <div class="row">
                                 <div class="col-sm-12 mb-3">
+                                    @include('site.elements.recaptcha', ['action' => 'contact'])
+
                                     <button type="submit" id="form_submit" class="btn btn-yellow">Submit
                                         <span id="form_submit_spinner" style="display:none;" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                                         <span class="visually-hidden">Loading...</span>
                                     </button>
-
-                                    {{-- <button class="g-recaptcha btn btn-yellow"
-                                    data-sitekey="6LdE5PciAAAAAGFlwFTrkwn8ehePF6bpaAg16hKt"
-                                    data-callback='onSubmit'
-                                    data-action='submit'>Submit</button> --}}
-
                                 </div>
                             </div>
                         </form>
