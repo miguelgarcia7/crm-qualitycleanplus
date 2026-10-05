@@ -44,12 +44,16 @@ it('blocks a w2 employee from qc minute (wrong door)', function () {
 });
 
 it('gives a wrong-door account a way to sign out from the 403 page', function () {
+    // The error page shows the reason and, for a signed-in account, a
+    // "Sign out and use a different account" button (views/error.tsx).
     $this->actingAs(person('w2_employee'))
         ->get(qcminute('/'))
         ->assertForbidden()
-        ->assertSee('This account cannot access QC Minute.')
-        ->assertSee('action="/logout"', escape: false)
-        ->assertSee('Sign out and use a different account');
+        ->assertInertia(fn ($page) => $page
+            ->component('error')
+            ->where('status', 403)
+            ->where('message', 'This account cannot access QC Minute.')
+            ->where('signed_in', true));
 
     $this->post(qcminute('/logout'))->assertRedirect();
     $this->assertGuest();

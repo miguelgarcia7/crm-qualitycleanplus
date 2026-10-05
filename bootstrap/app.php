@@ -4,6 +4,7 @@ use App\Domain\Marketing\Support\SiteErrorPage;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\NoIndexInDemoMode;
+use App\Support\AppErrorPage;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -34,6 +35,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['device/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // The public marketing site's own error pages (404, 419, 429, 500, …).
-        $exceptions->respond(fn (Response $response, Throwable $e, Request $request) => SiteErrorPage::respond($response, $e, $request));
+        // Branded error pages: the public marketing site's own (SiteErrorPage),
+        // everything else — back office, QC Minute, sign-in — the reference
+        // library's error card (AppErrorPage). JSON clients keep JSON errors.
+        $exceptions->respond(fn (Response $response, Throwable $e, Request $request) => SiteErrorPage::isSitePage($request)
+            ? SiteErrorPage::respond($response, $e, $request)
+            : AppErrorPage::respond($response, $e, $request));
     })->create();

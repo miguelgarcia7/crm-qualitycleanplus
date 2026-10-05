@@ -285,8 +285,15 @@ A form posted after its session expired (419) doesn't get an error page: it goes
 the form with the answers kept (minus `_token` / reCAPTCHA token) and a "please send it
 again" note by the submit button — the long application isn't lost.
 
-Back office, QC Minute and the sign-in screens keep Laravel's pages (the 403 there has the
-sign-out button). Branding those is a separate, Inertia-side piece of work.
+Back office, QC Minute and the sign-in screens (added 2026-10-05): `App\Support\AppErrorPage`
+renders the Inertia `error` page (`resources/js/admin/views/error.tsx`), built from the
+reference library's error cards (`design-reference/error/*`): logo, gradient status code,
+title, message, "Back to Home" (dashboard on the back office, `/` on QC Minute) and "Go
+Back"; the maintenance illustration for 503; "Try Again" for 500. A 403 keeps the app's own
+reason (e.g. "This account cannot access QC Minute.") and, when signed in, the "Sign out and
+use a different account" button the old Blade 403 had (`errors/403.blade.php` removed). A
+419 sends the user back for a fresh token. JSON/API clients keep JSON errors; 500 shows the
+stack trace while debugging.
 
 ## Parked: posting pages for Google for Jobs (2026-10-05)
 

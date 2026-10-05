@@ -70,7 +70,8 @@ final class SiteErrorPage
         return $page;
     }
 
-    private static function isSitePage(Request $request): bool
+    /** A visitor's page on the public site (not the back office, sign-in, JSON or Inertia). */
+    public static function isSitePage(Request $request): bool
     {
         return $request->getHost() === config('domains.main')
             && ! $request->is(...self::APP_PATHS)
