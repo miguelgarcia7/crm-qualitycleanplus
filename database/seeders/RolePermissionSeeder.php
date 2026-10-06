@@ -51,6 +51,8 @@ class RolePermissionSeeder extends Seeder
 
             // Marketing site — testimonials on the public home page
             'marketing.testimonials.manage' => ['admin', 'office_manager'],
+            // Marketing site — the back-office inbox of contact-form leads
+            'marketing.inquiries.manage' => ['admin', 'office_manager', 'recruiter'],
 
             // People
             'people.applicants.view' => ['admin', 'office_manager', 'front_desk', 'hr', 'recruiter'],

@@ -59,8 +59,12 @@ ADR-0024's three-bundle wording is stale on that point.
 - ~~`.env.example` APP_NAME.~~ Now "Quality Cleaning Plus".
 
 **Larger pieces**
-- **Back-office inbox for contact inquiries.** Leads are stored and emailed, but nothing in
-  `/admin` lists `contact_inquiries`; email is the only way to see them.
+- ~~Back-office inbox for contact inquiries.~~ Built 2026-10-06: **Website → Contact
+  Inquiries** (`/admin/inquiries`, `marketing.inquiries.manage`: admin, office manager,
+  recruiter). Lists every lead newest first with form / status filters and search; a
+  popup shows the full lead with reply links, the site language and the spam check;
+  staff mark leads handled (who + when) or delete spam. Each lead email links straight to
+  its inquiry. Leads now also store `locale` and `spam_check`.
 - **Privacy policy / terms pages.** Neither site has them, and the application collects
   date of birth and criminal-history answers.
 - **Shared session cookie** across the marketing site and `/admin` (path `/`; Fortify

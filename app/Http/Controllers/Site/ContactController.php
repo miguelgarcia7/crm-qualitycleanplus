@@ -45,6 +45,7 @@ class ContactController extends Controller
     private function record(StoreContactInquiryRequest $request, string $type): void
     {
         $data = $request->validated();
+        $spamCheck = $request->recaptcha()->summary();
 
         $inquiry = ContactInquiry::create([
             'type' => $type,
@@ -60,6 +61,8 @@ class ContactController extends Controller
             'inquiry_type' => $data['contact_inquiry_type'] ?? null,
             'call_back_time' => $data['contact_call_back_time'] ?? null,
             'message' => $data['contact_message'] ?? null,
+            'locale' => app()->getLocale(),
+            'spam_check' => $spamCheck,
         ]);
 
         /** @var list<string> $recipients */
@@ -69,7 +72,7 @@ class ContactController extends Controller
             Notification::route('mail', $recipients)
                 ->notify(
                     // Staff read English whatever language the visitor used.
-                    (new ContactInquiryReceived($inquiry, $request->recaptcha()->summary(), app()->getLocale()))->locale('en'),
+                    (new ContactInquiryReceived($inquiry, $spamCheck, app()->getLocale()))->locale('en'),
                 );
         }
     }

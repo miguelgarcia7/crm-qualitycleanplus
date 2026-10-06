@@ -5,6 +5,7 @@ use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ChangePersonalInfoController;
 use App\Http\Controllers\CompanySettingsController;
+use App\Http\Controllers\ContactInquiryController;
 use App\Http\Controllers\ContractController;
 use App\Http\Controllers\ContractorChargeController;
 use App\Http\Controllers\DashboardController;
@@ -160,6 +161,11 @@ Route::post('applicants/{application}/promote', [ApplicantController::class, 'pr
 Route::post('applicants/{application}/reverse', [ApplicantController::class, 'reverse'])->name('backoffice.applicants.reverse');
 
 // Job postings — manage the public job board (Phase 08b-ii)
+// Marketing site — leads from the public contact forms (Job Seekers, Business)
+Route::get('inquiries', [ContactInquiryController::class, 'index'])->name('backoffice.inquiries.index');
+Route::patch('inquiries/{inquiry}', [ContactInquiryController::class, 'update'])->name('backoffice.inquiries.update');
+Route::delete('inquiries/{inquiry}', [ContactInquiryController::class, 'destroy'])->name('backoffice.inquiries.destroy');
+
 // Marketing site — testimonials on the public home page (marketing-site-audit.md, D2)
 Route::get('testimonials', [TestimonialController::class, 'index'])->name('backoffice.testimonials.index');
 Route::post('testimonials', [TestimonialController::class, 'store'])->name('backoffice.testimonials.store');

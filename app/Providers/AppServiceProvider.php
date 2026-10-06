@@ -9,7 +9,9 @@ use App\Domain\Billing\Policies\TimesheetPolicy;
 use App\Domain\Inventory\Definitions\SupplyRequestDefinition;
 use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\KnowledgeBase\Policies\KbArticlePolicy;
+use App\Domain\Marketing\Models\ContactInquiry;
 use App\Domain\Marketing\Models\Testimonial;
+use App\Domain\Marketing\Policies\ContactInquiryPolicy;
 use App\Domain\Marketing\Policies\TestimonialPolicy;
 use App\Domain\Marketing\Support\SiteLocale;
 use App\Domain\Marketing\Support\SitemapCache;
@@ -93,6 +95,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(JobApplication::class, JobApplicationPolicy::class);
         Gate::policy(KbArticle::class, KbArticlePolicy::class);
         Gate::policy(Testimonial::class, TestimonialPolicy::class);
+        Gate::policy(ContactInquiry::class, ContactInquiryPolicy::class);
         Gate::policy(Person::class, PersonPolicy::class);
 
         $this->registerWorkflows();

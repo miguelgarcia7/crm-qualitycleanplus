@@ -16,7 +16,7 @@ as that stays true. Grep check: a notification sends mail only if its `via()` (o
 | **Timesheet decided** (`TimesheetDecided`) | PM approves or declines | The recruiter who submitted | Back office | Yes |
 | **User invitation** (`UserInvitation`) | Admin invites a user (`admin.users.create`) | The new person | Role-dependent | Yes |
 | **Password reset** (`PasswordResetLink`) | Anyone posts `/forgot-password` | Whoever owns the address | Role-dependent | Yes |
-| **Contact lead** (`ContactInquiryReceived`) | A visitor submits a marketing contact form (job seeker or business) | The addresses in `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO` (on demand, not a `Person`; blank = not sent). Reply-to is the visitor | None — the lead is in the body | Yes |
+| **Contact lead** (`ContactInquiryReceived`) | A visitor submits a marketing contact form (job seeker or business) | The addresses in `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO` (on demand, not a `Person`; blank = not sent). Reply-to is the visitor | "Open in the back office" → `/admin/inquiries?open={id}` (the lead is also in the body) | Yes |
 
 **Nothing else emails.** Workflow notices (pay increase, transfer, temporary
 assignment, more staff, personal-info change), contract expiry, punch flags,

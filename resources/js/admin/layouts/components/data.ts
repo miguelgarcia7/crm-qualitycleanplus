@@ -118,6 +118,7 @@ export const menuItems: MenuItemType[] = [
     label: 'Website',
     isTitle: true,
     children: [
+      { url: '/admin/inquiries', slug: 'inquiries', label: 'Contact Inquiries', icon: 'inbox', permission: 'marketing.inquiries.manage' },
       { url: '/admin/testimonials', slug: 'testimonials', label: 'Testimonials', icon: 'message-star', permission: 'marketing.testimonials.manage' },
     ],
   },

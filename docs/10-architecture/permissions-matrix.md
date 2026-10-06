@@ -69,8 +69,11 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | `marketing.testimonials.manage` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| `marketing.inquiries.manage` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ |
 
 > Testimonials on the public home page (`/admin/testimonials`): create, edit, hide, delete.
+> Contact inquiries (`/admin/inquiries`, added 2026-10-06): the inbox of website contact-form
+> leads — read, mark handled / new, delete spam. Recruiters included for job-seeker leads.
 
 ## Work orders
 

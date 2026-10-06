@@ -77,6 +77,7 @@ class ContactInquiryReceived extends Notification implements ShouldQueue
 
         return $mail
             ->line("Spam check: {$this->spamCheck}")
+            ->action('Open in the back office', route('backoffice.inquiries.index', ['open' => $inquiry->id]))
             ->salutation('Quality Cleaning Plus website');
     }
 
