@@ -316,6 +316,38 @@ can be thrown away and rebuilt.
    bare domain, keeping legacy links and indexed URLs alive), set `APP_ENV=production`
    with `DEMO_MODE` off (robots.txt, sitemap and analytics only switch on then), then
    submit `https://qualitycleanplus.com/sitemap.xml` in Google Search Console.
+   Set the environment per **Environment variables at cutover** below, then redeploy —
+   Cloud only applies variable changes on a deploy.
+
+## Environment variables at cutover
+
+The one Cloud environment is named **staging** and runs the Acme demo today
+(memory/notes: single env, real data later). What it has now and what it needs when
+it goes live. Secrets are never written here — only where they live.
+
+| Variable | Staging today (2026-10-05) | At go-live | Notes |
+|---|---|---|---|
+| `APP_ENV` | `staging` | `production` | Turns on robots/sitemap indexing and Google Analytics (`Seo::indexable()`). |
+| `DEMO_MODE` | `true` | remove | Demo mode sends `X-Robots-Tag: noindex` and enables demo logins. |
+| `DEMO_PASSWORD` | set | remove | Demo accounts only. |
+| `APP_NAME` | `Quality Cleaning Plus (New)` | `Quality Cleaning Plus` | "(New)" is the temporary marker; public titles + `og:site_name`. Changing it signs everyone out once (session cookie name). |
+| `APP_URL` / `DOMAIN_MAIN` | `crm-qualitycleanplus-staging-bapqoc.laravel.cloud` | `qualitycleanplus.com` (no www) | Marketing `/` + back office `/admin`. Attach `qualitycleanplus.com` **and** `www.qualitycleanplus.com` (the app 301s www → bare). |
+| `DOMAIN_QCMINUTE` | `demo.qcpstaffing.com` | `qcpstaffing.com` | QC Minute + tablet clock-in. |
+| `MAIL_MAILER` | `postmark` | `postmark` | Staging already sends real mail. |
+| `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME` | set | a verified Postmark sender on the production domain | Lead emails, timesheet mail, invites, resets. |
+| `MARKETING_JOB_SEEKERS_TO` | `miguel@miguelangelgarcia.com` | **decide** — legacy sent these to d.aguilar@ | Comma-separated; English + Spanish forms share it. |
+| `MARKETING_BUSINESS_TO` | `miguel@miguelangelgarcia.com` | **decide** — legacy sent these to d.aguilar@ | Comma-separated. |
+| `RECAPTCHA_SITE_KEY` | new key `6LfYPJ…` | same key | Its Google Cloud domain list already includes `qualitycleanplus.com` (covers www) and the staging hosts. The legacy site keeps its own `6LdE5P…` key until it's retired. |
+| `RECAPTCHA_SECRET_KEY` | set | same | Secret — entered in the Cloud dashboard by hand. |
+| `RECAPTCHA_MIN_SCORE` | `0.5` | `0.5` | Lower (e.g. 0.3) only if real visitors get rejected. |
+| `GOOGLE_ANALYTICS_ID` | not set (defaults to `G-ZQSBDK2ZRN`) | leave unset or set explicitly | Loads only in production without demo mode. |
+| `QCP_INVOICER_*` | set | review | Seed defaults only; live company identity is edited at /admin/settings/company. |
+| `LEGACY_DB_*` | — | where `legacy:import` runs | Read-only `minute` source (see As built). |
+| `LEGACY_QCP_DB_*` | — | where `legacy:import-testimonials` runs | Read-only `qualitycleanplus` source; pass `--media-root` for photos. |
+
+Also on go-live: a queue worker must be running (lead emails, timesheet mail and
+invites are queued), and the Cloud object-storage bucket stays the default `s3` disk
+(testimonial photos, avatars, onboarding documents live there).
 
 ## Decision log (settled 2026-08-30/31)
 
