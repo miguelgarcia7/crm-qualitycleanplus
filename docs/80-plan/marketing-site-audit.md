@@ -34,13 +34,10 @@ ADR-0024's three-bundle wording is stale on that point.
   "Auxiliares de cocina" (Stewarding), "Empaque" (Packaging), "Meseros" (Servers) —
   `lang/es/site/services.php`.
 
-**Small fixes (code)** — done 2026-10-05 except the font, which needs a decision:
-- **Nunito font never applies** (open). `resources/css/site/app.scss` imports
-  `_variables.scss` after Bootstrap, so `$font-family-sans-serif` (and `$body-bg`,
-  `$link-color`, `$font-size-base: 0.9rem`) are ignored; the legacy site has the same
-  order, so the live site has always rendered in Bootstrap's system font while loading
-  Nunito from Google Fonts for nothing. Either apply Nunito (changes the look of every
-  page) or drop the unused font request (no visual change).
+**Small fixes (code)** — all done 2026-10-05:
+- ~~Nunito font never applies.~~ `_variables.scss` is imported after Bootstrap (legacy
+  has the same order), so the site has always rendered in Bootstrap's system font.
+  Miguel chose to keep that look: the unused Google Fonts request is gone.
 - ~~Hero video (D5).~~ Replaced with a still of the same Dallas skyline taken from the
   legacy video (`public/images/home-hero-dallas.jpg`), in the same circle.
 - ~~Bootstrap mismatch / jQuery.~~ The site bundle now imports Bootstrap's collapse
