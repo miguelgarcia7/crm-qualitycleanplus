@@ -1,11 +1,15 @@
 // QCP marketing site scripts (Phase 08b-i) — server-rendered Blade surface on
-// qualitycleanplus.com (ADR-0023). GSAP, ScrollTrigger, jQuery, and Bootstrap's
-// JS bundle load via CDN in the website layout (matching the legacy site); this
-// module wires the scroll-shrink navigation, the scroll-reveal animation for
-// `.ui_animate` elements (which start at opacity:0 in the stylesheet), and the
-// obfuscated "Contact Us" email helper.
+// qualitycleanplus.com (ADR-0023). Wires the navbar toggle (Bootstrap's collapse —
+// the only Bootstrap plugin the site uses), the scroll-shrink navigation, the
+// scroll-reveal animation for `.ui_animate` elements, reCAPTCHA on submit, and the
+// obfuscated "Contact Us" email helper. Everything is bundled here; nothing loads
+// from a CDN, so the JS always matches the Bootstrap version the CSS is built from.
 
-/* global gsap, ScrollTrigger */
+import 'bootstrap/js/dist/collapse';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 // Shrink the fixed navigation once the page scrolls past the hero.
 ScrollTrigger.create({
@@ -41,11 +45,15 @@ function hide(elem) {
     gsap.set(elem, { autoAlpha: 0 });
 }
 
+// `.ui_animate` starts hidden by CSS (only once html has the `js` class). Marking
+// the page `ui-animate-ready` hands those elements to GSAP and switches off the
+// stylesheet's fallback, which reveals them after 2s if this never runs.
 document.addEventListener('DOMContentLoaded', function () {
-    gsap.registerPlugin(ScrollTrigger);
+    const elems = gsap.utils.toArray('.ui_animate');
+    elems.forEach(hide); // ensure hidden before they scroll into view
+    document.documentElement.classList.add('ui-animate-ready');
 
-    gsap.utils.toArray('.ui_animate').forEach(function (elem) {
-        hide(elem); // ensure hidden before it scrolls into view
+    elems.forEach(function (elem) {
 
         ScrollTrigger.create({
             trigger: elem,

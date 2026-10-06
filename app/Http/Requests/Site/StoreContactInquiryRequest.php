@@ -32,7 +32,8 @@ class StoreContactInquiryRequest extends FormRequest
             'contact_first_name' => ['required', 'string', 'max:255'],
             'contact_last_name' => ['required', 'string', 'max:255'],
             'contact_email' => ['required', 'email', 'max:255'],
-            'contact_phone' => ['nullable', 'string', 'max:32'],
+            // A business lead needs a number to call back; job seekers may skip it.
+            'contact_phone' => [$this->isBusinessInquiry() ? 'required' : 'nullable', 'string', 'max:32'],
             'contact_company' => ['nullable', 'string', 'max:255'],
             'contact_address' => ['nullable', 'string', 'max:255'],
             'contact_city' => ['nullable', 'string', 'max:255'],
@@ -42,5 +43,10 @@ class StoreContactInquiryRequest extends FormRequest
             'contact_call_back_time' => ['nullable', 'string', 'max:255'],
             'contact_message' => ['nullable', 'string', 'max:5000'],
         ];
+    }
+
+    private function isBusinessInquiry(): bool
+    {
+        return $this->routeIs('marketing.contact.business.store', 'marketing.es.contact.business.store');
     }
 }

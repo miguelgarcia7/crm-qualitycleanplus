@@ -10,6 +10,7 @@ return [
     'hero' => [
         'title' => 'The Hospitality Experts',
         'text' => 'We offer a wide range of services and strive to deliver reliable, fast, and top of the line quality.',
+        'image_alt' => 'Downtown Dallas skyline at night',
     ],
 
     'services' => [

@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Marketing\Models\ContactInquiry;
+use App\Domain\Recruiting\Models\JobPosting;
 
 it('renders the public marketing pages', function (string $path) {
     $this->get(main($path))->assertOk();
@@ -55,4 +56,31 @@ it('rejects a contact inquiry missing required fields', function () {
     ])->assertSessionHasErrors(['contact_last_name', 'contact_email']);
 
     expect(ContactInquiry::query()->count())->toBe(0);
+});
+
+it('requires a phone number on business inquiries but not from job seekers', function () {
+    $lead = ['contact_first_name' => 'Dana', 'contact_last_name' => 'Okafor', 'contact_email' => 'dana@hotelgroup.com'];
+
+    $this->post(main('/contact-us/business-inquiries'), $lead)->assertSessionHasErrors('contact_phone');
+    $this->post(main('/es/contactenos/consultas-para-negocios'), $lead)->assertSessionHasErrors('contact_phone');
+    $this->post(main('/contact-us/job-seekers'), $lead)->assertSessionHasNoErrors();
+
+    expect(ContactInquiry::query()->pluck('type')->all())->toBe(['job_seeker']);
+});
+
+it('posts the application position once, prefilled from the posting', function () {
+    $posting = JobPosting::factory()->published()->create(['title' => 'Night Auditor']);
+
+    $html = $this->get(main('/application/'.$posting->slug))->assertOk()->getContent();
+
+    expect(substr_count($html, 'name="position"'))->toBe(1)
+        ->and($html)->toContain('value="Night Auditor"')
+        ->not->toContain('name="application_date"')
+        ->not->toContain('name="status"');
+});
+
+it('shows a static hero image instead of the legacy video', function () {
+    $this->get(main('/'))->assertOk()
+        ->assertSee('/images/home-hero-dallas.jpg', false)
+        ->assertDontSee('<video', false);
 });

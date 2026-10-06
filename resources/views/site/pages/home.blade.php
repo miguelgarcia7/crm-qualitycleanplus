@@ -26,10 +26,8 @@
                         </div>
                     </div>
                     <div class="col-md-5 col-lg-5 offset-lg-1 ui_animate" data-animate-delay=".2">
-                        <div class="video-hero">
-                            <div class="video-wrap">
-                                <video src="/media/downtown_dallas.mp4" autoplay loop playsinline muted></video>
-                            </div>
+                        <div class="hero-circle">
+                            <img src="/images/home-hero-dallas.jpg" width="1080" height="1080" alt="{{ __('site/home.hero.image_alt') }}">
                         </div>
                     </div>
                 </div>

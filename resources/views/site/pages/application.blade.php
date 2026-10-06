@@ -99,11 +99,7 @@
 
                             @if(!empty($job))
                             <input type="hidden" name="job_id" value="{{ $job->id }}">
-                            <input type="hidden" name="position" value="{{ $job->title }}">
                             @endif
-
-                            <input type="hidden" name="application_date" value="{{ date('Y-m-d') }}">
-                            <input type="hidden" name="status" value="1">
 
 
                             <h3>{{ __('site/application.employment.title') }}</h3>
@@ -207,11 +203,7 @@
                             <div class="row">
                                 <div class="col-md-6 mb-4">
                                     <label for="position" class="form-label">{{ __('site/application.position.position') }} <sup>*</sup></label>
-                                    @if(!empty($job))
-                                    <input type="text" name="position" class="form-control" id="position" value="{{ old('position', $job->title) }}" required>
-                                    @else
-                                    <input type="text" name="position" class="form-control" id="position" value="{{ old('position') }}" required>
-                                    @endif
+                                    <input type="text" name="position" class="form-control" id="position" value="{{ old('position', $job?->title) }}" required>
                                     @error('position')
                                         <div class="form-text text-danger">{{ $message }}</div>
                                     @enderror

@@ -10,6 +10,7 @@ return [
     'hero' => [
         'title' => 'Expertos en Hospitalidad',
         'text' => 'Ofrecemos una amplia gama de servicios y nos esforzamos por brindar un servicio confiable, rápido y de la más alta calidad.',
+        'image_alt' => 'Vista nocturna del centro de Dallas',
     ],
 
     'services' => [

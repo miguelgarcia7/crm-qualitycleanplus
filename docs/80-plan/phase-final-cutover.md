@@ -316,6 +316,8 @@ can be thrown away and rebuilt.
    bare domain, keeping legacy links and indexed URLs alive), set `APP_ENV=production`
    with `DEMO_MODE` off (robots.txt, sitemap and analytics only switch on then), then
    submit `https://qualitycleanplus.com/sitemap.xml` in Google Search Console.
+   Check that `https://www.qualitycleanplus.com/images/emails/profiles/david-aguilar.jpg`
+   still loads: staff email signatures hotlink `images/emails/` on the www host.
    Set the environment per **Environment variables at cutover** below, then redeploy —
    Cloud only applies variable changes on a deploy.
 

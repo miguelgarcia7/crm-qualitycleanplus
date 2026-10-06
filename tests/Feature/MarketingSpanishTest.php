@@ -79,7 +79,7 @@ it('emails staff a Spanish-site lead in English, flagged as Spanish', function (
     config(['qcp.marketing.contact_recipients.business' => ['sales@example.com']]);
 
     $this->post(main('/es/contactenos/consultas-para-negocios'), [
-        'contact_first_name' => 'Dana', 'contact_last_name' => 'Cole', 'contact_email' => 'dana@hotel.example',
+        'contact_first_name' => 'Dana', 'contact_last_name' => 'Cole', 'contact_email' => 'dana@hotel.example', 'contact_phone' => '214-555-0100',
     ])->assertSessionHasNoErrors();
 
     Notification::assertSentOnDemand(ContactInquiryReceived::class, function (ContactInquiryReceived $n): bool {

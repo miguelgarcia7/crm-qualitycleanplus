@@ -15,6 +15,7 @@ function contactPayload(array $overrides = []): array
         'contact_first_name' => 'Jamie',
         'contact_last_name' => 'Rivera',
         'contact_email' => 'jamie@example.com',
+        'contact_phone' => '214-555-0100',
         'g-recaptcha-response' => 'token',
     ], $overrides);
 }

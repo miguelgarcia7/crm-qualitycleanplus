@@ -81,6 +81,9 @@
                                 <div class="col-sm-6 mb-3">
                                     <label for="contact_phone" class="form-label">{{ __('site/business.phone') }} <sup>*</sup></label>
                                     <input type="tel" name="contact_phone" class="form-control" id="contact_phone" value="{{ old('contact_phone') }}" required>
+                                    @error('contact_phone')
+                                        <div class="form-text text-danger">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-sm-6 mb-3">
                                     <label for="contact_company" class="form-label">{{ __('site/business.company') }}</label>

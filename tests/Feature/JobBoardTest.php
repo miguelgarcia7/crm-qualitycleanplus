@@ -26,6 +26,15 @@ it('shows the linked property name as the location when set', function () {
     $this->get(main('/job-openings'))->assertOk()->assertSee('Marriott Downtown');
 });
 
+it('still names an archived property on a published posting', function () {
+    $property = Property::factory()->create(['name' => 'Hilton Anatole']);
+    $posting = JobPosting::factory()->published()->create(['title' => 'Busser', 'property_id' => $property->id, 'location_label' => null]);
+    $property->delete();
+
+    $this->get(main('/job-openings'))->assertOk()->assertSee('Hilton Anatole');
+    $this->get(main('/application/'.$posting->slug))->assertOk()->assertSee('Hilton Anatole');
+});
+
 it('shows an empty state when there are no published postings', function () {
     $this->get(main('/job-openings'))->assertOk()->assertSee('no open positions');
 });

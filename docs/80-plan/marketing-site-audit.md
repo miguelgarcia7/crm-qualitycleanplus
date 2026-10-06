@@ -34,25 +34,32 @@ ADR-0024's three-bundle wording is stale on that point.
   "Auxiliares de cocina" (Stewarding), "Empaque" (Packaging), "Meseros" (Servers) —
   `lang/es/site/services.php`.
 
-**Small fixes (code)**
-- **Hero video (D5).** `home.blade.php:31` still has `<video src="/media/downtown_dallas.mp4">`
-  and `public/media` doesn't exist, so the hero box is empty. Replace with a static image.
-- **Nunito font never applies.** `resources/css/site/app.scss` imports `_variables.scss`
-  after Bootstrap, so `$font-family-sans-serif` (and `$body-bg`, `$link-color`) are
-  ignored; the built CSS contains no "Nunito".
-- **Bootstrap mismatch.** CSS is compiled from Bootstrap ^5.3.8 but the layout loads the
-  5.1.3 JS bundle from a CDN; jQuery is loaded and unused.
-- **Invisible-content risk.** `.ui_animate { opacity: 0 }` relies on CDN GSAP to reveal
-  content; if the CDN is blocked, most of each page stays invisible.
-- **Application form leftovers.** `position` is posted twice when a posting is chosen
-  (hidden + visible input); unused hidden `application_date` and `status` inputs.
-- **Business form.** Phone is `required` in the HTML but optional on the server — pick one.
-- **Possible 500 on `/job-openings`** (unverified). `JobPosting::locationName()` reads
-  `$this->property->name`; a published posting on a soft-deleted property would have no
-  property.
-- **Unused legacy assets.** `public/images/clients/`, `hero-image-1.png`,
-  `our-services.jpg`, `icons/Archive.zip` (plus the baseball/partner images, D4).
-- **`.env.example`** still has `APP_NAME=Minute`.
+**Small fixes (code)** — done 2026-10-05 except the font, which needs a decision:
+- **Nunito font never applies** (open). `resources/css/site/app.scss` imports
+  `_variables.scss` after Bootstrap, so `$font-family-sans-serif` (and `$body-bg`,
+  `$link-color`, `$font-size-base: 0.9rem`) are ignored; the legacy site has the same
+  order, so the live site has always rendered in Bootstrap's system font while loading
+  Nunito from Google Fonts for nothing. Either apply Nunito (changes the look of every
+  page) or drop the unused font request (no visual change).
+- ~~Hero video (D5).~~ Replaced with a still of the same Dallas skyline taken from the
+  legacy video (`public/images/home-hero-dallas.jpg`), in the same circle.
+- ~~Bootstrap mismatch / jQuery.~~ The site bundle now imports Bootstrap's collapse
+  plugin (the only one the site uses) from the npm 5.3.8 package and GSAP from npm;
+  the CDN Bootstrap 5.1.3, CDN GSAP and unused jQuery tags are gone. (Swiper and
+  flatpickr still load from jsDelivr on the pages that use them.)
+- ~~Invisible-content risk.~~ `.ui_animate` is hidden only when scripts run
+  (`html.js`), and a CSS fallback reveals it after 2s if `app.js` never takes over.
+- ~~Application form leftovers.~~ One `position` input (prefilled from the posting);
+  the unused `application_date` / `status` hidden inputs are gone.
+- ~~Business form phone.~~ Now required on the server too (business inquiries only;
+  optional for job seekers), with its error shown under the field.
+- ~~500 on `/job-openings`.~~ Confirmed real (also hit `/application/{slug}` and the
+  admin postings list). `JobPosting::property()` now includes archived properties.
+- ~~Unused legacy assets.~~ Removed `clients/`, `clients-*.png`, `hero-image-1.png`,
+  `our-services.jpg`, `icons/Archive.zip`, `partners/` (D4). **Kept `images/emails/`**:
+  staff email signatures hotlink `https://www.qualitycleanplus.com/images/emails/...`,
+  so those files must keep answering at that URL after cutover.
+- ~~`.env.example` APP_NAME.~~ Now "Quality Cleaning Plus".
 
 **Larger pieces**
 - **Back-office inbox for contact inquiries.** Leads are stored and emailed, but nothing in

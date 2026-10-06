@@ -351,8 +351,8 @@ ul.uix-list li::before {
 
     }
 
-    // Video Header
-    .video-hero {
+    // Circular hero photo (the legacy site played a video here; D5 dropped it)
+    .hero-circle {
         -webkit-border-radius: 50%;
         -moz-border-radius: 50%;
         border-radius: 50%;
@@ -395,20 +395,11 @@ ul.uix-list li::before {
             height: 770px;
         }
 
-        .video-wrap {
-            position: absolute;
-            text-align: center;
+        img {
             width: 100%;
-            &, video, .viewport-header {
-                width: 100%;
-                height: 100%;
-                position: absolute;
-                top: 0;
-                left: 0;
-            }
-            video {
-                object-fit: cover;
-            }
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
     }
 
@@ -548,8 +539,20 @@ ul.uix-list li::before {
     visibility: hidden;
 }
 
-.ui_animate {
+// Scroll-reveal (resources/js/site/app.js). Hidden only when scripts run (the
+// layout swaps html.no-js for html.js), and if app.js never takes over — failed to
+// load, or errored — the fallback animation shows everything after 2s instead of
+// leaving most of the page blank.
+.js .ui_animate {
     opacity: 0;
+}
+.js:not(.ui-animate-ready) .ui_animate {
+    animation: ui-animate-fallback 0s 2s forwards;
+}
+@keyframes ui-animate-fallback {
+    to {
+        opacity: 1;
+    }
 }
 
 .ui_diviter {

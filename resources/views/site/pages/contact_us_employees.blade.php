@@ -81,6 +81,9 @@
                                 <div class="col-sm-6 mb-3">
                                     <label for="contact_phone" class="form-label">{{ __('site/forms.phone') }}</label>
                                     <input type="tel" name="contact_phone" class="form-control" id="contact_phone" value="{{ old('contact_phone') }}">
+                                    @error('contact_phone')
+                                        <div class="form-text text-danger">{{ $message }}</div>
+                                    @enderror
                                 </div>
                                 <div class="col-sm-6 mb-3">
                                     <label for="contact_call_back_time" class="form-label">{{ __('site/job_seekers.call_back_time') }}</label>

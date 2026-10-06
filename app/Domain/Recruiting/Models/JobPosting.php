@@ -56,11 +56,14 @@ class JobPosting extends Model
     }
 
     /**
+     * Archived (soft-deleted) properties included, so a posting tied to one still
+     * names its location rather than failing to load it.
+     *
      * @return BelongsTo<Property, $this>
      */
     public function property(): BelongsTo
     {
-        return $this->belongsTo(Property::class);
+        return $this->belongsTo(Property::class)->withTrashed();
     }
 
     /**
