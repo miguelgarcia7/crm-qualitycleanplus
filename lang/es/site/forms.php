@@ -15,4 +15,6 @@ return [
     'submitted' => '¡Gracias! Su información se envió correctamente.',
     'immediate_help' => 'Si necesita ayuda inmediata, llámenos al :phone',
     'not_a_person' => 'No pudimos confirmar que este envío lo hizo una persona. Inténtelo de nuevo o llámenos al 214-271-5595.',
+
+    'privacy_notice' => 'Usamos la información que nos envía como se describe en nuestra :privacy.',
 ];

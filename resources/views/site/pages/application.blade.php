@@ -490,6 +490,7 @@
                                     @include('site.elements.recaptcha', ['action' => 'application'])
 
                                     <button type="submit" class="btn btn-yellow">{{ __('site/application.submit') }}</button>
+                                    @include('site.elements.privacy_notice')
                                     @include('site.elements.recaptcha_notice')
                                 </div>
                             </div>

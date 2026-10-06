@@ -22,6 +22,8 @@ Route::get('/', [PageController::class, 'home'])->name('marketing.home');
 Route::get('/services', [PageController::class, 'services'])->name('marketing.services');
 Route::get('/about-us', [PageController::class, 'aboutUs'])->name('marketing.about');
 Route::get('/contact-us', [PageController::class, 'contactUs'])->name('marketing.contact');
+Route::get('/privacy-policy', [PageController::class, 'privacy'])->name('marketing.privacy');
+Route::get('/terms-of-use', [PageController::class, 'terms'])->name('marketing.terms');
 
 // Public job board (published postings).
 Route::get('/job-openings', [JobBoardController::class, 'index'])->name('marketing.job-openings');
@@ -52,6 +54,8 @@ Route::get('/es', [PageController::class, 'home'])->name('marketing.es.home');
 Route::get('/es/servicios', [PageController::class, 'services'])->name('marketing.es.services');
 Route::get('/es/quienes_somos', [PageController::class, 'aboutUs'])->name('marketing.es.about');
 Route::get('/es/contactenos', [PageController::class, 'contactUs'])->name('marketing.es.contact');
+Route::get('/es/politica-de-privacidad', [PageController::class, 'privacy'])->name('marketing.es.privacy');
+Route::get('/es/terminos-de-uso', [PageController::class, 'terms'])->name('marketing.es.terms');
 Route::get('/es/ofertas-de-trabajo', [JobBoardController::class, 'index'])->name('marketing.es.job-openings');
 Route::get('/es/solicitud', [ApplicationController::class, 'index'])->name('marketing.es.application');
 Route::post('/es/solicitud', [ApplicationController::class, 'store'])->middleware('throttle:marketing-forms')->name('marketing.es.application.store');

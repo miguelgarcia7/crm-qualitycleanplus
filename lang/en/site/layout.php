@@ -27,6 +27,8 @@ return [
         'about_title' => 'About Quality Cleaning Plus',
         'follow' => 'Follow Us',
         'rights' => 'Quality Cleaning Plus, Inc. All rights reserved. All trademarks are the property of their respective owners.',
+        'privacy' => 'Privacy Policy',
+        'terms' => 'Terms of Use',
         'site_by' => 'Powered by',
     ],
 

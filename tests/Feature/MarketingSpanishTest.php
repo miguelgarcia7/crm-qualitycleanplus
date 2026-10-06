@@ -20,6 +20,8 @@ function spanishPages(): array
         'thank you' => ['/application/thank-you', '/es/solicitud/gracias'],
         'job seekers' => ['/contact-us/job-seekers', '/es/contactenos/solicitantes-de-empleo'],
         'business' => ['/contact-us/business-inquiries', '/es/contactenos/consultas-para-negocios'],
+        'privacy' => ['/privacy-policy', '/es/politica-de-privacidad'],
+        'terms' => ['/terms-of-use', '/es/terminos-de-uso'],
     ];
 }
 
@@ -101,3 +103,15 @@ it('does not flag an English lead as Spanish', function () {
     Notification::assertSentOnDemand(ContactInquiryReceived::class, fn (ContactInquiryReceived $n): bool => collect($n->toMail(new AnonymousNotifiable)->introLines)
         ->doesntContain(fn (string $l): bool => str_contains($l, 'Spanish')));
 });
+
+it('has a Spanish translation for every English site string, with the same structure', function (string $file) {
+    // Keys and list shapes, so a section or bullet added in one language can't go missing in the other.
+    $shape = function (array $lines) use (&$shape): array {
+        return array_map(fn ($v) => is_array($v) ? $shape($v) : 'text', $lines);
+    };
+
+    $en = require lang_path("en/site/{$file}.php");
+    $es = require lang_path("es/site/{$file}.php");
+
+    expect($shape($es))->toBe($shape($en));
+})->with(array_map(fn (string $path): string => basename($path, '.php'), glob(__DIR__.'/../../lang/en/site/*.php')));

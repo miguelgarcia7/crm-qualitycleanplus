@@ -34,4 +34,14 @@ class PageController extends Controller
     {
         return view('site.pages.contact_us');
     }
+
+    public function privacy(): View
+    {
+        return view('site.pages.legal', ['doc' => 'privacy']);
+    }
+
+    public function terms(): View
+    {
+        return view('site.pages.legal', ['doc' => 'terms']);
+    }
 }

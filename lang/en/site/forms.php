@@ -16,4 +16,6 @@ return [
     'submitted' => 'Thank you! Your information has been submitted successfully.',
     'immediate_help' => 'If you need immediate assistance, please call us at :phone',
     'not_a_person' => "We couldn't confirm this submission came from a person. Please try again, or call us at 214-271-5595.",
+
+    'privacy_notice' => 'We use the information you send as described in our :privacy.',
 ];

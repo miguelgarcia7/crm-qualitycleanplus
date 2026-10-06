@@ -54,6 +54,8 @@ it('lists every page in both languages, linked to each other, plus open postings
     expect(simplexml_load_string($xml))->not->toBeFalse()
         ->and($xml)->toContain('<loc>'.main('/services').'</loc>')
         ->toContain('<loc>'.main('/es/servicios').'</loc>')
+        ->toContain('<loc>'.main('/privacy-policy').'</loc>')
+        ->toContain('<loc>'.main('/es/terminos-de-uso').'</loc>')
         ->toContain('hreflang="es" href="'.main('/es/quienes_somos').'"')
         ->toContain('hreflang="x-default" href="'.main('/about-us').'"')
         ->toContain('<loc>'.main('/application/'.$open->slug).'</loc>')

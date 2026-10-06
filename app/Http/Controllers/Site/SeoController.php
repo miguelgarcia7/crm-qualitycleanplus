@@ -23,6 +23,7 @@ class SeoController extends Controller
     /** Pages listed in the sitemap — the English route names; each has a Spanish twin. */
     private const PAGES = [
         'home', 'services', 'about', 'contact', 'contact.job-seekers', 'contact.business', 'job-openings', 'application',
+        'privacy', 'terms',
     ];
 
     public function robots(Request $request): Response

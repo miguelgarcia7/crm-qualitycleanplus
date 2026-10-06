@@ -51,6 +51,7 @@
                 <div class="row">
                     <div class="col-md-9">
                         <p>&copy; {{ now()->year }} {{ __('site/layout.footer.rights') }}</p>
+                        <p class="legal-links"><a href="{{ $site->route('privacy') }}">{{ __('site/layout.footer.privacy') }}</a> &middot; <a href="{{ $site->route('terms') }}">{{ __('site/layout.footer.terms') }}</a></p>
                     </div>
                     <div class="col-md-3 text-md-end">
                         <p>{{ __('site/layout.footer.site_by') }} <a href="https://www.studiomex.com?ref=qualitycleanplus.com" target="_blank" rel="noopener">StudioMex</a></p>

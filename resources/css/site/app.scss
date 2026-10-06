@@ -767,6 +767,34 @@ ul.uix-list li::before {
         font-size: 14px;
         line-height: 20px;
     }
+    .legal-links a {
+        color: #343a40;
+    }
+}
+
+// Privacy Policy / Terms of Use (site/pages/legal.blade.php): long-form reading
+// text, so smaller headings than the marketing pages.
+.legal {
+    h2 {
+        font-size: 24px;
+        line-height: 32px;
+        margin: 40px 0 15px;
+    }
+    p,
+    li {
+        font-size: 17px;
+        line-height: 28px;
+    }
+    ul {
+        margin-bottom: 20px;
+    }
+    li {
+        margin-bottom: 8px;
+    }
+    .legal-updated {
+        font-size: 15px;
+        color: #777;
+    }
 }
 
 .footer-clients {

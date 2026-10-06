@@ -65,8 +65,25 @@ ADR-0024's three-bundle wording is stale on that point.
   popup shows the full lead with reply links, the site language and the spam check;
   staff mark leads handled (who + when) or delete spam. Each lead email links straight to
   its inquiry. Leads now also store `locale` and `spam_check`.
-- **Privacy policy / terms pages.** Neither site has them, and the application collects
-  date of birth and criminal-history answers.
+- **Privacy policy / terms pages — drafted 2026-10-05, need sign-off before go-live.**
+  `/privacy-policy` + `/terms-of-use` (Spanish `/es/politica-de-privacidad`,
+  `/es/terminos-de-uso`), in the sitemap, linked from the footer and under every form.
+  Text lives in `lang/{en,es}/site/{privacy,terms}.php`; English is the reference. They
+  describe what the site actually collects (contact forms, the application's DOB,
+  citizenship/work-eligibility and conviction answers, emergency contact), the cookies,
+  Google Analytics and reCAPTCHA. **Not legal advice: have counsel review.** Statements
+  the business must confirm are true:
+  - Applicant details may be shared with **client businesses** where we might place them.
+  - Applicant/employee records kept **up to seven years** after closing — the period
+    `docs/20-domain/audit-and-pii.md` designs for `people`; the purge job isn't built yet,
+    so today nothing is removed automatically. Contact messages "as long as needed".
+  - We **don't sell** personal information or share it for targeted advertising (holds
+    while GA's Google Signals / ads features stay off).
+  - Requests to see, correct or delete information go through the Contact page / phone /
+    mailing address (no dedicated privacy email address).
+  - Terms: employment is **at will**, Quality Cleaning Plus is an **equal opportunity
+    employer**, Texas law with **Dallas County** courts.
+  - The Spanish text needs a native-speaker read like the rest of the site.
 - **Shared session cookie** across the marketing site and `/admin` (path `/`; Fortify
   sign-in at `/login`), which contradicts ADR-0024's "path-scoped under `/admin`". Decide
   whether it matters before go-live.

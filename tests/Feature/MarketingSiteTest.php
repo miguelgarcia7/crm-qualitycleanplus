@@ -84,3 +84,21 @@ it('shows a static hero image instead of the legacy video', function () {
         ->assertSee('/images/home-hero-dallas.jpg', false)
         ->assertDontSee('<video', false);
 });
+
+it('shows the privacy policy and terms, linked from the footer and the forms', function () {
+    $this->get(main('/privacy-policy'))->assertOk()
+        ->assertSee('<h1 class="ui_animate">Privacy Policy</h1>', false)
+        ->assertSee('We do not sell your personal information')
+        ->assertSee('href="/terms-of-use"', false);
+
+    $this->get(main('/terms-of-use'))->assertOk()
+        ->assertSee('<h1 class="ui_animate">Terms of Use</h1>', false)
+        ->assertSee('Dallas County, Texas');
+
+    $this->get(main('/'))->assertSee('<a href="/privacy-policy">Privacy Policy</a> &middot; <a href="/terms-of-use">Terms of Use</a>', false);
+
+    foreach (['/application', '/contact-us/job-seekers', '/contact-us/business-inquiries'] as $form) {
+        $this->get(main($form))->assertSee('as described in our <a href="/privacy-policy">Privacy Policy</a>', false);
+    }
+    $this->get(main('/es/solicitud'))->assertSee('<a href="/es/politica-de-privacidad">Política de Privacidad</a>', false);
+});
