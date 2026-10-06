@@ -26,7 +26,7 @@ return [
         'about_title' => 'Quality Cleaning Plus',
         'follow' => 'Síguenos',
         'rights' => 'Quality Cleaning Plus, Inc. Todos los derechos reservados. Todas las marcas son propiedad de sus respectivos dueños.',
-        'site_by' => 'Sitio por',
+        'site_by' => 'Desarrollado por',
     ],
 
     'cta' => [

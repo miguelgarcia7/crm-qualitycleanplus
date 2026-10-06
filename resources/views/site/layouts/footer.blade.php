@@ -53,7 +53,7 @@
                         <p>&copy; {{ now()->year }} {{ __('site/layout.footer.rights') }}</p>
                     </div>
                     <div class="col-md-3 text-md-end">
-                        <p>{{ __('site/layout.footer.site_by') }}: <a href="https://www.studiomex.com?ref=qualitycleanplus.com" target="_blank" rel="noopener">StudioMex</a></p>
+                        <p>{{ __('site/layout.footer.site_by') }} <a href="https://www.studiomex.com?ref=qualitycleanplus.com" target="_blank" rel="noopener">StudioMex</a></p>
                     </div>
                 </div>
             </div>
