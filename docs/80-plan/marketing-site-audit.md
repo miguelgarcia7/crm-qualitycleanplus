@@ -2,22 +2,69 @@
 
 | Field | Value |
 |---|---|
-| Status | 📋 Audit complete; decisions recorded, fixes not started |
-| Last updated | 2026-10-04 |
+| Status | ✅ Must-fix items and decisions D1–D3, D6 done; see **What's left** |
+| Last updated | 2026-10-05 |
 | Owner | Engineering |
 | Compares | Legacy `~/Code/www.qualitycleanplus.site` (Laravel 11, public site at `/` + `/es/*`) vs this app's marketing surface (`routes/marketing.php`, `resources/views/site/`, ADR-0023) |
 
 ## Summary
 
-The rebuild's marketing surface is a faithful port of the **English** half of the legacy
-site, and its application flow is stronger than legacy (Person + JobApplication, visible
-at `/admin/applicants`). It is **not cutover-ready**: contact-form leads are no longer
-delivered to anyone, there is no spam protection, Spanish and testimonials are missing,
-and a number of legacy bugs/typos were ported verbatim.
+At audit time (2026-10-04) the rebuild was a port of only the **English** half of the
+legacy site: leads weren't delivered, there was no spam protection, Spanish and
+testimonials were missing, and legacy bugs had been copied over. As of 2026-10-05 all five
+must-fix items are fixed and Spanish, testimonials, the SEO clean-up and branded error
+pages are built (sections below). The remaining work is listed in **What's left**.
 
 Bundle layout is settled: back office + QC Minute share the React/Inertia bundle; the
 marketing site is the only separate bundle (`vite-site.config.ts`), Blade-rendered for SEO.
 ADR-0024's three-bundle wording is stale on that point.
+
+## What's left (2026-10-05)
+
+**Decisions for Miguel**
+- **Production lead recipients.** `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO`
+  point at Miguel on staging; legacy sent leads to d.aguilar@. Tracked in the cutover
+  runbook's env-var table.
+- **Google for Jobs** — parked until pay can be published (minimum or range); see the
+  parked section at the end.
+- **Home `<title>`** says "Quality Cleaning Experts for Residential and Commercial" while
+  the hero says "The Hospitality Experts". Pick the message Google should show.
+- **Spanish terms** with no legacy wording, for a native speaker to confirm: "Mozos de
+  limpieza" (Houseman), "Ayudantes de mesero" (Bussers), "Montaje de banquetes" (Set Up),
+  "Auxiliares de cocina" (Stewarding), "Empaque" (Packaging), "Meseros" (Servers) —
+  `lang/es/site/services.php`.
+
+**Small fixes (code)**
+- **Hero video (D5).** `home.blade.php:31` still has `<video src="/media/downtown_dallas.mp4">`
+  and `public/media` doesn't exist, so the hero box is empty. Replace with a static image.
+- **Nunito font never applies.** `resources/css/site/app.scss` imports `_variables.scss`
+  after Bootstrap, so `$font-family-sans-serif` (and `$body-bg`, `$link-color`) are
+  ignored; the built CSS contains no "Nunito".
+- **Bootstrap mismatch.** CSS is compiled from Bootstrap ^5.3.8 but the layout loads the
+  5.1.3 JS bundle from a CDN; jQuery is loaded and unused.
+- **Invisible-content risk.** `.ui_animate { opacity: 0 }` relies on CDN GSAP to reveal
+  content; if the CDN is blocked, most of each page stays invisible.
+- **Application form leftovers.** `position` is posted twice when a posting is chosen
+  (hidden + visible input); unused hidden `application_date` and `status` inputs.
+- **Business form.** Phone is `required` in the HTML but optional on the server — pick one.
+- **Possible 500 on `/job-openings`** (unverified). `JobPosting::locationName()` reads
+  `$this->property->name`; a published posting on a soft-deleted property would have no
+  property.
+- **Unused legacy assets.** `public/images/clients/`, `hero-image-1.png`,
+  `our-services.jpg`, `icons/Archive.zip` (plus the baseball/partner images, D4).
+- **`.env.example`** still has `APP_NAME=Minute`.
+
+**Larger pieces**
+- **Back-office inbox for contact inquiries.** Leads are stored and emailed, but nothing in
+  `/admin` lists `contact_inquiries`; email is the only way to see them.
+- **Privacy policy / terms pages.** Neither site has them, and the application collects
+  date of birth and criminal-history answers.
+- **Shared session cookie** across the marketing site and `/admin` (path `/`; Fortify
+  sign-in at `/login`), which contradicts ADR-0024's "path-scoped under `/admin`". Decide
+  whether it matters before go-live.
+
+**Docs** — see **Doc drift to correct** below (ADR-0023/0024, 08b-i, identity-and-auth,
+domain-routing, deployment-topology).
 
 ## Decisions (2026-10-04)
 
@@ -42,7 +89,8 @@ ADR-0024's three-bundle wording is stale on that point.
    published posting (a posting closed mid-form is dropped, the application still lands
    with the typed position). Covered in `tests/Feature/JobApplicationTest.php`.
 3. ~~**No spam protection or throttle** on the 3 public POSTs.~~ Fixed 2026-10-04:
-   reCAPTCHA v3 (`App\Rules\Recaptcha`, `site.elements.recaptcha`) on both contact forms
+   reCAPTCHA v3 (`App\Domain\Marketing\Support\Recaptcha` via the form requests'
+   `ChecksRecaptcha` concern, `site.elements.recaptcha`) on both contact forms
    (action `contact`) and the application (`application`). **Middle ground** (revised
    with #1): rejects only a missing token or a score Google gave below
    `RECAPTCHA_MIN_SCORE`; anything that prevents a verdict (Google error such as
@@ -54,8 +102,8 @@ ADR-0024's three-bundle wording is stale on that point.
 4. ~~**Page titles / `og:site_name` read "Minute".**~~ Fixed locally 2026-10-04:
    `APP_NAME="Quality Cleaning Plus (New)"`. **"(New)" is a deliberate temporary marker**
    to tell the rebuild apart from the live legacy site — **drop it at cutover** (titles and
-   `og:site_name` are public/SEO-visible). Still to do: set it on the Cloud staging env and
-   `.env.example`. Note one `APP_NAME` also drives the back-office/QC Minute tab titles and
+   `og:site_name` are public/SEO-visible). Set on staging 2026-10-05; `.env.example` still
+   says `Minute`. Note one `APP_NAME` also drives the back-office/QC Minute tab titles and
    the session cookie name (changing it logs everyone out once).
 5. ~~**Public form can attach to existing staff records.**~~ Fixed 2026-10-05 (option b):
    only a live applicant re-applying is linked automatically. Any other email match
@@ -72,17 +120,17 @@ ADR-0024's three-bundle wording is stale on that point.
 | Job openings list | `Position` status=1 | `JobPosting::published()` + empty state | ✅ Better |
 | Single posting page (`content`, `pay_range`) | ❌ not shown | ❌ not shown (planned in 08b-i Inc 2, not built) | Gap in both |
 | Application form | `Applicant::create($request->all())`, trusts hidden `status`, no captcha | `SubmitApplication` → Person(applicant) + JobApplication | ✅ Better (see must-fix 2, 5) |
-| Job-seeker contact form | Email to staff | DB only | ❌ **Regression** |
-| Business inquiry form | Email to staff | DB only | ❌ **Regression** |
-| reCAPTCHA v3 on contact forms | ✅ | ❌ stripped | ❌ Regression (D3) |
+| Job-seeker contact form | Email to staff | DB + email (`MARKETING_JOB_SEEKERS_TO`) | ✅ Fixed (must-fix 1) |
+| Business inquiry form | Email to staff | DB + email (`MARKETING_BUSINESS_TO`) | ✅ Fixed (must-fix 1) |
+| reCAPTCHA v3 on contact forms | ✅ | ✅ contact forms + application, plus rate limit | ✅ Fixed (D3) |
 | Spanish `/es/*` | ✅ 10 pages (2 broken) | ✅ all 9 pages, shared views + `lang/{en,es}/site/*` | ✅ Done 2026-10-05 (D1) |
 | Testimonials carousel | ✅ `testimonials` table, CMS-managed | ✅ `Testimonial` model, `/admin/testimonials` (Website › Testimonials), imported from legacy | ✅ Done 2026-10-05 (D2) |
-| Hero video | ✅ | Broken reference (`public/media` absent) | Remove (D5) |
-| `/partners/baseball` | ✅ | ❌ | Not porting (D4) |
-| Nav login link + language switcher | ✅ | ❌ stripped | Switcher needed for D1 |
+| Hero video | ✅ | Broken reference (`public/media` absent) | ⏳ Still to remove (D5) |
+| `/partners/baseball` | ✅ | 301 → `/` | ✅ Not porting (D4) |
+| Nav login link + language switcher | ✅ | Switcher to the same page in the other language; no login link | ✅ Done (D1) |
 | Google Analytics `G-ZQSBDK2ZRN` | ✅ | ✅ production only (`GOOGLE_ANALYTICS_ID`) | ✅ Done 2026-10-05 |
 | Sitemap / hreflang / JSON-LD | ❌ | ✅ `/sitemap.xml` (both languages + open postings), hreflang, EmploymentAgency JSON-LD | ✅ Done 2026-10-05 |
-| Privacy / terms pages | ❌ | ❌ | Gap — the application collects DOB + felony data |
+| Privacy / terms pages | ❌ | ❌ | ⏳ Gap — the application collects DOB + felony data |
 | Branded error pages | ❌ | ✅ 403/404/419/429/500/503 in the site layout, EN/ES (`SiteErrorPage`); expired forms return with answers kept | ✅ Done 2026-10-05 (marketing only) |
 
 ## Legacy contact routing
@@ -118,9 +166,8 @@ back-office inbox for `contact_inquiries` so leads aren't email-only.
   error, so a low score silently reloads the form.
 - Application form: **no** captcha.
 
-**Rebuild (today):** nothing. The legacy site key survives in a Blade comment
-(`resources/views/site/pages/contact_us_employees.blade.php:109-112`) and is the same key
-legacy uses. No `RECAPTCHA` env vars, config, or rule exist.
+**Rebuild at audit time:** nothing (built since — see must-fix 3). The rebuild now uses its
+own key (`6LfYPJ…`); the legacy key (`6LdE5P…`) stays with the legacy site.
 
 **Free tier:** reCAPTCHA moved into Google Cloud; Classic keys were auto-migrated to Cloud
 projects (Q4 2025–Q1 2026). Free tier is **10,000 assessments/month**; beyond that billing
@@ -191,41 +238,37 @@ translation source — it has typos to fix ("limpiez", "negocion", "Quienes Noso
   Idempotent via `legacy_id_map` (`qcp_testimonial`); a re-run refreshes text/rating/
   visibility from legacy (overwriting edits made here) and copies a photo only once.
   Local run 2026-10-05: 19 imported (16 on site), 3 photos copied.
-- **Not yet:** the Spanish home page should show the same testimonials (D1).
+- The Spanish home page shows the same testimonials (D1, done).
 
-## Ported bugs (present in both)
+## Ported bugs (present in both) — status 2026-10-05
 
-- Canonical hardcoded to `https://www.qualitycleanplus.com/` on every page
-  (`site/elements/meta_data.blade.php:4`); rebuild's main domain is configured without `www`.
-- `twitter:site`/`creator` `@QualityCleaningPlus` exceeds the 15-char handle limit; no
-  `twitter:card`. `DC.date.issued` malformed (`:17`).
-- `/images/safari-pinned-tab.svg` referenced, missing.
-- Contact, job-seekers and business pages share one title + description; thank-you has none.
-- Application form: yes/no radio errors never display (`.invalid-feedback` without
-  `.is-invalid`); `position` posted twice when a job is set; unused hidden
-  `application_date`/`status`.
-- Business form: phone required in HTML, nullable on server; inquiry-type select has
-  `aria-label="Call Back Time"`.
-- Typos: "Employement", "Jobs Openings", "custruction", "corrrect", "If the answer if yes",
-  "eligible able", "Have you work for", "go about and beyond".
-- Footer: static "© 2022", `&copy` without `;`, address order "Dallas, Texas 75235, Suite
-  126", Bootstrap 3/4 classes (`text-right`, `col-xs-12`).
-- `.ui_animate { opacity: 0 }` depends on CDN GSAP; if it fails, content stays invisible.
+- ✅ Canonical hardcoded to the www homepage — now each page's own URL.
+- ✅ Invalid `twitter:site`/`creator` handle, missing `twitter:card`, malformed
+  `DC.date.issued` — fixed (SEO clean-up).
+- ✅ Missing `/images/safari-pinned-tab.svg` reference — removed.
+- ✅ Contact pages sharing one title/description; empty thank-you description — each has its own.
+- ✅ Yes/no radio errors never displayed — fixed (Spanish work). ⏳ `position` posted twice;
+  unused hidden `application_date`/`status` — still open.
+- ⏳ Business form phone required in HTML, optional on the server — still open.
+  ✅ Inquiry-type `aria-label="Call Back Time"` — fixed.
+- ✅ Typos ("Employement", "Jobs Openings", "custruction", "corrrect", "If the answer if
+  yes", "eligible able", "Have you work for", "go about and beyond") — fixed.
+- ✅ Footer: static year, `&copy` without `;`, address order, Bootstrap 3/4 classes — fixed.
+- ⏳ `.ui_animate { opacity: 0 }` depends on CDN GSAP — still open.
 
-## Rebuild-only issues
+## Rebuild-only issues — status 2026-10-05
 
-- **Nunito never applies** — `_variables.scss` is imported after Bootstrap
+- ⏳ **Nunito never applies** — `_variables.scss` is imported after Bootstrap
   (`resources/css/site/app.scss`), so `$font-family-sans-serif` is ignored; built CSS has no
   "Nunito".
-- Bootstrap CSS ^5.3.8 vs CDN JS 5.1.3; jQuery loaded, unused; Swiper loads on home with no
-  testimonials to show.
-- Shared session cookie across `/` and `/admin` (path `/`, name from `APP_NAME`); Fortify
+- ⏳ Bootstrap CSS ^5.3.8 vs CDN JS 5.1.3; jQuery loaded, unused. (Swiper now has
+  testimonials to show.)
+- ⏳ Shared session cookie across `/` and `/admin` (path `/`, name from `APP_NAME`); Fortify
   login at root `/login`. Contradicts ADR-0024's "path-scoped under `/admin`".
-- `JobPosting::locationName()` reads `$this->property->name`; a published posting on a
+- ⏳ `JobPosting::locationName()` reads `$this->property->name`; a published posting on a
   soft-deleted property likely 500s `/job-openings` (unverified).
-- Nav active state misses sub-pages (`/contact-us/*`, `/application*`).
-- `robots.txt` allows everything (no `/admin` disallow, no `Sitemap:`); demo env relies on
-  the `NoIndexInDemoMode` header.
+- ✅ Nav active state misses sub-pages — fixed (`SiteLocale::is()` matches sub-pages).
+- ✅ `robots.txt` allowed everything — now generated per environment (SEO clean-up).
 - Demo seeder publishes "Acme Hotel" postings — visible on the public board in demo (expected).
 
 ## Legacy bugs — do not port
@@ -237,7 +280,7 @@ translation source — it has typos to fix ("limpiez", "negocion", "Quienes Noso
 - ES apply pre-fill broken (`{job}` vs `Position $position`).
 - `uix_con_todo` email obfuscator assigns undeclared globals under module strict mode.
 
-## Doc drift to correct
+## Doc drift to correct — still open
 
 - ADR-0023 names `routes/public.php` / `app.css`; code uses `routes/marketing.php` /
   `app.scss`.
@@ -333,12 +376,10 @@ the description (`content`) or `pay_range`, though both exist in the admin.
 3. **Employment type.** Contractors are 1099 → `CONTRACTOR` (or `TEMPORARY`); same for
    every posting, or per posting?
 
-## Suggested order
+## Done (2026-10-04 → 2026-10-05)
 
-1. Must-fix 2, 4 and the Nunito import (small, isolated).
-2. reCAPTCHA v3 + throttle (D3) — needs Google Cloud key check first.
-3. Contact delivery: config recipients, notification, back-office inbox (D6).
-4. Testimonials model + admin + import (D2).
-5. Spanish (D1) — largest; do after copy fixes so translations start from corrected EN.
-6. SEO pass: per-page canonical, hreflang, sitemap, robots, twitter card, production-only GA.
-7. Remove hero video + baseball/partner assets (D4, D5); doc drift.
+Must-fix 1–5; reCAPTCHA v3 + rate limit (D3, flag-not-block, badge hidden with Google's
+notice); lead emails (D6); testimonials (D2) with the legacy import; Spanish (D1); SEO
+clean-up (generated robots/sitemap with caching, www redirect, legacy redirects,
+production-only analytics, structured data); branded error pages for the marketing site,
+back office and QC Minute; staging env vars set; cutover runbook env-var table.
