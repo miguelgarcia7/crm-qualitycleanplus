@@ -6,7 +6,8 @@ use App\Domain\Recruiting\Models\JobApplication;
 use Illuminate\Bus\Queueable;
 
 /**
- * In-app notice to recruiters that someone applied through the public website.
+ * In-app notice to recruiters and office managers that someone applied through
+ * the public website.
  * Applications otherwise only appear in Applicants, which nobody watches all day.
  * Mutable: the "New applications" category can be switched off per person.
  */

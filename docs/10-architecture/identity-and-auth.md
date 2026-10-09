@@ -78,7 +78,7 @@ Body:
   { first_name, last_name, email, phone, ... full applicant form ... }
 ```
 
-The endpoint is unauthenticated (it's a public form) but CSRF-protected. A submission records a `job_applications` row on an applicant `person` (an email that matches a non-applicant or archived person is held for a recruiter to link or dismiss — see `20-domain/people-lifecycle.md`). Every recruiter gets an in-app alert (`ApplicationReceived`, category "New applications", mutable) that opens the application in Applicants; no email is sent. Only the website form alerts — `SubmitApplication` called elsewhere (imports) does not.
+The endpoint is unauthenticated (it's a public form) but CSRF-protected. A submission records a `job_applications` row on an applicant `person` (an email that matches a non-applicant or archived person is held for a recruiter to link or dismiss — see `20-domain/people-lifecycle.md`). Every recruiter and office manager gets an in-app alert (`ApplicationReceived`, category "New applications", mutable) that opens the application in Applicants; no email is sent. Only the website form alerts — `SubmitApplication` called elsewhere (imports) does not.
 
 ## Roles
 

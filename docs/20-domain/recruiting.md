@@ -53,7 +53,7 @@ application form pre-filled for that posting.
   the status-filtered review queue + detail page with start-review / reject
   (reason), the onboarding checklist, and promote/reverse.
 - **Alert (2026-10-08)**: each application from the website form sends every
-  recruiter an in-app notice (`ApplicationReceived`, category "New applications",
+  recruiter and office manager an in-app notice (`ApplicationReceived`, category "New applications",
   mutable from My Profile → Notifications) that opens it in Applicants, and says so
   when the email matches someone already on file. No email.
 

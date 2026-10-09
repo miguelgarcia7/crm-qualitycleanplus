@@ -34,7 +34,7 @@ Local equivalents (Herd): `qcpminute.test` (= `qualitycleanplus.com`) and `qcmin
 Because marketing is in the same codebase and database, there's **no cross-app API**:
 
 1. **Job listings** render directly from the shared DB (the active `job_postings`, read in-process).
-2. **Applications** — the public form POSTs in-app (CSRF-protected, no pre-shared key) and records a `job_applications` row on an applicant `person`. Recruiters get an in-app alert linking to it (no email).
+2. **Applications** — the public form POSTs in-app (CSRF-protected, no pre-shared key) and records a `job_applications` row on an applicant `person`. Recruiters and office managers get an in-app alert linking to it (no email).
 
 This removes the previous separate-app integration (the old public JSON endpoint + pre-shared-key POST are gone).
 

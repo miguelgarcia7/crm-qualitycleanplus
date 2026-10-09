@@ -12,9 +12,9 @@ beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
 });
 
-it('alerts every recruiter in the app when someone applies on the website', function () {
-    $recruiters = [person('recruiter'), person('recruiter')];
-    $officeManager = person('office_manager');
+it('alerts every recruiter and office manager when someone applies on the website', function () {
+    $recipients = [person('recruiter'), person('recruiter'), person('office_manager')];
+    $others = [person('admin'), person('hr'), person('front_desk')];
     $posting = JobPosting::factory()->published()->create(['title' => 'Night Auditor']);
 
     $this->post(main('/application'), applicationPayload(['job_id' => $posting->id, 'position' => 'Night Auditor']))
@@ -22,14 +22,16 @@ it('alerts every recruiter in the app when someone applies on the website', func
 
     $application = JobApplication::query()->firstOrFail();
 
-    foreach ($recruiters as $recruiter) {
-        $data = $recruiter->notifications()->sole()->data;
+    foreach ($recipients as $recipient) {
+        $data = $recipient->notifications()->sole()->data;
         expect($data['type'])->toBe('application_received')
             ->and($data['category'])->toBe('applications')
             ->and($data['application_id'])->toBe($application->id)
             ->and($data['message'])->toBe('New application from Maria Lopez for Night Auditor.');
     }
-    expect($officeManager->notifications()->count())->toBe(0);
+    foreach ($others as $other) {
+        expect($other->notifications()->count())->toBe(0);
+    }
 });
 
 it('alerts from the Spanish form too', function () {
