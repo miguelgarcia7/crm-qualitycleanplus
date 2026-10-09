@@ -131,7 +131,8 @@ Roles get assigned permissions during seeding. See `10-architecture/permissions-
 
 ## Session and security
 
-- Sessions are HttpOnly, Secure, SameSite=Lax cookies
+- Sessions are HttpOnly, Secure, SameSite=Lax cookies (`Secure` comes from the host: Laravel Cloud sets it; nothing in `.env.example` does)
+- On the main domain the session cookie has path `/`, shared by the marketing site and `/admin` — accepted, see ADR-0024's 2026-10-08 amendment
 - CSRF protection on all POST/PUT/DELETE routes (Laravel default)
 - Sanctum tokens stored hashed in DB
 - Audit log records all login attempts (success + failure)

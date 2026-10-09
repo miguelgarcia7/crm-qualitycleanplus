@@ -84,9 +84,9 @@ ADR-0024's three-bundle wording is stale on that point.
   - Terms: employment is **at will**, Quality Cleaning Plus is an **equal opportunity
     employer**, Texas law with **Dallas County** courts.
   - The Spanish text needs a native-speaker read like the rest of the site.
-- **Shared session cookie** across the marketing site and `/admin` (path `/`; Fortify
-  sign-in at `/login`), which contradicts ADR-0024's "path-scoped under `/admin`". Decide
-  whether it matters before go-live.
+- ~~Shared session cookie~~ across the marketing site and `/admin` (path `/`).
+  **Accepted 2026-10-08**; ADR-0024 amended with the reasoning (HttpOnly, Secure on
+  Cloud, SameSite=Lax; marketing renders nothing user-specific).
 
 **Docs** — see **Doc drift to correct** below (ADR-0023/0024, 08b-i, identity-and-auth,
 domain-routing, deployment-topology).

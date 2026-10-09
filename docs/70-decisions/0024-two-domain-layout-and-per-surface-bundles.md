@@ -46,7 +46,7 @@ In review, the owner settled the concrete domain layout, which differs from thos
 
 ### Negative
 
-- Marketing and back office share a domain, so cookie/session scoping must be deliberate (back office is path-scoped under `/admin`)
+- Marketing and back office share a domain, so they share one session cookie (path `/`) — see **Amendment 2026-10-08** below
 - Three bundles mean three Vite entries + three folder trees to maintain
 
 ### Implementation requirements
@@ -56,6 +56,16 @@ In review, the owner settled the concrete domain layout, which differs from thos
 - Middleware `allowed_on_backoffice` (on `/admin`) and `allowed_on_qcminute`
 - Vite multi-entry: `resources/js/admin/app.tsx`, `resources/js/minute/app.tsx`, `resources/{css,js}/site/`
 - See `10-architecture/domain-routing.md`
+
+## Amendment 2026-10-08 — one session cookie for the whole main domain
+
+The original text said the back office would be "path-scoped under `/admin`". It isn't, and the owner accepted that rather than changing it:
+
+- The session and `XSRF-TOKEN` cookies use path `/` (`SESSION_PATH=/`), so they cover the marketing pages and `/admin` alike. Sign-in is Fortify's `/login`, `/two-factor-challenge` and `/forgot-password`, outside `/admin`, which a `/admin`-scoped cookie would not reach.
+- Effect: public visitors get a session cookie (the contact and application forms need one for CSRF anyway), and a signed-in staff member's cookie is also sent on public pages. Nothing on the marketing side reads the user or session beyond CSRF and form flashes.
+- Why it's acceptable: the cookie is `HttpOnly`, `SameSite=Lax`, and `Secure` on Laravel Cloud (checked on staging 2026-10-08), and the marketing site renders no user-specific content. `robots.txt` and `sitemap.xml` skip the session entirely.
+- Scoping it to `/admin` would mean moving every auth route under `/admin` and giving the marketing forms their own cookie, for no practical security gain.
+- `SESSION_DOMAIN` stays unset: the main domain and the QC Minute domain are different registrable domains and can't share a cookie anyway.
 
 ## Alternatives considered
 
