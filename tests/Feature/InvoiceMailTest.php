@@ -9,6 +9,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Symfony\Component\Mailer\Bridge\Postmark\Transport\PostmarkApiTransport;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\SentMessage;
@@ -122,6 +123,15 @@ it('leaves the invoice unsent when the mailer rejects it', function () {
     expect($invoice->status)->toBe(InvoiceStatus::Invoiced)
         ->and($invoice->notification_sent_at)->toBeNull()
         ->and($invoice->notification_recipient)->toBeNull();
+});
+
+it('builds the Postmark mailer with its request timeout', function () {
+    // The mailer's `client` timeout needs symfony/http-client; without it every
+    // Postmark send died with "Class HttpClient not found" before reaching the API.
+    config()->set('services.postmark.key', 'test-token');
+    Mail::forgetMailers();
+
+    expect(Mail::mailer('postmark')->getSymfonyTransport())->toBeInstanceOf(PostmarkApiTransport::class);
 });
 
 it('tells the recruiter the send failed instead of reporting success', function () {
