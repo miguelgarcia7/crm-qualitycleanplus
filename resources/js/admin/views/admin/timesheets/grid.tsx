@@ -14,7 +14,12 @@ type Row = {
   /** A closed or suspended work order is listed only when it has time in the week. */
   status: string
   status_label: string
+  start_date: string
   end_date: string | null
+  /** Set on a pay increase's new work order: the pay rate it replaced. */
+  previous_pay_rate: number | null
+  /** Set on the work order a pay increase replaced: the day the new rate starts. */
+  pay_increase_from: string | null
   pay_rate: number | null
   bill_rate: number | null
 }
@@ -370,7 +375,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1080px] table-fixed text-sm">
                 <colgroup>
-                  <col className="w-60" />
+                  <col className="w-72" />
                   {week.days.map((d) => (
                     <col key={d} />
                   ))}
@@ -406,13 +411,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                               <Avatar name={r.contractor} />
                               <span className="min-w-0">
                                 <span className="text-default-900 hover:text-primary block truncate font-medium">{r.contractor}</span>
-                                <span className="text-default-400 flex items-center gap-1.5 text-xs">
-                                  <span className="truncate">{r.position}</span>
-                                  {/* Only in the week it actually stopped — it was running in the weeks before. */}
-                                  {r.status !== 'active' && (!r.end_date || r.end_date <= week.end) && (
-                                    <Chip tone="muted">{r.end_date ? `Ended ${monthDay(r.end_date)}` : r.status_label}</Chip>
-                                  )}
-                                </span>
+                                <WorkOrderChange row={r} week={week} />
                               </span>
                             </button>
                           </td>
@@ -587,6 +586,43 @@ const Chip = ({ tone, title, children }: { tone: 'secondary' | 'info' | 'success
     <span title={title} className={cn('inline-flex h-[18px] items-center rounded-md px-1.5 text-[10.5px] font-semibold whitespace-nowrap tabular-nums', tones[tone])}>
       {children}
     </span>
+  )
+}
+
+/**
+ * Position, plus when this work order started or stopped — shown only in that
+ * week. A pay increase names itself and its rate change on the new work order,
+ * and the old one says when the new rate takes over.
+ */
+const WorkOrderChange = ({ row, week }: { row: Row; week: Props['week'] }) => {
+  const startsThisWeek = row.start_date >= week.start && row.start_date <= week.end
+  // It was running in the weeks before it stopped, so only its last week says so.
+  const stoppedBy = row.status !== 'active' && (!row.end_date || row.end_date <= week.end)
+  const from = row.previous_pay_rate
+  const to = row.pay_rate
+  const increase = startsThisWeek && from !== null && to !== null
+
+  return (
+    <>
+      <span className="text-default-400 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+        <span>{row.position}</span>
+        {stoppedBy && <Chip tone="muted">{row.end_date ? `Ended ${monthDay(row.end_date)}` : row.status_label}</Chip>}
+        {stoppedBy && row.pay_increase_from && <span>· pay increase from {monthDay(row.pay_increase_from)}</span>}
+        {increase && (
+          <Chip tone="success">
+            <Icon icon="arrow-up-right" className="me-0.5 size-3" />
+            Pay increase · {monthDay(row.start_date)}
+          </Chip>
+        )}
+        {startsThisWeek && !increase && <Chip tone="success">Started {monthDay(row.start_date)}</Chip>}
+      </span>
+      {startsThisWeek && from !== null && to !== null && (
+        <span className="mt-0.5 block text-xs tabular-nums">
+          <s className="text-default-400">{money(from)}</s> → <span className="text-success font-semibold">{money(to)}/h</span>{' '}
+          <span className="text-default-400">(+{money(to - from)})</span>
+        </span>
+      )}
+    </>
   )
 }
 
@@ -956,6 +992,12 @@ const PersonPanel = ({
             <dd className="text-default-900 text-end font-medium">
               {money(row.pay_rate)} · {money(row.bill_rate)}
             </dd>
+          </>
+        )}
+        {row.previous_pay_rate !== null && (
+          <>
+            <dt className="text-default-400">Pay rate before {monthDay(row.start_date)}</dt>
+            <dd className="text-default-400 text-end font-medium">{money(row.previous_pay_rate)}</dd>
           </>
         )}
         <dt className="text-default-400">Pay</dt>

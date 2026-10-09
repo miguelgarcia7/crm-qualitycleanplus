@@ -14,6 +14,7 @@ use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Time\Support\GpsPolicy;
+use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Http\Requests\Time\StoreTimeEntryRequest;
@@ -58,9 +59,11 @@ class TimeEntryController extends Controller
                     ->orWhereIn('id', TimeEntry::query()->where('payroll_period_id', $period?->id)->select('work_order_id'))
                     ->orWhereIn('id', TimeSummary::query()->where('payroll_period_id', $period?->id)->select('work_order_id'))
                     ->orWhereIn('id', TimeEntryAdjustment::query()->where('payroll_period_id', $period?->id)->whereNotNull('work_order_id')->select('work_order_id'))))
-            ->with(['person:id,name', 'position:id,name'])
-            ->orderBy('id')
-            ->get();
+            ->with(['person:id,name', 'position:id,name', 'parent:id,pay_rate', 'replacements:id,parent_wo_id,source,start_date'])
+            ->get()
+            // By contractor, so a new work order doesn't move anyone down the grid.
+            ->sortBy(fn (WorkOrder $wo): array => [mb_strtolower($wo->person->name ?? ''), $wo->start_date->toDateString()])
+            ->values();
 
         $entries = $period === null ? collect() : TimeEntry::query()
             ->where('payroll_period_id', $period->id)
@@ -127,7 +130,13 @@ class TimeEntryController extends Controller
                 'position' => $wo->position?->name,
                 'status' => $wo->status->value,
                 'status_label' => $wo->status->label(),
+                'start_date' => $wo->start_date->toDateString(),
                 'end_date' => $wo->end_date?->toDateString(),
+                // The two sides of a pay increase: the rate the new work order
+                // replaced, and on the old one, the day the new rate starts.
+                'previous_pay_rate' => $wo->source === WorkOrderSource::PayIncrease ? $wo->parent?->pay_rate : null,
+                'pay_increase_from' => $wo->replacements
+                    ->firstWhere('source', WorkOrderSource::PayIncrease)?->start_date->toDateString(),
                 // Shown in the person panel; the week's pay/bill totals already
                 // reveal them to anyone who can open the grid.
                 'pay_rate' => $wo->pay_rate,

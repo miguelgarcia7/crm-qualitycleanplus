@@ -17,6 +17,7 @@ use App\Domain\Time\Events\TimeEntrySaved;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
+use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
@@ -203,20 +204,23 @@ it('keeps a closed work order on the grid for a week it has hours in', function 
     seedHours($closedWithHours, $monday, 1, '09:00', '17:00');
     $closedWithHours->update(['status' => WorkOrderStatus::Closed]);
     $closedWithout->update(['status' => WorkOrderStatus::Closed]);
+    // Rows are sorted by contractor name, whatever the work order ids.
+    $active->person->update(['name' => 'Zoe Active']);
+    $closedWithHours->person->update(['name' => 'Ana Closed']);
 
     $this->actingAs(person('office_manager'))
         ->get(main("/admin/properties/{$property->id}/grid?week={$monday->toDateString()}"))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('rows', 2)
-            ->where('rows.0.work_order_id', $active->id)
-            ->where('rows.0.status', 'active')
-            ->where('rows.1.work_order_id', $closedWithHours->id)
-            ->where('rows.1.status', 'closed')
-            ->where('rows.1.status_label', 'Closed')
-            ->where('rows.1.end_date', $closedWithHours->fresh()->end_date?->toDateString()));
+            ->where('rows.0.work_order_id', $closedWithHours->id)
+            ->where('rows.0.status', 'closed')
+            ->where('rows.0.status_label', 'Closed')
+            ->where('rows.0.end_date', $closedWithHours->fresh()->end_date?->toDateString())
+            ->where('rows.1.work_order_id', $active->id)
+            ->where('rows.1.status', 'active'));
 });
 
-it('leaves a pay increase\'s new work order off the weeks before it starts', function () {
+it('shows a pay increase on both work orders, each only in its own weeks', function () {
     ['property' => $property, 'workOrder' => $old, 'monday' => $monday] = scenario();
     seedHours($old, $monday, 1, '09:00', '17:00');
     $old->update(['status' => WorkOrderStatus::Closed, 'end_date' => $monday->copy()->addDays(6)->toDateString()]);
@@ -226,6 +230,9 @@ it('leaves a pay increase\'s new work order off the weeks before it starts', fun
         'person_id' => $old->person_id,
         'position_id' => $old->position_id,
         'start_date' => $monday->copy()->addWeek()->toDateString(),
+        'source' => WorkOrderSource::PayIncrease,
+        'parent_wo_id' => $old->id,
+        'pay_rate' => 2150,
     ]);
 
     $grid = fn (Carbon $week) => main("/admin/properties/{$property->id}/grid?week={$week->toDateString()}");
@@ -233,12 +240,16 @@ it('leaves a pay increase\'s new work order off the weeks before it starts', fun
     $this->actingAs(person('office_manager'))->get($grid($monday))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('rows', 1)
-            ->where('rows.0.work_order_id', $old->id));
+            ->where('rows.0.work_order_id', $old->id)
+            ->where('rows.0.pay_increase_from', $new->start_date->toDateString())
+            ->where('rows.0.previous_pay_rate', null));
 
     $this->actingAs(person('office_manager'))->get($grid($monday->copy()->addWeek()))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('rows', 1)
-            ->where('rows.0.work_order_id', $new->id));
+            ->where('rows.0.work_order_id', $new->id)
+            ->where('rows.0.previous_pay_rate', 2000)
+            ->where('rows.0.pay_increase_from', null));
 });
 
 it('generates invoices idempotently', function () {

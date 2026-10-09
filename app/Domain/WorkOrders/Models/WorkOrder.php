@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -111,6 +112,26 @@ class WorkOrder extends Model
     public function moreStaffRequest(): BelongsTo
     {
         return $this->belongsTo(MoreStaffRequest::class);
+    }
+
+    /**
+     * The work order this one replaced (a pay increase or a transfer).
+     *
+     * @return BelongsTo<WorkOrder, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrder::class, 'parent_wo_id')->withTrashed();
+    }
+
+    /**
+     * Work orders that replaced this one.
+     *
+     * @return HasMany<WorkOrder, $this>
+     */
+    public function replacements(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class, 'parent_wo_id');
     }
 
     /**

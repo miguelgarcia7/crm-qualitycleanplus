@@ -86,7 +86,9 @@ Recruiter on back office
   → reviews the grid (contractors × days, totals). Rows are the active work
     orders whose dates cover the week, plus any work order with time in it —
     so a pay increase shows the old work order up to its end date and the new
-    one from its start, never both side by side
+    one from its start, never both side by side. Rows sort by contractor; the
+    new work order's first week shows "Pay increase" with old → new pay rate,
+    and the old one's last week says when the new rate starts
   → adds adjustments if needed
   → fixes any time entry errors
   → clicks "Send for Approval"
