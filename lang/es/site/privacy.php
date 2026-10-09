@@ -9,7 +9,7 @@ return [
     ],
 
     'title' => 'Política de Privacidad',
-    'updated' => 'Última actualización: 5 de octubre de 2026',
+    'updated' => 'Última actualización: 8 de octubre de 2026',
 
     'intro' => [
         'Quality Cleaning Plus, Inc. (“Quality Cleaning Plus”, “nosotros”) ofrece servicios de personal y de limpieza en el área de Dallas–Fort Worth. Esta Política de Privacidad explica qué información personal recopilamos a través de qualitycleanplus.com (el “Sitio”), cómo la usamos y compartimos, y qué opciones tiene usted.',
@@ -27,7 +27,7 @@ return [
                 ],
                 '<strong>Información que se recopila automáticamente.</strong> Cuando visita el Sitio, nuestros servidores y los servicios que usamos registran información técnica como su dirección IP, el tipo de navegador y de dispositivo, las páginas que visita y la página desde la que llegó.',
                 [
-                    '<strong>Cookies:</strong> el Sitio usa una cookie de sesión y una cookie de seguridad que los formularios necesitan para funcionar. También usamos Google Analytics, que coloca sus propias cookies para medir cómo se usa el Sitio.',
+                    '<strong>Cookies:</strong> el Sitio usa una cookie de sesión y una cookie de seguridad que los formularios necesitan para funcionar. Cloudflare, la red que usa nuestro proveedor de alojamiento para entregar y proteger el Sitio, puede colocar una cookie de corta duración para distinguir a las personas del tráfico automatizado. También usamos Google Analytics, que coloca sus propias cookies para medir cómo se usa el Sitio.',
                     '<strong>Protección contra spam:</strong> nuestros formularios usan Google reCAPTCHA, que recopila información sobre su dispositivo y la forma en que interactúa con la página y la envía a Google para distinguir a las personas del spam automatizado.',
                 ],
             ],
@@ -49,7 +49,7 @@ return [
             'blocks' => [
                 'No vendemos su información personal ni la compartimos para publicidad dirigida. Solo la compartimos como se describe aquí:',
                 [
-                    '<strong>Proveedores de servicios</strong> que operan el Sitio y nuestros sistemas, como el alojamiento web, el almacenamiento de datos y el envío de correos. Solo pueden usar su información para prestarnos esos servicios.',
+                    '<strong>Proveedores de servicios</strong> que operan el Sitio y nuestros sistemas, como el alojamiento web (incluido Cloudflare, que entrega y protege el Sitio), el almacenamiento de datos y el envío de correos. Solo pueden usar su información para prestarnos esos servicios.',
                     '<strong>Google</strong>, para Google Analytics y reCAPTCHA. El uso que Google hace de esa información se rige por la <a href="https://policies.google.com/privacy?hl=es" target="_blank" rel="noopener">Política de Privacidad de Google</a>.',
                     '<strong>Empresas cliente</strong> donde podríamos asignarle, si solicita trabajo: podemos compartir datos relevantes como su nombre, el trabajo que busca, su disponibilidad y su experiencia.',
                     '<strong>Razones legales y de seguridad:</strong> cuando la ley lo exija, para responder a procesos legales o para proteger los derechos, la propiedad o la seguridad de otras personas.',

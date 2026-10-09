@@ -73,8 +73,9 @@ ADR-0024's three-bundle wording is stale on that point.
   `/es/terminos-de-uso`), in the sitemap, linked from the footer and under every form.
   Text lives in `lang/{en,es}/site/{privacy,terms}.php`; English is the reference. They
   describe what the site actually collects (contact forms, the application's DOB,
-  citizenship/work-eligibility and conviction answers, emergency contact), the cookies,
-  Google Analytics and reCAPTCHA. **Not legal advice: have counsel review.** Statements
+  citizenship/work-eligibility and conviction answers, emergency contact), the cookies
+  (including Cloudflare's `__cf_bm` bot cookie, added 2026-10-08), Google Analytics and
+  reCAPTCHA. **Not legal advice: have counsel review.** Statements
   the business must confirm are true:
   - Applicant details may be shared with **client businesses** where we might place them.
   - Applicant/employee records kept **up to seven years** after closing — the period

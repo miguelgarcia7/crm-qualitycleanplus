@@ -13,7 +13,7 @@ return [
     ],
 
     'title' => 'Privacy Policy',
-    'updated' => 'Last updated: October 5, 2026',
+    'updated' => 'Last updated: October 8, 2026',
 
     'intro' => [
         'Quality Cleaning Plus, Inc. (“Quality Cleaning Plus,” “we,” “us”) provides staffing and cleaning services in the Dallas–Fort Worth area. This Privacy Policy explains what personal information we collect through qualitycleanplus.com (the “Site”), how we use and share it, and the choices you have.',
@@ -31,7 +31,7 @@ return [
                 ],
                 '<strong>Information collected automatically.</strong> When you visit the Site, our servers and the services we use record technical information such as your IP address, browser and device type, the pages you view and the page that referred you.',
                 [
-                    '<strong>Cookies:</strong> the Site sets a session cookie and a security cookie that the forms need in order to work. We also use Google Analytics, which sets its own cookies to measure how visitors use the Site.',
+                    '<strong>Cookies:</strong> the Site sets a session cookie and a security cookie that the forms need in order to work. Cloudflare, the network our hosting provider uses to deliver and protect the Site, may set a short-lived cookie to tell people apart from automated traffic. We also use Google Analytics, which sets its own cookies to measure how visitors use the Site.',
                     '<strong>Spam protection:</strong> our forms use Google reCAPTCHA, which collects information about your device and how you interact with the page and sends it to Google to tell people apart from automated spam.',
                 ],
             ],
@@ -53,7 +53,7 @@ return [
             'blocks' => [
                 'We do not sell your personal information, and we do not share it for targeted advertising. We share it only as described here:',
                 [
-                    '<strong>Service providers</strong> that run the Site and our systems for us, such as website hosting, data storage and email delivery. They may use your information only to provide those services to us.',
+                    '<strong>Service providers</strong> that run the Site and our systems for us, such as website hosting (including Cloudflare, which delivers and protects the Site), data storage and email delivery. They may use your information only to provide those services to us.',
                     '<strong>Google</strong>, for Google Analytics and reCAPTCHA. Google’s use of that information is governed by the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.',
                     '<strong>Client businesses</strong> where we may place you, if you apply for work: we may share relevant details such as your name, the work you are looking for, your availability and your experience.',
                     '<strong>Legal and safety reasons:</strong> when the law requires it, to respond to legal process, or to protect the rights, property or safety of others.',
