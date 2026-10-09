@@ -112,6 +112,10 @@ class TimeEntryController extends Controller
                 'person_id' => $wo->person_id,
                 'contractor' => $wo->person?->name,
                 'position' => $wo->position?->name,
+                // Shown in the person panel; the week's pay/bill totals already
+                // reveal them to anyone who can open the grid.
+                'pay_rate' => $wo->pay_rate,
+                'bill_rate' => $wo->bill_rate,
             ]),
             'entries' => $entries->values(),
             'summaries' => $summaries,
@@ -122,6 +126,8 @@ class TimeEntryController extends Controller
                 // Correcting an existing punch is its own permission from the one
                 // that adds a manual entry, so the button matches the endpoint.
                 'correct' => $user instanceof Person && $user->can('time_entries.edit')
+                    && ($period?->status->isEditable() ?? false),
+                'remove' => $user instanceof Person && $user->can('time_entries.delete')
                     && ($period?->status->isEditable() ?? false),
                 'submit' => $user instanceof Person && $user->can('timesheets.submit_for_approval')
                     && ($timesheet?->status->canSubmit() ?? false),

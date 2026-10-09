@@ -22,6 +22,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
 
@@ -125,6 +126,26 @@ it('corrects a punch through the endpoint and rebuilds the summary', function ()
         ->and(TimeSummary::where('work_order_id', $wo->id)->first()->regular_minutes)->toBe(480);
 
     Event::assertDispatched(TimeEntrySaved::class);
+});
+
+it('gives the grid each work order\'s rates and a remove permission that follows the week', function () {
+    ['property' => $property, 'workOrder' => $wo, 'period' => $period, 'monday' => $monday] = scenario();
+    $url = main("/admin/properties/{$property->id}/grid?week={$monday->toDateString()}");
+    $manager = person('office_manager');
+
+    $this->actingAs($manager)->get($url)
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/timesheets/grid')
+            ->where('rows.0.work_order_id', $wo->id)
+            ->where('rows.0.pay_rate', 2000)
+            ->where('rows.0.bill_rate', 3000)
+            ->where('can.remove', true));
+
+    // A locked week (sent for approval) can no longer lose punches.
+    $period->update(['status' => PayrollPeriodStatus::Locked]);
+
+    $this->actingAs($manager)->get($url)
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('can.remove', false));
 });
 
 it('runs the full pipeline: submit → approve → frozen invoice', function () {

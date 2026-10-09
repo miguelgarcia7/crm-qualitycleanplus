@@ -54,6 +54,9 @@ Components coupled to React state, data, or form submission:
 
 - **Modals/dialogs** (especially those tied to a form) — controlled via `useState`,
   styled with the theme's `card` classes.
+- **Side panels** — `components/SidePanel.tsx`, the React-controlled stand-in for
+  Preline's offcanvas. First used by the timesheet grid, where a day's punches and
+  a contractor's week open beside the grid instead of in modals.
 - **Value-bound selects / comboboxes** whose value flows into `useForm`.
 - **Date pickers** bound to a field — reach for a focused headless library
   (e.g. `react-day-picker`) **only when a real field needs one**, per the project's
