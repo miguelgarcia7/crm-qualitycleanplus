@@ -25,9 +25,6 @@ ADR-0024 is amended to say so (2026-10-08).
 - **Production lead recipients.** `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO`
   point at Miguel on staging; legacy sent leads to d.aguilar@. Set at go-live (cutover
   runbook env-var table).
-- **Home `<title>`** says "Quality Cleaning Experts for Residential and Commercial" while
-  the hero says "The Hospitality Experts". Pick the message Google should show
-  (`lang/{en,es}/site/home.php`, `meta.title`).
 - **Privacy Policy / Terms of Use sign-off** (`/privacy-policy`, `/terms-of-use`, Spanish
   twins; text in `lang/{en,es}/site/{privacy,terms}.php`, English is the reference). Not
   legal advice — have counsel review. Confirm these statements are true:
@@ -391,7 +388,9 @@ the description (`content`) or `pay_range`, though both exist in the admin.
   2026-10-08):** both languages, in the sitemap, linked from the footer and under every
   form; a test keeps every Spanish site-string file in step with its English twin.
   Sign-off still open (above).
-- **2026-10-08:** shared session cookie accepted (ADR-0024 amended); Swiper and flatpickr
+- **2026-10-08:** home `<title>` kept as is ("Quality Cleaning Experts for Residential and
+  Commercial", while the hero says "The Hospitality Experts") — Miguel's call, may revisit;
+  shared session cookie accepted (ADR-0024 amended); Swiper and flatpickr
   bundled as per-page chunks — no CDN left; doc drift corrected; recruiters and office
   managers get an in-app alert for each website application (`ApplicationReceived`,
   mutable "New applications" category).
