@@ -177,7 +177,7 @@ it('still delivers other categories when one is muted', function () {
 it('shows notification settings on the profile page', function () {
     $this->actingAs(person('admin'))->get(main('/admin/settings/profile'))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('notificationSettings.categories', 4)
+            ->has('notificationSettings.categories', 5)
             ->where('notificationSettings.muted', []),
         );
 });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Site;
 
 use App\Domain\Marketing\Support\SiteLocale;
+use App\Domain\Recruiting\Actions\NotifyRecruitersOfApplication;
 use App\Domain\Recruiting\Actions\SubmitApplication;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Http\Controllers\Controller;
@@ -29,7 +30,7 @@ class ApplicationController extends Controller
         return view('site.pages.application', ['job' => $posting]);
     }
 
-    public function store(StoreApplicationRequest $request, SubmitApplication $action): RedirectResponse
+    public function store(StoreApplicationRequest $request, SubmitApplication $action, NotifyRecruitersOfApplication $notify): RedirectResponse
     {
         // Only a published posting is linked. One closed while the applicant was
         // filling the form is dropped rather than rejected — the application still
@@ -38,7 +39,7 @@ class ApplicationController extends Controller
             ? JobPosting::query()->published()->find($request->integer('job_id'))
             : null;
 
-        $action->handle($request->validated(), $posting);
+        $notify->handle($action->handle($request->validated(), $posting));
 
         return redirect()->to((new SiteLocale)->route('application.thank-you'));
     }

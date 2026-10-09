@@ -35,6 +35,7 @@ class NotificationLink
             $type === 'workflow_change_personal_info' => '/admin/info-changes',
             $type === 'workflow_transfer', $type === 'workflow_temporary_assignment' => '/admin/work-orders',
             $type === 'contract_expiring' && isset($data['property_id']) => "/admin/properties/{$data['property_id']}",
+            $type === 'application_received' && isset($data['application_id']) => "/admin/applicants/{$data['application_id']}",
             default => null,
         };
     }

@@ -20,7 +20,8 @@ as that stays true. Grep check: a notification sends mail only if its `via()` (o
 
 **Nothing else emails.** Workflow notices (pay increase, transfer, temporary
 assignment, more staff, personal-info change), contract expiry, punch flags,
-direct-hire eligibility and the timesheet bell notices are all in-app only —
+direct-hire eligibility, new website applications (to recruiters) and the timesheet
+bell notices are all in-app only —
 they inherit `AppNotification`'s `database` default. **No scheduled job sends
 mail**; the six daily tasks write in-app notifications at most.
 
