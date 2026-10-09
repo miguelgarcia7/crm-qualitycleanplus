@@ -2,7 +2,8 @@
 // qualitycleanplus.com (ADR-0023). Wires the navbar toggle (Bootstrap's collapse —
 // the only Bootstrap plugin the site uses), the scroll-shrink navigation, the
 // scroll-reveal animation for `.ui_animate` elements, reCAPTCHA on submit, the home
-// page's testimonials slider, and the obfuscated "Contact Us" email helper.
+// page's testimonials slider, the application's date pickers, and the obfuscated
+// "Contact Us" email helper.
 // Everything is bundled here; nothing loads from a CDN, so the JS always matches
 // the Bootstrap version the CSS is built from.
 
@@ -106,6 +107,14 @@ const testimonials = document.querySelector('.qc-swiper');
 if (testimonials) {
     import('./testimonials').then(function (module) {
         module.default(testimonials);
+    });
+}
+
+// Application date pickers: fetched as their own chunk when the page has any.
+const datePickers = document.querySelectorAll('.js-flatpickr');
+if (datePickers.length > 0) {
+    import('./datepicker').then(function (module) {
+        module.default(datePickers);
     });
 }
 

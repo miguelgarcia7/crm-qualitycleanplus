@@ -44,7 +44,9 @@ ADR-0024's three-bundle wording is stale on that point.
   plugin (the only one the site uses) from the npm 5.3.8 package and GSAP from npm;
   the CDN Bootstrap 5.1.3, CDN GSAP and unused jQuery tags are gone. The home page's
   testimonials slider (Swiper 11, npm) is bundled too, as a chunk only the home page
-  loads (2026-10-08). The application's date picker (flatpickr) still loads from jsDelivr.
+  loads (2026-10-08), and so are the application's date pickers (flatpickr 4.6, npm,
+  Spanish locale on `/es`), loaded only on the application. The site no longer loads
+  anything from a CDN; the only third-party scripts are Google's (reCAPTCHA, Analytics).
 - ~~Invisible-content risk.~~ `.ui_animate` is hidden only when scripts run
   (`html.js`), and a CSS fallback reveals it after 2s if `app.js` never takes over.
 - ~~Application form leftovers.~~ One `position` input (prefilled from the posting);

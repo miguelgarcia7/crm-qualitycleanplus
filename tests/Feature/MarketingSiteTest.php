@@ -86,6 +86,12 @@ it('shows a static hero image instead of the legacy video', function () {
         ->assertDontSee('<video', false);
 });
 
+it('loads the application date pickers from the site bundle, not a CDN', function (string $path) {
+    $this->get(main($path))->assertOk()
+        ->assertSee('class="js-flatpickr', false)
+        ->assertDontSee('jsdelivr', false);
+})->with(['/application', '/es/solicitud']);
+
 it('loads the testimonials slider from the site bundle, not a CDN', function () {
     Testimonial::factory()->create();
 

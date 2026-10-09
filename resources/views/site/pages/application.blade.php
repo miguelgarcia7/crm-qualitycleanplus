@@ -62,12 +62,6 @@
     ];
 @endphp
 
-@section('css_after')
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-{{--    @vite(['resources/assets/vendor/libs/flatpickr/flatpickr.scss'])--}}
-
-@endsection
 
 @section('content')
 
@@ -520,23 +514,5 @@
 
 
     </section>
-
-@endsection
-
-@section('js_after')
-
-
-
-<!-- Page JS Plugins -->
-{{--<script src="/cms/js/plugins/flatpickr.min.js"></script>--}}
-{{--@vite(['resources/assets/vendor/libs/moment/moment.js'])--}}
-{{--@vite(['resources/assets/vendor/libs/flatpickr/flatpickr.js'])--}}
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-@if ($site->isSpanish())
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
-<script>flatpickr('.js-flatpickr', { locale: 'es' });</script>
-@else
-<script>flatpickr('.js-flatpickr');</script>
-@endif
 
 @endsection
