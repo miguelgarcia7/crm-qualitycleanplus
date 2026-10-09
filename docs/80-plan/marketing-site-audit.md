@@ -22,9 +22,6 @@ ADR-0024 is amended to say so (2026-10-08).
 ## What's left (2026-10-08)
 
 **Decisions and sign-offs for Miguel**
-- **Production lead recipients.** `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO`
-  point at Miguel on staging; legacy sent leads to d.aguilar@. Set at go-live (cutover
-  runbook env-var table).
 - **Privacy Policy / Terms of Use sign-off** (`/privacy-policy`, `/terms-of-use`, Spanish
   twins; text in `lang/{en,es}/site/{privacy,terms}.php`, English is the reference). Not
   legal advice — have counsel review. Confirm these statements are true:
@@ -47,8 +44,9 @@ ADR-0024 is amended to say so (2026-10-08).
 **Go-live** (the steps live in `phase-final-cutover.md`, runbook step 6 and the env-var
 table): drop "(New)" from `APP_NAME`; attach `qualitycleanplus.com` **and**
 `www.qualitycleanplus.com`; `APP_ENV=production`, `DEMO_MODE` off; production lead
-recipients; run `RolePermissionSeeder` (testimonials + inquiries permissions); submit the
-sitemap in Search Console; check a staff email-signature image under `/images/emails/`
+recipients — they stay Miguel's address until then (decided 2026-10-08; legacy sends
+both forms to d.aguilar@); run `RolePermissionSeeder` (testimonials + inquiries
+permissions); submit the sitemap in Search Console; check a staff email-signature image under `/images/emails/`
 still loads on the www host.
 
 **Follow-ups outside the marketing site**
