@@ -91,8 +91,7 @@ ADR-0024's three-bundle wording is stale on that point.
   **Accepted 2026-10-08**; ADR-0024 amended with the reasoning (HttpOnly, Secure on
   Cloud, SameSite=Lax; marketing renders nothing user-specific).
 
-**Docs** — see **Doc drift to correct** below (ADR-0023/0024, 08b-i, identity-and-auth,
-domain-routing, deployment-topology).
+**Docs** — ~~doc drift~~ corrected 2026-10-08 (see **Doc drift** below).
 
 ## Decisions (2026-10-04)
 
@@ -308,16 +307,13 @@ translation source — it has typos to fix ("limpiez", "negocion", "Quienes Noso
 - ES apply pre-fill broken (`{job}` vs `Position $position`).
 - `uix_con_todo` email obfuscator assigns undeclared globals under module strict mode.
 
-## Doc drift to correct — still open
+## Doc drift — corrected 2026-10-08
 
-- ADR-0023 names `routes/public.php` / `app.css`; code uses `routes/marketing.php` /
-  `app.scss`.
-- ADR-0024 describes three bundles; actual is two (see Summary).
-- 08b-i says build dir `public/build/site` and images in `resources/images/site/`; actual
-  `public/site-build`, images in `public/images/`.
-- `identity-and-auth.md:75` says `POST /apply` (actual `POST /application`) and line 80 /
-  `deployment-topology.md:37` say applications notify recruiters (not implemented).
-- `domain-routing.md:105`, `identity-and-auth.md:38` say `/admin/login`; actual `/login`.
+ADR-0023 (`routes/marketing.php`, `app.scss`, own Vite config), ADR-0024 (amended: two
+bundles; shared session cookie), ADR-0001 (route file name), 08b-i (`public/site-build`,
+`public/images/`), `overview.md`, `domain-routing.md`, `identity-and-auth.md` (`/login`,
+`POST /application`, no recruiter notification) and `deployment-topology.md` now match
+the code.
 
 ## SEO clean-up — done 2026-10-05
 

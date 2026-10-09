@@ -24,7 +24,7 @@ DOMAIN 1 — qualitycleanplus.com            (local: qcpminute.test)
        KB authoring · PTO admin · reports · inventory · audit · field check-in (FAB)
 
 DOMAIN 2 — qcpstaffing.com                 (local: qcminute.test)
- ├─ /          QC MINUTE     React + Inertia                   bundle: minute  (views/minute)
+ ├─ /          QC MINUTE     React + Inertia                   bundle: admin   (views/minute)
  │     roles: Property Manager · Contractor (RO) · Admin · Super Admin
  │     live weekly grid · approve timesheet · invoice list/view · send invoice
  │     contractor self-service · KB (role-gated) · QR clock-in (GPS + selfie)
@@ -94,15 +94,15 @@ See `10-architecture/domain-routing.md` for the detailed routing pattern.
 
 ### Surfaces & asset bundles
 
-Each surface compiles its **own** asset bundle via Vite multi-entry, so bundles don't bleed into each other and the marketing pages stay lightweight and crawlable:
+The marketing site compiles its **own** asset bundle (`vite-site.config.ts`), so the React app never loads on the lightweight, crawlable marketing pages. The back office and QC Minute share one React/Inertia bundle (ADR-0024, amended 2026-10-08):
 
 | Surface | Domain · path | Render | Entry / bundle | Views | Status |
 |---|---|---|---|---|---|
-| Marketing | `qualitycleanplus.com` · `/` | Blade | `resources/css/site/` + `resources/js/site/` → `site` | `resources/views/site/` | Planned |
-| Back office | `qualitycleanplus.com` · `/admin` | React + Inertia | `resources/js/admin/app.tsx` → `admin` | `views/admin/` | Built (scaffold) |
-| QC Minute | `qcpstaffing.com` · `/` | React + Inertia | `resources/js/minute/app.tsx` → `minute` | `views/minute/` | Planned |
+| Marketing | `qualitycleanplus.com` · `/` | Blade | `resources/css/site/` + `resources/js/site/` → `site` (`public/site-build`) | `resources/views/site/` | Built |
+| Back office | `qualitycleanplus.com` · `/admin` | React + Inertia | `resources/js/admin/app.tsx` → `admin` | `views/admin/` | Built |
+| QC Minute | `qcpstaffing.com` · `/` | React + Inertia | `resources/js/admin/app.tsx` → `admin` (shared) | `views/minute/` | Built |
 
-Per-surface assets live in per-surface folders: `resources/{css,js,images,data}/admin/` today, with `site/` and `minute/` siblings added as those surfaces are built.
+React views live under `resources/js/admin/views/{admin,minute,…}`; the marketing site's sources are `resources/{css,js}/site/` and its images are served from `public/images/`.
 
 ## What's NOT in this architecture
 

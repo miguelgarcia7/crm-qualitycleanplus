@@ -102,7 +102,7 @@ Marketing (`/`) has no auth middleware — it's public.
 Each authenticated surface has its own login page; both authenticate through the same Fortify backend:
 
 - `qcpstaffing.com/login` → QC Minute dashboard (PM or contractor, by role)
-- `qualitycleanplus.com/admin/login` → back office dashboard (recruiter, office manager, etc., by role)
+- `qualitycleanplus.com/login` → back office dashboard (recruiter, office manager, etc., by role). Sign-in is Fortify's `/login`, not under `/admin`; `/admin` itself sends signed-out visitors there.
 
 If a user authenticates but lacks a role permitted on that surface, they see a clear "wrong door" message linking to the correct surface's login.
 
@@ -112,13 +112,13 @@ A super admin can log in on either surface. The shell they see depends on which 
 
 ## Per-surface chrome
 
-The three surfaces are **separate asset bundles**, each with its own root layout:
+Each surface has its own root layout; marketing has its own asset bundle, while the back office and QC Minute share one (ADR-0024, amended 2026-10-08):
 
 - **Marketing** — a Blade layout (`resources/views/site/`), `site` bundle.
 - **Back office** — its Inertia root layout in the `admin` bundle (`resources/js/admin/`), pages under `views/admin/`.
-- **QC Minute** — its Inertia root layout in the `minute` bundle (`resources/js/minute/`), pages under `views/minute/`.
+- **QC Minute** — its own Inertia layout inside the `admin` bundle, pages under `resources/js/admin/views/minute/`.
 
-Shared React components (e.g. a timesheet detail view both PMs and recruiters see) are imported by whichever bundle needs them.
+Shared React components (e.g. a timesheet detail view both PMs and recruiters see) are imported directly, since both surfaces are in the same bundle.
 
 ## URL generation
 

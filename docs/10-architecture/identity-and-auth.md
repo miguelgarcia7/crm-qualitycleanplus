@@ -35,7 +35,7 @@ Their `status` distinguishes lifecycle position (applicant / active / inactive /
 
 ### Human user login
 
-- Login pages live at `qcpstaffing.com/login` (QC Minute) and `qualitycleanplus.com/admin/login` (back office)
+- Login pages live at `qcpstaffing.com/login` (QC Minute) and `qualitycleanplus.com/login` (back office; Fortify's routes are not under `/admin`)
 - Both submit to the same backend authenticator
 - Successful login + role allowed on that domain → redirect to role-appropriate dashboard
 - Successful login + role NOT allowed on that domain → "wrong door" page with link to correct domain
@@ -72,13 +72,13 @@ See `40-flows/clock-in-out.md` for the operational details.
 The marketing site is a Blade surface in **this same codebase** (ADR-0023), so the job-application form posts in-app — no cross-app API, no pre-shared key:
 
 ```
-POST (qualitycleanplus.com) /apply
-Protection: standard CSRF token (same app, same session domain)
+POST (qualitycleanplus.com) /application        (Spanish: /es/solicitud)
+Protection: standard CSRF token (same app, same session domain), reCAPTCHA v3, rate limit
 Body:
   { first_name, last_name, email, phone, ... full applicant form ... }
 ```
 
-The endpoint is unauthenticated (it's a public form) but CSRF-protected. Successful submissions create a `person` with status = `applicant` and trigger a notification to recruiters.
+The endpoint is unauthenticated (it's a public form) but CSRF-protected. A submission records a `job_applications` row on an applicant `person` (an email that matches a non-applicant or archived person is held for a recruiter to link or dismiss — see `20-domain/people-lifecycle.md`). **No notification is sent**: recruiters see new applications in Applicants in the back office.
 
 ## Roles
 

@@ -66,7 +66,7 @@ The **public marketing site** stays as a separate Laravel app at `qualitycleanpl
 
 ### Implementation requirements
 
-- `routes/qcminute.php`, `routes/backoffice.php`, `routes/device.php`, `routes/public.php` as separate route files
+- `routes/qcminute.php`, `routes/backoffice.php`, `routes/device.php`, `routes/public.php` (built as `routes/marketing.php`, ADR-0023) as separate route files
 - `bootstrap/app.php` wires each route file to its domain via `Route::domain()`
 - Two layout files: `resources/views/layouts/qcminute.blade.php`, `resources/views/layouts/backoffice.blade.php`
 - Two middleware: `AllowedOnQcMinute`, `AllowedOnBackoffice`

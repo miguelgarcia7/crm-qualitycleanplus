@@ -13,7 +13,7 @@
   `JobApplicationStatus`; models + factories; `Person` cols/casts + `jobApplications()`,
   `PersonStatus::isApplicant()`. Marketing `site` Vite bundle (`resources/css/site/app.scss`
   + `resources/js/site/app.js`, Bootstrap 5 via `bootstrap`+`sass`) — a **fully separate
-  bundle** with its own `vite-site.config.ts`, build dir `public/build/site` + manifest,
+  bundle** with its own `vite-site.config.ts`, build dir `public/site-build` (a sibling of `public/build`, not inside it) + manifest,
   and hot file `public/site.hot`; the marketing surface reads it via the `UseMarketingVite`
   middleware. Build with `npm run build` (both) or `npm run build:site` (marketing only);
   dev with `npm run dev:site`.
@@ -81,7 +81,7 @@ which posting).
    `app/Domain/Recruiting/Models/{JobPosting,JobApplication}` + factories; `Person`
    (new cols/casts, `jobApplications()`), `PersonStatus::isApplicant()`; Vite `site`
    bundle (`resources/css/site/app.scss` + `resources/js/site/app.js`, Bootstrap 5 via
-   `bootstrap` + `sass`); static images → `resources/images/site/`.
+   `bootstrap` + `sass`); static images → `public/images/` (served as-is, as on the legacy site).
 1. **Marketing pages** — `Site/PageController`; port `site/layouts/{website,navigation,
    footer}` + `elements/*` + `pages/{home,services,about-us,contact-us(+business,
    +job-seekers)}`; `routes/marketing.php`; contact POST → `contact_inquiries`.

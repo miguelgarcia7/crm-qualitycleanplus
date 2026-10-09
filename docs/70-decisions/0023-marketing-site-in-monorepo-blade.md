@@ -25,9 +25,9 @@ This does not change the rest of ADR-0001 (one app, shared DB, domain-routed sur
 
 The marketing site is a **third surface in this application**, served from `qualitycleanplus.com` via **server-rendered Blade**.
 
-- Routes: `routes/public.php`, mounted on the `qualitycleanplus.com` domain, **no auth**.
+- Routes: `routes/marketing.php`, mounted on the `qualitycleanplus.com` domain, **no auth**.
 - Views: `resources/views/site/*` Blade templates with their own layout.
-- Assets: its **own bundle** (`resources/css/site/app.css` + `resources/js/site/app.js`), compiled separately from the React/Inertia app bundles via Vite multi-entry — so marketing pages ship minimal CSS/JS.
+- Assets: its **own bundle** (`resources/css/site/app.scss` + `resources/js/site/app.js`), compiled by its own Vite config (`vite-site.config.ts` → `public/site-build`), separately from the React/Inertia bundle — so marketing pages ship minimal CSS/JS.
 - The job-application form **POSTs in-app**, creating a `person` with `status='applicant'` (no external API hop).
 
 ## Consequences
@@ -45,9 +45,9 @@ The marketing site is a **third surface in this application**, served from `qual
 
 ### Implementation requirements
 
-- `routes/public.php` on the `qualitycleanplus.com` domain (no auth middleware)
+- `routes/marketing.php` on the `qualitycleanplus.com` domain (no auth middleware)
 - `resources/views/site/` Blade views + a dedicated marketing layout
-- Vite multi-entry adds the `site` bundle (`resources/css/site/`, `resources/js/site/`)
+- A separate Vite config builds the `site` bundle (`resources/css/site/`, `resources/js/site/`)
 - Public application endpoint creates `person` (`status='applicant'`)
 
 ## Alternatives considered

@@ -22,13 +22,13 @@ In review, the owner settled the concrete domain layout, which differs from thos
 
 ## Decision
 
-**Two production domains, three surfaces, three asset bundles:**
+**Two production domains, three surfaces, three asset bundles** (as built: two bundles, QC Minute shares `admin` — see **Amendment 2026-10-08 — two bundles**):
 
 | Domain · path | Surface | Render | Bundle | Views |
 |---|---|---|---|---|
 | `qualitycleanplus.com/` | Marketing | Blade (SEO) | `site` | `resources/views/site/` |
 | `qualitycleanplus.com/admin` | Back office | React + Inertia | `admin` | `resources/js/admin/` · `views/admin/` |
-| `qcpstaffing.com/` | QC Minute | React + Inertia | `minute` | `resources/js/minute/` · `views/minute/` |
+| `qcpstaffing.com/` | QC Minute | React + Inertia | `minute` (built: shares `admin`) | `resources/js/admin/views/minute/` |
 | `qcpstaffing.com/device/*` | Tablet clock-in | — (Sanctum API) | — | — |
 
 - Domains are **config-driven** (`config/domains.php` ← `DOMAIN_MAIN`, `DOMAIN_QCMINUTE`), so local Herd `.test` hosts and production `.com` hosts both work without code changes.
@@ -47,15 +47,19 @@ In review, the owner settled the concrete domain layout, which differs from thos
 ### Negative
 
 - Marketing and back office share a domain, so they share one session cookie (path `/`) — see **Amendment 2026-10-08** below
-- Three bundles mean three Vite entries + three folder trees to maintain
+- Two bundles (as built) mean two Vite configs: `vite.config.ts` (`admin`) and `vite-site.config.ts` (`site`)
 
 ### Implementation requirements
 
 - `config/domains.php` + `DOMAIN_MAIN` / `DOMAIN_QCMINUTE` env vars
 - Route files: `marketing.php` (`/`), `backoffice.php` (`/admin`), `qcminute.php` (`/`), `device.php` (`/device/*`)
 - Middleware `allowed_on_backoffice` (on `/admin`) and `allowed_on_qcminute`
-- Vite multi-entry: `resources/js/admin/app.tsx`, `resources/js/minute/app.tsx`, `resources/{css,js}/site/`
+- Vite: `vite.config.ts` → `resources/js/admin/app.tsx` (back office + QC Minute); `vite-site.config.ts` → `resources/{css,js}/site/` (marketing, built to `public/site-build`)
 - See `10-architecture/domain-routing.md`
+
+## Amendment 2026-10-08 — two bundles
+
+QC Minute never got its own `minute` bundle. Its pages live in the `admin` React app (`resources/js/admin/views/minute/`) and load through the same `resources/js/admin/app.tsx` entry; phase 01 deferred the split as a build optimization, and the owner has since confirmed the shared bundle is the intended layout. The point of the decision — the heavy React app never loads on the marketing pages — holds: marketing is the only separate bundle (`vite-site.config.ts` → `public/site-build`, applied by the `UseMarketingVite` middleware).
 
 ## Amendment 2026-10-08 — one session cookie for the whole main domain
 
