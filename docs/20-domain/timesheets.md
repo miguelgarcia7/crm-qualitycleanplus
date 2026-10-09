@@ -83,8 +83,10 @@ No PM in the system means no approval flow. The import action itself is the appr
 ```
 Recruiter on back office
   → opens the property's draft timesheet
-  → reviews the grid (contractors × days, totals; work orders closed mid-week
-    stay listed for the weeks they have time in)
+  → reviews the grid (contractors × days, totals). Rows are the active work
+    orders whose dates cover the week, plus any work order with time in it —
+    so a pay increase shows the old work order up to its end date and the new
+    one from its start, never both side by side
   → adds adjustments if needed
   → fixes any time entry errors
   → clicks "Send for Approval"

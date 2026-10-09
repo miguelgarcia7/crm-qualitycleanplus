@@ -14,6 +14,7 @@ type Row = {
   /** A closed or suspended work order is listed only when it has time in the week. */
   status: string
   status_label: string
+  end_date: string | null
   pay_rate: number | null
   bill_rate: number | null
 }
@@ -226,7 +227,10 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
     (t, w) => ({ regular: t.regular + w.regular, overtime: t.overtime + w.overtime, total: t.total + w.total, pay: t.pay + w.pay, bill: t.bill + w.bill }),
     { regular: 0, overtime: 0, total: 0, pay: 0, bill: 0 },
   )
-  const overtimePeople = rows.filter((r) => weekOf(r).overtime > 0).length
+  // People, not rows: a pay increase can give one contractor two work orders.
+  const personOf = new Map(rows.map((r) => [r.work_order_id, r.person_id]))
+  const people = new Set(rows.map((r) => r.person_id)).size
+  const overtimePeople = new Set(rows.filter((r) => weekOf(r).overtime > 0).map((r) => r.person_id)).size
   const shownWorkOrders = new Set(rows.map((r) => r.work_order_id))
   const dayEntries = (d: string) => entries.filter((e) => e.date === d && shownWorkOrders.has(e.work_order_id))
 
@@ -318,7 +322,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
       ) : (
         <>
           <div className="card mb-4 grid grid-cols-2 lg:grid-cols-5">
-            <Stat label="Hours" value={hrs(totals.total)} note={`${rows.length} ${rows.length === 1 ? 'person' : 'people'} · ${hrs(totals.regular)} regular`} />
+            <Stat label="Hours" value={hrs(totals.total)} note={`${people} ${people === 1 ? 'person' : 'people'} · ${hrs(totals.regular)} regular`} />
             <Stat
               label="Overtime"
               value={hrs(totals.overtime)}
@@ -404,7 +408,10 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                                 <span className="text-default-900 hover:text-primary block truncate font-medium">{r.contractor}</span>
                                 <span className="text-default-400 flex items-center gap-1.5 text-xs">
                                   <span className="truncate">{r.position}</span>
-                                  {r.status !== 'active' && <Chip tone="muted">{r.status_label}</Chip>}
+                                  {/* Only in the week it actually stopped — it was running in the weeks before. */}
+                                  {r.status !== 'active' && (!r.end_date || r.end_date <= week.end) && (
+                                    <Chip tone="muted">{r.end_date ? `Ended ${monthDay(r.end_date)}` : r.status_label}</Chip>
+                                  )}
                                 </span>
                               </span>
                             </button>
@@ -456,13 +463,13 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                       <td className="bg-light/40 text-default-400 sticky left-0 z-[1] py-3 ps-5 text-xs font-medium uppercase">Daily total</td>
                       {week.days.map((d) => {
                         const list = dayEntries(d)
-                        const people = new Set(list.map((e) => e.work_order_id)).size
+                        const onShift = new Set(list.map((e) => personOf.get(e.work_order_id))).size
                         return (
                           <td key={d} className="px-1 py-3 text-center">
                             {list.length ? (
                               <>
                                 {hrs(minutesOf(list))}
-                                <span className="text-default-400 block text-xs font-normal">{people} on shift</span>
+                                <span className="text-default-400 block text-xs font-normal">{onShift} on shift</span>
                               </>
                             ) : (
                               <span className="text-default-400 font-normal">—</span>
