@@ -3,7 +3,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import SidePanel from '@/components/SidePanel'
 import Icon from '@/components/wrappers/Icon'
 import { cn, formatClockTime } from '@/utils/helpers'
-import { Head, Link, router, useForm } from '@inertiajs/react'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react'
 import { FormEvent, ReactNode, useEffect, useState } from 'react'
 
 type Row = {
@@ -11,6 +11,9 @@ type Row = {
   person_id: number
   contractor: string | null
   position: string | null
+  /** A closed or suspended work order is listed only when it has time in the week. */
+  status: string
+  status_label: string
   pay_rate: number | null
   bill_rate: number | null
 }
@@ -120,6 +123,10 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
   const today = todayAt(property.timezone)
   const isThisWeek = week.days.includes(today)
   const issues = entries.filter((e) => needsLook(e, today)).length
+  const gpsFlagged = entries.filter((e) => e.gps_flags.length > 0).length
+  // The server refuses to send a week with any punch still open (no hours yet).
+  const openPunches = entries.filter(isOpen)
+  const submitError = usePage<{ errors: Record<string, string> }>().props.errors?.timesheet
 
   const submitForApproval = () => {
     if (!timesheet) return
@@ -130,9 +137,9 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
         <>
           Send the week of <strong className="text-default-900">{monthDay(week.start)} – {monthDay(week.end)}</strong> to the property manager for
           approval?
-          {issues > 0 && (
+          {gpsFlagged > 0 && (
             <span className="text-warning mt-2 block">
-              {issues} {issues === 1 ? 'punch still needs' : 'punches still need'} a look (no clock-out, or GPS not verified).
+              {gpsFlagged} {gpsFlagged === 1 ? 'punch was' : 'punches were'} recorded without verified GPS.
             </span>
           )}
           <span className="text-default-400 mt-2 block">
@@ -260,13 +267,43 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
               <Icon icon="building" className="me-1 size-4" /> Property
             </Link>
             {can.submit && (
-              <button className="btn bg-primary hover:bg-primary-hover px-4 font-semibold text-white" onClick={submitForApproval}>
+              <button
+                className="btn bg-primary hover:bg-primary-hover px-4 font-semibold text-white disabled:opacity-50"
+                onClick={submitForApproval}
+                disabled={openPunches.length > 0}
+                title={openPunches.length > 0 ? 'Every punch needs a clock-out first' : undefined}>
                 Send for Approval
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {submitError && <div className="bg-danger/10 text-danger mb-4 rounded-lg px-4 py-3 text-sm">{submitError}</div>}
+
+      {can.submit && openPunches.length > 0 && (
+        <div className="bg-warning/15 text-default-900 mb-4 rounded-lg px-4 py-3 text-sm">
+          <strong className="text-warning">
+            {openPunches.length === 1 ? '1 punch has' : `${openPunches.length} punches have`} no clock-out, so this week can&apos;t be sent yet.
+          </strong>{' '}
+          Add the clock-out or remove the punch:
+          <span className="mt-1.5 flex flex-wrap gap-2">
+            {openPunches.map((e) => {
+              const row = rows.find((r) => r.work_order_id === e.work_order_id)
+              return (
+                <button
+                  key={e.id}
+                  className="bg-card hover:text-primary rounded-md px-2 py-0.5 text-xs font-medium shadow-sm"
+                  disabled={!row || !e.date}
+                  onClick={() => row && e.date && setPanel({ kind: 'day', workOrderId: row.work_order_id, date: e.date, adding: false })}>
+                  {row?.contractor ?? 'Contractor'} · {e.date ? dayLabel(e.date) : '—'} · in {formatClockTime(e.start_time)}
+                  {e.date === today && ' (still on the clock)'}
+                </button>
+              )
+            })}
+          </span>
+        </div>
+      )}
 
       {timesheet?.status === 'declined' && timesheet.decline_reason && (
         <div className="bg-danger/10 text-danger mb-4 rounded-lg px-4 py-3 text-sm">
@@ -365,7 +402,10 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                               <Avatar name={r.contractor} />
                               <span className="min-w-0">
                                 <span className="text-default-900 hover:text-primary block truncate font-medium">{r.contractor}</span>
-                                <span className="text-default-400 block truncate text-xs">{r.position}</span>
+                                <span className="text-default-400 flex items-center gap-1.5 text-xs">
+                                  <span className="truncate">{r.position}</span>
+                                  {r.status !== 'active' && <Chip tone="muted">{r.status_label}</Chip>}
+                                </span>
                               </span>
                             </button>
                           </td>
@@ -527,13 +567,14 @@ const Stat = ({ label, value, note, valueClass, className }: { label: string; va
   </div>
 )
 
-const Chip = ({ tone, title, children }: { tone: 'secondary' | 'info' | 'success' | 'danger' | 'warning'; title?: string; children: ReactNode }) => {
+const Chip = ({ tone, title, children }: { tone: 'secondary' | 'info' | 'success' | 'danger' | 'warning' | 'muted'; title?: string; children: ReactNode }) => {
   const tones = {
     secondary: 'bg-secondary/15 text-secondary',
     info: 'bg-info/15 text-info',
     success: 'bg-success/15 text-success',
     danger: 'bg-danger/15 text-danger',
     warning: 'bg-warning/15 text-warning',
+    muted: 'bg-light text-default-500',
   }
   return (
     <span title={title} className={cn('inline-flex h-[18px] items-center rounded-md px-1.5 text-[10.5px] font-semibold whitespace-nowrap tabular-nums', tones[tone])}>

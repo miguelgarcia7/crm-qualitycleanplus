@@ -17,6 +17,7 @@ use App\Domain\Time\Events\TimeEntrySaved;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
+use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
@@ -175,6 +176,43 @@ it('runs the full pipeline: submit → approve → frozen invoice', function () 
         ->and($invoice->total)->toBe(130500)
         ->and($invoice->invoice_number)->toStartWith('INV-')
         ->and($invoice->items)->toHaveCount(1);
+});
+
+it('refuses to send a week while a punch has no clock-out', function () {
+    $s = scenario();
+    seedHours($s['workOrder'], $s['monday'], 2, '09:00', '17:00');
+    TimeEntry::where('work_order_id', $s['workOrder']->id)->latest('id')->firstOrFail()
+        ->update(['end_at_utc' => null, 'duration_minutes' => null]);
+
+    $recruiter = person('recruiter');
+    $s['property']->assignments()->create(['person_id' => $recruiter->id, 'role' => 'recruiter']);
+
+    $this->actingAs($recruiter)
+        ->post(main("/admin/timesheets/{$s['timesheet']->id}/submit"))
+        ->assertSessionHasErrors(['timesheet' => '1 punch has no clock-out. Add the clock-out or remove the punch, then send the week.']);
+
+    expect($s['timesheet']->fresh()->status)->toBe(TimesheetStatus::Draft)
+        ->and($s['period']->fresh()->status)->toBe(PayrollPeriodStatus::Open);
+});
+
+it('keeps a closed work order on the grid for a week it has hours in', function () {
+    ['property' => $property, 'workOrder' => $active, 'monday' => $monday] = scenario();
+    $position = Position::factory()->create();
+    $closedWithHours = WorkOrder::factory()->create(['property_id' => $property->id, 'position_id' => $position->id]);
+    $closedWithout = WorkOrder::factory()->create(['property_id' => $property->id, 'position_id' => $position->id]);
+    seedHours($closedWithHours, $monday, 1, '09:00', '17:00');
+    $closedWithHours->update(['status' => WorkOrderStatus::Closed]);
+    $closedWithout->update(['status' => WorkOrderStatus::Closed]);
+
+    $this->actingAs(person('office_manager'))
+        ->get(main("/admin/properties/{$property->id}/grid?week={$monday->toDateString()}"))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('rows', 2)
+            ->where('rows.0.work_order_id', $active->id)
+            ->where('rows.0.status', 'active')
+            ->where('rows.1.work_order_id', $closedWithHours->id)
+            ->where('rows.1.status', 'closed')
+            ->where('rows.1.status_label', 'Closed'));
 });
 
 it('generates invoices idempotently', function () {

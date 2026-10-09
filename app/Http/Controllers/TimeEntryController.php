@@ -44,9 +44,18 @@ class TimeEntryController extends Controller
             ->whereDate('week_start', $weekStart->toDateString())
             ->first();
 
+        // Active work orders, plus any that closed or were suspended but still
+        // have time, a summary or an adjustment in this week — their hours are
+        // on the invoice, so they have to be on the grid too.
         $workOrders = $property->workOrders()
-            ->where('status', WorkOrderStatus::Active->value)
+            ->where(fn ($q) => $q
+                ->where('status', WorkOrderStatus::Active->value)
+                ->when($period !== null, fn ($q) => $q
+                    ->orWhereIn('id', TimeEntry::query()->where('payroll_period_id', $period?->id)->select('work_order_id'))
+                    ->orWhereIn('id', TimeSummary::query()->where('payroll_period_id', $period?->id)->select('work_order_id'))
+                    ->orWhereIn('id', TimeEntryAdjustment::query()->where('payroll_period_id', $period?->id)->whereNotNull('work_order_id')->select('work_order_id'))))
             ->with(['person:id,name', 'position:id,name'])
+            ->orderBy('id')
             ->get();
 
         $entries = $period === null ? collect() : TimeEntry::query()
@@ -112,6 +121,8 @@ class TimeEntryController extends Controller
                 'person_id' => $wo->person_id,
                 'contractor' => $wo->person?->name,
                 'position' => $wo->position?->name,
+                'status' => $wo->status->value,
+                'status_label' => $wo->status->label(),
                 // Shown in the person panel; the week's pay/bill totals already
                 // reveal them to anyone who can open the grid.
                 'pay_rate' => $wo->pay_rate,

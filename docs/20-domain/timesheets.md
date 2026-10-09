@@ -83,11 +83,16 @@ No PM in the system means no approval flow. The import action itself is the appr
 ```
 Recruiter on back office
   → opens the property's draft timesheet
-  → reviews the grid (contractors × days, totals)
+  → reviews the grid (contractors × days, totals; work orders closed mid-week
+    stay listed for the weeks they have time in)
   → adds adjustments if needed
   → fixes any time entry errors
   → clicks "Send for Approval"
   → optional: adds a note to the PM
+Server checks:
+  → refused while any punch in the week has no clock-out (it has no hours yet,
+    so the week would be paid and billed short); the grid disables the button
+    and lists those punches
 Server actions:
   → timesheet.status = pending_approval
   → timesheet.sent_for_approval_at = now

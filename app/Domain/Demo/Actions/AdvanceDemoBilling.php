@@ -14,6 +14,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
 use Carbon\CarbonImmutable;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Moves the demo property's finished weeks through the real billing pipeline
@@ -65,7 +66,13 @@ class AdvanceDemoBilling
             $paidAt = $closed->addDays(22)->setTime(15, 0);
 
             if ($timesheet->status === TimesheetStatus::Draft && $submitAt <= $until) {
-                $this->at($submitAt, fn () => $this->submit->handle($timesheet, $recruiter));
+                try {
+                    $this->at($submitAt, fn () => $this->submit->handle($timesheet, $recruiter));
+                } catch (ValidationException) {
+                    // A punch is still open (no clock-out) — leave the week in
+                    // draft for a viewer to fix, as a recruiter would.
+                    continue;
+                }
             }
 
             if ($timesheet->status === TimesheetStatus::PendingApproval && $approveAt <= $until) {
