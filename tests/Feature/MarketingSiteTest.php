@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Marketing\Models\ContactInquiry;
+use App\Domain\Marketing\Models\Testimonial;
 use App\Domain\Recruiting\Models\JobPosting;
 
 it('renders the public marketing pages', function (string $path) {
@@ -83,6 +84,14 @@ it('shows a static hero image instead of the legacy video', function () {
     $this->get(main('/'))->assertOk()
         ->assertSee('/images/home-hero-dallas.jpg', false)
         ->assertDontSee('<video', false);
+});
+
+it('loads the testimonials slider from the site bundle, not a CDN', function () {
+    Testimonial::factory()->create();
+
+    $this->get(main('/'))->assertOk()
+        ->assertSee('class="swiper qc-swiper', false)
+        ->assertDontSee('cdn.jsdelivr.net/npm/swiper', false);
 });
 
 it('shows the privacy policy and terms, linked from the footer and the forms', function () {

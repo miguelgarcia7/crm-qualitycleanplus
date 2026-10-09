@@ -1,9 +1,10 @@
 // QCP marketing site scripts (Phase 08b-i) — server-rendered Blade surface on
 // qualitycleanplus.com (ADR-0023). Wires the navbar toggle (Bootstrap's collapse —
 // the only Bootstrap plugin the site uses), the scroll-shrink navigation, the
-// scroll-reveal animation for `.ui_animate` elements, reCAPTCHA on submit, and the
-// obfuscated "Contact Us" email helper. Everything is bundled here; nothing loads
-// from a CDN, so the JS always matches the Bootstrap version the CSS is built from.
+// scroll-reveal animation for `.ui_animate` elements, reCAPTCHA on submit, the home
+// page's testimonials slider, and the obfuscated "Contact Us" email helper.
+// Everything is bundled here; nothing loads from a CDN, so the JS always matches
+// the Bootstrap version the CSS is built from.
 
 import 'bootstrap/js/dist/collapse';
 import { gsap } from 'gsap';
@@ -99,6 +100,14 @@ document.querySelectorAll('input[data-recaptcha-action]').forEach(function (inpu
         });
     });
 });
+
+// Testimonials slider, home page only: fetched as its own chunk when the page has one.
+const testimonials = document.querySelector('.qc-swiper');
+if (testimonials) {
+    import('./testimonials').then(function (module) {
+        module.default(testimonials);
+    });
+}
 
 // Obfuscated email helper used by the footer/contact "Contact Us" links
 // (href="javascript:uix_con_todo('d.aguilar')") to deter scrapers.

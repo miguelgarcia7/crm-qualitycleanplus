@@ -6,10 +6,6 @@
     ])
 @include('site.elements.structured_data')
 
-@section('css_after')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-@endsection
-
 @section('content')
 
     <section id="home">
@@ -104,41 +100,4 @@
 
     </section>
 
-@endsection
-
-@section('js_after')
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script>
-        var swiper = new Swiper(".qc-swiper", {
-                slidesPerView: 1,
-                spaceBetween: 10,
-                breakpoints: {
-                    // when window width is >= 320px
-                    320: {
-                        slidesPerView: 1,
-                        spaceBetween: 10,
-                    },
-                    // when window width is >= 480px
-                    768: {
-                        slidesPerView: 2,
-                        spaceBetween: 10,
-                    },
-                    // when window width is >= 640px
-                    992: {
-                        slidesPerView: 3,
-                        spaceBetween: 30,
-                    }
-                },
-                autoplay: {
-                    delay: 7000,
-                },
-                pagination: {
-                    el: ".swiper-pagination",
-                },
-                navigation: {
-                    nextEl: ".swiper-button-next",
-                    prevEl: ".swiper-button-prev",
-                },
-            });
-    </script>
 @endsection
