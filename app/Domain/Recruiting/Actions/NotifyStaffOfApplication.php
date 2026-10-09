@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Notification;
  * Called by the site's application form only, never by imports, so loading
  * historical applications doesn't flood anyone's bell.
  */
-class NotifyRecruitersOfApplication
+class NotifyStaffOfApplication
 {
     /** Roles that hear about every new application. */
     private const ROLES = ['recruiter', 'office_manager'];

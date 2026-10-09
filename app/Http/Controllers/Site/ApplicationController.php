@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Site;
 
 use App\Domain\Marketing\Support\SiteLocale;
-use App\Domain\Recruiting\Actions\NotifyRecruitersOfApplication;
+use App\Domain\Recruiting\Actions\NotifyStaffOfApplication;
 use App\Domain\Recruiting\Actions\SubmitApplication;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Http\Controllers\Controller;
@@ -30,7 +30,7 @@ class ApplicationController extends Controller
         return view('site.pages.application', ['job' => $posting]);
     }
 
-    public function store(StoreApplicationRequest $request, SubmitApplication $action, NotifyRecruitersOfApplication $notify): RedirectResponse
+    public function store(StoreApplicationRequest $request, SubmitApplication $action, NotifyStaffOfApplication $notify): RedirectResponse
     {
         // Only a published posting is linked. One closed while the applicant was
         // filling the form is dropped rather than rejected — the application still
