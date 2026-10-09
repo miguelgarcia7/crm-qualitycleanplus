@@ -17,7 +17,8 @@ class UploadContract
      */
     public function handle(Property $property, array $data, UploadedFile $document, ?Person $uploader): Contract
     {
-        $path = $document->store('contracts', 'local');
+        $disk = (string) config('filesystems.default');
+        $path = $document->store('contracts', $disk);
 
         $contract = $property->contracts()->create([
             'name' => $data['name'],
@@ -30,7 +31,7 @@ class UploadContract
         ]);
 
         $contract->file()->create([
-            'disk' => 'local',
+            'disk' => $disk,
             'path' => $path,
             'original_name' => $document->getClientOriginalName(),
             'mime_type' => $document->getClientMimeType(),

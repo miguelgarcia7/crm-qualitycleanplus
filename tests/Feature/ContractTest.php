@@ -23,8 +23,11 @@ it('hides contracts from an office manager but shows them to payroll', function 
         ->assertInertia(fn (Assert $page) => $page->where('can.viewContracts', true));
 });
 
-it('lets payroll upload a contract document', function () {
-    Storage::fake('local');
+it('lets payroll upload a contract document to the default disk', function () {
+    // Staging and production store files in the bucket (`s3`); the server's own
+    // disk is wiped on every deploy.
+    config()->set('filesystems.default', 's3');
+    Storage::fake('s3');
     $property = Property::factory()->create();
 
     $this->actingAs(person('payroll'))
@@ -39,8 +42,8 @@ it('lets payroll upload a contract document', function () {
 
     $contract = Contract::firstWhere('name', 'MSA 2026');
     expect($contract)->not->toBeNull()
-        ->and($contract->file)->not->toBeNull();
-    Storage::disk('local')->assertExists($contract->file->path);
+        ->and($contract->file->disk)->toBe('s3');
+    Storage::disk('s3')->assertExists($contract->file->path);
 });
 
 it('forbids an office manager from uploading a contract', function () {
