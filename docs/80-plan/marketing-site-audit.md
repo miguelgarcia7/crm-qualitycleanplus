@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | ✅ Must-fix items and decisions D1–D3, D6 done; see **What's left** |
-| Last updated | 2026-10-05 |
+| Status | ✅ Code work done; open items are decisions, sign-offs and go-live steps — see **What's left** |
+| Last updated | 2026-10-08 |
 | Owner | Engineering |
 | Compares | Legacy `~/Code/www.qualitycleanplus.site` (Laravel 11, public site at `/` + `/es/*`) vs this app's marketing surface (`routes/marketing.php`, `resources/views/site/`, ADR-0023) |
 
@@ -11,88 +11,54 @@
 
 At audit time (2026-10-04) the rebuild was a port of only the **English** half of the
 legacy site: leads weren't delivered, there was no spam protection, Spanish and
-testimonials were missing, and legacy bugs had been copied over. As of 2026-10-05 all five
-must-fix items are fixed and Spanish, testimonials, the SEO clean-up and branded error
-pages are built (sections below). The remaining work is listed in **What's left**.
+testimonials were missing, and legacy bugs had been copied over. As of 2026-10-08 every
+code item from this audit is done (see **Done**). What's left is decisions and sign-offs
+for Miguel and the go-live steps in the cutover runbook — listed in **What's left**.
 
 Bundle layout is settled: back office + QC Minute share the React/Inertia bundle; the
 marketing site is the only separate bundle (`vite-site.config.ts`), Blade-rendered for SEO.
-ADR-0024's three-bundle wording is stale on that point.
+ADR-0024 is amended to say so (2026-10-08).
 
-## What's left (2026-10-05)
+## What's left (2026-10-08)
 
-**Decisions for Miguel**
+**Decisions and sign-offs for Miguel**
 - **Production lead recipients.** `MARKETING_JOB_SEEKERS_TO` / `MARKETING_BUSINESS_TO`
-  point at Miguel on staging; legacy sent leads to d.aguilar@. Tracked in the cutover
-  runbook's env-var table.
-- **Google for Jobs** — parked until pay can be published (minimum or range); see the
-  parked section at the end.
+  point at Miguel on staging; legacy sent leads to d.aguilar@. Set at go-live (cutover
+  runbook env-var table).
 - **Home `<title>`** says "Quality Cleaning Experts for Residential and Commercial" while
-  the hero says "The Hospitality Experts". Pick the message Google should show.
-- **Spanish terms** with no legacy wording, for a native speaker to confirm: "Mozos de
-  limpieza" (Houseman), "Ayudantes de mesero" (Bussers), "Montaje de banquetes" (Set Up),
-  "Auxiliares de cocina" (Stewarding), "Empaque" (Packaging), "Meseros" (Servers) —
-  `lang/es/site/services.php`.
-
-**Small fixes (code)** — all done 2026-10-05:
-- ~~Nunito font never applies.~~ `_variables.scss` is imported after Bootstrap (legacy
-  has the same order), so the site has always rendered in Bootstrap's system font.
-  Miguel chose to keep that look: the unused Google Fonts request is gone.
-- ~~Hero video (D5).~~ Replaced with a still of the same Dallas skyline taken from the
-  legacy video (`public/images/home-hero-dallas.jpg`), in the same circle.
-- ~~Bootstrap mismatch / jQuery.~~ The site bundle now imports Bootstrap's collapse
-  plugin (the only one the site uses) from the npm 5.3.8 package and GSAP from npm;
-  the CDN Bootstrap 5.1.3, CDN GSAP and unused jQuery tags are gone. The home page's
-  testimonials slider (Swiper 11, npm) is bundled too, as a chunk only the home page
-  loads (2026-10-08), and so are the application's date pickers (flatpickr 4.6, npm,
-  Spanish locale on `/es`), loaded only on the application. The site no longer loads
-  anything from a CDN; the only third-party scripts are Google's (reCAPTCHA, Analytics).
-- ~~Invisible-content risk.~~ `.ui_animate` is hidden only when scripts run
-  (`html.js`), and a CSS fallback reveals it after 2s if `app.js` never takes over.
-- ~~Application form leftovers.~~ One `position` input (prefilled from the posting);
-  the unused `application_date` / `status` hidden inputs are gone.
-- ~~Business form phone.~~ Now required on the server too (business inquiries only;
-  optional for job seekers), with its error shown under the field.
-- ~~500 on `/job-openings`.~~ Confirmed real (also hit `/application/{slug}` and the
-  admin postings list). `JobPosting::property()` now includes archived properties.
-- ~~Unused legacy assets.~~ Removed `clients/`, `clients-*.png`, `hero-image-1.png`,
-  `our-services.jpg`, `icons/Archive.zip`, `partners/` (D4). **Kept `images/emails/`**:
-  staff email signatures hotlink `https://www.qualitycleanplus.com/images/emails/...`,
-  so those files must keep answering at that URL after cutover.
-- ~~`.env.example` APP_NAME.~~ Now "Quality Cleaning Plus".
-
-**Larger pieces**
-- ~~Back-office inbox for contact inquiries.~~ Built 2026-10-06: **Website → Contact
-  Inquiries** (`/admin/inquiries`, `marketing.inquiries.manage`: admin, office manager,
-  recruiter). Lists every lead newest first with form / status filters and search; a
-  popup shows the full lead with reply links, the site language and the spam check;
-  staff mark leads handled (who + when) or delete spam. Each lead email links straight to
-  its inquiry. Leads now also store `locale` and `spam_check`.
-- **Privacy policy / terms pages — drafted 2026-10-05, need sign-off before go-live.**
-  `/privacy-policy` + `/terms-of-use` (Spanish `/es/politica-de-privacidad`,
-  `/es/terminos-de-uso`), in the sitemap, linked from the footer and under every form.
-  Text lives in `lang/{en,es}/site/{privacy,terms}.php`; English is the reference. They
-  describe what the site actually collects (contact forms, the application's DOB,
-  citizenship/work-eligibility and conviction answers, emergency contact), the cookies
-  (including Cloudflare's `__cf_bm` bot cookie, added 2026-10-08), Google Analytics and
-  reCAPTCHA. **Not legal advice: have counsel review.** Statements
-  the business must confirm are true:
+  the hero says "The Hospitality Experts". Pick the message Google should show
+  (`lang/{en,es}/site/home.php`, `meta.title`).
+- **Privacy Policy / Terms of Use sign-off** (`/privacy-policy`, `/terms-of-use`, Spanish
+  twins; text in `lang/{en,es}/site/{privacy,terms}.php`, English is the reference). Not
+  legal advice — have counsel review. Confirm these statements are true:
   - Applicant details may be shared with **client businesses** where we might place them.
-  - Applicant/employee records kept **up to seven years** after closing — the period
-    `docs/20-domain/audit-and-pii.md` designs for `people`; the purge job isn't built yet,
-    so today nothing is removed automatically. Contact messages "as long as needed".
+  - Applicant/employee records kept **up to seven years** after closing (see the retention
+    follow-up below); contact messages "as long as needed".
   - We **don't sell** personal information or share it for targeted advertising (holds
     while GA's Google Signals / ads features stay off).
   - Requests to see, correct or delete information go through the Contact page / phone /
-    mailing address (no dedicated privacy email address).
+    mailing address — or name a privacy email address to list instead.
   - Terms: employment is **at will**, Quality Cleaning Plus is an **equal opportunity
     employer**, Texas law with **Dallas County** courts.
-  - The Spanish text needs a native-speaker read like the rest of the site.
-- ~~Shared session cookie~~ across the marketing site and `/admin` (path `/`).
-  **Accepted 2026-10-08**; ADR-0024 amended with the reasoning (HttpOnly, Secure on
-  Cloud, SameSite=Lax; marketing renders nothing user-specific).
+- **Native-speaker review of the Spanish**: the legal pages, and six job terms with no
+  legacy wording — "Mozos de limpieza" (Houseman), "Ayudantes de mesero" (Bussers),
+  "Montaje de banquetes" (Set Up), "Auxiliares de cocina" (Stewarding), "Empaque"
+  (Packaging), "Meseros" (Servers) — `lang/es/site/services.php`.
+- **Google for Jobs** — parked until pay can be published (minimum or range); see the
+  parked section at the end.
 
-**Docs** — ~~doc drift~~ corrected 2026-10-08 (see **Doc drift** below).
+**Go-live** (the steps live in `phase-final-cutover.md`, runbook step 6 and the env-var
+table): drop "(New)" from `APP_NAME`; attach `qualitycleanplus.com` **and**
+`www.qualitycleanplus.com`; `APP_ENV=production`, `DEMO_MODE` off; production lead
+recipients; run `RolePermissionSeeder` (testimonials + inquiries permissions); submit the
+sitemap in Search Console; check a staff email-signature image under `/images/emails/`
+still loads on the www host.
+
+**Follow-ups outside the marketing site**
+- **Retention purge isn't built.** The privacy policy's "up to seven years" matches the
+  period `docs/20-domain/audit-and-pii.md` designs for `people`, but there is no
+  `RetentionPurge` job or `config/retention.php` yet, so nothing is removed
+  automatically.
 
 ## Decisions (2026-10-04)
 
@@ -146,20 +112,21 @@ ADR-0024's three-bundle wording is stale on that point.
 |---|---|---|---|
 | Home / Services / About / Contact | ✅ | ✅ same copy & layout | Parity |
 | Job openings list | `Position` status=1 | `JobPosting::published()` + empty state | ✅ Better |
-| Single posting page (`content`, `pay_range`) | ❌ not shown | ❌ not shown (planned in 08b-i Inc 2, not built) | Gap in both |
+| Single posting page (`content`, `pay_range`) | ❌ not shown | ❌ not shown (planned in 08b-i Inc 2, not built) | Gap in both — parked with Google for Jobs |
 | Application form | `Applicant::create($request->all())`, trusts hidden `status`, no captcha | `SubmitApplication` → Person(applicant) + JobApplication | ✅ Better (see must-fix 2, 5) |
 | Job-seeker contact form | Email to staff | DB + email (`MARKETING_JOB_SEEKERS_TO`) | ✅ Fixed (must-fix 1) |
 | Business inquiry form | Email to staff | DB + email (`MARKETING_BUSINESS_TO`) | ✅ Fixed (must-fix 1) |
+| Lead inbox in the back office | ❌ email only | ✅ `/admin/inquiries` (Website › Contact Inquiries) | ✅ Done 2026-10-06 |
 | reCAPTCHA v3 on contact forms | ✅ | ✅ contact forms + application, plus rate limit | ✅ Fixed (D3) |
 | Spanish `/es/*` | ✅ 10 pages (2 broken) | ✅ all 9 pages, shared views + `lang/{en,es}/site/*` | ✅ Done 2026-10-05 (D1) |
 | Testimonials carousel | ✅ `testimonials` table, CMS-managed | ✅ `Testimonial` model, `/admin/testimonials` (Website › Testimonials), imported from legacy | ✅ Done 2026-10-05 (D2) |
-| Hero video | ✅ | Broken reference (`public/media` absent) | ⏳ Still to remove (D5) |
+| Hero video | ✅ | Static still of the same Dallas skyline | ✅ Replaced 2026-10-05 (D5) |
 | `/partners/baseball` | ✅ | 301 → `/` | ✅ Not porting (D4) |
 | Nav login link + language switcher | ✅ | Switcher to the same page in the other language; no login link | ✅ Done (D1) |
 | Google Analytics `G-ZQSBDK2ZRN` | ✅ | ✅ production only (`GOOGLE_ANALYTICS_ID`) | ✅ Done 2026-10-05 |
 | Sitemap / hreflang / JSON-LD | ❌ | ✅ `/sitemap.xml` (both languages + open postings), hreflang, EmploymentAgency JSON-LD | ✅ Done 2026-10-05 |
-| Privacy / terms pages | ❌ | ❌ | ⏳ Gap — the application collects DOB + felony data |
-| Branded error pages | ❌ | ✅ 403/404/419/429/500/503 in the site layout, EN/ES (`SiteErrorPage`); expired forms return with answers kept | ✅ Done 2026-10-05 (marketing only) |
+| Privacy / terms pages | ❌ | ✅ `/privacy-policy`, `/terms-of-use` + Spanish, linked from footer and forms | ✅ Drafted 2026-10-05 — sign-off open |
+| Branded error pages | ❌ | ✅ 403/404/419/429/500/503 in the site layout, EN/ES (`SiteErrorPage`); expired forms return with answers kept | ✅ Done 2026-10-05 (back office + QC Minute too) |
 
 ## Legacy contact routing
 
@@ -268,33 +235,35 @@ translation source — it has typos to fix ("limpiez", "negocion", "Quienes Noso
   Local run 2026-10-05: 19 imported (16 on site), 3 photos copied.
 - The Spanish home page shows the same testimonials (D1, done).
 
-## Ported bugs (present in both) — status 2026-10-05
+## Ported bugs (present in both) — status 2026-10-08
 
 - ✅ Canonical hardcoded to the www homepage — now each page's own URL.
 - ✅ Invalid `twitter:site`/`creator` handle, missing `twitter:card`, malformed
   `DC.date.issued` — fixed (SEO clean-up).
 - ✅ Missing `/images/safari-pinned-tab.svg` reference — removed.
 - ✅ Contact pages sharing one title/description; empty thank-you description — each has its own.
-- ✅ Yes/no radio errors never displayed — fixed (Spanish work). ⏳ `position` posted twice;
-  unused hidden `application_date`/`status` — still open.
-- ⏳ Business form phone required in HTML, optional on the server — still open.
+- ✅ Yes/no radio errors never displayed — fixed (Spanish work). ✅ `position` posted twice;
+  unused hidden `application_date`/`status` — fixed 2026-10-05.
+- ✅ Business form phone required in HTML, optional on the server — now required on the
+  server too (2026-10-05).
   ✅ Inquiry-type `aria-label="Call Back Time"` — fixed.
 - ✅ Typos ("Employement", "Jobs Openings", "custruction", "corrrect", "If the answer if
   yes", "eligible able", "Have you work for", "go about and beyond") — fixed.
 - ✅ Footer: static year, `&copy` without `;`, address order, Bootstrap 3/4 classes — fixed.
-- ⏳ `.ui_animate { opacity: 0 }` depends on CDN GSAP — still open.
+- ✅ `.ui_animate { opacity: 0 }` depends on CDN GSAP — GSAP bundled, CSS fallback reveals
+  content if scripts never run (2026-10-05).
 
-## Rebuild-only issues — status 2026-10-05
+## Rebuild-only issues — status 2026-10-08
 
-- ⏳ **Nunito never applies** — `_variables.scss` is imported after Bootstrap
-  (`resources/css/site/app.scss`), so `$font-family-sans-serif` is ignored; built CSS has no
-  "Nunito".
-- ⏳ Bootstrap CSS ^5.3.8 vs CDN JS 5.1.3; jQuery loaded, unused. (Swiper now has
-  testimonials to show.)
-- ⏳ Shared session cookie across `/` and `/admin` (path `/`, name from `APP_NAME`); Fortify
-  login at root `/login`. Contradicts ADR-0024's "path-scoped under `/admin`".
-- ⏳ `JobPosting::locationName()` reads `$this->property->name`; a published posting on a
-  soft-deleted property likely 500s `/job-openings` (unverified).
+- ✅ **Nunito never applies** — kept the system font (Miguel's call); the unused Google
+  Fonts request is gone (2026-10-05).
+- ✅ Bootstrap CSS ^5.3.8 vs CDN JS 5.1.3; jQuery unused — collapse + GSAP bundled from
+  npm, jQuery dropped (2026-10-05); Swiper and flatpickr bundled too (2026-10-08). The site
+  loads nothing from a CDN.
+- ✅ Shared session cookie across `/` and `/admin` — accepted; ADR-0024 amended
+  (2026-10-08).
+- ✅ `JobPosting::locationName()` on a soft-deleted property — confirmed 500, fixed
+  (`property()` includes archived properties, 2026-10-05).
 - ✅ Nav active state misses sub-pages — fixed (`SiteLocale::is()` matches sub-pages).
 - ✅ `robots.txt` allowed everything — now generated per environment (SEO clean-up).
 - Demo seeder publishes "Acme Hotel" postings — visible on the public board in demo (expected).
@@ -401,10 +370,28 @@ the description (`content`) or `pay_range`, though both exist in the admin.
 3. **Employment type.** Contractors are 1099 → `CONTRACTOR` (or `TEMPORARY`); same for
    every posting, or per posting?
 
-## Done (2026-10-04 → 2026-10-05)
+## Done (2026-10-04 → 2026-10-08)
 
-Must-fix 1–5; reCAPTCHA v3 + rate limit (D3, flag-not-block, badge hidden with Google's
-notice); lead emails (D6); testimonials (D2) with the legacy import; Spanish (D1); SEO
-clean-up (generated robots/sitemap with caching, www redirect, legacy redirects,
-production-only analytics, structured data); branded error pages for the marketing site,
-back office and QC Minute; staging env vars set; cutover runbook env-var table.
+- **2026-10-04 → 05:** must-fix 1–5; reCAPTCHA v3 + rate limit (D3, flag-not-block,
+  badge hidden with Google's notice); lead emails (D6); testimonials (D2) with the legacy
+  import; Spanish (D1); SEO clean-up (generated robots/sitemap with caching, www redirect,
+  legacy redirects, production-only analytics, structured data); branded error pages for
+  the marketing site, back office and QC Minute; staging env vars set; cutover runbook
+  env-var table.
+- **Small fixes (2026-10-05):** static Dallas hero image (D5); Bootstrap collapse + GSAP
+  bundled, jQuery dropped; scroll-reveal fallback; application form leftovers; business
+  phone required server-side; archived-property 500 on the job board; unused legacy images
+  removed (`images/emails/` kept for staff signatures); `.env.example` APP_NAME; unused
+  Nunito request dropped.
+- **Contact Inquiries inbox (2026-10-05/06):** Website → Contact Inquiries
+  (`/admin/inquiries`, `marketing.inquiries.manage`: admin, office manager, recruiter) —
+  filters, search, detail popup, mark handled (who + when), delete spam; the lead email
+  links to it; leads store `locale` + `spam_check`.
+- **Privacy Policy + Terms of Use drafted (2026-10-05, Cloudflare cookie added
+  2026-10-08):** both languages, in the sitemap, linked from the footer and under every
+  form; a test keeps every Spanish site-string file in step with its English twin.
+  Sign-off still open (above).
+- **2026-10-08:** shared session cookie accepted (ADR-0024 amended); Swiper and flatpickr
+  bundled as per-page chunks — no CDN left; doc drift corrected; recruiters and office
+  managers get an in-app alert for each website application (`ApplicationReceived`,
+  mutable "New applications" category).
