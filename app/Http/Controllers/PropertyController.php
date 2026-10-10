@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Dashboards\Services\PropertyOverview;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Actions\CreateProperty;
 use App\Domain\PropertyBible\Actions\UpdateProperty;
@@ -77,7 +78,7 @@ class PropertyController extends Controller
         return to_route('properties.show', $property)->with('success', 'Property created.');
     }
 
-    public function show(Property $property): Response
+    public function show(Property $property, PropertyOverview $overview): Response
     {
         $this->authorize('view', $property);
 
@@ -98,6 +99,7 @@ class PropertyController extends Controller
 
         return Inertia::render('admin/properties/show', [
             'property' => $this->propertyPayload($property),
+            'overview' => $user instanceof Person ? $overview->build($property, $user) : null,
             'departments' => $property->departments->map(fn ($d): array => [
                 'id' => $d->id,
                 'department_id' => $d->department_id,
@@ -168,6 +170,7 @@ class PropertyController extends Controller
                 'manageAssignments' => $user instanceof Person && $user->can('manageAssignments', $property),
                 'inviteUsers' => $user instanceof Person && $user->can('admin.users.create'),
                 'editHolidays' => $user instanceof Person && $user->can('update', $property),
+                'viewGrid' => $user instanceof Person && $user->can('time_entries.view'),
             ],
         ]);
     }

@@ -1,5 +1,6 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import { Stat, StatusTrack } from '@/components/timesheet/WeekSummary'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
@@ -13,6 +14,7 @@ type Property = {
   pm_name: string | null
   pm_phone: string | null
   main_phone: string | null
+  billing_email: string | null
   address: string | null
   city: string | null
   state: string | null
@@ -21,6 +23,7 @@ type Property = {
   latitude: string | null
   longitude: string | null
   geofence_radius_meters: number
+  qr_clock_enabled: boolean
   closing_day: number | null
   tax_rate: string | null
   status: string
@@ -69,10 +72,28 @@ type Can = {
   manageAssignments: boolean
   inviteUsers: boolean
   editHolidays: boolean
+  viewGrid: boolean
 }
+
+type WeekTotals = { people: number; total_minutes: number; overtime_minutes: number; total_pay: number; total_bill: number }
+type ThisWeek = WeekTotals & { week_start: string; week_end: string; status: string | null; status_label: string | null; needs_look: number }
+type WeekRow = WeekTotals & {
+  id: number
+  week_start: string
+  week_end: string
+  status: string
+  status_label: string
+  invoice_number: string | null
+  sent_for_approval_at: string | null
+}
+/** Where to fix it: a URL, or a tab (and Settings section) on this page. */
+type AttentionAction = { label: string; href?: string; tab?: string; section?: string }
+type AttentionItem = { key: string; title: string; detail: string; action: AttentionAction }
+type Overview = { thisWeek: ThisWeek | null; weeks: WeekRow[] | null; attention: AttentionItem[] }
 
 type Props = {
   property: Property
+  overview: Overview | null
   departments: Dept[]
   rates: Rate[]
   assignments: Assignment[]
@@ -92,7 +113,24 @@ type Props = {
 
 // --- Helpers ---------------------------------------------------------------
 
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
+const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const hrs = (minutes: number) => (minutes / 60).toFixed(2)
+// Noon, so no timezone offset can push the date to a neighbouring day.
+const monthDay = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+const weekRange = (start: string, end: string) => `${monthDay(start)} – ${monthDay(end)}`
+const timezoneName = (tz: string) =>
+  new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longGeneric' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? tz
+
+/** Same colours as the Timesheets list, so a status reads the same everywhere. */
+const statusBadge: Record<string, string> = {
+  draft: 'bg-warning/15 text-warning',
+  pending_approval: 'bg-info/15 text-info',
+  approved: 'bg-success/15 text-success',
+  invoiced: 'bg-success/15 text-success',
+  invoice_sent: 'bg-success/15 text-success',
+  declined: 'bg-danger/15 text-danger',
+  voided: 'bg-secondary/15 text-secondary',
+}
 
 /** closing_day is the ISO weekday (1 = Mon … 7 = Sun) the property's work week ends on. */
 const WEEKDAYS: Record<number, string> = {
@@ -149,17 +187,131 @@ const FactRow = ({ icon, label, children }: { icon: string; label: string; child
   </div>
 )
 
-// --- Identity card (left column) --------------------------------------------
+const CardHeading = ({ title, children, actions }: { title: string; children?: React.ReactNode; actions?: React.ReactNode }) => (
+  <div className="card-header flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h4 className="card-title">{title}</h4>
+      {children && <p className="text-default-400 mt-1 text-sm">{children}</p>}
+    </div>
+    {actions}
+  </div>
+)
 
-const IdentityCard = ({ property, can }: { property: Property; can: Can }) => {
-  const initials = property.name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
+// --- Header (under the page title, on every tab) -----------------------------
 
+const PropertyHeader = ({ property, can }: { property: Property; can: Can }) => {
+  const cityState = [property.city, property.state].filter(Boolean).join(', ')
+  const facts = [[property.address, cityState, property.zip].filter(Boolean).join(', '), timezoneName(property.timezone), `Week ends ${WEEKDAYS[property.closing_day ?? 7]}`].filter(Boolean)
+
+  return (
+    <div className="mb-1 flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className={cn('badge badge-label capitalize', property.status === 'active' ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary')}>
+          {property.status}
+        </span>
+        <span className={cn('badge badge-label', property.time_source === 'import' ? 'bg-info/15 text-info' : 'bg-primary/15 text-primary')}>
+          {property.time_source === 'import' ? 'Hour import' : 'Clock-in'}
+        </span>
+        <p className="text-default-500">{facts.join(' · ')}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {property.time_source === 'clock_in' && (
+          <Link href={`/admin/properties/${property.id}/qr`} className="btn border-default-300 hover:border-default-400 border">
+            <Icon icon="qrcode" className="size-4" /> Clock-In QR
+          </Link>
+        )}
+        {can.viewGrid && (
+          <Link href={`/admin/properties/${property.id}/grid`} className="btn bg-primary hover:bg-primary-hover font-semibold text-white">
+            <Icon icon="layout" className="size-4" /> Weekly Timesheet
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// --- Overview tab ----------------------------------------------------------------
+
+/** This week's figures, mirroring the grid's summary bar. */
+const ThisWeekCard = ({ property, week, showHistory }: { property: Property; week: ThisWeek; showHistory: boolean }) => {
+  const margin = week.total_bill - week.total_pay
+
+  return (
+    <div className="card">
+      <CardHeading title={`This week · ${weekRange(week.week_start, week.week_end)}, ${week.week_end.slice(0, 4)}`} actions={week.status && week.status_label && <StatusTrack status={week.status} label={week.status_label} />}>
+        Times in {timezoneName(property.timezone)}
+      </CardHeading>
+      <div className="border-default-300 grid grid-cols-2 border-y lg:grid-cols-5">
+        <Stat label="Hours" value={hrs(week.total_minutes)} note={`${week.people} ${week.people === 1 ? 'person' : 'people'} with hours`} />
+        <Stat label="Overtime" value={hrs(week.overtime_minutes)} note={week.overtime_minutes ? 'Over 40 h this week' : 'Nobody over 40 h'} />
+        <Stat label="Payroll" value={money(week.total_pay)} note="Before taxes" />
+        <Stat
+          label="Billable"
+          value={money(week.total_bill)}
+          note={`Margin ${money(margin)}${week.total_bill ? ` · ${((margin / week.total_bill) * 100).toFixed(1)}%` : ''}`}
+        />
+        <Stat
+          label="Needs a look"
+          value={week.needs_look ? String(week.needs_look) : 'All clear'}
+          valueClass={week.needs_look ? 'text-warning' : 'text-success'}
+          note={week.needs_look ? 'No clock-out, or GPS not verified' : 'No missing or flagged punches'}
+          className="col-span-2 lg:col-span-1"
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+        {showHistory ? (
+          <Link href={`/admin/timesheets?property_id=${property.id}`} className="text-primary text-sm font-medium underline underline-offset-3">
+            All weeks for this property
+          </Link>
+        ) : (
+          <span />
+        )}
+        <Link href={`/admin/properties/${property.id}/grid`} className="btn bg-primary hover:bg-primary-hover font-semibold text-white">
+          Open This Week <Icon icon="arrow-right" className="size-4" />
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+const AttentionCard = ({ items, onGo }: { items: AttentionItem[]; onGo: (action: AttentionAction) => void }) => (
+  <div className="card">
+    <CardHeading title="Needs attention" actions={items.length > 0 && <span className="badge badge-label bg-warning/15 text-warning">{items.length}</span>} />
+    <div className="card-body pt-2">
+      {items.length === 0 ? (
+        <p className="text-default-500 flex items-center gap-2 py-3">
+          <Icon icon="circle-check" className="text-success size-5" /> Nothing needs attention right now.
+        </p>
+      ) : (
+        <ul className="divide-default-200 divide-y">
+          {items.map((item) => (
+            <li key={item.key} className="flex items-start gap-3 py-3.5">
+              <div className="btn btn-icon bg-warning/15 size-8! shrink-0">
+                <Icon icon="alert-triangle" className="text-warning text-lg" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-default-900 font-semibold">{item.title}</p>
+                <p className="text-default-500 text-sm">{item.detail}</p>
+              </div>
+              {item.action.href ? (
+                <Link href={item.action.href} className="btn btn-sm btn-light shrink-0">
+                  {item.action.label}
+                </Link>
+              ) : (
+                <button type="button" className="btn btn-sm btn-light shrink-0" onClick={() => onGo(item.action)}>
+                  {item.action.label}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+)
+
+const PropertyCard = ({ property, can }: { property: Property; can: Can }) => {
   const cityState = [property.city, property.state].filter(Boolean).join(', ')
   const fullAddress = [property.address, cityState, property.zip].filter(Boolean).join(', ')
   const taxRate = property.tax_rate !== null ? `${(parseFloat(property.tax_rate) * 100).toFixed(2)}%` : null
@@ -167,96 +319,122 @@ const IdentityCard = ({ property, can }: { property: Property; can: Can }) => {
 
   return (
     <div className="card">
-      <div className="card-body">
-        <div className="mb-7.5 flex items-center justify-between">
-          <div className="gap-base flex items-center">
-            <div className="bg-primary/10 text-primary flex size-18 shrink-0 items-center justify-center rounded-full text-xl font-semibold">
-              {initials}
-            </div>
-            <div>
-              <h5 className="font-medium">{property.name}</h5>
-              <p className="text-default-400 mb-3">{cityState || 'No location set'}</p>
-              <div className="flex flex-wrap gap-1.5">
-                <span
-                  className={cn(
-                    'badge badge-label capitalize',
-                    property.status === 'active' ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary',
-                  )}
-                >
-                  {property.status}
-                </span>
-                <span
-                  className={cn(
-                    'badge badge-label',
-                    property.time_source === 'import' ? 'bg-info/15 text-info' : 'bg-primary/15 text-primary',
-                  )}
-                >
-                  {property.time_source === 'import' ? 'Hour import' : 'Clock-in'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-y-3">
-          {fullAddress && (
-            <FactRow icon="map-pin" label="Address">
-              {fullAddress}
-            </FactRow>
-          )}
-          {property.pm_name && (
-            <FactRow icon="user-circle" label="PM">
-              {property.pm_name}
-            </FactRow>
-          )}
-          {property.pm_phone && (
-            <FactRow icon="phone" label="PM phone">
-              {property.pm_phone}
-            </FactRow>
-          )}
-          {property.main_phone && (
-            <FactRow icon="phone-call" label="Hotel phone">
-              {property.main_phone}
-            </FactRow>
-          )}
-          <FactRow icon="clock" label="Timezone">
-            {property.timezone}
-          </FactRow>
-          {taxRate && (
-            <FactRow icon="receipt-tax" label="Tax rate">
-              {taxRate}
-            </FactRow>
-          )}
-          <FactRow icon="calendar" label="Week ends">
-            {WEEKDAYS[property.closing_day ?? 7]}
-          </FactRow>
-          <FactRow icon="map-pin-check" label="Geofence">
-            {hasGeofence ? `Set (${property.geofence_radius_meters} m radius)` : 'Not set — QR clock-in disabled'}
-          </FactRow>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-2">
-          <Link
-            href={`/admin/properties/${property.id}/grid`}
-            className="btn bg-primary hover:bg-primary-hover justify-center font-semibold text-white"
-          >
-            <Icon icon="layout" className="me-1.5 size-4" /> Weekly Timesheet
-          </Link>
-          <div className="flex gap-2">
-            <Link href={`/admin/properties/${property.id}/qr`} className="btn btn-light flex-1 justify-center">
-              <Icon icon="qrcode" className="me-1.5 size-4" /> Clock-In QR
+      <CardHeading
+        title="Property"
+        actions={
+          can.editProfile && (
+            <Link href={`/admin/properties/${property.id}/edit`} className="text-primary text-sm font-medium underline underline-offset-3">
+              Edit
             </Link>
-            {can.editProfile && (
-              <Link href={`/admin/properties/${property.id}/edit`} className="btn btn-light flex-1 justify-center">
-                <Icon icon="edit" className="me-1.5 size-4" /> Edit
-              </Link>
-            )}
-          </div>
-        </div>
+          )
+        }
+      />
+      <div className="card-body flex flex-col gap-y-3">
+        {fullAddress && (
+          <FactRow icon="map-pin" label="Address">
+            {fullAddress}
+          </FactRow>
+        )}
+        {property.pm_name && (
+          <FactRow icon="user-circle" label="PM">
+            {property.pm_name}
+            {property.pm_phone && ` · ${property.pm_phone}`}
+          </FactRow>
+        )}
+        {property.main_phone && (
+          <FactRow icon="phone-call" label="Hotel phone">
+            {property.main_phone}
+          </FactRow>
+        )}
+        {property.billing_email && (
+          <FactRow icon="mail" label="Invoices to">
+            {property.billing_email}
+          </FactRow>
+        )}
+        {taxRate && (
+          <FactRow icon="receipt-tax" label="Tax rate">
+            {taxRate}
+          </FactRow>
+        )}
+        {property.time_source === 'clock_in' && (
+          <FactRow icon="map-pin-check" label="Geofence">
+            {hasGeofence ? `${property.geofence_radius_meters} m radius${property.qr_clock_enabled ? ' · QR on' : ' · QR off'}` : 'Not set'}
+          </FactRow>
+        )}
       </div>
     </div>
   )
 }
+
+const RecentWeeksCard = ({ property, weeks }: { property: Property; weeks: WeekRow[] }) => (
+  <div className="card">
+    <CardHeading
+      title="Recent weeks"
+      actions={
+        <Link href={`/admin/timesheets?property_id=${property.id}`} className="text-primary text-sm font-medium underline underline-offset-3">
+          Full history in Timesheets
+        </Link>
+      }
+    />
+    <div className="table-wrapper">
+      <table className="table table-hover">
+        <thead className="thead-sm">
+          <tr className="bg-light/25 text-xs uppercase">
+            <th>Week</th>
+            <th>Status</th>
+            <th className="text-end">People</th>
+            <th className="text-end">Hours</th>
+            <th className="text-end">Billable</th>
+            <th>Invoice</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {weeks.length ? (
+            weeks.map((w) => (
+              <tr key={w.id}>
+                <td className="text-default-900 font-semibold whitespace-nowrap">{weekRange(w.week_start, w.week_end)}</td>
+                <td>
+                  <span className={cn('badge badge-label', statusBadge[w.status] ?? 'bg-light text-default-600')}>{w.status_label}</span>
+                </td>
+                <td className="text-end tabular-nums">{w.people}</td>
+                <td className="text-end tabular-nums">{hrs(w.total_minutes)}</td>
+                <td className="text-end tabular-nums">{money(w.total_bill)}</td>
+                <td className="whitespace-nowrap">{w.invoice_number ?? '—'}</td>
+                <td className="text-end">
+                  <Link href={`/admin/properties/${property.id}/grid?week=${w.week_start}`} className="btn btn-sm btn-light">
+                    Open Week
+                  </Link>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={7} className="text-default-400 py-4 text-center">
+                No weeks yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)
+
+const OverviewTab = ({ property, overview, can, onGo }: { property: Property; overview: Overview; can: Can; onGo: (action: AttentionAction) => void }) => (
+  <div className="space-y-6">
+    {overview.thisWeek && <ThisWeekCard property={property} week={overview.thisWeek} showHistory={overview.weeks !== null} />}
+
+    <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
+      <div className="xl:col-span-2">
+        <AttentionCard items={overview.attention} onGo={onGo} />
+      </div>
+      <PropertyCard property={property} can={can} />
+    </div>
+
+    {overview.weeks && <RecentWeeksCard property={property} weeks={overview.weeks} />}
+  </div>
+)
 
 // --- Tab sections ----------------------------------------------------------
 
@@ -898,79 +1076,199 @@ const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
   </div>
 )
 
-// --- Page ------------------------------------------------------------------
+// --- Settings tab ----------------------------------------------------------------
 
-const Page = ({ property, departments, rates, assignments, contracts, history, holidays, jobCodes, catalogs, can }: Props) => {
-  const tabs = [
-    { key: 'rates', label: 'Positions & Rates', show: true },
-    { key: 'departments', label: 'Departments', show: true },
+type SectionKey = 'contacts' | 'holidays' | 'contracts' | 'history'
+
+const SettingsTab = ({
+  section: requested,
+  onSection,
+  ...props
+}: Pick<Props, 'property' | 'departments' | 'assignments' | 'contracts' | 'history' | 'holidays' | 'catalogs' | 'can'> & {
+  section: SectionKey
+  onSection: (key: SectionKey) => void
+}) => {
+  const { property, can } = props
+  const sections: { key: SectionKey; label: string; show: boolean }[] = [
+    { key: 'contacts', label: 'Contacts', show: true },
     { key: 'holidays', label: 'Holidays', show: true },
-    { key: 'team', label: 'Team', show: true },
     { key: 'contracts', label: 'Contracts', show: can.viewContracts },
     { key: 'history', label: 'History', show: true },
-  ].filter((t) => t.show)
+  ]
+  // A link to a section this viewer can't see lands on the first one instead.
+  const section = sections.some((s) => s.key === requested && s.show) ? requested : 'contacts'
 
-  // Active tab lives in the URL hash (#rates, #team, …) so tabs are
-  // deep-linkable and survive refresh. Invalid/missing hash → first tab.
-  const tabFromHash = () => {
-    const hash = typeof window === 'undefined' ? '' : window.location.hash.slice(1)
-    return tabs.some((t) => t.key === hash) ? hash : tabs[0].key
+  return (
+    <div className="gap-base grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <nav className="flex flex-wrap gap-1 lg:flex-col" aria-label="Settings sections">
+        {sections
+          .filter((s) => s.show)
+          .map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              aria-current={section === s.key ? 'page' : undefined}
+              onClick={() => onSection(s.key)}
+              className={cn(
+                'rounded-lg px-3 py-2.5 text-start font-medium',
+                section === s.key ? 'bg-light text-default-900 font-semibold' : 'text-default-600 hover:bg-light/60 hover:text-default-900',
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+      </nav>
+
+      <div className="min-w-0 space-y-6">
+        {section === 'contacts' && (
+          <>
+            <div className="card">
+              <CardHeading title="Departments">Each department at the hotel and the manager who runs it.</CardHeading>
+              <div className="card-body">
+                <DepartmentsTab property={property} departments={props.departments} catalogs={props.catalogs} can={can} />
+              </div>
+            </div>
+            <div className="card">
+              <CardHeading title="Our team on this property">Recruiters and property users who can see and work this property.</CardHeading>
+              <div className="card-body">
+                <TeamTab property={property} assignments={props.assignments} catalogs={props.catalogs} can={can} />
+              </div>
+            </div>
+          </>
+        )}
+        {section === 'holidays' && (
+          <div className="card">
+            <CardHeading title="Holidays observed">Which holidays this property pays and bills at the holiday rate.</CardHeading>
+            <div className="card-body">
+              <HolidaysTab property={property} holidays={props.holidays} can={can} />
+            </div>
+          </div>
+        )}
+        {section === 'contracts' && can.viewContracts && (
+          <div className="card">
+            <CardHeading title="Contracts">Signed agreements, rate sheets and amendments for this property.</CardHeading>
+            <div className="card-body">
+              <ContractsTab property={property} contracts={props.contracts} catalogs={props.catalogs} can={can} />
+            </div>
+          </div>
+        )}
+        {section === 'history' && (
+          <div className="card">
+            <CardHeading title="History">Every change to this property&apos;s setup.</CardHeading>
+            <div className="card-body">
+              <HistoryTab history={props.history} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// --- Page ------------------------------------------------------------------
+
+type TabKey = 'overview' | 'rates' | 'settings'
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'rates', label: 'Rates & Job Codes' },
+  { key: 'settings', label: 'Settings' },
+]
+
+/** Hashes from the old single-card layout, so saved links still land on the right section. */
+const LEGACY_HASHES: Record<string, string> = {
+  departments: 'settings/contacts',
+  team: 'settings/contacts',
+  holidays: 'settings/holidays',
+  contracts: 'settings/contracts',
+  history: 'settings/history',
+}
+
+const SECTIONS: SectionKey[] = ['contacts', 'holidays', 'contracts', 'history']
+
+/** The URL hash holds the tab, and for Settings its section: #overview, #settings/holidays. */
+const locationFromHash = (): { tab: TabKey; section: SectionKey } => {
+  const raw = typeof window === 'undefined' ? '' : window.location.hash.slice(1)
+  const [tab, section] = (LEGACY_HASHES[raw] ?? raw).split('/')
+
+  return {
+    tab: TABS.some((t) => t.key === tab) ? (tab as TabKey) : 'overview',
+    section: SECTIONS.includes(section as SectionKey) ? (section as SectionKey) : 'contacts',
   }
-  const [active, setActive] = useState(tabFromHash)
+}
+
+const Page = ({ property, overview, departments, rates, assignments, contracts, history, holidays, jobCodes, catalogs, can }: Props) => {
+  const [location, setLocation] = useState(locationFromHash)
 
   useEffect(() => {
-    const onHashChange = () => setActive(tabFromHash())
+    const onHashChange = () => setLocation(locationFromHash())
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const selectTab = (key: string) => {
-    setActive(key)
-    window.history.replaceState(null, '', `#${key}`)
+  const go = (tab: TabKey, section: SectionKey = location.section) => {
+    setLocation({ tab, section })
+    window.history.replaceState(null, '', tab === 'settings' ? `#settings/${section}` : `#${tab}`)
+  }
+
+  const goToAction = (action: AttentionAction) => {
+    if (TABS.some((t) => t.key === action.tab)) {
+      go(action.tab as TabKey, SECTIONS.includes(action.section as SectionKey) ? (action.section as SectionKey) : undefined)
+      // The card that sent us is lower down; start the new tab from its top.
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   return (
     <>
       <Head title={property.name} />
       <PageBreadcrumb title={property.name} subtitle="Property Bible" />
+      <PropertyHeader property={property} can={can} />
 
-      <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
-        <div className="space-y-6">
-          <IdentityCard property={property} can={can} />
-        </div>
+      {/* Tabs sit under the page title, full width, as on My Profile and the System Reference pages. */}
+      <nav className="border-default-300 mt-4 mb-5 flex flex-wrap gap-1 border-b" aria-label="Property sections" role="tablist">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={location.tab === t.key}
+            onClick={() => go(t.key)}
+            className={cn(
+              '-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 font-medium focus:outline-hidden',
+              location.tab === t.key ? 'border-primary text-default-900' : 'text-default-500 hover:text-default-900 border-transparent',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
 
-        <div className="space-y-6 xl:col-span-2">
-          <div className="card">
-            <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
-              {tabs.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active === t.key}
-                  onClick={() => selectTab(t.key)}
-                  className={cn(
-                    'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                    active === t.key ? 'border-primary text-primary border-b' : '',
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
+      {location.tab === 'overview' && overview && <OverviewTab property={property} overview={overview} can={can} onGo={goToAction} />}
 
-            <div className="card-body p-6">
-              {active === 'rates' && <RatesTab property={property} rates={rates} jobCodes={jobCodes} catalogs={catalogs} can={can} />}
-              {active === 'departments' && <DepartmentsTab property={property} departments={departments} catalogs={catalogs} can={can} />}
-              {active === 'holidays' && <HolidaysTab property={property} holidays={holidays} can={can} />}
-              {active === 'team' && <TeamTab property={property} assignments={assignments} catalogs={catalogs} can={can} />}
-              {active === 'contracts' && can.viewContracts && <ContractsTab property={property} contracts={contracts} catalogs={catalogs} can={can} />}
-              {active === 'history' && <HistoryTab history={history} />}
-            </div>
+      {location.tab === 'rates' && (
+        <div className="card">
+          <CardHeading title="Positions, rates & job codes">Current rates fill new work orders. Job codes print next to the position on invoices and exports.</CardHeading>
+          <div className="card-body">
+            <RatesTab property={property} rates={rates} jobCodes={jobCodes} catalogs={catalogs} can={can} />
           </div>
         </div>
-      </div>
+      )}
+
+      {location.tab === 'settings' && (
+        <SettingsTab
+          section={location.section}
+          onSection={(key) => go('settings', key)}
+          property={property}
+          departments={departments}
+          assignments={assignments}
+          contracts={contracts}
+          history={history}
+          holidays={holidays}
+          catalogs={catalogs}
+          can={can}
+        />
+      )}
     </>
   )
 }
