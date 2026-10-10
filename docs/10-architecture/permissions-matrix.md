@@ -236,6 +236,9 @@ Note: per ADR-0012, requesters do **not** see stock levels when submitting a req
 | `admin.impersonate` | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `admin.users.create` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `admin.roles.assign` | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+| `system.reference.view` | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
+
+> `system.reference.view` opens Admin → System Reference (`/admin/system`): who can do what, notifications and scheduled tasks, read from the live app (2026-10-09).
 
 > Several admin/audit capabilities will likely move out of the `admin` column over time per ADR-0013's planned devolution. Specifically: `admin.impersonate`, `audit.activity_log.view`, and `audit.legal_hold.*`. Not changing yet — happens with a new ADR when ready.
 

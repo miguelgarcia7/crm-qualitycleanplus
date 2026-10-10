@@ -42,6 +42,7 @@ use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\SupplyRequestController;
+use App\Http\Controllers\SystemReferenceController;
 use App\Http\Controllers\TerminationController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\TimeEntryController;
@@ -331,6 +332,11 @@ Route::post('notifications/read-all', [NotificationController::class, 'readAll']
 Route::get('audit', [AuditLogController::class, 'index'])
     ->middleware('can:audit.activity_log.view')
     ->name('backoffice.audit.index');
+
+// System reference — how the system is set up, read from the live app (Admin)
+Route::get('system', [SystemReferenceController::class, 'index'])
+    ->middleware('can:system.reference.view')
+    ->name('backoffice.system.index');
 
 // People directory (Phase 09b) — policy-gated (contractors/staff tabs, recruiter own-scoping)
 Route::get('people', [PeopleController::class, 'index'])->name('backoffice.people.index');

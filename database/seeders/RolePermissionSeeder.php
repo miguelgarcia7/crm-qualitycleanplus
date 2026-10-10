@@ -186,6 +186,9 @@ class RolePermissionSeeder extends Seeder
 
             // Company identity frozen onto invoices — ownership-tier only.
             'settings.company.manage' => ['admin'],
+
+            // System reference — how the system is set up (who can do what, notifications, automations).
+            'system.reference.view' => ['admin'],
         ];
     }
 

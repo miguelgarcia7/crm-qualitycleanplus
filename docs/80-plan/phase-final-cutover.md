@@ -289,7 +289,7 @@ before that date is missing them:
 | `payroll_periods` | index on `week_start` |
 | `timesheets` | index on `sent_for_approval_at` |
 | `invoices` | `paid_by`, indexes on `paid_at`, `issue_date` |
-| `RolePermissionSeeder` | `invoices.mark_paid` (admin, payroll); `marketing.testimonials.manage`, `marketing.inquiries.manage` (2026-10-05/06) |
+| `RolePermissionSeeder` | `invoices.mark_paid` (admin, payroll); `marketing.testimonials.manage`, `marketing.inquiries.manage` (2026-10-05/06); `system.reference.view` (admin, 2026-10-09) |
 
 `billing_email` has no legacy source — legacy `properties` has no such column —
 so every property imports with it blank and someone has to fill them in.
