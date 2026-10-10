@@ -74,6 +74,8 @@ type Can = {
   editHolidays: boolean
   viewGrid: boolean
   viewInvoices: boolean
+  createWorkOrders: boolean
+  editWorkOrders: boolean
 }
 
 type WeekTotals = { people: number; total_minutes: number; overtime_minutes: number; total_pay: number; total_bill: number }
@@ -92,6 +94,29 @@ type WeekRow = WeekTotals & {
   approved_at: string | null
   decline_reason: string | null
 }
+type DirectHire = {
+  threshold_hours: number
+  worked_hours: number
+  remaining_hours: number
+  percent: number
+  eligible: boolean
+  unrestricted: boolean
+}
+type WorkOrderRow = {
+  id: number
+  person_id: number
+  contractor: string | null
+  position: string | null
+  pay_rate: number
+  bill_rate: number
+  start_date: string
+  status: string
+  status_label: string
+  is_temporary_assignment: boolean
+  direct_hire: DirectHire | null
+}
+type WorkOrders = { rows: WorkOrderRow[]; closed_count: number }
+
 /** Where to fix it: a URL, or a tab (and Settings section) on this page. */
 type AttentionAction = { label: string; href?: string; tab?: string; section?: string }
 type AttentionItem = { key: string; title: string; detail: string; action: AttentionAction }
@@ -100,6 +125,8 @@ type Overview = { thisWeek: ThisWeek | null; weeks: WeekRow[] | null; attention:
 type Props = {
   property: Property
   overview: Overview | null
+  /** Null when the viewer can't see work orders. */
+  workOrders: WorkOrders | null
   departments: Dept[]
   rates: Rate[]
   assignments: Assignment[]
@@ -571,6 +598,138 @@ const TimesheetsTab = ({ property, weeks, can }: { property: Property; weeks: We
         <span className="text-default-400">Showing the latest {weeks.length} {weeks.length === 1 ? 'week' : 'weeks'}</span>
         <Link href={`/admin/timesheets?property_id=${property.id}`} className="text-primary font-medium underline underline-offset-3">
           Full history in Timesheets
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+// --- Work orders tab ----------------------------------------------------------------
+
+/** Hours worked toward the property's direct-hire threshold, as on the Work Orders list. */
+const DirectHireCell = ({ dh }: { dh: DirectHire | null }) => {
+  if (dh === null) return <span className="text-default-400">—</span>
+  if (dh.unrestricted) return <span className="badge badge-label bg-light text-default-600">None</span>
+  if (dh.eligible) return <span className="badge badge-label bg-success/15 text-success">Eligible</span>
+
+  return (
+    <div className="min-w-36">
+      <span className="text-default-400 mb-1 block text-xs">
+        {Math.round(dh.worked_hours).toLocaleString()} of {Math.round(dh.threshold_hours).toLocaleString()} hrs
+      </span>
+      <span
+        className="bg-default-100 flex h-1.5 w-full overflow-hidden rounded"
+        role="progressbar"
+        aria-label="Progress toward direct-hire eligibility"
+        aria-valuenow={dh.percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <span className="bg-primary flex flex-col justify-center overflow-hidden" style={{ width: `${Math.max(2, dh.percent)}%` }} />
+      </span>
+    </div>
+  )
+}
+
+const WorkOrdersTab = ({ property, workOrders, can }: { property: Property; workOrders: WorkOrders; can: Can }) => {
+  const [search, setSearch] = useState('')
+  const term = search.trim().toLowerCase()
+  const shown = term
+    ? workOrders.rows.filter((w) => `${w.contractor ?? ''} ${w.position ?? ''}`.toLowerCase().includes(term))
+    : workOrders.rows
+
+  return (
+    <div className="card">
+      <CardHeading
+        title="Work orders"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {workOrders.rows.length > 8 && (
+              <div className="input-icon-group">
+                <Icon icon="search" className="input-icon" />
+                <input
+                  className="form-input"
+                  placeholder="Search contractor or position…"
+                  aria-label="Search work orders"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            )}
+            {can.createWorkOrders && (
+              <Link href={`/admin/work-orders/create?property_id=${property.id}`} className="btn bg-primary hover:bg-primary-hover text-white">
+                <Icon icon="plus" /> New Work Order
+              </Link>
+            )}
+          </div>
+        }
+      >
+        Who is placed here, at what rate, and how close each is to the direct-hire threshold.
+      </CardHeading>
+
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>Contractor</th>
+              <th>Position</th>
+              <th className="text-end">Pay</th>
+              <th className="text-end">Bill</th>
+              <th>Started</th>
+              <th>Toward direct hire</th>
+              <th>Status</th>
+              {can.editWorkOrders && <th></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.length ? (
+              shown.map((w) => (
+                <tr key={w.id}>
+                  <td>
+                    <Link href={`/admin/people/${w.person_id}`} className="hover:text-primary text-default-900 font-semibold">
+                      {w.contractor}
+                    </Link>
+                  </td>
+                  <td>{w.position ?? '—'}</td>
+                  <td className="text-end tabular-nums">{money(w.pay_rate)}</td>
+                  <td className="text-end tabular-nums">{money(w.bill_rate)}</td>
+                  <td className="whitespace-nowrap">{monthDay(w.start_date)}, {w.start_date.slice(0, 4)}</td>
+                  <td>
+                    <DirectHireCell dh={w.direct_hire} />
+                  </td>
+                  <td className="whitespace-nowrap">
+                    <span className={cn('badge badge-label', w.status === 'active' ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning')}>
+                      {w.status_label}
+                    </span>
+                    {w.is_temporary_assignment && <span className="badge badge-label bg-info/15 text-info ms-1">Temp</span>}
+                  </td>
+                  {can.editWorkOrders && (
+                    <td className="text-end">
+                      <Link href={`/admin/work-orders/${w.id}/edit`} className="btn btn-icon border-default-300 hover:border-default-400 border" title="Edit work order">
+                        <Icon icon="edit" className="text-base" />
+                      </Link>
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={8} className="text-default-400 py-4 text-center">
+                  {workOrders.rows.length ? 'No work orders match your search.' : 'No one is placed here right now.'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 text-sm">
+        <span className="text-default-400">
+          {workOrders.rows.length} active or suspended
+          {workOrders.closed_count > 0 && ` · ${workOrders.closed_count} closed`}
+        </span>
+        <Link href={`/admin/work-orders?property_id=${property.id}`} className="text-primary font-medium underline underline-offset-3">
+          All work orders for this property
         </Link>
       </div>
     </div>
@@ -1308,11 +1467,12 @@ const SettingsTab = ({
 
 // --- Page ------------------------------------------------------------------
 
-type TabKey = 'overview' | 'timesheets' | 'rates' | 'settings'
+type TabKey = 'overview' | 'timesheets' | 'workorders' | 'rates' | 'settings'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'timesheets', label: 'Timesheets' },
+  { key: 'workorders', label: 'Work Orders' },
   { key: 'rates', label: 'Rates & Job Codes' },
   { key: 'settings', label: 'Settings' },
 ]
@@ -1339,7 +1499,7 @@ const locationFromHash = (): { tab: TabKey; section: SectionKey } => {
   }
 }
 
-const Page = ({ property, overview, departments, rates, assignments, contracts, history, holidays, jobCodes, catalogs, can }: Props) => {
+const Page = ({ property, overview, workOrders, departments, rates, assignments, contracts, history, holidays, jobCodes, catalogs, can }: Props) => {
   const [location, setLocation] = useState(locationFromHash)
 
   useEffect(() => {
@@ -1348,8 +1508,8 @@ const Page = ({ property, overview, departments, rates, assignments, contracts, 
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // Timesheets needs the history permission; anyone without it never sees the tab.
-  const tabs = TABS.filter((t) => t.key !== 'timesheets' || overview?.weeks)
+  // Timesheets and Work Orders need their own view permissions; without them the tab is hidden.
+  const tabs = TABS.filter((t) => (t.key !== 'timesheets' || overview?.weeks) && (t.key !== 'workorders' || workOrders))
   const tab = tabs.some((t) => t.key === location.tab) ? location.tab : 'overview'
   // Weeks someone has to act on: waiting for the PM, or sent back to us.
   const stalledWeeks = overview?.weeks?.filter((w) => ['pending_approval', 'declined'].includes(w.status)).length ?? 0
@@ -1388,6 +1548,9 @@ const Page = ({ property, overview, departments, rates, assignments, contracts, 
             )}
           >
             {t.label}
+            {t.key === 'workorders' && workOrders && workOrders.rows.length > 0 && (
+              <span className="badge badge-label bg-light text-default-600">{workOrders.rows.length}</span>
+            )}
             {t.key === 'timesheets' && stalledWeeks > 0 && (
               <span className="badge badge-label bg-warning/15 text-warning" title="Waiting on approval or sent back">
                 {stalledWeeks}
@@ -1402,6 +1565,8 @@ const Page = ({ property, overview, departments, rates, assignments, contracts, 
       )}
 
       {tab === 'timesheets' && overview?.weeks && <TimesheetsTab property={property} weeks={overview.weeks} can={can} />}
+
+      {tab === 'workorders' && workOrders && <WorkOrdersTab property={property} workOrders={workOrders} can={can} />}
 
       {tab === 'rates' && (
         <div className="card">

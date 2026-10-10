@@ -17,6 +17,9 @@ use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\PropertyBible\Support\HolidayDateResolver;
+use App\Domain\WorkOrders\Enums\WorkOrderStatus;
+use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Domain\WorkOrders\Support\DirectHireProgress;
 use App\Http\Requests\Property\StorePropertyRequest;
 use App\Http\Requests\Property\UpdatePropertyRequest;
 use Illuminate\Http\RedirectResponse;
@@ -78,7 +81,7 @@ class PropertyController extends Controller
         return to_route('properties.show', $property)->with('success', 'Property created.');
     }
 
-    public function show(Property $property, PropertyOverview $overview): Response
+    public function show(Property $property, PropertyOverview $overview, DirectHireProgress $directHire): Response
     {
         $this->authorize('view', $property);
 
@@ -100,6 +103,7 @@ class PropertyController extends Controller
         return Inertia::render('admin/properties/show', [
             'property' => $this->propertyPayload($property),
             'overview' => $user instanceof Person ? $overview->build($property, $user) : null,
+            'workOrders' => $user instanceof Person && $user->can('work_orders.view') ? $this->workOrdersPayload($property, $directHire) : null,
             'departments' => $property->departments->map(fn ($d): array => [
                 'id' => $d->id,
                 'department_id' => $d->department_id,
@@ -172,8 +176,46 @@ class PropertyController extends Controller
                 'editHolidays' => $user instanceof Person && $user->can('update', $property),
                 'viewGrid' => $user instanceof Person && $user->can('time_entries.view'),
                 'viewInvoices' => $user instanceof Person && $user->can('invoices.view'),
+                'createWorkOrders' => $user instanceof Person && $user->can('work_orders.create'),
+                'editWorkOrders' => $user instanceof Person && $user->can('work_orders.edit'),
             ],
         ]);
+    }
+
+    /**
+     * The placements running here — active and suspended work orders, by
+     * contractor — with progress toward the direct-hire threshold. Closed ones
+     * stay on the Work Orders list, so this tab stays as long as the roster.
+     *
+     * @return array{rows: list<array<string, mixed>>, closed_count: int}
+     */
+    private function workOrdersPayload(Property $property, DirectHireProgress $directHire): array
+    {
+        $workOrders = $property->workOrders()
+            ->whereIn('status', [WorkOrderStatus::Active->value, WorkOrderStatus::Suspended->value])
+            ->with(['person:id,name', 'position:id,name'])
+            ->get()
+            ->sortBy(fn (WorkOrder $wo): array => [mb_strtolower($wo->person->name ?? ''), $wo->start_date->toDateString()])
+            ->values();
+
+        $progress = $directHire->forMany($workOrders);
+
+        return [
+            'rows' => $workOrders->map(fn (WorkOrder $wo): array => [
+                'id' => $wo->id,
+                'person_id' => $wo->person_id,
+                'contractor' => $wo->person?->name,
+                'position' => $wo->position?->name,
+                'pay_rate' => $wo->pay_rate,
+                'bill_rate' => $wo->bill_rate,
+                'start_date' => $wo->start_date->toDateString(),
+                'status' => $wo->status->value,
+                'status_label' => $wo->status->label(),
+                'is_temporary_assignment' => $wo->is_temporary_assignment,
+                'direct_hire' => $progress[$wo->id] ?? null,
+            ])->all(),
+            'closed_count' => $property->workOrders()->where('status', WorkOrderStatus::Closed->value)->count(),
+        ];
     }
 
     /**

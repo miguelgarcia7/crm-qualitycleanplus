@@ -175,6 +175,8 @@ class WorkOrderController extends Controller
             'workOrder' => null,
             'catalogs' => $this->catalogs(),
             'placingFor' => $this->placingFor($request->integer('staffing_request')),
+            // "New work order" from a property's page starts at that property.
+            'propertyId' => $request->integer('property_id') ?: null,
         ]);
     }
 

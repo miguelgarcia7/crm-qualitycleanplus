@@ -38,6 +38,8 @@ type PlacingFor = { id: number; property_id: number; position_id: number; summar
 
 type Props = {
   placingFor?: PlacingFor | null
+  /** Set when "New work order" was clicked on a property's page. */
+  propertyId?: number | null
   workOrder: WorkOrder | null
   catalogs: { contractors: Option[]; properties: Option[]; positions: Option[]; moreStaffRequests?: MoreStaffOption[] }
 }
@@ -61,13 +63,19 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
   </div>
 )
 
-const Page = ({ workOrder, catalogs, placingFor = null }: Props) => {
+const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Props) => {
   const directHire = workOrder?.direct_hire ?? null
   const editing = workOrder !== null
 
   const { data, setData, post, patch, processing, errors } = useForm({
     person_id: workOrder?.person_id ? String(workOrder.person_id) : '',
-    property_id: workOrder?.property_id ? String(workOrder.property_id) : placingFor ? String(placingFor.property_id) : '',
+    property_id: workOrder?.property_id
+      ? String(workOrder.property_id)
+      : placingFor
+        ? String(placingFor.property_id)
+        : propertyId && catalogs.properties.some((p) => p.id === propertyId)
+          ? String(propertyId)
+          : '',
     position_id: workOrder?.position_id ? String(workOrder.position_id) : placingFor ? String(placingFor.position_id) : '',
     pay_rate: workOrder ? toDollars(workOrder.pay_rate) : '',
     bill_rate: workOrder ? toDollars(workOrder.bill_rate) : '',
