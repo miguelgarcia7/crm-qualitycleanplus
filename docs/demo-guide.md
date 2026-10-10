@@ -126,6 +126,8 @@ Applicants don't have logins.
 | Carlos, Linda, Andre or Grace → Work Orders | The old work order (closed) and the pay-increase one that replaced it. |
 | Applicants, Job Postings | Three of each, at different stages. |
 | The Labor Day week | Holiday pay (1.5×) on Monday, September 7. |
+| Administration → **System Reference** (Admin, Super Admin) | Who can do what, every notification and who gets it, and the scheduled tasks. Click a role's column to highlight it. |
+| My Profile → **My access** (every account) | That account's own role, properties, what it can do and what it's notified about. Compare Rita with Pat, or Pat with a contractor. |
 
 **What happens on its own each week:**
 

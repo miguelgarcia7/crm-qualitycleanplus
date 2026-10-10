@@ -12,6 +12,8 @@ If you're new here, read in this order:
 
 Testing or showing the app? `demo-guide.md` — the Acme Hotel demo: every account, what each role does, and the commands to run it.
 
+Who can do what, who gets notified, what runs on its own: the app shows it live under Admin → System Reference (`20-domain/system-reference.md`).
+
 Then dip into the per-area folders as needed.
 
 ## Folder map
@@ -23,7 +25,7 @@ docs/
 ├── 20-domain/         ← what the system models: people, properties, workflows, etc.
 ├── 30-schema/         ← tables, columns, ERDs, naming conventions
 ├── 40-flows/          ← step-by-step end-to-end workflow specs
-├── 50-ui/             ← screen-by-screen UI specs (added per phase — currently empty)
+├── 50-ui/             ← UI specs and the back-office theme (theme-sage.md)
 ├── 60-reports/        ← reporting strategy and catalog (added per phase — currently empty)
 ├── 70-decisions/      ← ADRs — immutable records of architectural choices (29 to date)
 ├── 80-plan/           ← phased implementation plan + roadmap

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Living document — items added as they surface, removed when resolved |
-| Last updated | 2026-09-27 |
+| Last updated | 2026-10-10 |
 | Owner | Product |
 
 Items we've identified but explicitly deferred. Each one has a context note so future-us (or a new session) can pick it up cold.
@@ -291,6 +291,43 @@ against endpoints that already exist.
 **Decision needed by:** Phase 09.
 
 ---
+
+## Nightly tasks run on UTC
+
+**Status: parked 2026-10-10 by Miguel. Known, not fixed.**
+
+`config/app.php` runs on UTC, and the nightly tasks in `routes/console.php` use
+`dailyAt()` with no `->timezone()`, so they fire on UTC time. In Chicago (UTC−5 in
+summer, −6 in winter) the 00:15–01:30 tasks run between 7:15 and 8:30 PM **the evening
+before**. The 07:00 contract check runs at 2:00 AM. System Reference → Automations shows
+this as a warning, worked out from the schedule, until it's fixed.
+
+Checked task by task:
+
+| Task | Runs in Chicago | Effect |
+|---|---|---|
+| Create upcoming pay weeks (`payroll:ensure-periods`) | 7:15 PM | None. It anchors on each property's own timezone. |
+| Apply contractor charges (`ApplyScheduledContractorCharges`) | 7:30 PM | None. It works from open pay weeks, not the date. |
+| **End temporary assignments** (`ProcessTemporaryAssignmentEnds`) | 7:45 PM | **Bug.** `CarbonImmutable::now()->toDateString()` is the UTC date, already tomorrow in Chicago, and it closes assignments with `end_date <= today`. An assignment ending tomorrow closes the evening before, which likely blocks clock-in on its last day. |
+| Update PTO tiers (`pto:process-crossings`) | 8:00 PM | Minor. Tier changes and anniversaries land the evening before. |
+| Refresh report totals (`reports:refresh-rollups`) | 8:30 PM | Minor. The 90-day window is shifted by a day at its edges. |
+
+**Likely fix:** schedule these in Chicago time (`->timezone('America/Chicago')`), keeping
+them just after midnight, and add a test that an assignment ending tomorrow isn't closed
+today.
+
+## Notifications the workflows don't send yet
+
+**Status: noted 2026-10-09 while mapping notifications (System Reference → Notifications).**
+
+- **PTO:** nobody is told a request was submitted, and the employee isn't told when it's
+  approved or declined.
+- **Terminations and supply requests:** these workflows send no notifications. People with
+  tasks have to check the Workflows page.
+- **New website applications** reach recruiters and office managers, not Admin or HR.
+- **Contract expiry alerts** are in-app only (the class notes "email later").
+
+When one is added, list it in `NotificationCatalog` (a test fails otherwise).
 
 ## How to use this file
 
