@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Notification;
 class NotifyStaffOfApplication
 {
     /** Roles that hear about every new application. */
-    private const ROLES = ['recruiter', 'office_manager'];
+    public const ROLES = ['recruiter', 'office_manager'];
 
     public function handle(JobApplication $application): void
     {

@@ -6,6 +6,7 @@ import { Link } from '@inertiajs/react'
 const PAGES = [
   { href: '/admin/system', label: 'Overview' },
   { href: '/admin/system/roles', label: 'Roles & permissions' },
+  { href: '/admin/system/notifications', label: 'Notifications' },
 ]
 
 const ReferenceNav = ({ current }: { current: string }) => (

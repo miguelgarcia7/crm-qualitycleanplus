@@ -1,10 +1,12 @@
 <?php
 
+use App\Domain\SystemReference\Support\NotificationCatalog;
 use App\Domain\SystemReference\Support\PermissionCatalog;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Notifications\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 
@@ -115,3 +117,78 @@ it('keeps everyone else out of the roles page', function (string $role) {
         ->get(main('/admin/system/roles'))
         ->assertForbidden();
 })->with(['office_manager', 'hr', 'payroll', 'recruiter']);
+
+it('shows every notification against the roles that receive it', function () {
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system/notifications'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/system/notifications')
+            ->has('roles', 10) // nine roles plus outside inboxes
+            ->has('notices', 21)
+            ->where('initial', 'timesheet-submitted')
+            ->where('notices.0', fn ($n) => $n['name'] === 'Week waiting for approval'
+                && $n['in_app'] && $n['email'] && ! $n['can_mute']
+                && $n['audience'] === ['property_manager' => 'always'])
+        );
+});
+
+it('reads delivery and muting from the notification classes', function () {
+    $byId = collect((new NotificationCatalog)->all())->keyBy('id');
+
+    // The outcome notices can be muted under Timesheets; the request itself can't.
+    expect($byId['timesheet-approved'])
+        ->in_app->toBeTrue()->email->toBeTrue()->can_mute->toBeTrue()->mute_category->toBe('Timesheets')
+        ->and($byId['punch-flagged'])->email->toBeFalse()->mute_category->toBe('Clock-in alerts')
+        ->and($byId['invoice-sent'])->in_app->toBeFalse()->email->toBeTrue()->can_mute->toBeFalse()
+        ->and($byId['invoice-sent']['audience'])->toBe([NotificationCatalog::OUTSIDE => 'always'])
+        // Recipients that follow a permission are read from it.
+        ->and(array_keys($byId['contract-expiring']['audience']))->toBe(['admin', 'payroll'])
+        ->and($byId['staffing-declined']['audience'])->toMatchArray(['property_manager' => 'if_theirs', 'recruiter' => 'if_theirs']);
+});
+
+it('lists every notification class the app has, so a new one cannot go missing', function () {
+    $listed = collect((new NotificationCatalog)->all())->flatMap(fn (array $n) => $n['classes'])->unique();
+
+    $classes = collect(glob(app_path('Notifications/*.php')))
+        ->map(fn (string $file): string => 'App\\Notifications\\'.basename($file, '.php'))
+        ->filter(fn (string $class): bool => is_subclass_of($class, Notification::class) && ! (new ReflectionClass($class))->isAbstract());
+
+    expect($classes)->not->toBeEmpty();
+    foreach ($classes as $class) {
+        expect($listed)->toContain(class_basename($class));
+    }
+});
+
+it('opens a notice from a link, and falls back to the first one', function () {
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system/notifications?n=contract-expiring'))
+        ->assertInertia(fn (Assert $page) => $page->where('initial', 'contract-expiring'));
+
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system/notifications?n=nope'))
+        ->assertInertia(fn (Assert $page) => $page->where('initial', 'timesheet-submitted'));
+});
+
+it('counts notifications on the overview', function () {
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('stats.notifications', 21)
+            ->where('stats.notifications_email', 7) // three timesheet notices, invoice, invitation, reset, lead
+            ->has('notices', 21)
+        );
+});
+
+it('keeps everyone else out of the notifications page', function (string $role) {
+    $this->actingAs(person($role))
+        ->get(main('/admin/system/notifications'))
+        ->assertForbidden();
+})->with(['office_manager', 'hr', 'recruiter']);
+
+it('leaves the top bar’s shared notifications prop alone on every reference page', function (string $path) {
+    // A page prop named `notifications` would replace the bell's data and blank the page.
+    $this->actingAs(person('admin'))
+        ->get(main($path))
+        ->assertInertia(fn (Assert $page) => $page->has('notifications.items'));
+})->with(['/admin/system', '/admin/system/roles', '/admin/system/notifications']);

@@ -22,7 +22,7 @@ use Inertia\Response;
 class UserInviteController extends Controller
 {
     /** role => human label. Order is the dropdown order. */
-    private const INVITABLE_ROLES = [
+    public const INVITABLE_ROLES = [
         'property_manager' => 'Property Manager',
         'recruiter' => 'Recruiter',
         'office_manager' => 'Office Manager',

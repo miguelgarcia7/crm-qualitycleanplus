@@ -7,15 +7,17 @@ import ReferenceNav from './components/ReferenceNav'
 
 type Permission = { key: string; label: string; area: string; roles: string[] }
 type Automation = { name: string; cadence: string; next_run: string }
+type NoticeSummary = { id: string; name: string; group: string; who: string }
 
 type Props = {
-  stats: { permissions: number; roles: number; automations: number }
+  stats: { permissions: number; roles: number; automations: number; notifications: number; notifications_email: number }
   permissions: Permission[]
   automations: Automation[]
+  notices: NoticeSummary[]
   timezone: string
 }
 
-type Result = { kind: 'Permission' | 'Automation'; title: string; detail: string; tag: string; haystack: string; href: string | null }
+type Result = { kind: 'Permission' | 'Notification' | 'Automation'; title: string; detail: string; tag: string; haystack: string; href: string | null }
 
 const SUGGESTIONS = ['approve PTO', 'contracts', 'mark paid', 'Recruiter', 'pay weeks']
 const MAX_RESULTS = 8
@@ -39,9 +41,12 @@ const topics = (stats: Props['stats']) => [
     text: 'Every in-app notice and email: who gets it, and whether it can be muted.',
     icon: 'bell',
     tone: 'bg-secondary/15 text-secondary',
-    status: 'Coming soon',
-    href: null,
-    stats: [],
+    status: null,
+    href: '/admin/system/notifications',
+    stats: [
+      { n: stats.notifications, label: 'types' },
+      { n: stats.notifications_email, label: 'send email' },
+    ],
   },
   {
     title: 'Automations',
@@ -81,7 +86,7 @@ const topics = (stats: Props['stats']) => [
   },
 ]
 
-const Page = ({ stats, permissions, automations, timezone }: Props) => {
+const Page = ({ stats, permissions, automations, notices, timezone }: Props) => {
   const [query, setQuery] = useState('')
 
   const index = useMemo<Result[]>(
@@ -97,6 +102,14 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
           href: `/admin/system/roles?q=${encodeURIComponent(p.key)}`,
         }
       }),
+      ...notices.map((n) => ({
+        kind: 'Notification' as const,
+        title: n.name,
+        detail: n.who,
+        tag: n.group,
+        haystack: [n.name, n.group, n.who, 'notification notice email alert'].join(' ').toLowerCase(),
+        href: `/admin/system/notifications?n=${encodeURIComponent(n.id)}`,
+      })),
       ...automations.map((a) => ({
         kind: 'Automation' as const,
         title: a.name,
@@ -106,7 +119,7 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
         href: null,
       })),
     ],
-    [permissions, automations, timezone],
+    [permissions, notices, automations, timezone],
   )
 
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
@@ -163,7 +176,7 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
               <ul className="mt-3 flex flex-col gap-2">
                 {matches.slice(0, MAX_RESULTS).map((r) => (
                   <li key={`${r.kind}-${r.title}`} className="bg-default-50 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-md px-3 py-2.5">
-                    <span className={cn('w-24 shrink-0 text-xs font-semibold uppercase', r.kind === 'Permission' ? 'text-primary' : 'text-info')}>{r.kind}</span>
+                    <span className={cn('w-24 shrink-0 text-xs font-semibold uppercase', r.kind === 'Permission' ? 'text-primary' : r.kind === 'Notification' ? 'text-secondary' : 'text-info')}>{r.kind}</span>
                     {r.href ? (
                       <Link href={r.href} className="text-default-800 hover:text-primary font-medium underline-offset-2 hover:underline">
                         {r.title}

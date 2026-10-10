@@ -5,8 +5,8 @@ namespace App\Notifications;
 /**
  * The user-facing notification categories. Each notification class belongs to
  * exactly one; a person can mute a category from My Profile → Notifications
- * (stored in `people.muted_notifications`). In-app (database) is the only
- * delivery channel — there is deliberately no mail/SMS.
+ * (stored in `people.muted_notifications`). Muting a category silences both
+ * the in-app notice and any email that belongs to it. There is no SMS.
  */
 enum NotificationCategory: string
 {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\SystemReference\Support\AutomationCatalog;
+use App\Domain\SystemReference\Support\NotificationCatalog;
 use App\Domain\SystemReference\Support\PermissionCatalog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,16 +18,19 @@ use Inertia\Response;
  */
 class SystemReferenceController extends Controller
 {
-    public function index(PermissionCatalog $permissions, AutomationCatalog $automations): Response
+    public function index(PermissionCatalog $permissions, AutomationCatalog $automations, NotificationCatalog $notifications): Response
     {
         $permissionRows = $permissions->all();
         $automationRows = $automations->all();
+        $notificationRows = $notifications->all();
 
         return Inertia::render('admin/system/index', [
             'stats' => [
                 'permissions' => count($permissionRows),
                 'roles' => $permissions->roleCount(),
                 'automations' => count($automationRows),
+                'notifications' => count($notificationRows),
+                'notifications_email' => count(array_filter($notificationRows, fn (array $n): bool => $n['email'])),
             ],
             'permissions' => array_map(fn (array $p): array => [
                 'key' => $p['key'],
@@ -39,6 +43,13 @@ class SystemReferenceController extends Controller
                 )),
             ], $permissionRows),
             'automations' => $automationRows,
+            // Not `notifications`: that name is the shared prop the top bar's bell reads.
+            'notices' => array_map(fn (array $n): array => [
+                'id' => $n['id'],
+                'name' => $n['name'],
+                'group' => $n['group'],
+                'who' => $n['who'],
+            ], $notificationRows),
             'timezone' => 'Chicago time',
         ]);
     }
@@ -92,6 +103,30 @@ class SystemReferenceController extends Controller
                 'role' => array_key_exists($role, $roles) ? $role : null,
                 'q' => $request->string('q')->trim()->limit(100, '')->value(),
             ],
+        ]);
+    }
+
+    /**
+     * Every notice the system sends against the roles that receive it, with
+     * how it's delivered and whether it can be muted (NotificationCatalog).
+     * `?n=` opens a notice's details, so the overview's lookup can link here.
+     */
+    public function notifications(Request $request, NotificationCatalog $notifications): Response
+    {
+        $rows = $notifications->all();
+        $selected = $request->string('n')->value();
+
+        return Inertia::render('admin/system/notifications', [
+            'roles' => [
+                ...array_map(
+                    fn (string $key, string $label): array => ['key' => $key, 'label' => $label],
+                    array_keys(array_diff_key(PermissionCatalog::ROLE_LABELS, ['super_admin' => true])),
+                    array_diff_key(PermissionCatalog::ROLE_LABELS, ['super_admin' => true]),
+                ),
+                ['key' => NotificationCatalog::OUTSIDE, 'label' => 'Outside inbox'],
+            ],
+            'notices' => $rows,
+            'initial' => in_array($selected, array_column($rows, 'id'), true) ? $selected : ($rows[0]['id'] ?? null),
         ]);
     }
 }
