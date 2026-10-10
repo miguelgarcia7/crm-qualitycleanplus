@@ -1,8 +1,9 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
-import { Head } from '@inertiajs/react'
+import { Head, Link } from '@inertiajs/react'
 import { useMemo, useState } from 'react'
+import ReferenceNav from './components/ReferenceNav'
 
 type Permission = { key: string; label: string; area: string; roles: string[] }
 type Automation = { name: string; cadence: string; next_run: string }
@@ -14,7 +15,7 @@ type Props = {
   timezone: string
 }
 
-type Result = { kind: 'Permission' | 'Automation'; title: string; detail: string; tag: string; haystack: string }
+type Result = { kind: 'Permission' | 'Automation'; title: string; detail: string; tag: string; haystack: string; href: string | null }
 
 const SUGGESTIONS = ['approve PTO', 'contracts', 'mark paid', 'Recruiter', 'pay weeks']
 const MAX_RESULTS = 8
@@ -26,7 +27,8 @@ const topics = (stats: Props['stats']) => [
     text: 'What each role can see and do, side by side.',
     icon: 'key',
     tone: 'bg-primary/15 text-primary',
-    status: 'Coming soon',
+    status: null,
+    href: '/admin/system/roles',
     stats: [
       { n: stats.permissions, label: 'permissions' },
       { n: stats.roles, label: 'roles' },
@@ -38,6 +40,7 @@ const topics = (stats: Props['stats']) => [
     icon: 'bell',
     tone: 'bg-secondary/15 text-secondary',
     status: 'Coming soon',
+    href: null,
     stats: [],
   },
   {
@@ -46,6 +49,7 @@ const topics = (stats: Props['stats']) => [
     icon: 'clock',
     tone: 'bg-info/15 text-info',
     status: 'Coming soon',
+    href: null,
     stats: [{ n: stats.automations, label: 'scheduled tasks' }],
   },
   {
@@ -54,6 +58,7 @@ const topics = (stats: Props['stats']) => [
     icon: 'route',
     tone: 'bg-default-200 text-default-500',
     status: 'Planned',
+    href: null,
     stats: [],
   },
   {
@@ -62,6 +67,7 @@ const topics = (stats: Props['stats']) => [
     icon: 'timeline',
     tone: 'bg-default-200 text-default-500',
     status: 'Planned',
+    href: null,
     stats: [],
   },
   {
@@ -70,6 +76,7 @@ const topics = (stats: Props['stats']) => [
     icon: 'activity',
     tone: 'bg-default-200 text-default-500',
     status: 'Planned',
+    href: null,
     stats: [],
   },
 ]
@@ -87,6 +94,7 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
           detail: who,
           tag: p.area,
           haystack: [p.label, p.key, p.area, who].join(' ').toLowerCase(),
+          href: `/admin/system/roles?q=${encodeURIComponent(p.key)}`,
         }
       }),
       ...automations.map((a) => ({
@@ -95,6 +103,7 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
         detail: `${a.cadence} (${timezone}). Next: ${a.next_run}`,
         tag: 'Scheduled task',
         haystack: [a.name, a.cadence, 'automation scheduled task'].join(' ').toLowerCase(),
+        href: null,
       })),
     ],
     [permissions, automations, timezone],
@@ -107,6 +116,7 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
     <>
       <Head title="System Reference" />
       <PageBreadcrumb title="System Reference" subtitle="Administration" />
+      <ReferenceNav current="/admin/system" />
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <p className="text-default-500 max-w-2xl">
@@ -154,7 +164,13 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
                 {matches.slice(0, MAX_RESULTS).map((r) => (
                   <li key={`${r.kind}-${r.title}`} className="bg-default-50 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-md px-3 py-2.5">
                     <span className={cn('w-24 shrink-0 text-xs font-semibold uppercase', r.kind === 'Permission' ? 'text-primary' : 'text-info')}>{r.kind}</span>
-                    <span className="text-default-800 font-medium">{r.title}</span>
+                    {r.href ? (
+                      <Link href={r.href} className="text-default-800 hover:text-primary font-medium underline-offset-2 hover:underline">
+                        {r.title}
+                      </Link>
+                    ) : (
+                      <span className="text-default-800 font-medium">{r.title}</span>
+                    )}
                     <span className="text-default-500 text-sm">{r.detail}</span>
                     <span className="text-default-400 ms-auto text-xs">{r.tag}</span>
                   </li>
@@ -171,14 +187,18 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
       </div>
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {topics(stats).map((t) => (
-          <div key={t.title} className={cn('card mb-0 h-full', t.status === 'Planned' && 'border-default-300 border border-dashed bg-transparent shadow-none')}>
+        {topics(stats).map((t) => {
+          const body = (
             <div className="card-body flex h-full flex-col gap-4 p-5">
               <div className="flex items-center justify-between gap-3">
                 <div className={cn('flex size-10 items-center justify-center rounded-lg', t.tone)}>
                   <Icon icon={t.icon} className="size-5" />
                 </div>
-                <span className={cn('badge badge-label', t.status === 'Planned' ? 'bg-default-100 text-default-500' : 'bg-warning/15 text-warning')}>{t.status}</span>
+                {t.status ? (
+                  <span className={cn('badge badge-label', t.status === 'Planned' ? 'bg-default-100 text-default-500' : 'bg-warning/15 text-warning')}>{t.status}</span>
+                ) : (
+                  <Icon icon="arrow-right" className="text-default-400 size-5" />
+                )}
               </div>
               <div>
                 <h4 className="text-default-800 mb-1 text-base font-semibold">{t.title}</h4>
@@ -195,8 +215,17 @@ const Page = ({ stats, permissions, automations, timezone }: Props) => {
                 </div>
               )}
             </div>
-          </div>
-        ))}
+          )
+          return t.href ? (
+            <Link key={t.title} href={t.href} className="card hover:border-primary/40 mb-0 h-full transition-colors">
+              {body}
+            </Link>
+          ) : (
+            <div key={t.title} className={cn('card mb-0 h-full', t.status === 'Planned' && 'border-default-300 border border-dashed bg-transparent shadow-none')}>
+              {body}
+            </div>
+          )
+        })}
       </div>
     </>
   )

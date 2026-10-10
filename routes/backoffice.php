@@ -337,6 +337,9 @@ Route::get('audit', [AuditLogController::class, 'index'])
 Route::get('system', [SystemReferenceController::class, 'index'])
     ->middleware('can:system.reference.view')
     ->name('backoffice.system.index');
+Route::get('system/roles', [SystemReferenceController::class, 'roles'])
+    ->middleware('can:system.reference.view')
+    ->name('backoffice.system.roles');
 
 // People directory (Phase 09b) — policy-gated (contractors/staff tabs, recruiter own-scoping)
 Route::get('people', [PeopleController::class, 'index'])->name('backoffice.people.index');

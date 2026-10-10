@@ -73,3 +73,45 @@ it('describes every scheduled task, so the reference never shows a raw command',
         expect($event->description)->toBeString()->not->toBeEmpty();
     }
 });
+
+it('shows every permission against every role, grouped by area', function () {
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system/roles'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/system/roles')
+            ->has('roles', 9) // Super Admin holds everything, so it isn't a column
+            ->where('roles.0', ['key' => 'admin', 'label' => 'Admin', 'total' => Permission::role('admin')->count()])
+            ->where('total', Permission::query()->count())
+            ->where('groups.0.name', 'Property Bible')
+            ->where('groups', fn ($groups) => collect($groups)->flatMap(fn (array $g) => $g['permissions'])->contains(
+                fn (array $p): bool => $p['key'] === 'timesheets.approve' && $p['roles'] === ['admin', 'property_manager'] && ! $p['super_only']
+            ))
+            ->where('groups', fn ($groups) => collect($groups)->flatMap(fn (array $g) => $g['permissions'])->contains(
+                fn (array $p): bool => $p['key'] === 'devices.manage' && $p['super_only'] && $p['roles'] === []
+            ))
+            ->where('groups', fn ($groups) => collect($groups)->flatMap(fn (array $g) => $g['permissions'])->contains(
+                fn (array $p): bool => $p['key'] === 'field_visits.view_own' && $p['scope'] === 'Own records only'
+            ))
+        );
+});
+
+it('opens the roles page on a highlighted role and a search from the link', function () {
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system/roles?role=recruiter&q=invoices.send'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('initial.role', 'recruiter')
+            ->where('initial.q', 'invoices.send')
+        );
+
+    // An unknown role (or Super Admin, which has no column) highlights nothing.
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system/roles?role=super_admin'))
+        ->assertInertia(fn (Assert $page) => $page->where('initial.role', null));
+});
+
+it('keeps everyone else out of the roles page', function (string $role) {
+    $this->actingAs(person($role))
+        ->get(main('/admin/system/roles'))
+        ->assertForbidden();
+})->with(['office_manager', 'hr', 'payroll', 'recruiter']);

@@ -198,6 +198,30 @@ class PermissionCatalog
             ->all();
     }
 
+    /**
+     * The same permissions grouped by area, areas in the order they first
+     * appear (the seeder's order).
+     *
+     * @return list<array{name: string, permissions: list<array{key: string, label: string, area: string, roles: list<string>}>}>
+     */
+    public function grouped(): array
+    {
+        return collect($this->all())
+            ->groupBy('area')
+            ->map(fn ($rows, string $area): array => ['name' => $area, 'permissions' => $rows->values()->all()])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * A limit the policies put on top of the permission, worth saying on the
+     * row: "own" permissions only reach the person's own records.
+     */
+    public function scope(string $key): ?string
+    {
+        return preg_match('/(^|[._])own($|[._])/', $key) === 1 ? 'Own records only' : null;
+    }
+
     public function roleCount(): int
     {
         return Role::query()->count();
