@@ -213,7 +213,30 @@ const useSettingsBase = (): string => {
 
 // --- Profile tab ---------------------------------------------------------------
 
-const ProfileTab = ({ person }: { person: PersonInfo }) => {
+/** The card footer every settings form ends with: the submit button and a "saved" note. */
+const FormFooter = ({ label, processing, saved, savedLabel = 'Saved' }: { label: string; processing: boolean; saved: boolean; savedLabel?: string }) => (
+  <div className="border-default-300 flex items-center gap-3 border-t px-6 py-4">
+    <button type="submit" className="btn bg-primary hover:bg-primary-hover px-6 py-2.5 font-semibold text-white" disabled={processing}>
+      {label}
+    </button>
+    {saved && (
+      <span className="text-success flex items-center gap-1 text-sm">
+        <Icon icon="circle-check" className="size-4" /> {savedLabel}
+      </span>
+    )}
+  </div>
+)
+
+const CardHeading = ({ title, children }: { title: string; children?: React.ReactNode }) => (
+  <div className="card-header">
+    <div>
+      <h4 className="card-title">{title}</h4>
+      {children && <p className="text-default-400 mt-1 text-sm">{children}</p>}
+    </div>
+  </div>
+)
+
+const ProfileTab = ({ person, roles }: { person: PersonInfo; roles: string[] }) => {
   const base = useSettingsBase()
   const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
     name: person.name,
@@ -226,56 +249,37 @@ const ProfileTab = ({ person }: { person: PersonInfo }) => {
   }
 
   return (
-    <form onSubmit={submit} className="max-w-lg">
-      <div className="mb-4">
-        <label htmlFor="name" className="form-label">
-          Name
-        </label>
-        <input
-          id="name"
-          className="form-input"
-          value={data.name}
-          onChange={(e) => setData('name', e.target.value)}
-          required
-        />
-        {errors.name && <p className="text-danger mt-1 text-sm">{errors.name}</p>}
-      </div>
-      <div className="mb-5">
-        <label htmlFor="email" className="form-label">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          className="form-input"
-          value={data.email}
-          onChange={(e) => setData('email', e.target.value)}
-          required
-        />
-        <p className="text-default-400 mt-1 text-xs">You use this address to sign in.</p>
-        {errors.email && <p className="text-danger mt-1 text-sm">{errors.email}</p>}
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          className="btn bg-primary hover:bg-primary-hover px-6 py-2.5 font-semibold text-white"
-          disabled={processing}
-        >
-          Save Changes
-        </button>
-        {recentlySuccessful && (
-          <span className="text-success flex items-center gap-1 text-sm">
-            <Icon icon="circle-check" className="size-4" /> Saved
-          </span>
-        )}
-      </div>
-    </form>
+    <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
+      <IdentityCard person={person} roles={roles} />
+
+      <form onSubmit={submit} className="card mb-0 xl:col-span-2">
+        <CardHeading title="Your details">Your name and the email address you sign in with.</CardHeading>
+        <div className="card-body grid gap-5 md:grid-cols-2">
+          <div>
+            <label htmlFor="name" className="form-label">
+              Name
+            </label>
+            <input id="name" className="form-input" value={data.name} onChange={(e) => setData('name', e.target.value)} required />
+            {errors.name && <p className="text-danger mt-1 text-sm">{errors.name}</p>}
+          </div>
+          <div>
+            <label htmlFor="email" className="form-label">
+              Email
+            </label>
+            <input id="email" type="email" className="form-input" value={data.email} onChange={(e) => setData('email', e.target.value)} required />
+            <p className="text-default-400 mt-1 text-xs">You use this address to sign in.</p>
+            {errors.email && <p className="text-danger mt-1 text-sm">{errors.email}</p>}
+          </div>
+        </div>
+        <FormFooter label="Save Changes" processing={processing} saved={recentlySuccessful} />
+      </form>
+    </div>
   )
 }
 
 // --- Security tab ----------------------------------------------------------------
 
-const SecurityTab = () => {
+const SecurityTab = ({ email }: { email: string }) => {
   const base = useSettingsBase()
   const { data, setData, put, processing, errors, reset, recentlySuccessful } = useForm({
     current_password: '',
@@ -293,67 +297,69 @@ const SecurityTab = () => {
   }
 
   return (
-    <form onSubmit={submit} className="max-w-lg">
-      <div className="mb-4">
-        <label htmlFor="current_password" className="form-label">
-          Current Password
-        </label>
-        <input
-          id="current_password"
-          type="password"
-          autoComplete="current-password"
-          className="form-input"
-          value={data.current_password}
-          onChange={(e) => setData('current_password', e.target.value)}
-          required
-        />
-        {errors.current_password && <p className="text-danger mt-1 text-sm">{errors.current_password}</p>}
+    <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
+      <form onSubmit={submit} className="card mb-0 xl:col-span-2">
+        <CardHeading title="Change password">Enter your current password, then the new one twice.</CardHeading>
+        <div className="card-body grid gap-5 md:grid-cols-2">
+          <div className="md:col-span-2 md:max-w-[calc(50%-0.625rem)]">
+            <label htmlFor="current_password" className="form-label">
+              Current Password
+            </label>
+            <input
+              id="current_password"
+              type="password"
+              autoComplete="current-password"
+              className="form-input"
+              value={data.current_password}
+              onChange={(e) => setData('current_password', e.target.value)}
+              required
+            />
+            {errors.current_password && <p className="text-danger mt-1 text-sm">{errors.current_password}</p>}
+          </div>
+          <div>
+            <label htmlFor="password" className="form-label">
+              New Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              className="form-input"
+              value={data.password}
+              onChange={(e) => setData('password', e.target.value)}
+              required
+            />
+            <p className="text-default-400 mt-1 text-xs">At least 8 characters.</p>
+            {errors.password && <p className="text-danger mt-1 text-sm">{errors.password}</p>}
+          </div>
+          <div>
+            <label htmlFor="password_confirmation" className="form-label">
+              Confirm New Password
+            </label>
+            <input
+              id="password_confirmation"
+              type="password"
+              autoComplete="new-password"
+              className="form-input"
+              value={data.password_confirmation}
+              onChange={(e) => setData('password_confirmation', e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        <FormFooter label="Update Password" processing={processing} saved={recentlySuccessful} savedLabel="Password changed" />
+      </form>
+
+      <div className="card mb-0 h-fit">
+        <CardHeading title="Signing in" />
+        <div className="card-body space-y-3 text-sm">
+          <p className="text-default-600">
+            You sign in as <span className="text-default-900 font-semibold">{email}</span>.
+          </p>
+          <p className="text-default-500">Forgot your password? Sign out and use “Forgot password” on the sign-in page. We’ll email you a link to choose a new one.</p>
+        </div>
       </div>
-      <div className="mb-4">
-        <label htmlFor="password" className="form-label">
-          New Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          className="form-input"
-          value={data.password}
-          onChange={(e) => setData('password', e.target.value)}
-          required
-        />
-        <p className="text-default-400 mt-1 text-xs">At least 8 characters.</p>
-        {errors.password && <p className="text-danger mt-1 text-sm">{errors.password}</p>}
-      </div>
-      <div className="mb-5">
-        <label htmlFor="password_confirmation" className="form-label">
-          Confirm New Password
-        </label>
-        <input
-          id="password_confirmation"
-          type="password"
-          autoComplete="new-password"
-          className="form-input"
-          value={data.password_confirmation}
-          onChange={(e) => setData('password_confirmation', e.target.value)}
-          required
-        />
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          className="btn bg-primary hover:bg-primary-hover px-6 py-2.5 font-semibold text-white"
-          disabled={processing}
-        >
-          Update Password
-        </button>
-        {recentlySuccessful && (
-          <span className="text-success flex items-center gap-1 text-sm">
-            <Icon icon="circle-check" className="size-4" /> Password changed
-          </span>
-        )}
-      </div>
-    </form>
+    </div>
   )
 }
 
@@ -374,18 +380,17 @@ const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
   }
 
   return (
-    <form onSubmit={submit} className="max-w-lg">
-      <p className="text-default-400 mb-5 text-sm">
-        Choose which notifications you receive. Switching one off silences every way it reaches you —
-        including email, where a category sends it. Anything that needs your action still shows up in My
-        Tasks and on your dashboard.
-      </p>
+    <form onSubmit={submit} className="card mb-0 max-w-3xl">
+      <CardHeading title="Notification preferences">
+        Switching one off silences every way it reaches you, including email where a category sends it. Anything that needs your action still shows
+        up in My Tasks and on your dashboard.
+      </CardHeading>
 
-      <div className="space-y-5">
+      <div className="divide-default-100 divide-y px-6">
         {settings.categories.map((category) => {
           const receive = !data.muted.includes(category.value)
           return (
-            <label key={category.value} className="flex cursor-pointer items-start justify-between gap-4">
+            <label key={category.value} className="flex cursor-pointer items-start justify-between gap-4 py-4">
               <span>
                 <span className="text-dark block font-medium">
                   {category.label}
@@ -404,20 +409,7 @@ const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
         })}
       </div>
 
-      <div className="mt-6 flex items-center gap-3">
-        <button
-          type="submit"
-          className="btn bg-primary hover:bg-primary-hover px-6 py-2.5 font-semibold text-white"
-          disabled={processing}
-        >
-          Save Preferences
-        </button>
-        {recentlySuccessful && (
-          <span className="text-success flex items-center gap-1 text-sm">
-            <Icon icon="circle-check" className="size-4" /> Saved
-          </span>
-        )}
-      </div>
+      <FormFooter label="Save Preferences" processing={processing} saved={recentlySuccessful} />
     </form>
   )
 }
@@ -429,100 +421,116 @@ const AccessTab = ({ access, onOpenNotifications }: { access: Access; onOpenNoti
   const always = access.notices.filter((n) => !n.only_if_theirs)
   const ifTheirs = access.notices.filter((n) => n.only_if_theirs)
 
+  const summary = [
+    {
+      label: access.roles.length === 1 ? 'Your role' : 'Your roles',
+      value: access.roles.join(', ') || 'None yet',
+      note: 'Set by an Admin. Ask them if it looks wrong.',
+    },
+    {
+      label: 'Properties you look after',
+      value: access.all_properties ? 'All properties' : access.properties.length > 0 ? access.properties.join(', ') : 'None yet',
+      note: access.all_properties ? 'Your role sees every property.' : 'You see contractors, hours and invoices for these only.',
+    },
+    {
+      label: 'You can do',
+      value: `${access.can_count} of ${access.total} things`,
+      note: access.is_super_admin ? 'Super Admin can do everything.' : 'Listed below by area.',
+    },
+  ]
+
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="bg-default-50 rounded-lg px-4 py-3">
-          <div className="text-default-400 text-sm">{access.roles.length === 1 ? 'Your role' : 'Your roles'}</div>
-          <div className="text-default-900 text-lg font-semibold">{access.roles.join(', ') || 'None yet'}</div>
-          <div className="text-default-400 text-xs">Set by an Admin. Ask them if it looks wrong.</div>
-        </div>
-        <div className="bg-default-50 rounded-lg px-4 py-3">
-          <div className="text-default-400 text-sm">Properties you look after</div>
-          <div className="text-default-900 text-lg font-semibold">
-            {access.all_properties ? 'All properties' : access.properties.length > 0 ? access.properties.join(', ') : 'None yet'}
+    <div className="space-y-5">
+      <div className="grid gap-5 md:grid-cols-3">
+        {summary.map((s) => (
+          <div key={s.label} className="card mb-0">
+            <div className="card-body">
+              <div className="text-default-400 text-sm">{s.label}</div>
+              <div className="text-default-900 text-lg font-semibold tabular-nums">{s.value}</div>
+              <div className="text-default-500 text-sm">{s.note}</div>
+            </div>
           </div>
-          <div className="text-default-400 text-xs">
-            {access.all_properties ? 'Your role sees every property.' : 'You see contractors, hours and invoices for these only.'}
-          </div>
-        </div>
-        <div className="bg-default-50 rounded-lg px-4 py-3">
-          <div className="text-default-400 text-sm">You can do</div>
-          <div className="text-default-900 text-lg font-semibold tabular-nums">
-            {access.can_count} of {access.total} things
-          </div>
-          <div className="text-default-400 text-xs">{access.is_super_admin ? 'Super Admin can do everything.' : 'Listed below by area.'}</div>
-        </div>
+        ))}
       </div>
 
-      <section>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-          <h5 className="text-default-900 text-base font-semibold">What you can do</h5>
-          <label className="text-default-500 flex cursor-pointer items-center gap-2 text-sm">
-            <input type="checkbox" className="form-checkbox" checked={showCant} onChange={(e) => setShowCant(e.target.checked)} />
-            Show what you can’t do too
-          </label>
-        </div>
-        {access.areas.length === 0 && <p className="text-default-400 text-sm">Nothing yet. An Admin assigns what each role can do.</p>}
-        {access.areas.map((a) => (
-          <div key={a.name} className="border-default-100 border-t py-3">
-            <div className="mb-2 flex items-baseline justify-between gap-3">
-              <span className="text-default-800 font-semibold">{a.name}</span>
-              <span className="text-default-400 text-xs tabular-nums">
-                {a.can.length} of {a.can.length + a.cant.length}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {a.can.map((label) => (
-                <span key={label} className="badge badge-label bg-success/15 text-success">
-                  <Icon icon="check" className="size-3.5" />
-                  {label}
-                </span>
-              ))}
-              {showCant &&
-                a.cant.map((label) => (
-                  <span key={label} className="badge badge-label border-default-300 text-default-400 border border-dashed line-through">
-                    {label}
+      <div className="grid items-start gap-5 xl:grid-cols-5">
+        <section className="card mb-0 xl:col-span-3">
+          <div className="card-header flex flex-wrap items-center justify-between gap-3">
+            <h4 className="card-title">What you can do</h4>
+            <label className="text-default-500 flex cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" className="form-checkbox" checked={showCant} onChange={(e) => setShowCant(e.target.checked)} />
+              Show what you can’t do too
+            </label>
+          </div>
+          <div className="card-body divide-default-100 divide-y py-2">
+            {access.areas.length === 0 && <p className="text-default-400 py-3 text-sm">Nothing yet. An Admin assigns what each role can do.</p>}
+            {access.areas.map((a) => (
+              <div key={a.name} className="py-3.5">
+                <div className="mb-2 flex items-baseline justify-between gap-3">
+                  <span className="text-default-800 font-semibold">{a.name}</span>
+                  <span className="text-default-400 text-xs tabular-nums">
+                    {a.can.length} of {a.can.length + a.cant.length}
                   </span>
-                ))}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {a.can.map((label) => (
+                    <span key={label} className="badge badge-label bg-success/15 text-success">
+                      <Icon icon="check" className="size-3.5" />
+                      {label}
+                    </span>
+                  ))}
+                  {showCant &&
+                    a.cant.map((label) => (
+                      <span key={label} className="badge badge-label border-default-300 text-default-400 border border-dashed line-through">
+                        {label}
+                      </span>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="card mb-0 xl:col-span-2">
+          <div className="card-header">
+            <div>
+              <h4 className="card-title">What you’ll be notified about</h4>
+              <button type="button" onClick={onOpenNotifications} className="text-primary mt-1 text-sm font-medium hover:underline">
+                Change these on the Notifications tab
+              </button>
             </div>
           </div>
-        ))}
-      </section>
-
-      <section>
-        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
-          <h5 className="text-default-900 text-base font-semibold">What you’ll be notified about</h5>
-          <button type="button" onClick={onOpenNotifications} className="text-primary text-sm font-medium hover:underline">
-            Change these on the Notifications tab
-          </button>
-        </div>
-        {!access.has_email && <p className="text-default-400 mb-2 text-sm">There’s no email address on your profile, so these arrive in the app only.</p>}
-        {always.length === 0 && <p className="text-default-400 text-sm">Nothing is sent to your role automatically.</p>}
-        {always.map((n) => (
-          <div key={n.name} className="border-default-100 flex items-start gap-3 border-t py-2.5">
-            <div className="min-w-0 flex-1">
-              <div className="text-default-800 font-medium">{n.name}</div>
-              <div className="text-default-400 text-xs">{n.summary}</div>
+          <div className="card-body py-2">
+            {!access.has_email && <p className="text-default-400 py-3 text-sm">There’s no email address on your profile, so these arrive in the app only.</p>}
+            {always.length === 0 && <p className="text-default-400 py-3 text-sm">Nothing is sent to your role automatically.</p>}
+            <div className="divide-default-100 divide-y">
+              {always.map((n) => (
+                <div key={n.name} className="flex items-start gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-default-800 font-medium">{n.name}</div>
+                    <div className="text-default-400 text-xs">{n.summary}</div>
+                  </div>
+                  {n.muted ? (
+                    <span className="badge badge-label bg-default-100 text-default-500">Muted</span>
+                  ) : (
+                    <span className={cn('badge badge-label', n.email ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary')}>
+                      {n.in_app && n.email ? 'In-app + email' : n.email ? 'Email' : 'In-app'}
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
-            {n.muted ? (
-              <span className="badge badge-label bg-default-100 text-default-500">Muted</span>
-            ) : (
-              <span className={cn('badge badge-label', n.email ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary')}>
-                {n.in_app && n.email ? 'In-app + email' : n.email ? 'Email' : 'In-app'}
-              </span>
+            {ifTheirs.length > 0 && (
+              <div className="bg-default-50 my-3 rounded-lg px-4 py-3 text-sm">
+                <span className="text-default-600">Also, only for your own requests and account: </span>
+                <span className="text-default-800">{ifTheirs.map((n) => n.name).join(', ')}.</span>
+              </div>
             )}
           </div>
-        ))}
-        {ifTheirs.length > 0 && (
-          <div className="bg-default-50 mt-3 rounded-lg px-4 py-3 text-sm">
-            <span className="text-default-600">Also, only for your own requests and account: </span>
-            <span className="text-default-800">{ifTheirs.map((n) => n.name).join(', ')}.</span>
-          </div>
-        )}
-      </section>
+        </section>
+      </div>
 
-      <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3">
+      <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed px-5 py-4">
         <span className="text-default-600">Need access to something that isn’t listed? Ask an Admin.</span>
         {access.reference_url && (
           <Link href={access.reference_url} className="text-primary text-sm font-medium hover:underline">
@@ -536,11 +544,11 @@ const AccessTab = ({ access, onOpenNotifications }: { access: Access; onOpenNoti
 
 // --- Page ----------------------------------------------------------------------
 
-const TABS = [
+const TABS: { key: string; label: string; isNew?: boolean }[] = [
   { key: 'profile', label: 'Profile' },
   { key: 'security', label: 'Security' },
   { key: 'notifications', label: 'Notifications' },
-  { key: 'access', label: 'My access' },
+  { key: 'access', label: 'My access', isNew: true },
 ]
 
 const Page = () => {
@@ -570,40 +578,30 @@ const Page = () => {
       <Head title="My Profile" />
       <PageBreadcrumb title="My Profile" subtitle="Account" />
 
-      <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
-        <div className="space-y-6">
-          <IdentityCard person={person} roles={roles} />
-        </div>
+      {/* Tabs sit under the page title, full width, as on the System Reference pages. */}
+      <nav className="border-default-300 mb-5 flex flex-wrap gap-1 border-b" aria-label="Profile sections" role="tablist">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={active === t.key}
+            onClick={() => selectTab(t.key)}
+            className={cn(
+              '-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 font-medium focus:outline-hidden',
+              active === t.key ? 'border-primary text-default-900' : 'text-default-500 hover:text-default-900 border-transparent',
+            )}
+          >
+            {t.label}
+            {t.isNew && <span className="badge badge-label bg-secondary/15 text-secondary">New</span>}
+          </button>
+        ))}
+      </nav>
 
-        <div className="space-y-6 xl:col-span-2">
-          <div className="card">
-            <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
-              {TABS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active === t.key}
-                  onClick={() => selectTab(t.key)}
-                  className={cn(
-                    'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                    active === t.key ? 'border-primary text-primary border-b' : '',
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-
-            <div className="card-body p-6">
-              {active === 'profile' && <ProfileTab person={person} />}
-              {active === 'security' && <SecurityTab />}
-              {active === 'notifications' && <NotificationsTab settings={notificationSettings} />}
-              {active === 'access' && <AccessTab access={access} onOpenNotifications={() => selectTab('notifications')} />}
-            </div>
-          </div>
-        </div>
-      </div>
+      {active === 'profile' && <ProfileTab person={person} roles={roles} />}
+      {active === 'security' && <SecurityTab email={person.email} />}
+      {active === 'notifications' && <NotificationsTab settings={notificationSettings} />}
+      {active === 'access' && <AccessTab access={access} onOpenNotifications={() => selectTab('notifications')} />}
     </>
   )
 }
