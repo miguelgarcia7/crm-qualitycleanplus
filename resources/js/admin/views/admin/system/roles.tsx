@@ -180,7 +180,7 @@ const Page = ({ roles, groups, total, initial }: Props) => {
         </div>
       </div>
 
-      <p className="text-default-400 text-sm">Read from this environment's permission settings. Changing what a role can do still happens in code; this page only shows it.</p>
+      <p className="text-default-400 mt-5 text-sm">Read from this environment's permission settings. Changing what a role can do still happens in code; this page only shows it.</p>
     </>
   )
 }
