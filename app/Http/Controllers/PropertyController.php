@@ -23,6 +23,7 @@ use App\Domain\WorkOrders\Support\DirectHireProgress;
 use App\Http\Requests\Property\StorePropertyRequest;
 use App\Http\Requests\Property\UpdatePropertyRequest;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -81,7 +82,7 @@ class PropertyController extends Controller
         return to_route('properties.show', $property)->with('success', 'Property created.');
     }
 
-    public function show(Property $property, PropertyOverview $overview, DirectHireProgress $directHire): Response
+    public function show(Request $request, Property $property, PropertyOverview $overview, DirectHireProgress $directHire): Response
     {
         $this->authorize('view', $property);
 
@@ -143,7 +144,7 @@ class PropertyController extends Controller
                 'is_active' => $c->is_active,
                 'notes' => $c->notes,
             ]) : [],
-            'history' => $this->historyPayload($property),
+            'history' => $this->historyPayload($property, $request),
             'holidays' => $this->holidaysPayload($property),
             // Job codes: one row per position that has (or had) a rate here.
             'jobCodes' => $property->positionRates
@@ -320,25 +321,41 @@ class PropertyController extends Controller
         ];
     }
 
+    /** Changes per page in the History section. */
+    private const HISTORY_PER_PAGE = 25;
+
     /**
-     * @return list<array<string, mixed>>
+     * The property's change log, newest first, a page at a time. The page
+     * travels as `history_page` so it can't clash with another list's `page`.
+     *
+     * @return array{rows: list<array<string, mixed>>, current_page: int, last_page: int, total: int, from: int|null, to: int|null}
      */
-    private function historyPayload(Property $property): array
+    private function historyPayload(Property $property, Request $request): array
     {
-        return Activity::query()
+        $page = Activity::query()
             ->where('subject_type', $property->getMorphClass())
             ->where('subject_id', $property->getKey())
+            ->with('causer')
             ->latest()
-            ->limit(50)
-            ->get()
-            ->map(fn (Activity $a): array => [
+            // Changes made together share a timestamp; without a tiebreaker a
+            // row can show on two pages and another on none.
+            ->orderByDesc('id')
+            ->paginate(self::HISTORY_PER_PAGE, pageName: 'history_page', page: max(1, $request->integer('history_page', 1)));
+
+        return [
+            'rows' => collect($page->items())->map(fn (Activity $a): array => [
                 'id' => $a->id,
                 'description' => $a->description,
                 'event' => $a->event,
                 'causer' => $a->causer instanceof Person ? $a->causer->name : null,
                 'created_at' => $a->created_at?->toDayDateTimeString(),
-            ])
-            ->all();
+            ])->all(),
+            'current_page' => $page->currentPage(),
+            'last_page' => $page->lastPage(),
+            'total' => $page->total(),
+            'from' => $page->firstItem(),
+            'to' => $page->lastItem(),
+        ];
     }
 
     /**

@@ -1,5 +1,6 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import TablePagination from '@/components/table/TablePagination'
 import { Stat, StatusTrack } from '@/components/timesheet/WeekSummary'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -57,6 +58,8 @@ type Contract = {
   notes: string | null
 }
 type HistoryRow = { id: number; description: string; event: string | null; causer: string | null; created_at: string | null }
+/** One server-side page of the change log (ADR-0029: the log grows without bound). */
+type HistoryPage = { rows: HistoryRow[]; current_page: number; last_page: number; total: number; from: number | null; to: number | null }
 type PropertyHoliday = { id: number; name: string; type_label: string; this_year: string; enabled: boolean }
 type JobCodeRow = { position_id: number; position: string; job_code: string | null }
 type Option = { id: number; name: string }
@@ -131,7 +134,7 @@ type Props = {
   rates: Rate[]
   assignments: Assignment[]
   contracts: Contract[]
-  history: HistoryRow[]
+  history: HistoryPage
   holidays: PropertyHoliday[]
   jobCodes: JobCodeRow[]
   catalogs: {
@@ -1345,36 +1348,61 @@ const HolidaysTab = ({ property, holidays, can }: Pick<Props, 'property' | 'holi
   )
 }
 
-const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
-  <div className="table-wrapper">
-    <table className="table table-hover">
-      <thead className="thead-sm">
-        <tr className="bg-light/25 text-xs uppercase">
-          <th>When</th>
-          <th>Change</th>
-          <th>By</th>
-        </tr>
-      </thead>
-      <tbody>
-        {history.length ? (
-          history.map((h) => (
-            <tr key={h.id}>
-              <td className="whitespace-nowrap">{h.created_at}</td>
-              <td>{h.description}</td>
-              <td>{h.causer ?? '—'}</td>
+const HistoryTab = ({ property, history }: { property: Property; history: HistoryPage }) => {
+  // Only the history reloads; the hash keeps the reader on Settings › History.
+  const goToPage = (index: number) =>
+    router.get(`/admin/properties/${property.id}#settings/history`, { history_page: index + 1 }, { only: ['history'], preserveState: true, preserveScroll: true, replace: true })
+
+  return (
+    <div className="space-y-4">
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>When</th>
+              <th>Change</th>
+              <th>By</th>
             </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan={3} className="text-default-400 py-4 text-center">
-              No history yet.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-)
+          </thead>
+          <tbody>
+            {history.rows.length ? (
+              history.rows.map((h) => (
+                <tr key={h.id}>
+                  <td className="whitespace-nowrap">{h.created_at}</td>
+                  <td>{h.description}</td>
+                  <td>{h.causer ?? '—'}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={3} className="text-default-400 py-4 text-center">
+                  No history yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {history.last_page > 1 && (
+        <TablePagination
+          totalItems={history.total}
+          start={history.from ?? 0}
+          end={history.to ?? 0}
+          itemsName="changes"
+          showInfo
+          pageIndex={history.current_page - 1}
+          pageCount={history.last_page}
+          setPageIndex={goToPage}
+          canPreviousPage={history.current_page > 1}
+          canNextPage={history.current_page < history.last_page}
+          previousPage={() => goToPage(history.current_page - 2)}
+          nextPage={() => goToPage(history.current_page)}
+        />
+      )}
+    </div>
+  )
+}
 
 // --- Settings tab ----------------------------------------------------------------
 
@@ -1456,7 +1484,7 @@ const SettingsTab = ({
           <div className="card">
             <CardHeading title="History">Every change to this property&apos;s setup.</CardHeading>
             <div className="card-body">
-              <HistoryTab history={props.history} />
+              <HistoryTab property={property} history={props.history} />
             </div>
           </div>
         )}
