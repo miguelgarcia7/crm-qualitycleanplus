@@ -25,7 +25,8 @@ use stdClass;
  */
 class PropertyOverview
 {
-    private const RECENT_WEEKS = 6;
+    /** Weeks on the Timesheets tab; older ones are on the full Timesheets list. */
+    private const RECENT_WEEKS = 12;
 
     /** Matches the property-manager dashboard's contract warning. */
     private const CONTRACT_WARNING_DAYS = 30;
@@ -92,7 +93,9 @@ class PropertyOverview
      */
     private function recentWeeks(Property $property): array
     {
-        $today = CarbonImmutable::now($property->timezone)->toDateString();
+        $now = CarbonImmutable::now($property->timezone);
+        $today = $now->toDateString();
+        $currentWeek = $property->weekStartFor($now)->toDateString();
 
         $timesheets = Timesheet::query()
             ->where('timesheets.property_id', $property->id)
@@ -106,16 +109,24 @@ class PropertyOverview
 
         $totals = $this->totalsByPeriod($property, $timesheets->pluck('payroll_period_id')->all());
 
-        return $timesheets->map(fn (Timesheet $t): array => [
-            'id' => $t->id,
-            'week_start' => CarbonImmutable::parse($t->getAttribute('period_start'))->toDateString(),
-            'week_end' => CarbonImmutable::parse($t->getAttribute('period_end'))->toDateString(),
-            'status' => $t->status->value,
-            'status_label' => $t->status->label(),
-            ...$this->totalsPayload($totals->get($t->payroll_period_id)),
-            'invoice_number' => $t->invoice?->invoice_number,
-            'sent_for_approval_at' => $t->sent_for_approval_at?->toDateString(),
-        ])->values()->all();
+        return $timesheets->map(function (Timesheet $t) use ($totals, $currentWeek): array {
+            $weekStart = CarbonImmutable::parse($t->getAttribute('period_start'))->toDateString();
+
+            return [
+                'id' => $t->id,
+                'week_start' => $weekStart,
+                'week_end' => CarbonImmutable::parse($t->getAttribute('period_end'))->toDateString(),
+                'is_current' => $weekStart === $currentWeek,
+                'status' => $t->status->value,
+                'status_label' => $t->status->label(),
+                ...$this->totalsPayload($totals->get($t->payroll_period_id)),
+                'invoice_id' => $t->invoice_id,
+                'invoice_number' => $t->invoice?->invoice_number,
+                'sent_for_approval_at' => $t->sent_for_approval_at?->toDateString(),
+                'approved_at' => $t->approved_at?->toDateString(),
+                'decline_reason' => $t->decline_reason,
+            ];
+        })->values()->all();
     }
 
     /**

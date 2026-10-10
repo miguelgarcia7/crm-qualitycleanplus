@@ -171,6 +171,7 @@ class PropertyController extends Controller
                 'inviteUsers' => $user instanceof Person && $user->can('admin.users.create'),
                 'editHolidays' => $user instanceof Person && $user->can('update', $property),
                 'viewGrid' => $user instanceof Person && $user->can('time_entries.view'),
+                'viewInvoices' => $user instanceof Person && $user->can('invoices.view'),
             ],
         ]);
     }

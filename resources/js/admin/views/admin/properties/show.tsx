@@ -73,6 +73,7 @@ type Can = {
   inviteUsers: boolean
   editHolidays: boolean
   viewGrid: boolean
+  viewInvoices: boolean
 }
 
 type WeekTotals = { people: number; total_minutes: number; overtime_minutes: number; total_pay: number; total_bill: number }
@@ -82,9 +83,14 @@ type WeekRow = WeekTotals & {
   week_start: string
   week_end: string
   status: string
+  /** The pay week that contains today, at the property. */
+  is_current: boolean
   status_label: string
+  invoice_id: number | null
   invoice_number: string | null
   sent_for_approval_at: string | null
+  approved_at: string | null
+  decline_reason: string | null
 }
 /** Where to fix it: a URL, or a tab (and Settings section) on this page. */
 type AttentionAction = { label: string; href?: string; tab?: string; section?: string }
@@ -234,7 +240,7 @@ const PropertyHeader = ({ property, can }: { property: Property; can: Can }) => 
 // --- Overview tab ----------------------------------------------------------------
 
 /** This week's figures, mirroring the grid's summary bar. */
-const ThisWeekCard = ({ property, week, showHistory }: { property: Property; week: ThisWeek; showHistory: boolean }) => {
+const ThisWeekCard = ({ property, week, onAllWeeks }: { property: Property; week: ThisWeek; onAllWeeks?: () => void }) => {
   const margin = week.total_bill - week.total_pay
 
   return (
@@ -260,10 +266,10 @@ const ThisWeekCard = ({ property, week, showHistory }: { property: Property; wee
         />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
-        {showHistory ? (
-          <Link href={`/admin/timesheets?property_id=${property.id}`} className="text-primary text-sm font-medium underline underline-offset-3">
+        {onAllWeeks ? (
+          <button type="button" onClick={onAllWeeks} className="text-primary text-sm font-medium underline underline-offset-3">
             All weeks for this property
-          </Link>
+          </button>
         ) : (
           <span />
         )}
@@ -366,14 +372,15 @@ const PropertyCard = ({ property, can }: { property: Property; can: Can }) => {
   )
 }
 
-const RecentWeeksCard = ({ property, weeks }: { property: Property; weeks: WeekRow[] }) => (
+/** The latest few weeks; the Timesheets tab has the rest. */
+const RecentWeeksCard = ({ property, weeks, onAllWeeks }: { property: Property; weeks: WeekRow[]; onAllWeeks: () => void }) => (
   <div className="card">
     <CardHeading
       title="Recent weeks"
       actions={
-        <Link href={`/admin/timesheets?property_id=${property.id}`} className="text-primary text-sm font-medium underline underline-offset-3">
-          Full history in Timesheets
-        </Link>
+        <button type="button" onClick={onAllWeeks} className="text-primary text-sm font-medium underline underline-offset-3">
+          See all weeks
+        </button>
       }
     />
     <div className="table-wrapper">
@@ -385,13 +392,12 @@ const RecentWeeksCard = ({ property, weeks }: { property: Property; weeks: WeekR
             <th className="text-end">People</th>
             <th className="text-end">Hours</th>
             <th className="text-end">Billable</th>
-            <th>Invoice</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           {weeks.length ? (
-            weeks.map((w) => (
+            weeks.slice(0, 4).map((w) => (
               <tr key={w.id}>
                 <td className="text-default-900 font-semibold whitespace-nowrap">{weekRange(w.week_start, w.week_end)}</td>
                 <td>
@@ -400,7 +406,6 @@ const RecentWeeksCard = ({ property, weeks }: { property: Property; weeks: WeekR
                 <td className="text-end tabular-nums">{w.people}</td>
                 <td className="text-end tabular-nums">{hrs(w.total_minutes)}</td>
                 <td className="text-end tabular-nums">{money(w.total_bill)}</td>
-                <td className="whitespace-nowrap">{w.invoice_number ?? '—'}</td>
                 <td className="text-end">
                   <Link href={`/admin/properties/${property.id}/grid?week=${w.week_start}`} className="btn btn-sm btn-light">
                     Open Week
@@ -410,7 +415,7 @@ const RecentWeeksCard = ({ property, weeks }: { property: Property; weeks: WeekR
             ))
           ) : (
             <tr>
-              <td colSpan={7} className="text-default-400 py-4 text-center">
+              <td colSpan={6} className="text-default-400 py-4 text-center">
                 No weeks yet.
               </td>
             </tr>
@@ -421,9 +426,21 @@ const RecentWeeksCard = ({ property, weeks }: { property: Property; weeks: WeekR
   </div>
 )
 
-const OverviewTab = ({ property, overview, can, onGo }: { property: Property; overview: Overview; can: Can; onGo: (action: AttentionAction) => void }) => (
+const OverviewTab = ({
+  property,
+  overview,
+  can,
+  onGo,
+  onAllWeeks,
+}: {
+  property: Property
+  overview: Overview
+  can: Can
+  onGo: (action: AttentionAction) => void
+  onAllWeeks: () => void
+}) => (
   <div className="space-y-6">
-    {overview.thisWeek && <ThisWeekCard property={property} week={overview.thisWeek} showHistory={overview.weeks !== null} />}
+    {overview.thisWeek && <ThisWeekCard property={property} week={overview.thisWeek} onAllWeeks={overview.weeks ? onAllWeeks : undefined} />}
 
     <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
       <div className="xl:col-span-2">
@@ -432,9 +449,133 @@ const OverviewTab = ({ property, overview, can, onGo }: { property: Property; ov
       <PropertyCard property={property} can={can} />
     </div>
 
-    {overview.weeks && <RecentWeeksCard property={property} weeks={overview.weeks} />}
+    {overview.weeks && <RecentWeeksCard property={property} weeks={overview.weeks} onAllWeeks={onAllWeeks} />}
   </div>
 )
+
+// --- Timesheets tab --------------------------------------------------------------
+
+type WeekFilter = 'all' | 'open' | 'pending' | 'invoiced'
+
+/** Statuses behind each filter; voided weeks only show under All. */
+const WEEK_FILTERS: { key: WeekFilter; label: string; statuses: string[] | null }[] = [
+  { key: 'all', label: 'All', statuses: null },
+  { key: 'open', label: 'Open', statuses: ['draft', 'declined'] },
+  { key: 'pending', label: 'Waiting on approval', statuses: ['pending_approval'] },
+  { key: 'invoiced', label: 'Approved & invoiced', statuses: ['approved', 'invoiced', 'invoice_sent'] },
+]
+
+/** The line under a week: where it stands, in words. */
+const weekNote = (w: WeekRow): React.ReactNode => {
+  if (w.status === 'declined') return <span className="text-danger">{w.decline_reason ? `Sent back: ${w.decline_reason}` : 'Sent back'}</span>
+  if (w.status === 'pending_approval' && w.sent_for_approval_at) return `Sent ${monthDay(w.sent_for_approval_at)}`
+  if (w.approved_at && ['approved', 'invoiced', 'invoice_sent'].includes(w.status)) return `Approved ${monthDay(w.approved_at)}`
+  return null
+}
+
+const TimesheetsTab = ({ property, weeks, can }: { property: Property; weeks: WeekRow[]; can: Can }) => {
+  const [filter, setFilter] = useState<WeekFilter>('all')
+  const matches = (key: WeekFilter, w: WeekRow) => {
+    const statuses = WEEK_FILTERS.find((f) => f.key === key)?.statuses
+    return !statuses || statuses.includes(w.status)
+  }
+  const shown = weeks.filter((w) => matches(filter, w))
+
+  return (
+    <div className="card">
+      <CardHeading
+        title="Weekly timesheets"
+        actions={
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter weeks">
+            {WEEK_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={filter === f.key}
+                onClick={() => setFilter(f.key)}
+                className={cn('btn btn-sm', filter === f.key ? 'bg-primary text-white' : 'btn-light')}
+              >
+                {f.label}
+                <span className="tabular-nums opacity-75">{weeks.filter((w) => matches(f.key, w)).length}</span>
+              </button>
+            ))}
+          </div>
+        }
+      >
+        One timesheet per pay week. Open a week to see its grid, punches and approval.
+      </CardHeading>
+
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>Week</th>
+              <th>Status</th>
+              <th className="text-end">People</th>
+              <th className="text-end">Hours</th>
+              <th className="text-end">OT</th>
+              <th className="text-end">Payroll</th>
+              <th className="text-end">Billable</th>
+              <th>Invoice</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.length ? (
+              shown.map((w) => {
+                const note = weekNote(w)
+                return (
+                  <tr key={w.id}>
+                    <td>
+                      <div className="text-default-900 font-semibold whitespace-nowrap">{weekRange(w.week_start, w.week_end)}</div>
+                      {w.is_current && <div className="text-secondary text-xs font-semibold">This week</div>}
+                      {note && <div className="text-default-400 max-w-72 truncate text-xs">{note}</div>}
+                    </td>
+                    <td>
+                      <span className={cn('badge badge-label', statusBadge[w.status] ?? 'bg-light text-default-600')}>{w.status_label}</span>
+                    </td>
+                    <td className="text-end tabular-nums">{w.people}</td>
+                    <td className="text-end tabular-nums">{hrs(w.total_minutes)}</td>
+                    <td className="text-end tabular-nums">{hrs(w.overtime_minutes)}</td>
+                    <td className="text-end tabular-nums">{money(w.total_pay)}</td>
+                    <td className="text-default-900 text-end font-semibold tabular-nums">{money(w.total_bill)}</td>
+                    <td className="whitespace-nowrap">
+                      {w.invoice_id && w.invoice_number && can.viewInvoices ? (
+                        <Link href={`/admin/invoices/${w.invoice_id}`} className="hover:text-primary underline underline-offset-3">
+                          {w.invoice_number}
+                        </Link>
+                      ) : (
+                        (w.invoice_number ?? '—')
+                      )}
+                    </td>
+                    <td className="text-end">
+                      <Link href={`/admin/properties/${property.id}/grid?week=${w.week_start}`} className="btn btn-sm btn-light whitespace-nowrap">
+                        Open Week
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })
+            ) : (
+              <tr>
+                <td colSpan={9} className="text-default-400 py-4 text-center">
+                  {weeks.length ? 'No weeks match this filter.' : 'No weeks yet.'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 text-sm">
+        <span className="text-default-400">Showing the latest {weeks.length} {weeks.length === 1 ? 'week' : 'weeks'}</span>
+        <Link href={`/admin/timesheets?property_id=${property.id}`} className="text-primary font-medium underline underline-offset-3">
+          Full history in Timesheets
+        </Link>
+      </div>
+    </div>
+  )
+}
 
 // --- Tab sections ----------------------------------------------------------
 
@@ -1167,10 +1308,11 @@ const SettingsTab = ({
 
 // --- Page ------------------------------------------------------------------
 
-type TabKey = 'overview' | 'rates' | 'settings'
+type TabKey = 'overview' | 'timesheets' | 'rates' | 'settings'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
+  { key: 'timesheets', label: 'Timesheets' },
   { key: 'rates', label: 'Rates & Job Codes' },
   { key: 'settings', label: 'Settings' },
 ]
@@ -1206,9 +1348,15 @@ const Page = ({ property, overview, departments, rates, assignments, contracts, 
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  const go = (tab: TabKey, section: SectionKey = location.section) => {
-    setLocation({ tab, section })
-    window.history.replaceState(null, '', tab === 'settings' ? `#settings/${section}` : `#${tab}`)
+  // Timesheets needs the history permission; anyone without it never sees the tab.
+  const tabs = TABS.filter((t) => t.key !== 'timesheets' || overview?.weeks)
+  const tab = tabs.some((t) => t.key === location.tab) ? location.tab : 'overview'
+  // Weeks someone has to act on: waiting for the PM, or sent back to us.
+  const stalledWeeks = overview?.weeks?.filter((w) => ['pending_approval', 'declined'].includes(w.status)).length ?? 0
+
+  const go = (next: TabKey, section: SectionKey = location.section) => {
+    setLocation({ tab: next, section })
+    window.history.replaceState(null, '', next === 'settings' ? `#settings/${section}` : `#${next}`)
   }
 
   const goToAction = (action: AttentionAction) => {
@@ -1227,26 +1375,35 @@ const Page = ({ property, overview, departments, rates, assignments, contracts, 
 
       {/* Tabs sit under the page title, full width, as on My Profile and the System Reference pages. */}
       <nav className="border-default-300 mt-4 mb-5 flex flex-wrap gap-1 border-b" aria-label="Property sections" role="tablist">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             role="tab"
-            aria-selected={location.tab === t.key}
+            aria-selected={tab === t.key}
             onClick={() => go(t.key)}
             className={cn(
               '-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 font-medium focus:outline-hidden',
-              location.tab === t.key ? 'border-primary text-default-900' : 'text-default-500 hover:text-default-900 border-transparent',
+              tab === t.key ? 'border-primary text-default-900' : 'text-default-500 hover:text-default-900 border-transparent',
             )}
           >
             {t.label}
+            {t.key === 'timesheets' && stalledWeeks > 0 && (
+              <span className="badge badge-label bg-warning/15 text-warning" title="Waiting on approval or sent back">
+                {stalledWeeks}
+              </span>
+            )}
           </button>
         ))}
       </nav>
 
-      {location.tab === 'overview' && overview && <OverviewTab property={property} overview={overview} can={can} onGo={goToAction} />}
+      {tab === 'overview' && overview && (
+        <OverviewTab property={property} overview={overview} can={can} onGo={goToAction} onAllWeeks={() => goToAction({ label: '', tab: 'timesheets' })} />
+      )}
 
-      {location.tab === 'rates' && (
+      {tab === 'timesheets' && overview?.weeks && <TimesheetsTab property={property} weeks={overview.weeks} can={can} />}
+
+      {tab === 'rates' && (
         <div className="card">
           <CardHeading title="Positions, rates & job codes">Current rates fill new work orders. Job codes print next to the position on invoices and exports.</CardHeading>
           <div className="card-body">
@@ -1255,7 +1412,7 @@ const Page = ({ property, overview, departments, rates, assignments, contracts, 
         </div>
       )}
 
-      {location.tab === 'settings' && (
+      {tab === 'settings' && (
         <SettingsTab
           section={location.section}
           onSection={(key) => go('settings', key)}

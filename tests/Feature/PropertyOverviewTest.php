@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Billing\Enums\TimesheetStatus;
+use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Devices\Models\Device;
 use App\Domain\PropertyBible\Models\Contract;
@@ -82,16 +83,41 @@ it('totals this week from the time summaries', function () {
 it('lists the latest started weeks newest first, leaving out weeks ahead', function () {
     $property = Property::factory()->create();
     overviewWeek($property, -1); // next week, made ahead for manual entry
-    foreach (range(0, 7) as $weeksAgo) {
+    foreach (range(0, 13) as $weeksAgo) {
         overviewWeek($property, $weeksAgo);
     }
 
     $this->actingAs(person('office_manager'))
         ->get(main("/admin/properties/{$property->id}"))
         ->assertInertia(fn (Assert $page) => $page
-            ->has('overview.weeks', 6)
+            ->has('overview.weeks', 12)
             ->where('overview.weeks.0.week_start', '2026-10-05')
-            ->where('overview.weeks.5.week_start', '2026-08-31'),
+            ->where('overview.weeks.0.is_current', true)
+            ->where('overview.weeks.1.is_current', false)
+            ->where('overview.weeks.11.week_start', '2026-07-20'),
+        );
+});
+
+it('gives each week its totals, invoice and where it stands', function () {
+    $property = Property::factory()->create();
+    $invoiced = overviewWeek($property, 1, TimesheetStatus::InvoiceSent, ['approved_at' => '2026-10-05 16:00:00']);
+    overviewSummary($invoiced, ['regular_minutes' => 2400, 'overtime_minutes' => 120, 'total_pay' => 64000, 'total_bill' => 99000]);
+    $sheet = Timesheet::query()->where('payroll_period_id', $invoiced->id)->firstOrFail();
+    $invoice = Invoice::factory()->create(['property_id' => $property->id, 'payroll_period_id' => $invoiced->id, 'timesheet_id' => $sheet->id, 'invoice_number' => 'INV-2026-000042']);
+    $sheet->update(['invoice_id' => $invoice->id]);
+
+    $this->actingAs(person('office_manager'))
+        ->get(main("/admin/properties/{$property->id}"))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('can.viewInvoices', true)
+            ->where('overview.weeks.0.status', 'invoice_sent')
+            ->where('overview.weeks.0.total_minutes', 2520)
+            ->where('overview.weeks.0.overtime_minutes', 120)
+            ->where('overview.weeks.0.total_pay', 64000)
+            ->where('overview.weeks.0.total_bill', 99000)
+            ->where('overview.weeks.0.invoice_id', $invoice->id)
+            ->where('overview.weeks.0.invoice_number', 'INV-2026-000042')
+            ->where('overview.weeks.0.approved_at', '2026-10-05'),
         );
 });
 
