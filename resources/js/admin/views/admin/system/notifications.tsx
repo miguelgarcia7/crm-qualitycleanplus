@@ -45,7 +45,12 @@ const Chip = ({ kind, conditional }: { kind: 'app' | 'mail'; conditional: boolea
 
 const Page = ({ roles, notices: notifications, initial }: Props) => {
   const [selectedId, setSelectedId] = useState(initial)
+  const [highlight, setHighlight] = useState<string | null>(null)
   const selected = notifications.find((n) => n.id === selectedId) ?? notifications[0]
+
+  // The highlighted role's column is tinted all the way down.
+  const col = (key: string) => (key === highlight ? 'bg-primary/10' : '')
+  const received = (key: string) => notifications.filter((n) => n.audience[key]).length
 
   const groups = notifications.reduce<{ name: string; rows: Notice[] }[]>((acc, n) => {
     const last = acc[acc.length - 1]
@@ -73,7 +78,7 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
       <PageBreadcrumb title="System Reference" subtitle="Administration" />
       <ReferenceNav current="/admin/system/notifications" />
 
-      <p className="text-default-500 mb-5 max-w-2xl">Every notice the system sends, who receives it and how. Click a row for the details.</p>
+      <p className="text-default-500 mb-5 max-w-2xl">Every notice the system sends, who receives it and how. Click a role to highlight its column, or a row for the details.</p>
 
       <div className="mb-5 flex flex-wrap gap-3">
         {stats.map((s) => (
@@ -99,15 +104,29 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="card mb-0 overflow-x-auto">
-          <table className="w-full min-w-[860px] border-separate border-spacing-0 text-sm">
+          {/* Left empty so the header row sits clear of the card's rounded top, as on Roles & permissions. */}
+          <div className="border-default-300 h-5 border-b" aria-hidden="true" />
+          <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
-                <th scope="col" className="text-default-400 border-default-300 w-64 border-b px-4 py-3 text-start text-xs font-semibold">
+                <th scope="col" className="text-default-400 border-default-300 w-64 border-b px-5 py-3 text-start text-xs font-semibold">
                   Notification
                 </th>
                 {roles.map((r) => (
-                  <th key={r.key} scope="col" className="text-default-500 border-default-300 border-b px-1 py-3 text-xs leading-tight font-semibold">
-                    {r.label}
+                  <th key={r.key} scope="col" className={cn('border-default-300 border-b px-1 py-2', col(r.key))}>
+                    <button
+                      type="button"
+                      onClick={() => setHighlight(r.key === highlight ? null : r.key)}
+                      aria-pressed={r.key === highlight}
+                      title={`${r.label} receives ${received(r.key)} of these`}
+                      className={cn(
+                        'flex w-full flex-col items-center rounded-md px-1 py-1.5 text-xs leading-tight font-semibold',
+                        r.key === highlight ? 'bg-primary text-white' : 'text-default-600 hover:bg-default-100',
+                      )}
+                    >
+                      <span>{r.label}</span>
+                      <span className="mt-0.5 font-medium tabular-nums opacity-80">{received(r.key)}</span>
+                    </button>
                   </th>
                 ))}
               </tr>
@@ -116,16 +135,19 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
               {groups.map((g) => (
                 <Fragment key={g.name}>
                   <tr>
-                    <th colSpan={roles.length + 1} scope="rowgroup" className="bg-default-50 text-default-500 border-default-300 border-b px-4 py-2 text-start text-xs font-semibold tracking-wide uppercase">
+                    <th scope="rowgroup" className="bg-default-50 text-default-500 border-default-300 border-b px-5 py-2 text-start text-xs font-semibold tracking-wide uppercase">
                       {g.name}
                     </th>
+                    {roles.map((r) => (
+                      <td key={r.key} className={cn('bg-default-50 border-default-300 border-b', r.key === highlight && 'ring-primary/30 ring-1 ring-inset')} />
+                    ))}
                   </tr>
                   {g.rows.map((n) => {
                     const isSelected = n.id === selected?.id
                     return (
-                      <tr key={n.id} className={cn(isSelected && 'bg-primary/10')}>
+                      <tr key={n.id} className={cn(isSelected && 'bg-default-100')}>
                         <td className="border-default-100 border-b p-0">
-                          <button type="button" onClick={() => setSelectedId(n.id)} aria-pressed={isSelected} className="flex w-full flex-col px-4 py-2.5 text-start">
+                          <button type="button" onClick={() => setSelectedId(n.id)} aria-pressed={isSelected} className="flex w-full flex-col px-5 py-2.5 text-start">
                             <span className="text-default-800 font-medium">{n.name}</span>
                             <span className="text-default-400 text-xs">{n.summary}</span>
                           </button>
@@ -133,7 +155,7 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
                         {roles.map((r) => {
                           const mode = n.audience[r.key]
                           return (
-                            <td key={r.key} className="border-default-100 border-b text-center whitespace-nowrap">
+                            <td key={r.key} className={cn('border-default-100 border-b text-center whitespace-nowrap', col(r.key))}>
                               {mode && n.in_app && <Chip kind="app" conditional={mode === 'if_theirs'} />}
                               {mode && n.email && <Chip kind="mail" conditional={mode === 'if_theirs'} />}
                             </td>
