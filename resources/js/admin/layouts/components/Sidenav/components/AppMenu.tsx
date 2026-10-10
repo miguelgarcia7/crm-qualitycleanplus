@@ -119,7 +119,7 @@ const AppMenu = () => {
       {items.map((item, idx) => (
         <Fragment key={idx}>
           {item.isTitle && (
-            <li className="menu-title mt-0!">
+            <li className="menu-title">
               {' '}
               <span>{item.label}</span>
             </li>
