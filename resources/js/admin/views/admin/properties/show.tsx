@@ -1,5 +1,6 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import SidePanel from '@/components/SidePanel'
 import TablePagination from '@/components/table/TablePagination'
 import { Stat, StatusTrack } from '@/components/timesheet/WeekSummary'
 import Icon from '@/components/wrappers/Icon'
@@ -40,10 +41,12 @@ type Rate = {
   bill_rate: number
   ot_pay_rate: number
   ot_bill_rate: number
-  effective_date: string | null
+  effective_date: string
   end_date: string | null
   is_active: boolean
   notes: string | null
+  /** Where the rate stands today at the property. */
+  state: 'current' | 'scheduled' | 'past'
 }
 type Assignment = { id: number; person_id: number; person: string | null; role: string; role_label: string }
 type Contract = {
@@ -68,6 +71,7 @@ type ValueLabel = { value: string; label: string }
 type Can = {
   editProfile: boolean
   editDepartments: boolean
+  viewRates: boolean
   editRates: boolean
   viewContracts: boolean
   editContracts: boolean
@@ -835,108 +839,114 @@ const otFromBase = (value: string) => {
   return isNaN(n) ? '' : (n * 1.5).toFixed(2)
 }
 
-const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'property' | 'rates' | 'jobCodes' | 'catalogs' | 'can'>) => {
-  const { data, setData, post, processing, errors, reset } = useForm({
-    position_id: '',
-    pay_rate: '',
-    bill_rate: '',
-    ot_pay_rate: '',
-    ot_bill_rate: '',
+const toDollars = (cents: number) => (cents / 100).toFixed(2)
+const fullDate = (d: string) => `${monthDay(d)}, ${d.slice(0, 4)}`
+const marginOf = (pay: number, bill: number) => (bill > 0 ? `${(((bill - pay) / bill) * 100).toFixed(1)}%` : '—')
+
+/**
+ * Adds a rate — for a new position, or as a change to a position's current
+ * one. Rates are append-only: the new row starts on its effective date and the
+ * open one ends the day before (AddPropertyPositionRate).
+ */
+const RatePanel = ({
+  property,
+  rates,
+  catalogs,
+  positionId,
+  onClose,
+}: Pick<Props, 'property' | 'rates' | 'catalogs'> & { positionId: number | null; onClose: () => void }) => {
+  const current = positionId === null ? undefined : rates.find((r) => r.position_id === positionId && r.state === 'current')
+
+  const { data, setData, post, processing, errors } = useForm({
+    position_id: positionId === null ? '' : String(positionId),
+    pay_rate: current ? toDollars(current.pay_rate) : '',
+    bill_rate: current ? toDollars(current.bill_rate) : '',
+    ot_pay_rate: current ? toDollars(current.ot_pay_rate) : '',
+    ot_bill_rate: current ? toDollars(current.ot_bill_rate) : '',
     effective_date: '',
     notes: '',
   })
 
-  // OT is 1.5× by default; the override toggle unlocks the fields for the rare
-  // contract that stipulates a different overtime multiplier.
-  const [overrideOt, setOverrideOt] = useState(false)
+  // OT is 1.5× by default; the override unlocks it for the rare contract with a
+  // different multiplier — already on when the current rate isn't 1.5×.
+  const [overrideOt, setOverrideOt] = useState(
+    () => current !== undefined && (current.ot_pay_rate !== Math.round(current.pay_rate * 1.5) || current.ot_bill_rate !== Math.round(current.bill_rate * 1.5)),
+  )
   useEffect(() => {
     if (overrideOt) return
     setData((d) => ({ ...d, ot_pay_rate: otFromBase(d.pay_rate), ot_bill_rate: otFromBase(d.bill_rate) }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.pay_rate, data.bill_rate, overrideOt])
 
+  const pay = Math.round(parseFloat(data.pay_rate) * 100)
+  const bill = Math.round(parseFloat(data.bill_rate) * 100)
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    post(`/admin/properties/${property.id}/rates`, {
-      preserveScroll: true,
-      onSuccess: () => {
-        reset()
-        setOverrideOt(false)
-      },
-    })
+    post(`/admin/properties/${property.id}/rates`, { preserveScroll: true, onSuccess: onClose })
   }
 
   return (
-    <div className="space-y-6">
-      <div className="table-wrapper">
-        <table className="table table-hover">
-          <thead className="thead-sm">
-            <tr className="bg-light/25 text-xs uppercase">
-              <th>Position</th>
-              <th>Pay</th>
-              <th>Bill</th>
-              <th>OT Pay</th>
-              <th>OT Bill</th>
-              <th>Effective</th>
-              <th>End</th>
-              {can.editRates && <th></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {rates.length ? (
-              rates.map((r) => (
-                <tr key={r.id}>
-                  <td className="font-medium">{r.position}</td>
-                  <td>{money(r.pay_rate)}</td>
-                  <td>{money(r.bill_rate)}</td>
-                  <td>{money(r.ot_pay_rate)}</td>
-                  <td>{money(r.ot_bill_rate)}</td>
-                  <td>{r.effective_date}</td>
-                  <td>{r.end_date ?? <span className="badge badge-label bg-success/15 text-success">current</span>}</td>
-                  {can.editRates && (
-                    <td className="text-end">
-                      <RemoveButton url={`/admin/properties/${property.id}/rates/${r.id}`} title="Remove rate" description={<>Remove the <strong>{r.position}</strong> rate? New work orders will have no rate to auto-fill from. Existing ones keep their snapshot.</>} />
-                    </td>
-                  )}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={8} className="text-default-400 py-4 text-center">
-                  No rates yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+    <SidePanel
+      title={current ? `Change rate · ${current.position}` : 'Add rate'}
+      subtitle={current ? `Now ${money(current.pay_rate)} pay · ${money(current.bill_rate)} bill` : property.name}
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className="btn btn-light" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" form="rate-form" className="btn bg-primary hover:bg-primary-hover px-5 font-semibold text-white" disabled={processing}>
+            {current ? 'Save New Rate' : 'Add Rate'}
+          </button>
+        </>
+      }
+    >
+      <form id="rate-form" onSubmit={submit} className="space-y-4">
+        <div>
+          <label htmlFor="rate-position" className="form-label">
+            Position
+          </label>
+          <select
+            id="rate-position"
+            className="form-select"
+            value={data.position_id}
+            onChange={(e) => setData('position_id', e.target.value)}
+            disabled={current !== undefined}
+            required
+          >
+            <option value="">Select…</option>
+            {catalogs.positions.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+          </select>
+          {errors.position_id && <p className="text-danger mt-1 text-sm">{errors.position_id}</p>}
+        </div>
 
-      {can.editRates && (
-        <form onSubmit={submit} className="bg-light/20 grid grid-cols-2 gap-4 rounded-xl p-4 md:grid-cols-4">
-          <div className="col-span-2 md:col-span-1">
-            <label className="form-label">Position</label>
-            <select className="form-select" value={data.position_id} onChange={(e) => setData('position_id', e.target.value)} required>
-              <option value="">Select…</option>
-              {catalogs.positions.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                </option>
-              ))}
-            </select>
-            {errors.position_id && <p className="text-danger mt-1 text-sm">{errors.position_id}</p>}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="rate-pay" className="form-label">
+              Pay ($)
+            </label>
+            <input id="rate-pay" className="form-input" inputMode="decimal" value={data.pay_rate} onChange={(e) => setData('pay_rate', e.target.value)} required autoFocus />
+            {errors.pay_rate && <p className="text-danger mt-1 text-sm">{errors.pay_rate}</p>}
           </div>
           <div>
-            <label className="form-label">Pay ($)</label>
-            <input className="form-input" value={data.pay_rate} onChange={(e) => setData('pay_rate', e.target.value)} required />
+            <label htmlFor="rate-bill" className="form-label">
+              Bill ($)
+            </label>
+            <input id="rate-bill" className="form-input" inputMode="decimal" value={data.bill_rate} onChange={(e) => setData('bill_rate', e.target.value)} required />
+            {errors.bill_rate && <p className="text-danger mt-1 text-sm">{errors.bill_rate}</p>}
           </div>
           <div>
-            <label className="form-label">Bill ($)</label>
-            <input className="form-input" value={data.bill_rate} onChange={(e) => setData('bill_rate', e.target.value)} required />
-          </div>
-          <div>
-            <label className="form-label">OT Pay ($){!overrideOt && <span className="text-default-400"> · auto 1.5×</span>}</label>
+            <label htmlFor="rate-ot-pay" className="form-label">
+              OT pay ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+            </label>
             <input
-              className={cn('form-input', !overrideOt && 'opacity-60')}
+              id="rate-ot-pay"
+              className={cn('form-input', !overrideOt && 'bg-light/50')}
               value={data.ot_pay_rate}
               onChange={(e) => setData('ot_pay_rate', e.target.value)}
               readOnly={!overrideOt}
@@ -946,9 +956,12 @@ const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'pro
             {errors.ot_pay_rate && <p className="text-danger mt-1 text-sm">{errors.ot_pay_rate}</p>}
           </div>
           <div>
-            <label className="form-label">OT Bill ($){!overrideOt && <span className="text-default-400"> · auto 1.5×</span>}</label>
+            <label htmlFor="rate-ot-bill" className="form-label">
+              OT bill ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+            </label>
             <input
-              className={cn('form-input', !overrideOt && 'opacity-60')}
+              id="rate-ot-bill"
+              className={cn('form-input', !overrideOt && 'bg-light/50')}
               value={data.ot_bill_rate}
               onChange={(e) => setData('ot_bill_rate', e.target.value)}
               readOnly={!overrideOt}
@@ -957,47 +970,62 @@ const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'pro
             />
             {errors.ot_bill_rate && <p className="text-danger mt-1 text-sm">{errors.ot_bill_rate}</p>}
           </div>
-          <div className="col-span-2 -mt-2 md:col-span-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="form-checkbox"
-                checked={overrideOt}
-                onChange={(e) => setOverrideOt(e.target.checked)}
-              />
-              Override OT rates — this property&apos;s contract differs from the standard 1.5×
-            </label>
-          </div>
-          <div>
-            <label className="form-label">Effective Date</label>
-            <input type="date" className="form-input" value={data.effective_date} onChange={(e) => setData('effective_date', e.target.value)} required />
-            {errors.effective_date && <p className="text-danger mt-1 text-sm">{errors.effective_date}</p>}
-          </div>
-          <div className="flex items-end">
-            <button type="submit" className="btn bg-primary hover:bg-primary-hover px-4 py-2 font-semibold text-white" disabled={processing}>
-              Add Rate
-            </button>
-          </div>
-        </form>
-      )}
+        </div>
 
-      <JobCodesCard property={property} jobCodes={jobCodes} canEdit={can.editRates} />
-    </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" className="form-checkbox" checked={overrideOt} onChange={(e) => setOverrideOt(e.target.checked)} />
+          This contract uses a different overtime multiplier
+        </label>
+
+        {pay > 0 && bill > 0 && (
+          <p className="text-default-500 text-sm">
+            Margin <span className="text-default-900 font-semibold">{money(bill - pay)}</span> an hour · {marginOf(pay, bill)}
+          </p>
+        )}
+
+        <div>
+          <label htmlFor="rate-effective" className="form-label">
+            Effective date
+          </label>
+          <input id="rate-effective" type="date" className="form-input" value={data.effective_date} onChange={(e) => setData('effective_date', e.target.value)} required />
+          {errors.effective_date && <p className="text-danger mt-1 text-sm">{errors.effective_date}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="rate-notes" className="form-label">
+            Notes <span className="text-default-400">(optional)</span>
+          </label>
+          <textarea id="rate-notes" className="form-input" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="e.g. Per the 2027 rate sheet" />
+        </div>
+
+        <p className="bg-light/60 text-default-500 rounded-lg px-3 py-2.5 text-sm">
+          {current
+            ? 'The current rate ends the day before the effective date. Work orders already running keep their own rates.'
+            : 'New work orders here fill in from this rate. Work orders already running keep their own rates.'}
+        </p>
+      </form>
+    </SidePanel>
   )
 }
 
-// The client's own accounting codes per position — printed on their invoices
-// and exports so their accounting team can post the cost (e.g. "1001-10").
-const JobCodesCard = ({ property, jobCodes, canEdit }: { property: Property; jobCodes: JobCodeRow[]; canEdit: boolean }) => {
-  const [codes, setCodes] = useState<Record<number, string>>(
-    Object.fromEntries(jobCodes.map((r) => [r.position_id, r.job_code ?? ''])),
-  )
+const RATE_STATE: Record<Rate['state'], (r: Rate) => { label: string; tone: string }> = {
+  current: () => ({ label: 'Current', tone: 'bg-success/15 text-success' }),
+  scheduled: (r) => ({ label: `Starts ${monthDay(r.effective_date)}`, tone: 'bg-info/15 text-info' }),
+  past: (r) => ({ label: r.end_date ? `Ended ${monthDay(r.end_date)}` : 'Inactive', tone: 'bg-light text-default-600' }),
+}
+
+const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'property' | 'rates' | 'jobCodes' | 'catalogs' | 'can'>) => {
+  const [showPast, setShowPast] = useState(false)
+  /** The open panel: null position = a new one, a number = change that position's rate. */
+  const [panel, setPanel] = useState<{ positionId: number | null } | null>(null)
+
+  // The client's own accounting code per position — printed on their invoices
+  // and exports so their accounting team can post the cost (e.g. "1001-10").
+  const [codes, setCodes] = useState<Record<number, string>>(Object.fromEntries(jobCodes.map((r) => [r.position_id, r.job_code ?? ''])))
   const [saving, setSaving] = useState(false)
+  const dirty = jobCodes.some((r) => (codes[r.position_id] ?? '') !== (r.job_code ?? ''))
 
-  const initial = JSON.stringify(jobCodes.map((r) => r.job_code ?? ''))
-  const dirty = JSON.stringify(jobCodes.map((r) => codes[r.position_id] ?? '')) !== initial
-
-  const save = () => {
+  const saveCodes = () => {
     setSaving(true)
     router.put(
       `/admin/properties/${property.id}/job-codes`,
@@ -1006,37 +1034,145 @@ const JobCodesCard = ({ property, jobCodes, canEdit }: { property: Property; job
     )
   }
 
-  if (jobCodes.length === 0) return null
+  const pastCount = rates.filter((r) => r.state === 'past').length
+  const shown = rates.filter((r) => showPast || r.state !== 'past')
+  // A position's job code sits on its first row; the rows under it are its other rates.
+  const firstRowOf = new Map<number, number>()
+  shown.forEach((r) => firstRowOf.has(r.position_id) || firstRowOf.set(r.position_id, r.id))
+  const hasCurrent = (positionId: number) => rates.some((r) => r.position_id === positionId && r.state === 'current')
 
   return (
-    <div className="border-default-200 border-t pt-5">
-      <h5 className="font-semibold">Job Codes</h5>
-      <p className="text-default-400 mb-3 text-sm">
-        This property&apos;s accounting code per position — printed next to the position on invoices and exports.
-      </p>
-      <div className="max-w-lg space-y-2">
-        {jobCodes.map((r) => (
-          <div key={r.position_id} className="flex items-center gap-3">
-            <span className="w-48 text-sm font-medium">{r.position}</span>
-            <input
-              className="form-input flex-1"
-              placeholder="e.g. 1001-10"
-              value={codes[r.position_id] ?? ''}
-              onChange={(e) => setCodes((c) => ({ ...c, [r.position_id]: e.target.value }))}
-              readOnly={!canEdit}
-            />
+    <div className="card">
+      <CardHeading
+        title="Positions, rates & job codes"
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            {pastCount > 0 && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="form-checkbox" checked={showPast} onChange={(e) => setShowPast(e.target.checked)} />
+                Show past rates ({pastCount})
+              </label>
+            )}
+            {can.editRates && (
+              <button type="button" className="btn bg-primary hover:bg-primary-hover text-white" onClick={() => setPanel({ positionId: null })}>
+                <Icon icon="plus" /> Add Rate
+              </button>
+            )}
           </div>
-        ))}
+        }
+      >
+        Current rates fill in new work orders. Job codes print next to the position on invoices and exports.
+      </CardHeading>
+
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>Position</th>
+              <th className="min-w-36">Job code</th>
+              <th className="text-end">Pay</th>
+              <th className="text-end">Bill</th>
+              <th className="text-end">OT pay</th>
+              <th className="text-end">OT bill</th>
+              <th className="text-end">Margin</th>
+              <th>Effective</th>
+              {can.editRates && <th></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.length ? (
+              shown.map((r) => {
+                const first = firstRowOf.get(r.position_id) === r.id
+                const state = RATE_STATE[r.state](r)
+                return (
+                  <tr key={r.id} className={cn(r.state === 'past' && 'text-default-400')}>
+                    <td className={cn(first ? 'text-default-900 font-semibold' : 'text-default-400 ps-8')}>{r.position}</td>
+                    <td>
+                      {first &&
+                        (can.editRates ? (
+                          <input
+                            className="form-input py-1.5 text-sm"
+                            placeholder="e.g. 1001-10"
+                            aria-label={`Job code for ${r.position}`}
+                            value={codes[r.position_id] ?? ''}
+                            onChange={(e) => setCodes((c) => ({ ...c, [r.position_id]: e.target.value }))}
+                          />
+                        ) : (
+                          (codes[r.position_id] || '—')
+                        ))}
+                    </td>
+                    <td className="text-end tabular-nums">{money(r.pay_rate)}</td>
+                    <td className="text-end tabular-nums">{money(r.bill_rate)}</td>
+                    <td className="text-end tabular-nums">{money(r.ot_pay_rate)}</td>
+                    <td className="text-end tabular-nums">{money(r.ot_bill_rate)}</td>
+                    <td className="text-end tabular-nums">{marginOf(r.pay_rate, r.bill_rate)}</td>
+                    <td className="whitespace-nowrap">
+                      {fullDate(r.effective_date)}
+                      <span className={cn('badge badge-label ms-2', state.tone)}>{state.label}</span>
+                    </td>
+                    {can.editRates && (
+                      <td className="text-end">
+                        <div className="flex justify-end gap-1.5">
+                          {r.state === 'current' && (
+                            <button type="button" className="btn btn-sm border-default-300 hover:border-default-400 border" onClick={() => setPanel({ positionId: r.position_id })}>
+                              Change
+                            </button>
+                          )}
+                          <RemoveButton
+                            url={`/admin/properties/${property.id}/rates/${r.id}`}
+                            title="Remove rate"
+                            description={
+                              r.state === 'current' && !rates.some((o) => o.position_id === r.position_id && o.state === 'scheduled') ? (
+                                <>
+                                  Remove the current <strong>{r.position}</strong> rate? New work orders will have no rate to fill in from. Existing ones keep their own.
+                                </>
+                              ) : (
+                                <>
+                                  Remove this <strong>{r.position}</strong> rate from {fullDate(r.effective_date)}?
+                                </>
+                              )
+                            }
+                          />
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                )
+              })
+            ) : (
+              <tr>
+                <td colSpan={9} className="text-default-400 py-6 text-center">
+                  {rates.length ? 'No current rates. Turn on past rates to see the ones that ended.' : 'No rates yet. Add one so work orders can be created here.'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
-      {canEdit && (
-        <button
-          type="button"
-          className="btn bg-primary hover:bg-primary-hover mt-3 px-4 py-2 font-semibold text-white disabled:opacity-50"
-          onClick={save}
-          disabled={!dirty || saving}
-        >
-          Save Job Codes
-        </button>
+
+      <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4">
+        <p className="text-default-400 text-sm">Changing a rate adds a new dated row; running work orders keep their own rates.</p>
+        {can.editRates && jobCodes.length > 0 && (
+          <button
+            type="button"
+            className="btn bg-primary hover:bg-primary-hover px-5 font-semibold text-white disabled:opacity-50"
+            onClick={saveCodes}
+            disabled={!dirty || saving}
+          >
+            Save Job Codes
+          </button>
+        )}
+      </div>
+
+      {panel && (
+        <RatePanel
+          key={panel.positionId ?? 'new'}
+          property={property}
+          rates={rates}
+          catalogs={catalogs}
+          positionId={panel.positionId !== null && hasCurrent(panel.positionId) ? panel.positionId : null}
+          onClose={() => setPanel(null)}
+        />
       )}
     </div>
   )
@@ -1536,8 +1672,10 @@ const Page = ({ property, overview, workOrders, departments, rates, assignments,
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // Timesheets and Work Orders need their own view permissions; without them the tab is hidden.
-  const tabs = TABS.filter((t) => (t.key !== 'timesheets' || overview?.weeks) && (t.key !== 'workorders' || workOrders))
+  // Timesheets, Work Orders and Rates need their own view permissions; without them the tab is hidden.
+  const tabs = TABS.filter(
+    (t) => (t.key !== 'timesheets' || overview?.weeks) && (t.key !== 'workorders' || workOrders) && (t.key !== 'rates' || can.viewRates),
+  )
   const tab = tabs.some((t) => t.key === location.tab) ? location.tab : 'overview'
   // Weeks someone has to act on: waiting for the PM, or sent back to us.
   const stalledWeeks = overview?.weeks?.filter((w) => ['pending_approval', 'declined'].includes(w.status)).length ?? 0
@@ -1596,14 +1734,7 @@ const Page = ({ property, overview, workOrders, departments, rates, assignments,
 
       {tab === 'workorders' && workOrders && <WorkOrdersTab property={property} workOrders={workOrders} can={can} />}
 
-      {tab === 'rates' && (
-        <div className="card">
-          <CardHeading title="Positions, rates & job codes">Current rates fill new work orders. Job codes print next to the position on invoices and exports.</CardHeading>
-          <div className="card-body">
-            <RatesTab property={property} rates={rates} jobCodes={jobCodes} catalogs={catalogs} can={can} />
-          </div>
-        </div>
-      )}
+      {tab === 'rates' && <RatesTab property={property} rates={rates} jobCodes={jobCodes} catalogs={catalogs} can={can} />}
 
       {tab === 'settings' && (
         <SettingsTab

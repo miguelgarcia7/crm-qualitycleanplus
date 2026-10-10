@@ -22,6 +22,7 @@ use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Support\DirectHireProgress;
 use App\Http\Requests\Property\StorePropertyRequest;
 use App\Http\Requests\Property\UpdatePropertyRequest;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -88,6 +89,8 @@ class PropertyController extends Controller
 
         $user = Auth::user();
         $canContracts = $user instanceof Person && $user->can('bible.contracts.view');
+        // Rates and job codes are money: HR, for one, sees the property but not these.
+        $canRates = $user instanceof Person && $user->can('viewRates', $property);
 
         $property->load([
             'departments.department',
@@ -113,19 +116,7 @@ class PropertyController extends Controller
                 'manager_phone' => $d->manager_phone,
                 'is_active' => $d->is_active,
             ]),
-            'rates' => $property->positionRates->map(fn ($r): array => [
-                'id' => $r->id,
-                'position_id' => $r->position_id,
-                'position' => $r->position?->name,
-                'pay_rate' => $r->pay_rate,
-                'bill_rate' => $r->bill_rate,
-                'ot_pay_rate' => $r->ot_pay_rate,
-                'ot_bill_rate' => $r->ot_bill_rate,
-                'effective_date' => $r->effective_date->toDateString(),
-                'end_date' => $r->end_date?->toDateString(),
-                'is_active' => $r->is_active,
-                'notes' => $r->notes,
-            ]),
+            'rates' => $canRates ? $this->ratesPayload($property) : [],
             'assignments' => $property->assignments->map(fn ($a): array => [
                 'id' => $a->id,
                 'person_id' => $a->person_id,
@@ -147,7 +138,7 @@ class PropertyController extends Controller
             'history' => $this->historyPayload($property, $request),
             'holidays' => $this->holidaysPayload($property),
             // Job codes: one row per position that has (or had) a rate here.
-            'jobCodes' => $property->positionRates
+            'jobCodes' => $canRates ? $property->positionRates
                 ->pluck('position')
                 ->filter()
                 ->unique('id')
@@ -157,7 +148,7 @@ class PropertyController extends Controller
                     'position_id' => $position->id,
                     'position' => $position->name,
                     'job_code' => $property->positionCodes->firstWhere('position_id', $position->id)?->job_code,
-                ]),
+                ]) : [],
             'catalogs' => [
                 'departments' => Department::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
                 'positions' => Position::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -168,6 +159,7 @@ class PropertyController extends Controller
             'can' => [
                 'editProfile' => $user instanceof Person && $user->can('update', $property),
                 'editDepartments' => $user instanceof Person && $user->can('editDepartments', $property),
+                'viewRates' => $canRates,
                 'editRates' => $user instanceof Person && $user->can('editRates', $property),
                 'viewContracts' => $canContracts,
                 'editContracts' => $user instanceof Person && $user->can('bible.contracts.edit'),
@@ -181,6 +173,40 @@ class PropertyController extends Controller
                 'editWorkOrders' => $user instanceof Person && $user->can('work_orders.edit'),
             ],
         ]);
+    }
+
+    /**
+     * Every rate row, oldest last, each marked by where it stands today at the
+     * property: running now, starting later, or ended.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function ratesPayload(Property $property): array
+    {
+        $today = CarbonImmutable::now($property->timezone)->toDateString();
+
+        return $property->positionRates
+            ->sortBy([fn ($a, $b) => strcmp((string) $a->position?->name, (string) $b->position?->name), fn ($a, $b) => $b->effective_date <=> $a->effective_date])
+            ->map(fn ($r): array => [
+                'id' => $r->id,
+                'position_id' => $r->position_id,
+                'position' => $r->position?->name,
+                'pay_rate' => $r->pay_rate,
+                'bill_rate' => $r->bill_rate,
+                'ot_pay_rate' => $r->ot_pay_rate,
+                'ot_bill_rate' => $r->ot_bill_rate,
+                'effective_date' => $r->effective_date->toDateString(),
+                'end_date' => $r->end_date?->toDateString(),
+                'is_active' => $r->is_active,
+                'notes' => $r->notes,
+                'state' => match (true) {
+                    ! $r->is_active || ($r->end_date !== null && $r->end_date->toDateString() < $today) => 'past',
+                    $r->effective_date->toDateString() > $today => 'scheduled',
+                    default => 'current',
+                },
+            ])
+            ->values()
+            ->all();
     }
 
     /**
