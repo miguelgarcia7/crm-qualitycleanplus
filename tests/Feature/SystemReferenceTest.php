@@ -1,5 +1,7 @@
 <?php
 
+use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
+use App\Domain\PropertyBible\Models\Property;
 use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\SystemReference\Support\NotificationCatalog;
 use App\Domain\SystemReference\Support\PermissionCatalog;
@@ -144,7 +146,8 @@ it('reads delivery and muting from the notification classes', function () {
         ->and($byId['invoice-sent'])->in_app->toBeFalse()->email->toBeTrue()->can_mute->toBeFalse()
         ->and($byId['invoice-sent']['audience'])->toBe([NotificationCatalog::OUTSIDE => 'always'])
         // Recipients that follow a permission are read from it.
-        ->and(array_keys($byId['contract-expiring']['audience']))->toBe(['admin', 'payroll'])
+        // Super Admin holds every permission, so it's included (it isn't a column on the page).
+        ->and(array_keys($byId['contract-expiring']['audience']))->toEqualCanonicalizing(['super_admin', 'admin', 'payroll'])
         ->and($byId['staffing-declined']['audience'])->toMatchArray(['property_manager' => 'if_theirs', 'recruiter' => 'if_theirs']);
 });
 
@@ -226,3 +229,71 @@ it('keeps everyone else out of the automations page', function (string $role) {
         ->get(main('/admin/system/automations'))
         ->assertForbidden();
 })->with(['office_manager', 'payroll', 'recruiter']);
+
+it('shows a recruiter their own access on My Profile', function () {
+    $recruiter = person('recruiter');
+    $recruiter->update(['muted_notifications' => ['time_tracking']]);
+    $property = Property::factory()->create(['name' => 'Acme Hotel']);
+    $property->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+
+    $this->actingAs($recruiter)
+        ->get(main('/admin/settings/profile'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('access.roles', ['Recruiter'])
+            ->where('access.properties', ['Acme Hotel'])
+            ->where('access.all_properties', false)
+            ->where('access.can_count', Permission::role('recruiter')->count())
+            ->where('access.total', Permission::query()->count())
+            ->where('access.reference_url', null) // only Admin can open the reference
+            ->where('access.areas', fn ($areas) => collect($areas)->contains(fn (array $a): bool => $a['name'] === 'Invoices'
+                && in_array('Send invoices', $a['can'], true) && in_array('Mark invoices paid', $a['cant'], true)))
+            // Areas they have nothing in are left out.
+            ->where('access.areas', fn ($areas) => ! collect($areas)->contains(fn (array $a): bool => $a['name'] === 'Inventory'))
+            ->where('access.notices', fn ($notices) => collect($notices)->contains(fn (array $n): bool => $n['name'] === 'Punch without verified GPS' && $n['muted'])
+                && collect($notices)->contains(fn (array $n): bool => $n['name'] === 'Week approved' && $n['only_if_theirs'] && $n['email'])
+                && ! collect($notices)->contains(fn (array $n): bool => $n['name'] === 'Invitation to set a password'))
+        );
+});
+
+it('shows property managers and contractors their access on QC Minute', function (string $role, string $notice) {
+    $this->actingAs(person($role))
+        ->get(qcminute('/settings/profile'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('access.can_count', Permission::role($role)->count())
+            ->where('access.notices', fn ($notices) => collect($notices)->contains(fn (array $n): bool => $n['name'] === $notice))
+        );
+})->with([
+    ['property_manager', 'Week waiting for approval'],
+    ['contractor', 'Your pay rate is going up'],
+]);
+
+it('says email isn’t sent when the person has no email address', function () {
+    $contractor = person('contractor');
+    $contractor->forceFill(['email' => null])->save();
+
+    $this->actingAs($contractor)
+        ->get(qcminute('/settings/profile'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('access.has_email', false)
+            ->where('access.notices', fn ($notices) => collect($notices)->every(fn (array $n): bool => ! $n['email']))
+        );
+});
+
+it('links Admin from My access to their role on the reference', function () {
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/settings/profile'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('access.reference_url', '/admin/system/roles?role=admin')
+            ->where('access.all_properties', true)
+        );
+});
+
+it('tells Super Admin about the notices it gets through its permissions', function () {
+    $this->actingAs(person('super_admin'))
+        ->get(main('/admin/settings/profile'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('access.notices', fn ($notices) => collect($notices)->contains(fn (array $n): bool => $n['name'] === 'Contract expiring' && ! $n['only_if_theirs']))
+        );
+});

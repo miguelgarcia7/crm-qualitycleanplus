@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Domain\People\Actions\UpdatePersonAvatar;
 use App\Domain\People\Models\Person;
+use App\Domain\SystemReference\Support\AccessSummary;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Notifications\NotificationCategory;
@@ -20,7 +21,7 @@ class ProfileController extends Controller
     /**
      * Show the user's profile settings page.
      */
-    public function edit(Request $request): Response
+    public function edit(Request $request, AccessSummary $access): Response
     {
         /** @var Person $person */
         $person = $request->user();
@@ -49,6 +50,8 @@ class ProfileController extends Controller
                     'emails' => $category->sendsEmail(),
                 ], NotificationCategory::cases()),
             ],
+            // The "My access" tab: what this person can do and hears about.
+            'access' => fn (): array => $access->for($person),
         ]);
     }
 

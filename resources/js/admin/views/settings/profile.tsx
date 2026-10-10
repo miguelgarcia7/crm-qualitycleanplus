@@ -2,7 +2,7 @@ import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
-import { Head, router, useForm, usePage } from '@inertiajs/react'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react'
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react'
 
 // --- Types -------------------------------------------------------------------
@@ -31,10 +31,24 @@ type NotificationSettings = {
   categories: NotificationCategory[]
 }
 
+type Access = {
+  roles: string[]
+  is_super_admin: boolean
+  properties: string[]
+  all_properties: boolean
+  can_count: number
+  total: number
+  areas: { name: string; can: string[]; cant: string[] }[]
+  notices: { name: string; summary: string; only_if_theirs: boolean; in_app: boolean; email: boolean; muted: boolean }[]
+  has_email: boolean
+  reference_url: string | null
+}
+
 type Props = {
   person: PersonInfo
   roles: string[]
   notificationSettings: NotificationSettings
+  access: Access
 }
 
 // --- Shared bits (HRM identity-card pattern, as on property detail) ----------
@@ -408,16 +422,129 @@ const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
   )
 }
 
+// --- My access tab --------------------------------------------------------------
+
+const AccessTab = ({ access, onOpenNotifications }: { access: Access; onOpenNotifications: () => void }) => {
+  const [showCant, setShowCant] = useState(false)
+  const always = access.notices.filter((n) => !n.only_if_theirs)
+  const ifTheirs = access.notices.filter((n) => n.only_if_theirs)
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="bg-default-50 rounded-lg px-4 py-3">
+          <div className="text-default-400 text-sm">{access.roles.length === 1 ? 'Your role' : 'Your roles'}</div>
+          <div className="text-default-900 text-lg font-semibold">{access.roles.join(', ') || 'None yet'}</div>
+          <div className="text-default-400 text-xs">Set by an Admin. Ask them if it looks wrong.</div>
+        </div>
+        <div className="bg-default-50 rounded-lg px-4 py-3">
+          <div className="text-default-400 text-sm">Properties you look after</div>
+          <div className="text-default-900 text-lg font-semibold">
+            {access.all_properties ? 'All properties' : access.properties.length > 0 ? access.properties.join(', ') : 'None yet'}
+          </div>
+          <div className="text-default-400 text-xs">
+            {access.all_properties ? 'Your role sees every property.' : 'You see contractors, hours and invoices for these only.'}
+          </div>
+        </div>
+        <div className="bg-default-50 rounded-lg px-4 py-3">
+          <div className="text-default-400 text-sm">You can do</div>
+          <div className="text-default-900 text-lg font-semibold tabular-nums">
+            {access.can_count} of {access.total} things
+          </div>
+          <div className="text-default-400 text-xs">{access.is_super_admin ? 'Super Admin can do everything.' : 'Listed below by area.'}</div>
+        </div>
+      </div>
+
+      <section>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <h5 className="text-default-900 text-base font-semibold">What you can do</h5>
+          <label className="text-default-500 flex cursor-pointer items-center gap-2 text-sm">
+            <input type="checkbox" className="form-checkbox" checked={showCant} onChange={(e) => setShowCant(e.target.checked)} />
+            Show what you can’t do too
+          </label>
+        </div>
+        {access.areas.length === 0 && <p className="text-default-400 text-sm">Nothing yet. An Admin assigns what each role can do.</p>}
+        {access.areas.map((a) => (
+          <div key={a.name} className="border-default-100 border-t py-3">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <span className="text-default-800 font-semibold">{a.name}</span>
+              <span className="text-default-400 text-xs tabular-nums">
+                {a.can.length} of {a.can.length + a.cant.length}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {a.can.map((label) => (
+                <span key={label} className="badge badge-label bg-success/15 text-success">
+                  <Icon icon="check" className="size-3.5" />
+                  {label}
+                </span>
+              ))}
+              {showCant &&
+                a.cant.map((label) => (
+                  <span key={label} className="badge badge-label border-default-300 text-default-400 border border-dashed line-through">
+                    {label}
+                  </span>
+                ))}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-3">
+          <h5 className="text-default-900 text-base font-semibold">What you’ll be notified about</h5>
+          <button type="button" onClick={onOpenNotifications} className="text-primary text-sm font-medium hover:underline">
+            Change these on the Notifications tab
+          </button>
+        </div>
+        {!access.has_email && <p className="text-default-400 mb-2 text-sm">There’s no email address on your profile, so these arrive in the app only.</p>}
+        {always.length === 0 && <p className="text-default-400 text-sm">Nothing is sent to your role automatically.</p>}
+        {always.map((n) => (
+          <div key={n.name} className="border-default-100 flex items-start gap-3 border-t py-2.5">
+            <div className="min-w-0 flex-1">
+              <div className="text-default-800 font-medium">{n.name}</div>
+              <div className="text-default-400 text-xs">{n.summary}</div>
+            </div>
+            {n.muted ? (
+              <span className="badge badge-label bg-default-100 text-default-500">Muted</span>
+            ) : (
+              <span className={cn('badge badge-label', n.email ? 'bg-secondary/15 text-secondary' : 'bg-primary/15 text-primary')}>
+                {n.in_app && n.email ? 'In-app + email' : n.email ? 'Email' : 'In-app'}
+              </span>
+            )}
+          </div>
+        ))}
+        {ifTheirs.length > 0 && (
+          <div className="bg-default-50 mt-3 rounded-lg px-4 py-3 text-sm">
+            <span className="text-default-600">Also, only for your own requests and account: </span>
+            <span className="text-default-800">{ifTheirs.map((n) => n.name).join(', ')}.</span>
+          </div>
+        )}
+      </section>
+
+      <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3">
+        <span className="text-default-600">Need access to something that isn’t listed? Ask an Admin.</span>
+        {access.reference_url && (
+          <Link href={access.reference_url} className="text-primary text-sm font-medium hover:underline">
+            See every role’s access →
+          </Link>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // --- Page ----------------------------------------------------------------------
 
 const TABS = [
   { key: 'profile', label: 'Profile' },
   { key: 'security', label: 'Security' },
   { key: 'notifications', label: 'Notifications' },
+  { key: 'access', label: 'My access' },
 ]
 
 const Page = () => {
-  const { person, roles, notificationSettings } = usePage().props as unknown as Props
+  const { person, roles, notificationSettings, access } = usePage().props as unknown as Props
 
   // Active tab lives in the URL hash (#profile / #security) so tabs are
   // deep-linkable and survive refresh. Invalid/missing hash → first tab.
@@ -472,6 +599,7 @@ const Page = () => {
               {active === 'profile' && <ProfileTab person={person} />}
               {active === 'security' && <SecurityTab />}
               {active === 'notifications' && <NotificationsTab settings={notificationSettings} />}
+              {active === 'access' && <AccessTab access={access} onOpenNotifications={() => selectTab('notifications')} />}
             </div>
           </div>
         </div>

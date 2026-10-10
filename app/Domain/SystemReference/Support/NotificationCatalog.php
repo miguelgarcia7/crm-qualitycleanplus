@@ -40,7 +40,7 @@ class NotificationCatalog
 
     /**
      * @return list<array{id: string, group: string, name: string, summary: string, what: string, when: string, who: string,
-     *     classes: list<string>, in_app: bool, email: bool, can_mute: bool, mute_category: string|null,
+     *     classes: list<string>, in_app: bool, email: bool, can_mute: bool, mute_category: string|null, mute_key: string|null,
      *     audience: array<string, 'always'|'if_theirs'>}>
      */
     public function all(): array
@@ -234,7 +234,7 @@ class NotificationCatalog
                 'when' => 'Someone clicks “Forgot password” and enters their email.',
                 'who' => 'The person who asked. People without an email address, like most contractors, can’t receive it.',
                 'classes' => [PasswordResetLink::class => []],
-                'if_theirs' => array_values(array_diff(array_keys(PermissionCatalog::ROLE_LABELS), ['super_admin'])),
+                'if_theirs' => array_keys(PermissionCatalog::ROLE_LABELS),
             ],
             [
                 'id' => 'contact-lead', 'group' => 'Marketing site', 'name' => 'Contact form lead',
@@ -257,6 +257,7 @@ class NotificationCatalog
         $channels = [];
         $canMute = true;
         $category = null;
+        $categoryKey = null;
 
         /** @var array<class-string<Notification>, array<string, mixed>> $classes */
         $classes = $entry['classes'];
@@ -267,6 +268,7 @@ class NotificationCatalog
                 $channels = [...$channels, ...$this->call($notification, 'channels')];
                 $canMute = $canMute && $this->call($notification, 'mutable');
                 $category ??= $notification->category()->label();
+                $categoryKey ??= $notification->category()->value;
             } elseif (method_exists($notification, 'via')) {
                 // Addressed to an email, not to a person's preferences: never mutable.
                 $channels = [...$channels, ...$notification->via(new AnonymousNotifiable)];
@@ -298,24 +300,25 @@ class NotificationCatalog
             'email' => in_array('mail', $channels, true),
             'can_mute' => $canMute,
             'mute_category' => $canMute ? $category : null,
+            'mute_key' => $canMute ? $categoryKey : null,
             'audience' => $audience,
         ];
     }
 
     /**
      * A role list, or the roles holding a permission (read live, so a change
-     * in RolePermissionSeeder shows up here). Super Admin isn't a column.
+     * in RolePermissionSeeder shows up here). Super Admin stays in: the
+     * reference pages don't give it a column, but My access needs to know it
+     * gets, say, contract alerts.
      *
      * @param  string|list<string>  $source
      * @return list<string>
      */
     private function roles(string|array $source): array
     {
-        $roles = is_string($source)
+        return array_values(is_string($source)
             ? (Permission::query()->where('name', $source)->first()?->roles->pluck('name')->all() ?? [])
-            : $source;
-
-        return array_values(array_filter($roles, fn (string $role): bool => $role !== 'super_admin'));
+            : $source);
     }
 
     /**
