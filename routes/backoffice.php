@@ -343,6 +343,9 @@ Route::get('system/roles', [SystemReferenceController::class, 'roles'])
 Route::get('system/notifications', [SystemReferenceController::class, 'notifications'])
     ->middleware('can:system.reference.view')
     ->name('backoffice.system.notifications');
+Route::get('system/automations', [SystemReferenceController::class, 'automations'])
+    ->middleware('can:system.reference.view')
+    ->name('backoffice.system.automations');
 
 // People directory (Phase 09b) — policy-gated (contractors/staff tabs, recruiter own-scoping)
 Route::get('people', [PeopleController::class, 'index'])->name('backoffice.people.index');

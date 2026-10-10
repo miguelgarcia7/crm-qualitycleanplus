@@ -42,7 +42,11 @@ class SystemReferenceController extends Controller
                     array_filter($p['roles'], fn (string $role): bool => $role !== 'super_admin'),
                 )),
             ], $permissionRows),
-            'automations' => $automationRows,
+            'automations' => array_map(fn (array $a): array => [
+                'name' => $a['name'],
+                'cadence' => $a['cadence'],
+                'next_run' => $a['next_run'],
+            ], $automationRows),
             // Not `notifications`: that name is the shared prop the top bar's bell reads.
             'notices' => array_map(fn (array $n): array => [
                 'id' => $n['id'],
@@ -127,6 +131,17 @@ class SystemReferenceController extends Controller
             ],
             'notices' => $rows,
             'initial' => in_array($selected, array_column($rows, 'id'), true) ? $selected : ($rows[0]['id'] ?? null),
+        ]);
+    }
+
+    /**
+     * What runs on its own and when: every scheduled task, on a 24-hour
+     * timeline and in a table, in Chicago time or UTC (AutomationCatalog).
+     */
+    public function automations(AutomationCatalog $automations): Response
+    {
+        return Inertia::render('admin/system/automations', [
+            'tasks' => $automations->all(),
         ]);
     }
 }

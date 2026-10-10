@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\SystemReference\Support\NotificationCatalog;
 use App\Domain\SystemReference\Support\PermissionCatalog;
 use Database\Seeders\RolePermissionSeeder;
@@ -191,4 +192,37 @@ it('leaves the top bar’s shared notifications prop alone on every reference pa
     $this->actingAs(person('admin'))
         ->get(main($path))
         ->assertInertia(fn (Assert $page) => $page->has('notifications.items'));
-})->with(['/admin/system', '/admin/system/roles', '/admin/system/notifications']);
+})->with(['/admin/system', '/admin/system/roles', '/admin/system/notifications', '/admin/system/automations']);
+
+it('shows every scheduled task with its times in Chicago and UTC', function () {
+    $this->actingAs(person('admin'))
+        ->get(main('/admin/system/automations'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/system/automations')
+            ->has('tasks', count(app(Schedule::class)->events()))
+            ->where('tasks.0.name', 'Alert Admin and Payroll about contracts ending in 30 or 14 days')
+            ->where('tasks.0.source', 'php artisan contracts:expiration-check')
+            ->where('tasks.0.cadence_utc', 'Daily at 07:00')
+            ->where('tasks.0.schedule_timezone', 'UTC')
+            ->where('tasks.2.source', 'ApplyScheduledContractorCharges (queued job)')
+        );
+});
+
+it('flags nightly tasks that land in a Chicago evening because they are written in UTC', function () {
+    $tasks = collect((new AutomationCatalog)->all())->keyBy('name');
+
+    // 00:15 UTC is 7:15 or 6:15 PM in Chicago, depending on daylight time.
+    expect($tasks['Create the upcoming pay weeks'])
+        ->evening_in_chicago->toBeTrue()
+        ->cadence->toBeIn(['Daily at 6:15 PM', 'Daily at 7:15 PM'])
+        ->timeline->toHaveKeys(['chicago', 'utc'])
+        // 07:00 UTC is 1 or 2 AM in Chicago: not an evening.
+        ->and($tasks['Alert Admin and Payroll about contracts ending in 30 or 14 days']['evening_in_chicago'])->toBeFalse();
+});
+
+it('keeps everyone else out of the automations page', function (string $role) {
+    $this->actingAs(person($role))
+        ->get(main('/admin/system/automations'))
+        ->assertForbidden();
+})->with(['office_manager', 'payroll', 'recruiter']);

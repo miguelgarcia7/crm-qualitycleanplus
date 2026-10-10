@@ -7,6 +7,7 @@ const PAGES = [
   { href: '/admin/system', label: 'Overview' },
   { href: '/admin/system/roles', label: 'Roles & permissions' },
   { href: '/admin/system/notifications', label: 'Notifications' },
+  { href: '/admin/system/automations', label: 'Automations' },
 ]
 
 const ReferenceNav = ({ current }: { current: string }) => (
