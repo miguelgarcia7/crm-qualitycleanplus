@@ -55,8 +55,21 @@ html[data-skin="sage"] {
     --shadow-lg: 0 12px 30px rgba(70, 75, 60, 0.12);
     --shadow-sm: 0 1px 3px rgba(70, 75, 60, 0.06);
 
-    /* Warm hairline borders */
+    /* Warm neutral scale. The base theme's blue-slate grays (_root.css) clash
+       with the cream canvas, and its text shades sat near 2.4:1 contrast on
+       cards; 400 (captions, the most-used text shade) is ~4:1 here, 500 is
+       secondary text, 900 headings. 300 stays the warm hairline border. */
+    --color-default-50: #f8f6f0;
+    --color-default-100: #f1eee6;
+    --color-default-200: #ece9e0;
     --color-default-300: #e6e3d8;
+    --color-default-400: #7a7c73;
+    --color-default-500: #6f7268;
+    --color-default-600: #5c5f57;
+    --color-default-700: #4a4d46;
+    --color-default-800: #3a403b;
+    --color-default-900: #313a36;
+    --color-default-950: #232925;
 
     --text-xs: 0.8125rem;
     --text-sm: 15px;
@@ -72,16 +85,17 @@ html[data-skin="sage"] {
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
 
-    /* Menu items — airy */
+    /* Menu items — 16px text, compact rows; a slightly wider sidebar */
+    --sidenav-width: 260px;
     --sidenav-item-icon-size: 1.125rem;
     --sidenav-item-gap: 12px;
-    --sidenav-item-padding-x: 14px;
-    --sidenav-item-padding-y: 11px;
+    --sidenav-item-padding-x: 12px;
+    --sidenav-item-padding-y: 10px;
     --sidenav-item-font-size: 1rem;
     --sidenav-item-font-weight: 500;
 
     /* Sub Menu Items */
-    --sidenav-sub-item-font-size: 0.8125rem;
+    --sidenav-sub-item-font-size: 13.5px;
     --sidenav-sub-item-font-weight: 400;
     --sidenav-sub-item-gap: 4px;
     --sidenav-sub-item-padding-x: 12px;
@@ -223,7 +237,20 @@ html[data-theme="dark"][data-skin="sage"] {
     --color-card: #232a26;
     --shadow: 0px 0px 30px rgba(0, 0, 0, 0.38);
     --shadow-lg: 0px 0px 40px rgba(0, 0, 0, 0.5);
+
+    /* Warm neutral scale, inverted for dark (higher = lighter), matching the
+       light scale's roles: 300 hairlines, 400 captions, 900 headings. */
+    --color-default-50: #202622;
+    --color-default-100: #262d29;
+    --color-default-200: #2c3430;
     --color-default-300: #333d38;
+    --color-default-400: #8f9a93;
+    --color-default-500: #a0aaa3;
+    --color-default-600: #b4bdb7;
+    --color-default-700: #c8d0ca;
+    --color-default-800: #dde3df;
+    --color-default-900: #eef2ef;
+    --color-default-950: #f6f8f6;
 
     --color-chart-gray: #2b322d;
     --color-chart-border-color: #28302b;
@@ -254,6 +281,34 @@ html[data-skin="sage"] {
         font-family: var(--font-secondary);
         font-weight: 600;
         letter-spacing: -0.005em;
+    }
+
+    /* A real page heading: every page's title, 24px in heading ink */
+    .page-main-title {
+        font-size: 1.5rem;
+        line-height: 1.25;
+        color: var(--color-default-900);
+    }
+
+    /* Status labels as soft pills */
+    .badge-label {
+        border-radius: 9999px;
+    }
+
+    /* Roomier page gutters from tablet width up (phones keep the base 20px).
+       Top: the centred 60px title strip already leaves 12px, so 16px more puts
+       the title 28px under the top bar; the strip's margin then gives 24px
+       between title and content. */
+    @media (min-width: 768px) {
+        .page-content main {
+            padding-inline: 2rem;
+            padding-top: 1rem;
+            padding-bottom: 3rem;
+        }
+
+        .page-title-head {
+            margin-bottom: 0.75rem;
+        }
     }
 
     /* Roomier card interiors for an airy, breathable layout */
