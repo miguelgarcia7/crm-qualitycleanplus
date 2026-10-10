@@ -62,11 +62,12 @@ const Page = ({ roles, groups, total, initial }: Props) => {
 
       <div className="card">
         <div className="card-header">
+          {/* The label stays outside the group: its CSS pads the input only when it directly follows the icon. */}
+          <label htmlFor="permission-search" className="sr-only">
+            Search permissions
+          </label>
           <div className="input-icon-group w-full max-w-md">
             <Icon icon="search" className="input-icon" />
-            <label htmlFor="permission-search" className="sr-only">
-              Search permissions
-            </label>
             <input
               id="permission-search"
               type="search"
