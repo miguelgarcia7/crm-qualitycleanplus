@@ -125,3 +125,17 @@ it('filters the history to off-geofence visits', function () {
     $this->actingAs($admin)->get(main('/admin/field-visits?filter=off_geofence'))
         ->assertInertia(fn (AssertableInertia $page) => $page->where('visits', fn ($v) => collect($v)->count() === 1));
 });
+
+it('counts what each filter would show', function () {
+    $admin = person('admin');
+    FieldVisit::factory()->create(); // open, inside the geofence
+    FieldVisit::factory()->closed()->create(['was_inside_geofence' => false]);
+    FieldVisit::factory()->closed()->create(['was_late_close' => true]);
+
+    $this->actingAs($admin)->get(main('/admin/field-visits?filter=open'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('visits', 1)
+            ->where('counts', ['' => 3, 'open' => 1, 'off_geofence' => 1, 'late' => 1]),
+        );
+});

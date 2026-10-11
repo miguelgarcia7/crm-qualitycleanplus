@@ -309,26 +309,26 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
       <Head title="Pay Increases" />
       <PageBreadcrumb title="Pay Increases" subtitle="Workflows" />
 
-      <div className="card">
-        <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.key}
-              onClick={() => selectTab(t.key)}
-              className={cn(
-                'hover:text-primary -mb-px inline-flex items-center gap-2 px-4 py-2 text-center font-medium focus:outline-hidden',
-                tab === t.key ? 'border-primary text-primary border-b' : '',
-              )}
-            >
-              {t.label}
-              {t.key === 'waiting' && pending.length > 0 && <span className="badge bg-warning/15 text-warning rounded-full px-2 text-xs">{pending.length}</span>}
-            </button>
-          ))}
-        </nav>
+      {/* Two different lists, so real tabs: under the title, as on People and the property page. */}
+      <nav className="border-default-300 mt-4 mb-5 flex flex-wrap gap-1 border-b" aria-label="Pay increases" role="tablist">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => selectTab(t.key)}
+            className={cn(
+              '-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 font-medium focus:outline-hidden',
+              tab === t.key ? 'border-primary text-default-900' : 'text-default-500 hover:text-default-900 border-transparent',
+            )}>
+            {t.label}
+            {t.key === 'waiting' && pending.length > 0 && <span className="badge badge-label bg-warning/15 text-warning tabular-nums">{pending.length}</span>}
+          </button>
+        ))}
+      </nav>
 
+      <div className="card">
         <div className="card-header">
           <div className="flex flex-wrap gap-3">
             <div className="input-icon-group">

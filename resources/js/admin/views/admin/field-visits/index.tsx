@@ -1,8 +1,8 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
+import StatusFilter from '@/components/table/StatusFilter'
 import Icon from '@/components/wrappers/Icon'
-import { cn } from '@/utils/helpers'
 import { Head, router } from '@inertiajs/react'
 import {
   createColumnHelper,
@@ -31,6 +31,7 @@ type Visit = {
 type Props = {
   visits: Visit[]
   filter: string
+  counts: Record<string, number>
   can: { viewAll: boolean }
 }
 
@@ -45,7 +46,7 @@ const fmtDuration = (m: number | null) => (m === null ? '—' : m >= 60 ? `${Mat
 
 const columnHelper = createColumnHelper<Visit>()
 
-const Page = ({ visits, filter, can }: Props) => {
+const Page = ({ visits, filter, counts, can }: Props) => {
   const [globalFilter, setGlobalFilter] = useState('')
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
@@ -120,26 +121,8 @@ const Page = ({ visits, filter, can }: Props) => {
       <PageBreadcrumb title="Field Visits" subtitle="Recruiter Activity" />
 
       <div className="card">
-        <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              role="tab"
-              aria-selected={filter === f.key}
-              onClick={() => setFilter(f.key)}
-              className={cn(
-                'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                filter === f.key ? 'border-primary text-primary border-b' : '',
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </nav>
-
         <div className="card-header">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="input-icon-group">
               <Icon icon="search" className="input-icon" />
               <input
@@ -149,6 +132,12 @@ const Page = ({ visits, filter, can }: Props) => {
                 onChange={(e) => setGlobalFilter(e.target.value)}
               />
             </div>
+            <StatusFilter
+              label="Show visits"
+              options={FILTERS.map((f) => ({ key: f.key, label: f.label, count: counts[f.key] }))}
+              value={filter}
+              onChange={setFilter}
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">

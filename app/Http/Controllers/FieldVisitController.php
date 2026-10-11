@@ -99,6 +99,15 @@ class FieldVisitController extends Controller
         if (! $viewAll) {
             $query->where('person_id', $user->id);
         }
+
+        // How many each filter would show, so the switch says where to look.
+        $counts = [
+            '' => (clone $query)->count(),
+            'open' => (clone $query)->open()->count(),
+            'off_geofence' => (clone $query)->where('was_inside_geofence', false)->count(),
+            'late' => (clone $query)->where('was_late_close', true)->count(),
+        ];
+
         match ($filter) {
             'off_geofence' => $query->where('was_inside_geofence', false),
             'late' => $query->where('was_late_close', true),
@@ -119,6 +128,7 @@ class FieldVisitController extends Controller
                 'late_close' => $v->was_late_close,
             ]),
             'filter' => $filter,
+            'counts' => $counts,
             'can' => ['viewAll' => $viewAll],
         ]);
     }

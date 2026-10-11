@@ -1,6 +1,7 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
+import StatusFilter from '@/components/table/StatusFilter'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Head, Link } from '@inertiajs/react'
@@ -37,7 +38,7 @@ type Props = {
 }
 
 const TABS: { key: string; label: string }[] = [
-  { key: 'pending', label: 'Pending' },
+  { key: 'pending', label: 'Needs review' },
   { key: 'submitted', label: 'Submitted' },
   { key: 'reviewing', label: 'Reviewing' },
   { key: 'promoted', label: 'Promoted' },
@@ -171,27 +172,8 @@ const Page = ({ applications, filter }: Props) => {
       <PageBreadcrumb title="Applicants" subtitle="Recruiting" />
 
       <div className="card">
-        <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.key}
-              onClick={() => selectTab(tab.key)}
-              className={cn(
-                'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                activeTab === tab.key ? 'border-primary text-primary border-b' : '',
-              )}
-            >
-              {tab.label}
-              <span className="text-default-400 ms-1.5 text-xs">({counts[tab.key]})</span>
-            </button>
-          ))}
-        </nav>
-
         <div className="card-header">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="input-icon-group">
               <Icon icon="search" className="input-icon" />
               <input
@@ -201,6 +183,12 @@ const Page = ({ applications, filter }: Props) => {
                 onChange={(e) => setGlobalFilter(e.target.value)}
               />
             </div>
+            <StatusFilter
+              label="Show applications"
+              options={TABS.map((tab) => ({ key: tab.key, label: tab.label, count: counts[tab.key] }))}
+              value={activeTab}
+              onChange={selectTab}
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
