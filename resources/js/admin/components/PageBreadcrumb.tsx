@@ -14,7 +14,8 @@ const PageBreadcrumb = ({ title, subtitle }: PageBreadcrumbProps) => {
       <PageMetaData title={title} />
 
       <div className="page-title-head">
-        <h4 className="page-main-title">{title}</h4>
+        {/* The page's one h1; card titles below are h4s. */}
+        <h1 className="page-main-title">{title}</h1>
         <div className="hidden items-center gap-1.25 text-sm font-semibold md:flex">
           <Link href="" className="text-sm font-medium">
             {META_DATA.name}

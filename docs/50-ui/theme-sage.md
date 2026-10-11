@@ -19,7 +19,8 @@ The pass, made to match the System Reference mockup:
 | Change | Where in `_theme-sage.css` |
 |---|---|
 | Full warm gray scale `--color-default-50…950`, light and dark mode. Captions (400) ~4:1, secondary text (500) 4.7:1, headings (900) `#313a36` | Top of the skin block and the dark-mode block |
-| Page title (`.page-main-title`) 24px in heading ink | Sage signature block |
+| Page title (`.page-main-title`) 24px in heading ink, rendered as the page's `<h1>` by `PageBreadcrumb` | Sage signature block |
+| Card titles (`.card-title`) 18px, above the 16px field labels | Sage signature block |
 | `.badge-label` badges as pills | Sage signature block |
 | Page spacing from tablet width up: 32px sides, 28px above the title, 24px below it, 48px at the bottom | Sage signature block, `@media (min-width: 768px)` |
 | Sidebar 260px wide; item rows 10px top and bottom, 12px sides; sub-items 13.5px | `--sidenav-width`, `--sidenav-item-padding-*`, `--sidenav-sub-item-font-size` |
