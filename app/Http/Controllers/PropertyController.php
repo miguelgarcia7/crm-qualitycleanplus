@@ -70,7 +70,6 @@ class PropertyController extends Controller
         $this->authorize('create', Property::class);
 
         return Inertia::render('admin/properties/form', [
-            'property' => null,
             'statuses' => $this->statusOptions(),
             'timeSources' => $this->timeSourceOptions(),
             'defaultDirectHireThresholdHours' => intdiv(Property::defaultDirectHireThresholdMinutes(), 60),

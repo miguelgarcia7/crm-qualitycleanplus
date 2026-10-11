@@ -1,41 +1,18 @@
 import GeofenceMapCard from '@/components/GeofenceMapCard'
 import { PROPERTY_TIMEZONES } from '@/config/constants'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import Icon from '@/components/wrappers/Icon'
 import { Head, Link, useForm } from '@inertiajs/react'
 import { FormEvent } from 'react'
 
-type Property = {
-  id: number
-  name: string
-  pm_name: string | null
-  pm_phone: string | null
-  main_phone: string | null
-  billing_email: string | null
-  address: string | null
-  city: string | null
-  state: string | null
-  zip: string | null
-  timezone: string
-  latitude: string | null
-  longitude: string | null
-  geofence_radius_meters: number
-  qr_clock_enabled: boolean
-  has_qr_token: boolean
-  closing_day: number | null
-  tax_rate: string | null
-  direct_hire_threshold_hours: number | null
-  status: string
-  time_source: string
-}
-
+/**
+ * Add Property. Editing an existing property happens on its page's Settings
+ * tab, a card at a time, so this form only ever creates.
+ */
 type Props = {
-  property: Property | null
   statuses: { value: string; label: string }[]
   timeSources: { value: string; label: string }[]
   defaultDirectHireThresholdHours: number
 }
-
 
 const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
   <div>
@@ -45,61 +22,38 @@ const Field = ({ label, error, children }: { label: string; error?: string; chil
   </div>
 )
 
-const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours }: Props) => {
-  const editing = property !== null
-
-  const { data, setData, post, patch, processing, errors } = useForm({
-    name: property?.name ?? '',
-    pm_name: property?.pm_name ?? '',
-    pm_phone: property?.pm_phone ?? '',
-    main_phone: property?.main_phone ?? '',
-    billing_email: property?.billing_email ?? '',
-    address: property?.address ?? '',
-    city: property?.city ?? '',
-    state: property?.state ?? '',
-    zip: property?.zip ?? '',
-    timezone: property?.timezone ?? 'America/Phoenix',
-    latitude: property?.latitude ?? '',
-    longitude: property?.longitude ?? '',
-    geofence_radius_meters: property?.geofence_radius_meters ?? 300,
-    qr_clock_enabled: property?.qr_clock_enabled ?? false,
-    closing_day: property?.closing_day ?? '',
-    tax_rate: property?.tax_rate ?? '0',
-    direct_hire_threshold_hours: property?.direct_hire_threshold_hours ?? '',
-    status: property?.status ?? 'active',
-    time_source: property?.time_source ?? 'clock_in',
+const Page = ({ statuses, timeSources, defaultDirectHireThresholdHours }: Props) => {
+  const { data, setData, post, processing, errors } = useForm({
+    name: '',
+    pm_name: '',
+    pm_phone: '',
+    main_phone: '',
+    billing_email: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    timezone: 'America/Phoenix',
+    latitude: '',
+    longitude: '',
+    geofence_radius_meters: 300,
+    qr_clock_enabled: false,
+    closing_day: '',
+    tax_rate: '0',
+    direct_hire_threshold_hours: '',
+    status: 'active',
+    time_source: 'clock_in',
   })
-
-  // The saved poster code is live only while QR stays on; turning it on or off
-  // here takes effect when the form is saved.
-  const qrLive = editing && property.has_qr_token && property.qr_clock_enabled && data.qr_clock_enabled
-  const qrStatus = !data.qr_clock_enabled
-    ? {
-        label: editing && property.qr_clock_enabled ? 'Turns off when you save — the poster stops working' : 'Off',
-        text: 'text-default-400',
-        dot: 'bg-default-300',
-      }
-    : qrLive
-      ? { label: 'Active', text: 'text-success', dot: 'bg-success' }
-      : {
-          label: editing && property.has_qr_token ? 'Turns on when you save' : 'A QR code is created when you save',
-          text: 'text-warning',
-          dot: 'bg-warning',
-        }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (editing) {
-      patch(`/admin/properties/${property.id}`)
-    } else {
-      post('/admin/properties')
-    }
+    post('/admin/properties')
   }
 
   return (
     <>
-      <Head title={editing ? 'Edit Property' : 'Add Property'} />
-      <PageBreadcrumb title={editing ? 'Edit Property' : 'Add Property'} subtitle="Property Bible" />
+      <Head title="Add Property" />
+      <PageBreadcrumb title="Add Property" subtitle="Property Bible" />
 
       <div className="card rounded-2xl">
         <div className="card-body p-6">
@@ -236,41 +190,33 @@ const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours
                 </Field>
               </div>
 
-              <div className="border-default-200 flex flex-wrap items-start justify-between gap-4 rounded-lg border p-4">
-                <div>
-                  <label className="flex items-center gap-2.5" title={!data.latitude ? 'Set coordinates first' : undefined}>
-                    <input
-                      type="checkbox"
-                      className="form-switch"
-                      checked={data.qr_clock_enabled}
-                      disabled={!data.latitude && !data.qr_clock_enabled}
-                      onChange={(e) => setData('qr_clock_enabled', e.target.checked)}
-                    />
-                    <span className="font-medium">Enable QR clock-in</span>
-                  </label>
-                  <p className="text-default-400 mt-1 ps-10 text-sm">
-                    Contractors punch in by scanning this property's poster with their phone. Requires coordinates.
-                  </p>
-                  <p className={`mt-2 flex items-center gap-2 ps-10 text-sm font-medium ${qrStatus.text}`}>
-                    <span className={`size-2 rounded-full ${qrStatus.dot}`} />
-                    {qrStatus.label}
-                  </p>
-                  {errors.qr_clock_enabled && <p className="text-danger mt-1 ps-10 text-sm">{errors.qr_clock_enabled}</p>}
-                </div>
-
-                {qrLive && (
-                  <Link href={`/admin/properties/${property.id}/qr`} className="btn border-primary text-primary hover:bg-primary/10 border px-4 py-2">
-                    <Icon icon="printer" className="size-4" /> Print QR Poster
-                  </Link>
-                )}
+              <div className="border-default-200 rounded-lg border p-4">
+                <label className="flex items-center gap-2.5" title={!data.latitude ? 'Set coordinates first' : undefined}>
+                  <input
+                    type="checkbox"
+                    className="form-switch"
+                    checked={data.qr_clock_enabled}
+                    disabled={!data.latitude && !data.qr_clock_enabled}
+                    onChange={(e) => setData('qr_clock_enabled', e.target.checked)}
+                  />
+                  <span className="font-medium">Enable QR clock-in</span>
+                </label>
+                <p className="text-default-400 mt-1 ps-10 text-sm">
+                  Contractors punch in by scanning this property's poster with their phone. Requires coordinates.
+                </p>
+                <p className={`mt-2 flex items-center gap-2 ps-10 text-sm font-medium ${data.qr_clock_enabled ? 'text-warning' : 'text-default-400'}`}>
+                  <span className={`size-2 rounded-full ${data.qr_clock_enabled ? 'bg-warning' : 'bg-default-300'}`} />
+                  {data.qr_clock_enabled ? 'A QR code is created when you save' : 'Off'}
+                </p>
+                {errors.qr_clock_enabled && <p className="text-danger mt-1 ps-10 text-sm">{errors.qr_clock_enabled}</p>}
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <button type="submit" className="btn bg-primary hover:bg-primary-hover px-6 py-2.5 font-semibold text-white" disabled={processing}>
-                {editing ? 'Save Changes' : 'Create Property'}
+                Create Property
               </button>
-              <Link href={editing ? `/admin/properties/${property.id}` : '/admin/properties'} className="btn btn-light px-6 py-2.5">
+              <Link href="/admin/properties" className="btn btn-light px-6 py-2.5">
                 Cancel
               </Link>
             </div>
