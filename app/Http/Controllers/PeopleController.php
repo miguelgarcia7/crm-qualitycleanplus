@@ -17,6 +17,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -40,6 +41,27 @@ class PeopleController extends Controller
     private const STAFF_STATUSES = [
         PersonStatus::StaffActive->value,
         PersonStatus::StaffInactive->value,
+    ];
+
+    /**
+     * Status labels inside a tab, where "Contractor" or "Staff" goes without
+     * saying.
+     *
+     * @var array<string, string>
+     */
+    private const STATUS_LABELS = [
+        'contractor_active' => 'Active',
+        'pending_termination' => 'Pending termination',
+        'contractor_inactive' => 'Inactive',
+        'terminated' => 'Terminated',
+        'staff_active' => 'Active',
+        'staff_inactive' => 'Inactive',
+    ];
+
+    /** The status each tab opens on: the people who are working now. */
+    private const DEFAULT_STATUS = [
+        'contractors' => 'contractor_active',
+        'staff' => 'staff_active',
     ];
 
     /**
@@ -88,6 +110,7 @@ class PeopleController extends Controller
             : $this->staffQuery($filters)->paginate($filters['per_page'])->withQueryString();
 
         $rows = collect($page->items());
+        $tabStatuses = $onContractors ? self::CONTRACTOR_STATUSES : self::STAFF_STATUSES;
 
         return Inertia::render('admin/people/index', [
             'people' => $onContractors
@@ -109,13 +132,19 @@ class PeopleController extends Controller
                 'staff' => $canStaff ? $this->staffQuery($filters, applyStatus: false)->count() : null,
             ],
             'statuses' => array_map(
-                fn (string $status): array => ['value' => $status, 'label' => Str::headline($status)],
-                $onContractors ? self::CONTRACTOR_STATUSES : self::STAFF_STATUSES,
+                fn (string $status): array => ['value' => $status, 'label' => self::STATUS_LABELS[$status]],
+                $tabStatuses,
             ),
+            // Per status on the tab showing, under the search but not the
+            // status filter, so each number says what clicking it would show.
+            'statusCounts' => $this->statusCounts($filters, $user, $onContractors),
             'can' => [
                 'contractors' => $canContractors,
                 'staff' => $canStaff,
                 'invite' => $user->can('admin.users.create'),
+                // A recruiter only ever sees their own contractors, so the
+                // column would repeat their name on every row.
+                'recruiterColumn' => $user->hasAnyRole(PersonPolicy::GLOBAL_CONTRACTOR_VIEWERS),
             ],
         ]);
     }
@@ -139,14 +168,17 @@ class PeopleController extends Controller
         };
 
         $allowedStatuses = $tab === 'contractors' ? self::CONTRACTOR_STATUSES : self::STAFF_STATUSES;
+        // No status, or one from the other tab, opens on the active people;
+        // `all` shows every status.
         $status = (string) $request->string('status');
+        $status = $status === 'all' || in_array($status, $allowedStatuses, true) ? $status : self::DEFAULT_STATUS[$tab];
         $sort = (string) $request->string('sort', 'name');
         $perPage = $request->integer('per_page', 25);
 
         return [
             'tab' => $tab,
             'search' => trim((string) $request->string('search')),
-            'status' => in_array($status, $allowedStatuses, true) ? $status : '',
+            'status' => $status,
             'sort' => array_key_exists($sort, self::SORTS[$tab]) ? $sort : 'name',
             'direction' => $request->string('direction')->lower()->toString() === 'desc' ? 'desc' : 'asc',
             'per_page' => in_array($perPage, self::PER_PAGE, true) ? $perPage : 25,
@@ -169,10 +201,16 @@ class PeopleController extends Controller
                 ! $user->hasAnyRole(PersonPolicy::GLOBAL_CONTRACTOR_VIEWERS),
                 fn (Builder $q) => $q->where('people.primary_recruiter_id', $user->id),
             )
-            ->when($applyStatus && $filters['status'] !== '', fn (Builder $q) => $q->where('people.status', $filters['status']))
+            ->when($applyStatus && $filters['status'] !== 'all', fn (Builder $q) => $q->where('people.status', $filters['status']))
             ->when($filters['search'] !== '', fn (Builder $q) => $this->applySearch($q, $filters['search']))
             ->select('people.*')
-            ->with(['primaryRecruiter:id,name', 'workOrders.property:id,name', 'workOrders.position:id,name'])
+            // Only the placements the row shows, not every work order they ever had.
+            ->with([
+                'primaryRecruiter:id,name',
+                'workOrders' => fn ($q) => $q->where('status', WorkOrderStatus::Active)->orderBy('start_date'),
+                'workOrders.property:id,name',
+                'workOrders.position:id,name',
+            ])
             ->orderBy(self::SORTS['contractors'][$filters['sort']] ?? 'people.name', $filters['direction'])
             ->orderBy('people.id');
     }
@@ -185,12 +223,35 @@ class PeopleController extends Controller
     {
         return Person::query()
             ->whereIn('people.status', self::STAFF_STATUSES)
-            ->when($applyStatus && $filters['status'] !== '', fn (Builder $q) => $q->where('people.status', $filters['status']))
+            ->when($applyStatus && $filters['status'] !== 'all', fn (Builder $q) => $q->where('people.status', $filters['status']))
             ->when($filters['search'] !== '', fn (Builder $q) => $this->applySearch($q, $filters['search']))
             ->select('people.*')
             ->with('roles:id,name')
             ->orderBy(self::SORTS['staff'][$filters['sort']] ?? 'people.name', $filters['direction'])
             ->orderBy('people.id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, int>
+     */
+    private function statusCounts(array $filters, Person $user, bool $onContractors): array
+    {
+        $query = $onContractors
+            ? $this->contractorQuery($filters, $user, applyStatus: false)
+            : $this->staffQuery($filters, applyStatus: false);
+
+        $byStatus = $query->reorder()->getQuery()->cloneWithout(['columns'])
+            ->groupBy('people.status')
+            ->pluck(DB::raw('count(*)'), 'people.status');
+
+        $counts = [];
+        foreach ($onContractors ? self::CONTRACTOR_STATUSES : self::STAFF_STATUSES as $status) {
+            $counts[$status] = (int) $byStatus->get($status, 0);
+        }
+        $counts['all'] = array_sum($counts);
+
+        return $counts;
     }
 
     /**
@@ -211,19 +272,21 @@ class PeopleController extends Controller
      */
     private function contractorRow(Person $p): array
     {
-        $active = $p->workOrders->filter(fn (WorkOrder $wo): bool => $wo->status === WorkOrderStatus::Active);
-
         return [
             'id' => $p->id,
             'name' => $p->name,
             'email' => $p->email,
             'phone' => $p->phone,
             'status' => $p->status->value,
-            'status_label' => Str::headline($p->status->value),
+            'status_label' => self::STATUS_LABELS[$p->status->value] ?? Str::headline($p->status->value),
             'avatar' => $p->avatarUrl(),
             'recruiter' => $p->primaryRecruiter?->name,
-            'properties' => $active->map(fn (WorkOrder $wo): ?string => $wo->property?->name)->filter()->unique()->values()->all(),
-            'positions' => $active->map(fn (WorkOrder $wo): ?string => $wo->position?->name)->filter()->unique()->values()->all(),
+            // One line per active work order, so a position stays beside its property.
+            'placements' => $p->workOrders->map(fn (WorkOrder $wo): array => [
+                'property_id' => $wo->property_id,
+                'property' => $wo->property?->name,
+                'position' => $wo->position?->name,
+            ])->values()->all(),
         ];
     }
 
@@ -238,7 +301,7 @@ class PeopleController extends Controller
             'email' => $p->email,
             'phone' => $p->phone,
             'status' => $p->status->value,
-            'status_label' => Str::headline($p->status->value),
+            'status_label' => self::STATUS_LABELS[$p->status->value] ?? Str::headline($p->status->value),
             'avatar' => $p->avatarUrl(),
             'hire_date' => $p->hire_date?->format('M j, Y'),
             'roles' => $p->getRoleNames()->map(fn (string $r): string => Str::headline($r))->values()->all(),

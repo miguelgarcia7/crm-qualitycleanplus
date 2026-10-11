@@ -2,6 +2,10 @@
 
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
+use App\Domain\PropertyBible\Models\Position;
+use App\Domain\PropertyBible\Models\Property;
+use App\Domain\WorkOrders\Enums\WorkOrderStatus;
+use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
 use Inertia\Testing\AssertableInertia;
 
@@ -105,9 +109,10 @@ it('filters by a status belonging to the tab, and ignores one that does not', fu
     $staffTotal = Person::query()->where('status', PersonStatus::StaffActive)->count();
 
     expect(directoryNames($admin, '?status=terminated'))->toHaveCount(2)
-        // staff_active is not a contractor status — must not narrow to zero on
-        // the contractors tab, and must not leak staff into it either.
-        ->and(directoryNames($admin, '?status=staff_active'))->toHaveCount(5)
+        // staff_active is not a contractor status — on the contractors tab it
+        // falls back to the active contractors, and must not leak staff in.
+        ->and(directoryNames($admin, '?status=staff_active'))->toHaveCount(3)
+        ->and(directoryNames($admin, '?status=all'))->toHaveCount(5)
         ->and(directoryNames($admin, '?tab=staff&status=staff_active'))->toHaveCount($staffTotal);
 });
 
@@ -179,4 +184,48 @@ it('honours the per-page choice and ignores one it does not offer', function () 
 
     expect(directoryNames($admin, '?per_page=10'))->toHaveCount(10)
         ->and(directoryNames($admin, '?per_page=5000'))->toHaveCount(25);
+});
+
+it('opens each tab on its active people, with a count per status', function () {
+    $admin = person('admin');
+    Person::factory()->count(3)->create(['status' => PersonStatus::ContractorActive]);
+    Person::factory()->count(2)->create(['status' => PersonStatus::Terminated]);
+    Person::factory()->create(['status' => PersonStatus::PendingTermination]);
+
+    $this->actingAs($admin)->get(main('/admin/people'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('people', 3)
+            ->where('filters.status', 'contractor_active')
+            ->where('statusCounts', [
+                'contractor_active' => 3,
+                'contractor_inactive' => 0,
+                'pending_termination' => 1,
+                'terminated' => 2,
+                'all' => 6,
+            ])
+            ->where('statuses.0', ['value' => 'contractor_active', 'label' => 'Active'])
+            ->where('people.0.status_label', 'Active'),
+        );
+});
+
+it('lists each active placement as its own property and position, and skips closed ones', function () {
+    $contractor = Person::factory()->create(['name' => 'Maria Lopez', 'status' => PersonStatus::ContractorActive]);
+    $acme = Property::factory()->create(['name' => 'Acme Hotel']);
+    WorkOrder::factory()->create([
+        'person_id' => $contractor->id,
+        'property_id' => $acme->id,
+        'position_id' => Position::factory()->create(['name' => 'Housekeeper'])->id,
+    ]);
+    WorkOrder::factory()->create(['person_id' => $contractor->id, 'status' => WorkOrderStatus::Closed]);
+
+    $this->actingAs(person('admin'))->get(main('/admin/people'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('people.0.placements', [['property_id' => $acme->id, 'property' => 'Acme Hotel', 'position' => 'Housekeeper']])
+            ->where('can.recruiterColumn', true),
+        );
+
+    $this->actingAs(person('recruiter'))->get(main('/admin/people'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('can.recruiterColumn', false));
 });

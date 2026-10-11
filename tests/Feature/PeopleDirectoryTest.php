@@ -100,11 +100,11 @@ it('never shows applicants in the directory or profile', function () {
         ->assertForbidden();
 });
 
-it('includes terminated contractors in the directory', function () {
+it('keeps terminated contractors in the directory, one filter away', function () {
     contractor(['name' => 'Tina Past', 'status' => PersonStatus::Terminated]);
 
     $this->actingAs(person('admin'))
-        ->get(main('/admin/people'))
+        ->get(main('/admin/people?status=terminated'))
         ->assertOk()
         ->assertSee('Tina Past');
 });

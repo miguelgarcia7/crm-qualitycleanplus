@@ -16,8 +16,7 @@ type ContractorRow = {
   status_label: string
   avatar: string | null
   recruiter: string | null
-  properties: string[]
-  positions: string[]
+  placements: { property_id: number; property: string | null; position: string | null }[]
 }
 
 type StaffRow = {
@@ -48,15 +47,19 @@ type Props = {
   filters: Filters
   counts: { contractors: number | null; staff: number | null }
   statuses: { value: string; label: string }[]
-  can: { contractors: boolean; staff: boolean; invite: boolean }
+  statusCounts: Record<string, number>
+  can: { contractors: boolean; staff: boolean; invite: boolean; recruiterColumn: boolean }
 }
+
+const DEFAULT_STATUS: Record<string, string> = { contractors: 'contractor_active', staff: 'staff_active' }
 
 /** Drop empties so the URL carries only what is actually filtering. */
 const queryFrom = (filters: Filters, page: number): Record<string, string> => {
   const params: Record<string, string> = {}
   if (filters.tab !== 'contractors') params.tab = filters.tab
   if (filters.search !== '') params.search = filters.search
-  if (filters.status !== '') params.status = filters.status
+  // Each tab opens on its active people, so only another choice goes in the URL.
+  if (filters.status !== '' && filters.status !== DEFAULT_STATUS[filters.tab]) params.status = filters.status
   if (filters.sort !== 'name') params.sort = filters.sort
   if (filters.direction !== 'asc') params.direction = filters.direction
   if (filters.per_page !== 25) params.per_page = String(filters.per_page)
@@ -99,6 +102,15 @@ const PersonCell = ({ id, name, email, avatar }: { id: number; name: string; ema
   </Link>
 )
 
+const PhoneLink = ({ phone }: { phone: string | null }) =>
+  phone ? (
+    <a href={`tel:${phone}`} className="hover:text-primary whitespace-nowrap">
+      {phone}
+    </a>
+  ) : (
+    <span className="text-default-400">—</span>
+  )
+
 const StatusBadge = ({ status, label }: { status: string; label: string }) => (
   <span className={cn('badge badge-label', statusBadge[status] ?? 'bg-light text-default-600')}>{label}</span>
 )
@@ -118,7 +130,7 @@ const ViewButton = ({ id }: { id: number }) => (
 const contractorColumnHelper = createColumnHelper<ContractorRow>()
 const staffColumnHelper = createColumnHelper<StaffRow>()
 
-const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => {
+const Page = ({ people, pagination, filters, counts, statuses, statusCounts, can }: Props) => {
   const [search, setSearch] = useState(filters.search)
   const onContractors = filters.tab === 'contractors'
 
@@ -132,7 +144,7 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
       preserveState: true,
       preserveScroll: true,
       replace,
-      only: ['people', 'pagination', 'filters', 'counts', 'statuses'],
+      only: ['people', 'pagination', 'filters', 'counts', 'statuses', 'statusCounts'],
     })
   }
 
@@ -153,7 +165,7 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
 
   // Switching tabs drops status and sort: both are tab-specific, and a
   // status from the other side of the lifecycle would match nothing.
-  const selectTab = (tab: string) => visit({ tab, status: '', sort: 'name', direction: 'asc' })
+  const selectTab = (tab: string) => visit({ tab, status: DEFAULT_STATUS[tab], sort: 'name', direction: 'asc' })
 
   const inviteButton = can.invite ? (
     <Link href="/admin/people/invite" className="btn bg-primary hover:bg-primary-hover text-nowrap text-white">
@@ -174,29 +186,37 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
       }),
       contractorColumnHelper.accessor('phone', {
         header: 'Phone',
-        cell: ({ row }) => row.original.phone ?? '—',
+        cell: ({ row }) => <PhoneLink phone={row.original.phone} />,
       }),
-      contractorColumnHelper.accessor((row) => row.properties.join(', '), {
+      contractorColumnHelper.accessor((row) => row.placements.map((p) => p.property).join(', '), {
         id: 'properties',
         header: 'Properties',
         // A list assembled from work orders; there is no column to order by.
         enableSorting: false,
         cell: ({ row }) =>
-          row.original.properties.length ? (
-            <span>
-              {row.original.properties.join(', ')}
-              {row.original.positions.length > 0 && (
-                <span className="text-default-400 block text-xs">{row.original.positions.join(', ')}</span>
-              )}
-            </span>
+          row.original.placements.length ? (
+            <ul className="space-y-0.5">
+              {row.original.placements.map((p, i) => (
+                <li key={i} className="whitespace-nowrap">
+                  <Link href={`/admin/properties/${p.property_id}`} className="hover:text-primary">
+                    {p.property}
+                  </Link>
+                  {p.position && <span className="text-default-400"> · {p.position}</span>}
+                </li>
+              ))}
+            </ul>
           ) : (
             <span className="text-default-400">No active work orders</span>
           ),
       }),
-      contractorColumnHelper.accessor('recruiter', {
-        header: 'Recruiter',
-        cell: ({ row }) => row.original.recruiter ?? '—',
-      }),
+      ...(can.recruiterColumn
+        ? [
+            contractorColumnHelper.accessor('recruiter', {
+              header: 'Recruiter',
+              cell: ({ row }) => row.original.recruiter ?? '—',
+            }),
+          ]
+        : []),
       contractorColumnHelper.accessor('status', {
         header: 'Status',
         cell: ({ row }) => <StatusBadge status={row.original.status} label={row.original.status_label} />,
@@ -208,7 +228,7 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
         cell: ({ row }: { row: { original: ContractorRow } }) => <ViewButton id={row.original.id} />,
       },
     ],
-    [],
+    [can.recruiterColumn],
   )
 
   const staffColumns = useMemo(
@@ -219,7 +239,7 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
       }),
       staffColumnHelper.accessor('phone', {
         header: 'Phone',
-        cell: ({ row }) => row.original.phone ?? '—',
+        cell: ({ row }) => <PhoneLink phone={row.original.phone} />,
       }),
       staffColumnHelper.accessor((row) => row.roles.join(', '), {
         id: 'roles',
@@ -273,10 +293,12 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
   return (
     <>
       <Head title="People" />
-      <PageBreadcrumb title="People" subtitle="Operations" />
+      <PageBreadcrumb title="People" subtitle="People & hiring" />
 
-      <div className="card">
-        <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
+      {/* Tabs sit under the page title, full width, as on the property page.
+          Someone who can see only one list gets no tab bar. */}
+      {tabs.length > 1 && (
+        <nav className="border-default-300 mt-4 mb-5 flex flex-wrap gap-1 border-b" aria-label="People" role="tablist">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -285,22 +307,25 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
               aria-selected={filters.tab === tab.key}
               onClick={() => selectTab(tab.key)}
               className={cn(
-                'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                filters.tab === tab.key ? 'border-primary text-primary border-b' : '',
+                '-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 font-medium focus:outline-hidden',
+                filters.tab === tab.key ? 'border-primary text-default-900' : 'text-default-500 hover:text-default-900 border-transparent',
               )}>
               {tab.label}
-              <span className="text-default-400 ms-1.5 text-xs">({tab.count})</span>
+              <span className="badge badge-label bg-light text-default-600 tabular-nums">{tab.count}</span>
             </button>
           ))}
         </nav>
+      )}
 
+      <div className="card">
         <div className="card-header">
           <div className="flex flex-wrap gap-3">
             <div className="input-icon-group">
               <Icon icon="search" className="input-icon" />
               <input
                 className="form-input"
-                placeholder="Search name, email or phone..."
+                placeholder="Search name, email or phone…"
+                aria-label="Search people"
                 value={search}
                 onChange={(e) => {
                   typed.current = true
@@ -311,14 +336,21 @@ const Page = ({ people, pagination, filters, counts, statuses, can }: Props) => 
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            <select className="form-select w-auto min-w-40" value={filters.status} onChange={(e) => visit({ status: e.target.value })}>
-              <option value="">Status</option>
-              {statuses.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
+            <div className="bg-light inline-flex rounded-lg p-0.5" role="group" aria-label="Show people">
+              {[...statuses, { value: 'all', label: 'All' }].map((st) => (
+                <button
+                  key={st.value}
+                  type="button"
+                  aria-pressed={filters.status === st.value}
+                  onClick={() => visit({ status: st.value })}
+                  className={cn(
+                    'rounded-md px-3 py-1 text-sm whitespace-nowrap',
+                    filters.status === st.value ? 'bg-card text-default-900 font-semibold shadow-sm' : 'text-default-500',
+                  )}>
+                  {st.label} <span className="tabular-nums opacity-70">{statusCounts[st.value] ?? 0}</span>
+                </button>
               ))}
-            </select>
+            </div>
             <select className="form-select w-20" value={filters.per_page} onChange={(e) => visit({ per_page: Number(e.target.value) })}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
