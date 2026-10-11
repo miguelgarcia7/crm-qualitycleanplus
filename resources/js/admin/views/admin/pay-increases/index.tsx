@@ -142,11 +142,22 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
     return pending.find((p) => p.workflow_id === id) ?? null
   })
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('review=')) {
+    if (typeof window !== 'undefined' && /review=|work_order=/.test(window.location.search)) {
       window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     }
   }, [])
-  const [creating, setCreating] = useState(false)
+  // A work order's locked rates link here with ?work_order=<id>: open the
+  // request form on that work order.
+  const [creating, setCreating] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const id = Number(new URLSearchParams(window.location.search).get('work_order'))
+    return workOrders.some((w) => w.id === id)
+  })
+  const [startOn] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null
+    const id = Number(new URLSearchParams(window.location.search).get('work_order'))
+    return workOrders.some((w) => w.id === id) ? id : null
+  })
   const [search, setSearch] = useState('')
   const [outcome, setOutcome] = useState<Outcome | ''>('')
   const [pageSize, setPageSize] = useState(10)
@@ -371,7 +382,7 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
       </div>
 
       {approving && <ApproveModal pending={approving} onClose={() => setApproving(null)} />}
-      {creating && <CreateModal workOrders={workOrders} onClose={() => setCreating(false)} />}
+      {creating && <CreateModal workOrders={workOrders} startOn={startOn} onClose={() => setCreating(false)} />}
     </>
   )
 }
@@ -575,8 +586,8 @@ const ApproveModal = ({ pending, onClose }: { pending: Pending; onClose: () => v
   )
 }
 
-const CreateModal = ({ workOrders, onClose }: { workOrders: WoOption[]; onClose: () => void }) => {
-  const [woId, setWoId] = useState<number>(workOrders[0]?.id ?? 0)
+const CreateModal = ({ workOrders, startOn = null, onClose }: { workOrders: WoOption[]; startOn?: number | null; onClose: () => void }) => {
+  const [woId, setWoId] = useState<number>(startOn ?? workOrders[0]?.id ?? 0)
   const wo = workOrders.find((w) => w.id === woId) ?? workOrders[0]
   const { data, setData, post, processing, errors, transform } = useForm<RaiseData>(initialRaise(wo, wo?.default_period_id ?? null))
   transform((d) => ({ ...d, work_order_id: woId }))

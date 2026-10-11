@@ -6,6 +6,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateWorkOrderRequest extends FormRequest
 {
@@ -44,6 +45,31 @@ class UpdateWorkOrderRequest extends FormRequest
             // Blank leaves the work order's current value as it is.
             'direct_hire_threshold_hours' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'notes' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    /**
+     * Once hours are logged the rates are fixed: the form shows them read-only,
+     * and a hand-made request that changes one is refused here too.
+     *
+     * @return array<int, \Closure(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $workOrder = $this->route('work_order');
+                if (! $workOrder instanceof WorkOrder || ! $workOrder->ratesLocked()) {
+                    return;
+                }
+
+                foreach (['pay_rate', 'bill_rate', 'ot_pay_rate', 'ot_bill_rate'] as $field) {
+                    $value = $this->input($field);
+                    if (is_numeric($value) && (int) round((float) $value * 100) !== $workOrder->{$field}) {
+                        $validator->errors()->add($field, 'Rates are locked once hours are logged. Use a pay increase, or a new work order, to change them.');
+                    }
+                }
+            },
         ];
     }
 }

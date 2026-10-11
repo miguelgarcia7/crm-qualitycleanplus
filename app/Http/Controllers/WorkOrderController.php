@@ -290,6 +290,9 @@ class WorkOrderController extends Controller
                 // The property's contracted threshold, offered as a one-click value.
                 'property_direct_hire_hours' => intdiv($workOrder->property?->directHireThresholdMinutes() ?? Property::defaultDirectHireThresholdMinutes(), 60),
                 'can_close' => $workOrder->status !== WorkOrderStatus::Closed && $user->can('close', $workOrder),
+                'rates_locked' => $workOrder->ratesLocked(),
+                // A raise goes through the Pay Increase workflow, only on a running placement.
+                'can_pay_increase' => $workOrder->status === WorkOrderStatus::Active && $user->can('workflows.pay_increase.initiate'),
                 'person_id' => $workOrder->person_id,
                 'property_id' => $workOrder->property_id,
                 'position_id' => $workOrder->position_id,

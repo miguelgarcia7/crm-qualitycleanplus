@@ -5,6 +5,7 @@ namespace App\Domain\WorkOrders\Models;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Time\Models\TimeEntry;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use Carbon\CarbonImmutable;
@@ -158,6 +159,17 @@ class WorkOrder extends Model
             $workOrder->direct_hire_threshold_minutes = $property?->directHireThresholdMinutes()
                 ?? Property::defaultDirectHireThresholdMinutes();
         });
+    }
+
+    /**
+     * Rates are locked once any time is logged against the work order: a raise
+     * goes through the Pay Increase workflow and a cut through a new work
+     * order, both starting at a pay week, so hours already worked keep the
+     * rate they were worked at (docs/20-domain/work-orders.md, ADR-0020).
+     */
+    public function ratesLocked(): bool
+    {
+        return TimeEntry::query()->where('work_order_id', $this->id)->exists();
     }
 
     /**

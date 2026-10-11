@@ -4,6 +4,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyPositionRate;
+use App\Domain\Time\Models\TimeEntry;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
@@ -93,4 +94,35 @@ it('offers each property with its contracted threshold when adding a work order'
             'catalogs.properties',
             fn ($properties) => collect($properties)->firstWhere('id', $property->id)['direct_hire_hours'] === 1000,
         ));
+});
+
+it('lets rates change until the first hours are logged', function () {
+    $wo = WorkOrder::factory()->create(['pay_rate' => 8150]);
+
+    // The classic typo, caught before anyone clocked in.
+    $this->actingAs(person('office_manager'))
+        ->patch(main("/admin/work-orders/{$wo->id}"), workOrderPayload($wo, ['pay_rate' => 18.50, 'ot_pay_rate' => 27.75]))
+        ->assertSessionHasNoErrors();
+
+    expect($wo->fresh()->pay_rate)->toBe(1850);
+});
+
+it('locks the rates once hours are logged, but still saves everything else', function () {
+    $wo = WorkOrder::factory()->create(['pay_rate' => 1850]);
+    TimeEntry::factory()->create(['work_order_id' => $wo->id, 'person_id' => $wo->person_id, 'property_id' => $wo->property_id]);
+
+    $this->actingAs(person('office_manager'))->get(main("/admin/work-orders/{$wo->id}/edit"))
+        ->assertInertia(fn (Assert $page) => $page->where('workOrder.rates_locked', true));
+
+    $this->actingAs(person('office_manager'))
+        ->patch(main("/admin/work-orders/{$wo->id}"), workOrderPayload($wo, ['pay_rate' => 20.00]))
+        ->assertSessionHasErrors('pay_rate');
+
+    $this->actingAs(person('office_manager'))
+        ->patch(main("/admin/work-orders/{$wo->id}"), workOrderPayload($wo, ['notes' => 'Prefers the morning shift']))
+        ->assertSessionHasNoErrors();
+
+    expect($wo->fresh())
+        ->pay_rate->toBe(1850)
+        ->notes->toBe('Prefers the morning shift');
 });

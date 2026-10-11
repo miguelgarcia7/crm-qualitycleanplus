@@ -16,6 +16,9 @@ type WorkOrder = {
   bible_rate: Rate | null
   property_direct_hire_hours: number
   can_close: boolean
+  /** True once hours are logged: rates then change only by pay increase or a new work order. */
+  rates_locked: boolean
+  can_pay_increase: boolean
   person_id: number
   property_id: number
   position_id: number
@@ -219,6 +222,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
       onConfirm: () => router.post(`/admin/work-orders/${workOrder.id}/close`, {}, { preserveScroll: true }),
     })
 
+  const ratesLocked = editing && workOrder.rates_locked
   const pay = cents(data.pay_rate)
   const bill = cents(data.bill_rate)
   const margin = pay !== null && bill !== null ? bill - pay : null
@@ -347,57 +351,87 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
           </Section>
 
           <Section title="Rates" description="What the contractor is paid and what the property is billed, per hour.">
-            <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Pay ($)" htmlFor="wo-pay" error={errors.pay_rate}>
-                <input id="wo-pay" className="form-input" inputMode="decimal" value={data.pay_rate} onChange={(e) => setData('pay_rate', e.target.value)} required />
-              </Field>
-              <Field label="Bill ($)" htmlFor="wo-bill" error={errors.bill_rate}>
-                <input id="wo-bill" className="form-input" inputMode="decimal" value={data.bill_rate} onChange={(e) => setData('bill_rate', e.target.value)} required />
-              </Field>
-              <Field
-                label={
-                  <>
-                    OT pay ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
-                  </>
-                }
-                htmlFor="wo-ot-pay"
-                error={errors.ot_pay_rate}>
-                <input
-                  id="wo-ot-pay"
-                  className={cn('form-input', !overrideOt && 'opacity-60')}
-                  inputMode="decimal"
-                  value={data.ot_pay_rate}
-                  onChange={(e) => setData('ot_pay_rate', e.target.value)}
-                  readOnly={!overrideOt}
-                  tabIndex={overrideOt ? undefined : -1}
-                  required
-                />
-              </Field>
-              <Field
-                label={
-                  <>
-                    OT bill ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
-                  </>
-                }
-                htmlFor="wo-ot-bill"
-                error={errors.ot_bill_rate}>
-                <input
-                  id="wo-ot-bill"
-                  className={cn('form-input', !overrideOt && 'opacity-60')}
-                  inputMode="decimal"
-                  value={data.ot_bill_rate}
-                  onChange={(e) => setData('ot_bill_rate', e.target.value)}
-                  readOnly={!overrideOt}
-                  tabIndex={overrideOt ? undefined : -1}
-                  required
-                />
-              </Field>
-            </div>
+            {ratesLocked ? (
+              <>
+                <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+                  <Fixed label="Pay">{money(workOrder.pay_rate)}</Fixed>
+                  <Fixed label="Bill">{money(workOrder.bill_rate)}</Fixed>
+                  <Fixed label="OT pay">{money(workOrder.ot_pay_rate)}</Fixed>
+                  <Fixed label="OT bill">{money(workOrder.ot_bill_rate)}</Fixed>
+                </div>
+                <div className="bg-light/60 text-default-600 mt-5 flex items-start gap-3 rounded-lg px-4 py-3 text-sm">
+                  <Icon icon="lock" className="text-default-400 mt-0.5 size-4 shrink-0" />
+                  <p>
+                    Rates are locked once hours are logged, so hours already worked keep the rate they were worked at. To raise them,{' '}
+                    {workOrder.can_pay_increase ? (
+                      <Link href={`/admin/pay-increases?work_order=${workOrder.id}`} className="text-primary font-medium hover:underline">
+                        start a pay increase
+                      </Link>
+                    ) : (
+                      'start a pay increase'
+                    )}
+                    . To lower them, close this work order at the end of a pay week and create a new one.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Field label="Pay ($)" htmlFor="wo-pay" error={errors.pay_rate}>
+                    <input id="wo-pay" className="form-input" inputMode="decimal" value={data.pay_rate} onChange={(e) => setData('pay_rate', e.target.value)} required />
+                  </Field>
+                  <Field label="Bill ($)" htmlFor="wo-bill" error={errors.bill_rate}>
+                    <input id="wo-bill" className="form-input" inputMode="decimal" value={data.bill_rate} onChange={(e) => setData('bill_rate', e.target.value)} required />
+                  </Field>
+                  <Field
+                    label={
+                      <>
+                        OT pay ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+                      </>
+                    }
+                    htmlFor="wo-ot-pay"
+                    error={errors.ot_pay_rate}>
+                    <input
+                      id="wo-ot-pay"
+                      className={cn('form-input', !overrideOt && 'opacity-60')}
+                      inputMode="decimal"
+                      value={data.ot_pay_rate}
+                      onChange={(e) => setData('ot_pay_rate', e.target.value)}
+                      readOnly={!overrideOt}
+                      tabIndex={overrideOt ? undefined : -1}
+                      required
+                    />
+                  </Field>
+                  <Field
+                    label={
+                      <>
+                        OT bill ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+                      </>
+                    }
+                    htmlFor="wo-ot-bill"
+                    error={errors.ot_bill_rate}>
+                    <input
+                      id="wo-ot-bill"
+                      className={cn('form-input', !overrideOt && 'opacity-60')}
+                      inputMode="decimal"
+                      value={data.ot_bill_rate}
+                      onChange={(e) => setData('ot_bill_rate', e.target.value)}
+                      readOnly={!overrideOt}
+                      tabIndex={overrideOt ? undefined : -1}
+                      required
+                    />
+                  </Field>
+                </div>
 
-            <label className="mt-4 flex items-center gap-2 text-sm">
-              <input type="checkbox" className="form-checkbox" checked={overrideOt} onChange={(e) => setOverrideOt(e.target.checked)} />
-              Set OT rates by hand (the contract isn’t 1.5×)
-            </label>
+                <label className="mt-4 flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="form-checkbox" checked={overrideOt} onChange={(e) => setOverrideOt(e.target.checked)} />
+                  Set OT rates by hand (the contract isn’t 1.5×)
+                </label>
+                {editing && (
+                  <p className="text-default-400 mt-2 text-xs">Rates can be changed until the first hours are logged. After that they lock.</p>
+                )}
+              </>
+            )}
 
             {(margin !== null || payVsBible !== null) && (
               <div className="border-default-200 mt-5 space-y-1 border-t pt-4 text-sm">
