@@ -22,7 +22,11 @@
              (fake file uploads); the CLI default varies per machine. -->
         <ini name="memory_limit" value="1G"/>
         <env name="APP_ENV" value="testing"/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <!-- Maintenance mode in each test process's own memory: the file driver
+             wrote storage/framework/down, which parallel processes share, so a
+             test checking the maintenance page 503'd other tests' requests. -->
+        <env name="APP_MAINTENANCE_DRIVER" value="cache"/>
+        <env name="APP_MAINTENANCE_STORE" value="array"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
