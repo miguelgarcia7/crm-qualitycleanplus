@@ -201,26 +201,6 @@ const Page = ({ properties, can }: Props) => {
       <Head title="Property Bible" />
       <PageBreadcrumb title="Properties" subtitle="Property Bible" />
 
-      {quickFilters.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Quick filters">
-          {quickFilters.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              aria-pressed={quick === f.key}
-              onClick={() => pickQuick(f.key)}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm whitespace-nowrap',
-                quick === f.key ? 'border-primary bg-card ring-primary/20 text-default-900 font-semibold ring-2' : 'border-default-300 bg-card text-default-600 hover:border-default-400',
-              )}
-            >
-              {f.label}
-              <span className="font-semibold tabular-nums">{byStatus.filter(f.test).length}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
       <div className="card">
         <div className="card-header">
           <div className="flex flex-wrap gap-3">
@@ -247,6 +227,27 @@ const Page = ({ properties, can }: Props) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
+            {/* A toggle beside the status switch: click to narrow the list, click again for all. */}
+            {quickFilters.map((f) => {
+              const count = byStatus.filter(f.test).length
+              const on = quick === f.key
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => pickQuick(f.key)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-sm whitespace-nowrap',
+                    on ? 'border-primary bg-primary/10 text-default-900 font-semibold' : 'border-default-300 text-default-600 hover:border-default-400',
+                  )}
+                >
+                  <Icon icon="alert-triangle" className={cn('size-4', count > 0 ? 'text-warning' : 'text-default-400')} />
+                  {f.label}
+                  <span className="font-semibold tabular-nums">{count}</span>
+                </button>
+              )
+            })}
             <div className="bg-light inline-flex rounded-lg p-0.5" role="group" aria-label="Show properties">
               {STATUS_FILTERS.map((f) => (
                 <button
