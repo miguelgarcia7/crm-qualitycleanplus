@@ -9,10 +9,10 @@ use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Policies\PersonPolicy;
+use App\Domain\People\Support\PersonOverview;
 use App\Domain\Pto\Enums\PtoAllotmentStatus;
 use App\Domain\Pto\Enums\PtoBucket;
 use App\Domain\Pto\Models\PtoYearAllotment;
-use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Database\Eloquent\Builder;
@@ -308,7 +308,7 @@ class PeopleController extends Controller
         ];
     }
 
-    public function show(Request $request, Person $person): Response
+    public function show(Request $request, Person $person, PersonOverview $overview): Response
     {
         $this->authorize('view', $person);
 
@@ -325,6 +325,7 @@ class PeopleController extends Controller
         $canAdjustments = ! $isStaff && $user->can('time_entries.add_adjustment');
         $canPto = $isStaff && $user->can('pto.balances.view_all');
         $canHistory = $user->can('audit.activity_log.view');
+        $hours = $canHours ? $overview->weeks($person, 12) : null;
 
         return Inertia::render('admin/people/show', [
             'person' => [
@@ -333,7 +334,7 @@ class PeopleController extends Controller
                 'email' => $person->email,
                 'phone' => $person->phone,
                 'status' => $person->status->value,
-                'status_label' => Str::headline($person->status->value),
+                'status_label' => self::STATUS_LABELS[$person->status->value] ?? Str::headline($person->status->value),
                 'is_active' => $person->status->isActive(),
                 'is_staff' => $person->status->isStaff(),
                 'avatar' => $person->avatarUrl(),
@@ -345,11 +346,21 @@ class PeopleController extends Controller
                 'roles' => $person->getRoleNames()->map(fn (string $r): string => Str::headline($r))->values()->all(),
             ],
             'workOrders' => $isStaff ? null : $this->workOrderRows($person, $canRates),
-            'hours' => $canHours ? $this->hoursRows($person) : null,
+            // The Overview tab: where a contractor works today and how it's going.
+            'placements' => $isStaff ? null : $overview->placements($person, $canRates),
+            'recentWeeks' => $hours === null ? null : $overview->recentWeeks($hours),
+            'lastFullWeek' => $hours === null ? null : $overview->lastFullWeek($hours),
+            'hours' => $hours,
             'adjustments' => $canAdjustments ? $this->adjustmentRows($person) : null,
             'charges' => $canAdjustments ? $this->chargeRows($person) : null,
             'pto' => $canPto ? $this->ptoPayload($person) : null,
             'history' => $canHistory ? $this->historyRows($person) : null,
+            'can' => [
+                // The work order panel lives on the Work Orders list.
+                'openWorkOrders' => $user->can('work_orders.view'),
+                'infoChanges' => $user->can('workflows.change_personal_info.verify'),
+                'pto' => $canPto,
+            ],
         ]);
     }
 
@@ -372,32 +383,6 @@ class PeopleController extends Controller
                 'end_date' => $wo->end_date?->format('M j, Y'),
                 'pay_rate' => $withRates ? $wo->pay_rate : null,
                 'bill_rate' => $withRates ? $wo->bill_rate : null,
-            ])
-            ->all();
-    }
-
-    /**
-     * Last 12 materialized weekly summaries (hours only — money stays in Reports).
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function hoursRows(Person $person): array
-    {
-        return TimeSummary::query()
-            ->where('person_id', $person->id)
-            ->with(['property:id,name', 'workOrder.position:id,name'])
-            ->orderByDesc('week_start')
-            ->limit(12)
-            ->get()
-            ->map(fn (TimeSummary $s): array => [
-                'id' => $s->id,
-                'week_start' => $s->week_start->format('M j'),
-                'week_end' => $s->week_end->format('M j, Y'),
-                'property' => $s->property?->name,
-                'position' => $s->workOrder?->position?->name,
-                'regular_minutes' => $s->regular_minutes,
-                'overtime_minutes' => $s->overtime_minutes,
-                'other_minutes' => $s->holiday_minutes + $s->training_minutes,
             ])
             ->all();
     }

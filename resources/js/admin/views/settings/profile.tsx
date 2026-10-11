@@ -1,5 +1,6 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import IdentityCard, { FactRow, PersonAvatar } from '@/components/people/IdentityCard'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react'
@@ -51,30 +52,6 @@ type Props = {
   access: Access
 }
 
-// --- Shared bits (HRM identity-card pattern, as on property detail) ----------
-
-const FactRow = ({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) => (
-  <div className="flex items-center gap-3">
-    <div>
-      <div className="btn btn-icon bg-light size-8!">
-        <Icon icon={icon} className="text-secondary text-lg" />
-      </div>
-    </div>
-    <p className="text-sm">
-      {label} <span className="text-dark font-semibold">{children}</span>
-    </p>
-  </div>
-)
-
-const initialsOf = (name: string) =>
-  name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-
 // --- Avatar (photo or initials, with self-serve upload) ----------------------
 
 const Avatar = ({ person }: { person: PersonInfo }) => {
@@ -115,13 +92,7 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="group relative">
-        {person.avatar ? (
-          <img src={person.avatar} alt={person.name} className="size-18 shrink-0 rounded-full object-cover" />
-        ) : (
-          <div className="bg-primary/10 text-primary flex size-18 shrink-0 items-center justify-center rounded-full text-xl font-semibold">
-            {initialsOf(person.name)}
-          </div>
-        )}
+        <PersonAvatar name={person.name} avatar={person.avatar} />
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
@@ -145,59 +116,39 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
 
 // --- Identity card (left column) ----------------------------------------------
 
-const IdentityCard = ({ person, roles }: { person: PersonInfo; roles: string[] }) => (
-  <div className="card">
-    <div className="card-body">
-      <div className="mb-7.5 flex items-center">
-        <div className="gap-base flex items-center">
-          <Avatar person={person} />
-          <div>
-            <h5 className="font-medium">{person.name}</h5>
-            <p className="text-default-400 mb-3">{roles[0] ?? 'Member'}</p>
-            <div className="flex flex-wrap gap-1.5">
-              <span
-                className={cn(
-                  'badge badge-label',
-                  person.is_active ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary',
-                )}
-              >
-                {person.status}
-              </span>
-              {roles.slice(1).map((role) => (
-                <span key={role} className="badge badge-label bg-primary/15 text-primary">
-                  {role}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-y-3">
-        <FactRow icon="mail" label="Email">
-          {person.email}
-        </FactRow>
-        <FactRow icon="phone" label="Phone">
-          {person.phone ?? 'Not set'}
-        </FactRow>
-        {person.hire_date && (
-          <FactRow icon="calendar" label="Hired">
-            {person.hire_date}
-          </FactRow>
-        )}
-        {person.joined && (
-          <FactRow icon="calendar-plus" label="Member since">
-            {person.joined}
-          </FactRow>
-        )}
-      </div>
-
-      <p className="text-default-400 border-default-200 mt-6 border-t pt-4 text-xs">
-        Phone, address, and other personal details are managed by HR — submit an info change request to update
-        them.
-      </p>
-    </div>
-  </div>
+const ProfileIdentityCard = ({ person, roles }: { person: PersonInfo; roles: string[] }) => (
+  <IdentityCard
+    avatar={<Avatar person={person} />}
+    name={person.name}
+    subtitle={roles[0] ?? 'Member'}
+    badges={
+      <>
+        <span className={cn('badge badge-label', person.is_active ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary')}>{person.status}</span>
+        {roles.slice(1).map((role) => (
+          <span key={role} className="badge badge-label bg-primary/15 text-primary">
+            {role}
+          </span>
+        ))}
+      </>
+    }
+    footer="Phone, address, and other personal details are managed by HR — submit an info change request to update them.">
+    <FactRow icon="mail" label="Email">
+      {person.email}
+    </FactRow>
+    <FactRow icon="phone" label="Phone">
+      {person.phone ?? 'Not set'}
+    </FactRow>
+    {person.hire_date && (
+      <FactRow icon="calendar" label="Hired">
+        {person.hire_date}
+      </FactRow>
+    )}
+    {person.joined && (
+      <FactRow icon="calendar-plus" label="Member since">
+        {person.joined}
+      </FactRow>
+    )}
+  </IdentityCard>
 )
 
 /**
@@ -250,7 +201,7 @@ const ProfileTab = ({ person, roles }: { person: PersonInfo; roles: string[] }) 
 
   return (
     <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
-      <IdentityCard person={person} roles={roles} />
+      <ProfileIdentityCard person={person} roles={roles} />
 
       <form onSubmit={submit} className="card mb-0 xl:col-span-2">
         <CardHeading title="Your details">Your name and the email address you sign in with.</CardHeading>

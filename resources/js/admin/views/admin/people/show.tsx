@@ -1,9 +1,10 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import IdentityCard, { FactRow, PersonAvatar } from '@/components/people/IdentityCard'
 import Icon from '@/components/wrappers/Icon'
 import { cn, toPascalCase } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, ReactNode, useEffect, useState } from 'react'
 
 // --- Types -------------------------------------------------------------------
 
@@ -37,16 +38,35 @@ type WorkOrderRow = {
   bill_rate: number | null
 }
 
-type HoursRow = {
+type DirectHire = { threshold_hours: number; worked_hours: number; remaining_hours: number; percent: number; eligible: boolean; unrestricted: boolean }
+
+type Placement = {
+  id: number
+  property_id: number
+  property: string | null
+  position: string | null
+  start_date: string
+  pay_rate: number | null
+  bill_rate: number | null
+  direct_hire: DirectHire
+  weeks_to_go: number | null
+}
+
+type WeekRow = {
   id: number
   week_start: string
   week_end: string
+  is_current: boolean
+  property_id: number
   property: string | null
   position: string | null
   regular_minutes: number
   overtime_minutes: number
-  other_minutes: number
+  holiday_minutes: number
+  training_minutes: number
 }
+
+type LastFullWeek = { week_start: string; week_end: string; total_minutes: number; overtime_minutes: number }
 
 type AdjustmentRow = {
   id: number
@@ -83,17 +103,35 @@ type ChargeRow = {
 type Props = {
   person: PersonInfo
   workOrders: WorkOrderRow[] | null
-  hours: HoursRow[] | null
+  placements: Placement[] | null
+  recentWeeks: WeekRow[] | null
+  lastFullWeek: LastFullWeek | null
+  hours: WeekRow[] | null
   adjustments: AdjustmentRow[] | null
   charges: ChargeRow[] | null
   pto: PtoPayload | null
   history: HistoryRow[] | null
+  can: { openWorkOrders: boolean; infoChanges: boolean; pto: boolean }
 }
 
 // --- Helpers -------------------------------------------------------------------
 
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
-const hoursLabel = (minutes: number) => (minutes / 60).toFixed(1)
+const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const hrs = (minutes: number) => (minutes / 60).toFixed(2)
+const totalMinutes = (w: WeekRow) => w.regular_minutes + w.overtime_minutes + w.holiday_minutes + w.training_minutes
+
+// Noon, so no timezone offset can push the date to a neighbouring day.
+const at = (iso: string) => new Date(`${iso}T12:00:00`)
+/** "Oct 5 – 11", or "Sep 28 – Oct 4" across a month; the year only when it isn't this one. */
+const weekLabel = (start: string, end: string) => {
+  const s = at(start)
+  const e = at(end)
+  const month = (d: Date) => d.toLocaleDateString('en-US', { month: 'short' })
+  const range = s.getMonth() === e.getMonth() ? `${month(s)} ${s.getDate()} – ${e.getDate()}` : `${month(s)} ${s.getDate()} – ${month(e)} ${e.getDate()}`
+  return e.getFullYear() === new Date().getFullYear() ? range : `${range}, ${e.getFullYear()}`
+}
+
+const gridHref = (w: WeekRow) => `/admin/properties/${w.property_id}/grid?week=${w.week_start}`
 
 const statusBadge: Record<string, string> = {
   contractor_active: 'bg-success/15 text-success',
@@ -106,259 +144,477 @@ const statusBadge: Record<string, string> = {
 
 const woBadge: Record<string, string> = {
   active: 'bg-success/15 text-success',
-  pending: 'bg-warning/15 text-warning',
-  ended: 'bg-secondary/15 text-secondary',
-  cancelled: 'bg-danger/15 text-danger',
+  suspended: 'bg-warning/15 text-warning',
+  closed: 'bg-secondary/15 text-secondary',
 }
 
-const initialsOf = (name: string) =>
-  name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-
-const FactRow = ({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) => (
-  <div className="flex items-center gap-3">
-    <div>
-      <div className="btn btn-icon bg-light size-8!">
-        <Icon icon={icon} className="text-secondary text-lg" />
+/** A titled card, as on My Profile: the title, a line on what it holds, an optional action. */
+const Section = ({ title, description, action, children, className }: { title: string; description?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) => (
+  <section className={cn('card mb-0', className)}>
+    <div className="card-header flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h4 className="card-title">{title}</h4>
+        {description && <p className="text-default-400 mt-1 text-sm">{description}</p>}
       </div>
+      {action}
     </div>
-    <p className="text-sm">
-      {label} <span className="text-dark font-semibold">{children}</span>
-    </p>
+    {children}
+  </section>
+)
+
+/** One figure at the top of the Overview: a label, the value, a note under it. */
+const Stat = ({ label, value, note, noteClass }: { label: string; value: string; note: ReactNode; noteClass?: string }) => (
+  <div className="card mb-0 h-full">
+    <div className="card-body">
+      <div className="text-default-400 text-sm">{label}</div>
+      <div className="text-default-900 text-lg font-semibold tabular-nums">{value}</div>
+      <div className={cn('text-sm', noteClass ?? 'text-default-500')}>{note}</div>
+    </div>
   </div>
 )
 
-// --- Identity card --------------------------------------------------------------
+const Empty = ({ children }: { children: ReactNode }) => <p className="card-body text-default-400 text-sm">{children}</p>
 
-const IdentityCard = ({ person }: { person: PersonInfo }) => (
-  <div className="card">
-    <div className="card-body">
-      <div className="mb-7.5 flex items-center">
-        <div className="gap-base flex items-center">
-          {person.avatar ? (
-            <img src={person.avatar} alt={person.name} className="size-18 shrink-0 rounded-full object-cover" />
-          ) : (
-            <div className="bg-primary/10 text-primary flex size-18 shrink-0 items-center justify-center rounded-full text-xl font-semibold">
-              {initialsOf(person.name)}
-            </div>
-          )}
-          <div>
-            <h5 className="font-medium">{person.name}</h5>
-            <p className="text-default-400 mb-3">{person.is_staff ? (person.roles[0] ?? 'Staff') : 'Contractor'}</p>
-            <div className="flex flex-wrap gap-1.5">
-              <span className={cn('badge badge-label', statusBadge[person.status] ?? 'bg-light text-default-600')}>
-                {person.status_label}
-              </span>
-              {person.is_staff &&
-                person.roles.slice(1).map((role) => (
-                  <span key={role} className="badge badge-label bg-primary/15 text-primary">
-                    {role}
-                  </span>
-                ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-y-3">
-        <FactRow icon="mail" label="Email">
-          {person.email}
-        </FactRow>
-        <FactRow icon="phone" label="Phone">
-          {person.phone ?? 'Not set'}
-        </FactRow>
-        {person.city_state && (
-          <FactRow icon="map-pin" label="Location">
-            {person.city_state}
-          </FactRow>
-        )}
-        {person.hire_date && (
-          <FactRow icon="calendar" label="Hired">
-            {person.hire_date}
-          </FactRow>
-        )}
-        {person.contractor_since && (
-          <FactRow icon="calendar-check" label="Contractor since">
-            {person.contractor_since}
-          </FactRow>
-        )}
-        {person.terminated_at && (
-          <FactRow icon="calendar-x" label="Terminated">
-            {person.terminated_at}
-          </FactRow>
-        )}
-        {person.recruiter && (
-          <FactRow icon="user-circle" label="Recruiter">
-            {person.recruiter}
-          </FactRow>
-        )}
-      </div>
-    </div>
+const ProgressBar = ({ percent, label }: { percent: number; label: string }) => (
+  <div className="bg-default-100 mt-1.5 h-1.5 overflow-hidden rounded" role="progressbar" aria-label={label} aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+    <div className="bg-primary h-1.5" style={{ width: `${Math.max(2, percent)}%` }} />
   </div>
+)
+
+// --- Overview ----------------------------------------------------------------------
+
+const PersonIdentityCard = ({ person, canInfoChanges }: { person: PersonInfo; canInfoChanges: boolean }) => (
+  <IdentityCard
+    avatar={<PersonAvatar name={person.name} avatar={person.avatar} />}
+    name={person.name}
+    subtitle={person.is_staff ? (person.roles[0] ?? 'Staff') : 'Contractor'}
+    badges={
+      <>
+        <span className={cn('badge badge-label', statusBadge[person.status] ?? 'bg-light text-default-600')}>{person.status_label}</span>
+        {person.is_staff &&
+          person.roles.slice(1).map((role) => (
+            <span key={role} className="badge badge-label bg-primary/15 text-primary">
+              {role}
+            </span>
+          ))}
+      </>
+    }
+    footer={
+      <>
+        Phone, address and other personal details are kept by HR. Changes go through{' '}
+        {canInfoChanges ? (
+          <Link href="/admin/info-changes" className="text-primary hover:underline">
+            Info Changes
+          </Link>
+        ) : (
+          'an info change request'
+        )}
+        .
+      </>
+    }>
+    <FactRow icon="mail" label="Email">
+      <a href={`mailto:${person.email}`} className="hover:text-primary">
+        {person.email}
+      </a>
+    </FactRow>
+    <FactRow icon="phone" label="Phone">
+      {person.phone ? (
+        <a href={`tel:${person.phone}`} className="hover:text-primary">
+          {person.phone}
+        </a>
+      ) : (
+        'Not set'
+      )}
+    </FactRow>
+    {person.city_state && (
+      <FactRow icon="map-pin" label="Location">
+        {person.city_state}
+      </FactRow>
+    )}
+    {person.recruiter && (
+      <FactRow icon="user-circle" label="Recruiter">
+        {person.recruiter}
+      </FactRow>
+    )}
+    {person.hire_date && (
+      <FactRow icon="calendar" label="Hired">
+        {person.hire_date}
+      </FactRow>
+    )}
+    {person.contractor_since && (
+      <FactRow icon="calendar-check" label="Contractor since">
+        {person.contractor_since}
+      </FactRow>
+    )}
+    {person.terminated_at && (
+      <FactRow icon="calendar-x" label="Terminated">
+        {person.terminated_at}
+      </FactRow>
+    )}
+  </IdentityCard>
 )
 
 /**
- * How much of a one-off fee the contractor still owes — the question a
- * recruiter asks without wanting to open a tab, so it sits beside the identity
- * card rather than inside Deductions.
- *
- * Alert and progress markup follow the reference library (ui/alerts,
- * ui/progress) rather than being hand-rolled, so the bar carries its ARIA role.
+ * How much of the hiring fee the contractor still owes — the question a
+ * recruiter asks without wanting to open a tab. The warning only shows while
+ * there is something left to collect.
  */
-const FeeCard = ({ charge }: { charge: ChargeRow }) => {
+const FeeCard = ({ charge }: { charge: ChargeRow | null }) => {
+  if (charge === null) {
+    return (
+      <Section title="Hiring fee">
+        <Empty>No hiring fee on file.</Empty>
+      </Section>
+    )
+  }
+
   const remaining = Math.max(0, charge.total_amount - charge.collected_amount)
   const percent = charge.total_amount > 0 ? Math.round((charge.collected_amount / charge.total_amount) * 100) : 0
+  const collecting = remaining > 0 && charge.status !== 'cancelled'
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <h4 className="card-title">{charge.reason_label}</h4>
-      </div>
-
+    <Section title={charge.reason_label}>
       <div className="card-body">
-        <div className="bg-warning/15 text-warning flex items-center gap-3 rounded px-4 py-3" role="alert">
-          <Icon icon="alert-triangle" className="text-lg" />
+        {collecting && (
+          <div className="bg-warning/15 text-warning mb-5 flex items-center gap-3 rounded px-4 py-3" role="alert">
+            <Icon icon="alert-triangle" className="text-lg" />
+            <span>
+              <span className="block text-lg font-semibold">{money(remaining)} still to collect</span>
+              <span className="text-sm">
+                {money(charge.amount_per_payment)} a pay period, {charge.applied_count} of {charge.num_payments} taken
+              </span>
+            </span>
+          </div>
+        )}
+        <div className="mb-1 flex items-baseline justify-between text-sm">
           <span>
-            <span className="block text-lg font-semibold">{money(charge.total_amount)}</span>
-            <span className="text-sm">{charge.reason === 'hiring_fee' ? 'New hiring processing fee' : 'Issued uniform charge'}</span>
+            Paid <span className="text-default-900 font-semibold">{money(charge.collected_amount)}</span> of {money(charge.total_amount)}
           </span>
+          <span className="text-default-400">{percent}%</span>
         </div>
+        <ProgressBar percent={percent} label="Hiring fee collected" />
+        {!collecting && (
+          <p className="text-default-400 mt-2 text-sm">{charge.status === 'cancelled' && remaining > 0 ? 'Collection stopped.' : 'Paid in full.'}</p>
+        )}
+      </div>
+    </Section>
+  )
+}
 
-        <div className="mt-5">
-          <div className="mb-2 flex items-baseline justify-between">
-            <span className="font-semibold">Total amount paid</span>
-            <span className="font-semibold">{money(charge.collected_amount)}</span>
-          </div>
+/** "Placed at": the one property, or how many when a contractor works at several. */
+const placedAt = (placements: Placement[]): { value: string; note: string } => {
+  if (placements.length === 0) return { value: 'Not placed', note: 'No active work orders' }
+  const properties = [...new Set(placements.map((p) => p.property ?? '—'))]
+  if (placements.length === 1) return { value: properties[0], note: `${placements[0].position ?? ''} since ${placements[0].start_date}` }
+  if (properties.length === 1) return { value: properties[0], note: placements.map((p) => p.position).join(' · ') }
+  return { value: `${properties.length} properties`, note: properties.join(' · ') }
+}
 
-          <div
-            className="bg-default-100 flex h-4 w-full overflow-hidden rounded"
-            role="progressbar"
-            aria-valuenow={percent}
-            aria-valuemin={0}
-            aria-valuemax={100}>
-            <div
-              className="bg-warning flex flex-col justify-center overflow-hidden text-center whitespace-nowrap transition duration-500"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
+/** The placement furthest along toward direct hire, among those with a threshold. */
+const closestToDirectHire = (placements: Placement[]): Placement | null =>
+  placements.filter((p) => !p.direct_hire.unrestricted).sort((a, b) => b.direct_hire.percent - a.direct_hire.percent)[0] ?? null
 
-          <p className="text-default-400 mt-2 text-sm">
-            {remaining > 0 ? `${money(remaining)} remaining` : 'Paid in full'}
-            {charge.status === 'cancelled' && ' — collection cancelled'}
-          </p>
+const PlacementRow = ({ p, canOpen }: { p: Placement; canOpen: boolean }) => {
+  const dh = p.direct_hire
+  return (
+    <div className="border-default-200 grid grid-cols-2 items-center gap-x-5 gap-y-3 border-b py-4 last:border-b-0 md:grid-cols-[2fr_1fr_1fr_2fr_auto]">
+      <div className="col-span-2 md:col-span-1">
+        <Link href={`/admin/properties/${p.property_id}`} className="text-default-900 hover:text-primary font-semibold">
+          {p.property}
+        </Link>
+        <div className="text-default-400 text-sm">
+          {p.position} · since {p.start_date}
         </div>
       </div>
+      {p.pay_rate !== null && (
+        <div>
+          <div className="text-default-400 text-xs">Pay</div>
+          <div className="text-default-900 font-semibold tabular-nums">{money(p.pay_rate)}</div>
+        </div>
+      )}
+      {p.bill_rate !== null && (
+        <div>
+          <div className="text-default-400 text-xs">Bill</div>
+          <div className="text-default-900 font-semibold tabular-nums">{money(p.bill_rate)}</div>
+        </div>
+      )}
+      <div className="col-span-2 md:col-span-1">
+        {dh.unrestricted ? (
+          <span className="text-default-400 text-sm">No direct-hire threshold</span>
+        ) : dh.eligible ? (
+          <span className="badge badge-label bg-success/15 text-success">Eligible for direct hire</span>
+        ) : (
+          <>
+            <div className="flex justify-between text-sm">
+              <span>
+                <span className="text-default-900 font-semibold">{Math.round(dh.worked_hours).toLocaleString()}</span> of{' '}
+                {Math.round(dh.threshold_hours).toLocaleString()} h
+              </span>
+              <span className="text-default-400">{dh.percent}%</span>
+            </div>
+            <ProgressBar percent={dh.percent} label={`Progress toward direct hire at ${p.property}`} />
+          </>
+        )}
+      </div>
+      {canOpen && (
+        <Link href={`/admin/work-orders?panel=${p.id}`} className="btn btn-sm border-default-300 hover:border-default-400 justify-self-start border md:justify-self-end">
+          Open #{p.id}
+        </Link>
+      )}
     </div>
   )
 }
 
-// --- Tabs ------------------------------------------------------------------------
+const WeekLine = ({ w }: { w: WeekRow }) => (
+  <li>
+    <Link href={gridHref(w)} className="hover:bg-light/60 -mx-2 flex items-center justify-between gap-3 rounded px-2 py-2">
+      <span>
+        {weekLabel(w.week_start, w.week_end)} <span className="text-default-400">· {w.property}</span>
+        {w.is_current && <span className="badge badge-label bg-light text-default-600 ms-2">This week</span>}
+      </span>
+      <span className="flex items-center gap-2">
+        {w.overtime_minutes > 0 && <span className="badge badge-label bg-warning/15 text-warning">{hrs(w.overtime_minutes)} OT</span>}
+        <span className="text-default-900 font-semibold tabular-nums">{hrs(totalMinutes(w))} h</span>
+      </span>
+    </Link>
+  </li>
+)
 
-const WorkOrdersTab = ({ workOrders }: { workOrders: WorkOrderRow[] }) => {
+const ContractorOverview = ({
+  placements,
+  recentWeeks,
+  lastFullWeek,
+  canOpen,
+  onAllHours,
+}: {
+  placements: Placement[]
+  recentWeeks: WeekRow[] | null
+  lastFullWeek: LastFullWeek | null
+  canOpen: boolean
+  onAllHours: (() => void) | null
+}) => {
+  const placed = placedAt(placements)
+  const closest = closestToDirectHire(placements)
+  const many = placements.length > 1
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="gap-base grid md:grid-cols-3">
+        <Stat label="Placed at" value={placed.value} note={placed.note} />
+        {recentWeeks !== null && (
+          <Stat
+            label="Last full week"
+            value={lastFullWeek ? `${hrs(lastFullWeek.total_minutes)} h` : 'No hours yet'}
+            note={
+              lastFullWeek
+                ? lastFullWeek.overtime_minutes > 0
+                  ? `${hrs(lastFullWeek.overtime_minutes)} h overtime`
+                  : weekLabel(lastFullWeek.week_start, lastFullWeek.week_end)
+                : 'Nothing finished yet'
+            }
+            noteClass={lastFullWeek && lastFullWeek.overtime_minutes > 0 ? 'text-warning' : undefined}
+          />
+        )}
+        {closest && (
+          <Stat
+            label={many ? 'Closest to direct hire' : 'Toward direct hire'}
+            value={
+              closest.direct_hire.eligible
+                ? 'Eligible'
+                : `${Math.round(closest.direct_hire.worked_hours).toLocaleString()} of ${Math.round(closest.direct_hire.threshold_hours).toLocaleString()} h`
+            }
+            note={[
+              many ? closest.property : null,
+              closest.weeks_to_go !== null ? `about ${closest.weeks_to_go} weeks at the recent pace` : closest.direct_hire.eligible ? null : `${closest.direct_hire.percent}%`,
+            ]
+              .filter(Boolean)
+              .join(' · ')
+              .replace(/^a/, 'A')}
+          />
+        )}
+      </div>
+
+      {placements.length > 0 && (
+        <Section
+          title={many ? 'Current placements' : 'Current placement'}
+          description={many ? 'Every active work order. Each has its own rates and its own count toward direct hire.' : 'The work order they clock in on today.'}>
+          <div className="px-6 py-2">
+            {placements.map((p) => (
+              <PlacementRow key={p.id} p={p} canOpen={canOpen} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {recentWeeks !== null && (
+        <Section
+          title="Recent weeks"
+          description="Hours on every placement. Open a week in the property's timesheet."
+          action={
+            onAllHours && (
+              <button type="button" className="btn btn-sm border-default-300 hover:border-default-400 border" onClick={onAllHours}>
+                All hours
+              </button>
+            )
+          }>
+          {recentWeeks.length === 0 ? (
+            <Empty>No hours recorded yet.</Empty>
+          ) : (
+            <ul className="divide-default-200 divide-y px-6 py-4">
+              {recentWeeks.map((w) => (
+                <WeekLine key={w.id} w={w} />
+              ))}
+            </ul>
+          )}
+        </Section>
+      )}
+    </div>
+  )
+}
+
+const StaffOverview = ({ pto, canPto }: { pto: PtoPayload | null; canPto: boolean }) =>
+  canPto ? (
+    <Section
+      title="Time off"
+      description={
+        pto ? (
+          <>
+            Anniversary year {pto.year_start} – {pto.year_end}
+          </>
+        ) : undefined
+      }>
+      {pto ? (
+        <div className="card-body">
+          <div className="gap-base grid md:grid-cols-3">
+            {pto.buckets.map((b) => (
+              <div key={b.bucket} className="border-default-200 rounded-lg border p-4">
+                <p className="text-default-400 text-sm">{b.label}</p>
+                <p className="text-dark mt-1 text-2xl font-semibold tabular-nums">
+                  {b.available}
+                  <span className="text-default-400 text-sm font-normal"> / {b.allotted} h</span>
+                </p>
+                <p className="text-default-400 text-xs">{b.used} used or pending</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <Empty>No open time-off year yet.</Empty>
+      )}
+    </Section>
+  ) : null
+
+// --- Other tabs ----------------------------------------------------------------------
+
+const WorkOrdersTab = ({ workOrders, canOpen }: { workOrders: WorkOrderRow[]; canOpen: boolean }) => {
   const withRates = workOrders.some((wo) => wo.pay_rate !== null)
 
   return (
-    <div className="table-wrapper">
-      <table className="table table-hover">
-        <thead className="thead-sm">
-          <tr className="bg-light/25 text-xs uppercase">
-            <th>Property</th>
-            <th>Position</th>
-            <th>Start</th>
-            <th>End</th>
-            {withRates && <th className="text-end">Pay</th>}
-            {withRates && <th className="text-end">Bill</th>}
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {workOrders.length ? (
-            workOrders.map((wo) => (
-              <tr key={wo.id}>
-                <td className="font-medium">
-                  <Link href={`/admin/properties/${wo.property_id}`} className="hover:text-primary">
-                    {wo.property ?? '—'}
-                  </Link>
-                </td>
-                <td>{wo.position ?? '—'}</td>
-                <td>{wo.start_date ?? '—'}</td>
-                <td>{wo.end_date ?? '—'}</td>
-                {withRates && <td className="text-end">{wo.pay_rate !== null ? money(wo.pay_rate) : '—'}</td>}
-                {withRates && <td className="text-end">{wo.bill_rate !== null ? money(wo.bill_rate) : '—'}</td>}
-                <td>
-                  <span className={cn('badge badge-label capitalize', woBadge[wo.status] ?? 'bg-light text-default-600')}>
-                    {wo.status}
-                  </span>
-                </td>
+    <Section title="Work orders" description="Every placement, newest first. Open one for its rates, hours and actions.">
+      {workOrders.length === 0 ? (
+        <Empty>No work orders yet.</Empty>
+      ) : (
+        <div className="table-wrapper">
+          <table className="table table-hover">
+            <thead className="thead-sm">
+              <tr className="bg-light/25 text-xs uppercase">
+                <th>Property</th>
+                <th>Position</th>
+                <th>Started</th>
+                <th>Ended</th>
+                {withRates && <th className="text-end">Pay</th>}
+                {withRates && <th className="text-end">Bill</th>}
+                <th>Status</th>
+                {canOpen && <th className="text-center">Actions</th>}
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={withRates ? 7 : 5} className="text-default-400 py-4 text-center">
-                No work orders yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+            </thead>
+            <tbody>
+              {workOrders.map((wo) => (
+                <tr key={wo.id}>
+                  <td className="font-medium">
+                    <Link href={`/admin/properties/${wo.property_id}`} className="hover:text-primary">
+                      {wo.property ?? '—'}
+                    </Link>
+                  </td>
+                  <td>{wo.position ?? '—'}</td>
+                  <td className="whitespace-nowrap">{wo.start_date ?? '—'}</td>
+                  <td className="whitespace-nowrap">{wo.end_date ?? '—'}</td>
+                  {withRates && <td className="text-end tabular-nums">{wo.pay_rate !== null ? money(wo.pay_rate) : '—'}</td>}
+                  {withRates && <td className="text-end tabular-nums">{wo.bill_rate !== null ? money(wo.bill_rate) : '—'}</td>}
+                  <td>
+                    <span className={cn('badge badge-label capitalize', woBadge[wo.status] ?? 'bg-light text-default-600')}>{wo.status}</span>
+                  </td>
+                  {canOpen && (
+                    <td className="text-center">
+                      <Link href={`/admin/work-orders?panel=${wo.id}`} className="btn btn-sm border-default-300 hover:border-default-400 border">
+                        Open
+                      </Link>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
   )
 }
 
-const HoursTab = ({ hours }: { hours: HoursRow[] }) => (
-  <div className="table-wrapper">
-    <table className="table table-hover">
-      <thead className="thead-sm">
-        <tr className="bg-light/25 text-xs uppercase">
-          <th>Week</th>
-          <th>Property</th>
-          <th>Position</th>
-          <th className="text-end">Regular</th>
-          <th className="text-end">Overtime</th>
-          <th className="text-end">Other</th>
-          <th className="text-end">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {hours.length ? (
-          hours.map((row) => (
-            <tr key={row.id}>
-              <td className="font-medium">
-                {row.week_start} – {row.week_end}
-              </td>
-              <td>{row.property ?? '—'}</td>
-              <td>{row.position ?? '—'}</td>
-              <td className="text-end">{hoursLabel(row.regular_minutes)}</td>
-              <td className="text-end">{row.overtime_minutes > 0 ? hoursLabel(row.overtime_minutes) : '—'}</td>
-              <td className="text-end">{row.other_minutes > 0 ? hoursLabel(row.other_minutes) : '—'}</td>
-              <td className="text-end font-semibold">
-                {hoursLabel(row.regular_minutes + row.overtime_minutes + row.other_minutes)}
-              </td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan={7} className="text-default-400 py-4 text-center">
-              No hours recorded yet.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-    {hours.length > 0 && <p className="text-default-400 mt-2 text-xs">Last {hours.length} weekly summaries, in hours.</p>}
-  </div>
-)
+const HoursTab = ({ hours }: { hours: WeekRow[] }) => {
+  const withTraining = hours.some((w) => w.training_minutes > 0)
+  const cell = (minutes: number) => (minutes > 0 ? hrs(minutes) : '—')
+
+  return (
+    <Section title="Hours" description={`The last ${hours.length || 12} weekly summaries, newest first. Open a week in the property's timesheet.`}>
+      {hours.length === 0 ? (
+        <Empty>No hours recorded yet.</Empty>
+      ) : (
+        <div className="table-wrapper">
+          <table className="table table-hover">
+            <thead className="thead-sm">
+              <tr className="bg-light/25 text-xs uppercase">
+                <th>Week</th>
+                <th>Property</th>
+                <th>Position</th>
+                <th className="text-end">Regular</th>
+                <th className="text-end">Overtime</th>
+                <th className="text-end">Holiday</th>
+                {withTraining && <th className="text-end">Training</th>}
+                <th className="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hours.map((w) => (
+                <tr key={w.id}>
+                  <td className="whitespace-nowrap">
+                    <Link href={gridHref(w)} className="hover:text-primary font-medium">
+                      {weekLabel(w.week_start, w.week_end)}
+                    </Link>
+                    {w.is_current && <span className="badge badge-label bg-light text-default-600 ms-2">This week</span>}
+                  </td>
+                  <td>{w.property ?? '—'}</td>
+                  <td>{w.position ?? '—'}</td>
+                  <td className="text-end tabular-nums">{hrs(w.regular_minutes)}</td>
+                  <td className="text-end tabular-nums">{cell(w.overtime_minutes)}</td>
+                  <td className="text-end tabular-nums">{cell(w.holiday_minutes)}</td>
+                  {withTraining && <td className="text-end tabular-nums">{cell(w.training_minutes)}</td>}
+                  <td className="text-default-900 text-end font-semibold tabular-nums">{hrs(totalMinutes(w))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Section>
+  )
+}
 
 /**
  * Deductions spread across pay periods. The total is fixed when the charge is
  * created; what is editable here is the pace, or stopping collection.
  */
-const ChargesTab = ({ charges }: { charges: ChargeRow[] }) => {
+const ChargesCard = ({ charges }: { charges: ChargeRow[] }) => {
   const [editing, setEditing] = useState<ChargeRow | null>(null)
 
   const cancel = (row: ChargeRow) => {
@@ -375,27 +631,29 @@ const ChargesTab = ({ charges }: { charges: ChargeRow[] }) => {
   }
 
   return (
-    <>
-      <div className="table-wrapper">
-        <table className="table table-hover">
-          <thead className="thead-sm">
-            <tr className="bg-light/25 text-xs uppercase">
-              <th>Charge</th>
-              <th className="text-end">Total</th>
-              <th className="text-end">Per period</th>
-              <th className="text-end">Collected</th>
-              <th>Status</th>
-              <th className="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {charges.length ? (
-              charges.map((row) => (
+    <Section title="Deductions" description="Hiring fees and uniform charges, taken out of pay over several pay periods.">
+      {charges.length === 0 ? (
+        <Empty>No deductions scheduled.</Empty>
+      ) : (
+        <div className="table-wrapper">
+          <table className="table table-hover">
+            <thead className="thead-sm">
+              <tr className="bg-light/25 text-xs uppercase">
+                <th>Charge</th>
+                <th className="text-end">Total</th>
+                <th className="text-end">Per period</th>
+                <th className="text-end">Collected</th>
+                <th>Status</th>
+                <th className="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {charges.map((row) => (
                 <tr key={row.id}>
                   <td className="font-medium">{row.reason_label}</td>
-                  <td className="text-end">{money(row.total_amount)}</td>
-                  <td className="text-end">{money(row.amount_per_payment)}</td>
-                  <td className="text-end">
+                  <td className="text-end tabular-nums">{money(row.total_amount)}</td>
+                  <td className="text-end tabular-nums">{money(row.amount_per_payment)}</td>
+                  <td className="text-end tabular-nums">
                     {money(row.collected_amount)}
                     <span className="text-default-400 block text-xs">
                       {row.applied_count} of {row.num_payments} payments
@@ -410,10 +668,18 @@ const ChargesTab = ({ charges }: { charges: ChargeRow[] }) => {
                     <div className="flex justify-center gap-1.5">
                       {row.can_edit && (
                         <>
-                          <button className="btn btn-icon border-default-300 hover:border-default-400 border" title="Change per-period amount" onClick={() => setEditing(row)}>
+                          <button
+                            className="btn btn-icon border-default-300 hover:border-default-400 border"
+                            title="Change per-period amount"
+                            aria-label={`Change the per-period amount of the ${row.reason_label.toLowerCase()}`}
+                            onClick={() => setEditing(row)}>
                             <Icon icon="pencil" className="text-base" />
                           </button>
-                          <button className="btn btn-icon border-default-300 hover:border-danger text-danger border" title="Stop collecting" onClick={() => cancel(row)}>
+                          <button
+                            className="btn btn-icon border-default-300 hover:border-danger text-danger border"
+                            title="Stop collecting"
+                            aria-label={`Stop collecting the ${row.reason_label.toLowerCase()}`}
+                            onClick={() => cancel(row)}>
                             <Icon icon="x" className="text-base" />
                           </button>
                         </>
@@ -421,25 +687,19 @@ const ChargesTab = ({ charges }: { charges: ChargeRow[] }) => {
                     </div>
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="text-default-400 py-4 text-center">
-                  No deductions scheduled.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {editing && <EditChargeModal row={editing} onClose={() => setEditing(null)} />}
-    </>
+    </Section>
   )
 }
 
 const EditChargeModal = ({ row, onClose }: { row: ChargeRow; onClose: () => void }) => {
-  const { data, setData, patch, processing, errors } = useForm({
+  const { data, setData, processing, errors } = useForm({
     amount_per_payment: String(row.amount_per_payment / 100),
   })
 
@@ -461,8 +721,11 @@ const EditChargeModal = ({ row, onClose }: { row: ChargeRow; onClose: () => void
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="form-label">Amount per pay period</label>
+              <label htmlFor="amount_per_payment" className="form-label">
+                Amount per pay period
+              </label>
               <input
+                id="amount_per_payment"
                 type="number"
                 step="0.01"
                 min="0.01"
@@ -491,129 +754,103 @@ const EditChargeModal = ({ row, onClose }: { row: ChargeRow; onClose: () => void
   )
 }
 
-const AdjustmentsTab = ({ adjustments }: { adjustments: AdjustmentRow[] }) => (
-  <div className="table-wrapper">
-    <table className="table table-hover">
-      <thead className="thead-sm">
-        <tr className="bg-light/25 text-xs uppercase">
-          <th>Date</th>
-          <th>Item</th>
-          <th>Type</th>
-          <th className="text-end">Amount</th>
-          <th>Billable</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        {adjustments.length ? (
-          adjustments.map((a) => (
-            <tr key={a.id}>
-              <td>{a.created_at ?? '—'}</td>
-              <td className="font-medium">{a.item ?? '—'}</td>
-              <td>
-                <span
-                  className={cn(
-                    'badge badge-label',
-                    a.type === 'incentive' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger',
-                  )}
-                >
-                  {a.type_label}
-                </span>
-              </td>
-              <td className={cn('text-end font-medium', a.type === 'deduction' && 'text-danger')}>
-                {a.type === 'deduction' ? `-${money(a.value)}` : money(a.value)}
-              </td>
-              <td>{a.is_billable ? 'Yes' : 'No'}</td>
-              <td className="text-default-400">{a.notes ?? '—'}</td>
+/** The server sends at most this many adjustments. */
+const ADJUSTMENTS_SHOWN = 25
+
+const AdjustmentsCard = ({ adjustments }: { adjustments: AdjustmentRow[] }) => (
+  <Section
+    title="Adjustments"
+    description={`One-off incentives and deductions on their time.${adjustments.length >= ADJUSTMENTS_SHOWN ? ` Showing the latest ${ADJUSTMENTS_SHOWN}.` : ''}`}>
+    {adjustments.length === 0 ? (
+      <Empty>No adjustments yet.</Empty>
+    ) : (
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>Date</th>
+              <th>Item</th>
+              <th>Type</th>
+              <th className="text-end">Amount</th>
+              <th>Billable</th>
+              <th>Notes</th>
             </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan={6} className="text-default-400 py-4 text-center">
-              No adjustments yet.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
+          </thead>
+          <tbody>
+            {adjustments.map((a) => (
+              <tr key={a.id}>
+                <td className="whitespace-nowrap">{a.created_at ?? '—'}</td>
+                <td className="font-medium">{a.item ?? '—'}</td>
+                <td>
+                  <span className={cn('badge badge-label', a.type === 'incentive' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger')}>{a.type_label}</span>
+                </td>
+                <td className={cn('text-end font-medium tabular-nums', a.type === 'deduction' && 'text-danger')}>
+                  {a.type === 'deduction' ? `-${money(a.value)}` : money(a.value)}
+                </td>
+                <td>{a.is_billable ? 'Yes' : 'No'}</td>
+                <td className="text-default-400">{a.notes ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </Section>
 )
 
-const PtoTab = ({ pto }: { pto: PtoPayload }) => (
-  <div>
-    <p className="text-default-400 mb-4 text-sm">
-      Anniversary year <span className="text-dark font-medium">{pto.year_start}</span> –{' '}
-      <span className="text-dark font-medium">{pto.year_end}</span>
-    </p>
-    <div className="gap-base grid grid-cols-1 md:grid-cols-3">
-      {pto.buckets.map((b) => (
-        <div key={b.bucket} className="border-default-200 rounded-lg border p-4">
-          <p className="text-default-400 text-2xs uppercase">{b.label}</p>
-          <p className="text-dark mt-1 text-2xl font-semibold">
-            {b.available}
-            <span className="text-default-400 text-sm font-normal"> / {b.allotted} hrs</span>
-          </p>
-          <p className="text-default-400 text-xs">{b.used} used or pending</p>
-        </div>
-      ))}
-    </div>
-  </div>
-)
-
-const HistoryTab = ({ history }: { history: HistoryRow[] }) => (
-  <div className="table-wrapper">
-    <table className="table table-hover">
-      <thead className="thead-sm">
-        <tr className="bg-light/25 text-xs uppercase">
-          <th>When</th>
-          <th>What</th>
-          <th>By</th>
-        </tr>
-      </thead>
-      <tbody>
-        {history.length ? (
-          history.map((h) => (
-            <tr key={h.id}>
-              <td className="text-nowrap">{h.created_at}</td>
-              <td>
-                {h.description}
-                {h.event && <span className="text-default-400 ms-1.5 text-xs">({h.event})</span>}
-              </td>
-              <td>{h.causer ?? 'System'}</td>
+const HistoryTab = ({ history, name }: { history: HistoryRow[]; name: string }) => (
+  <Section title="History" description={`Changes to ${name}'s record, newest first.`}>
+    {history.length === 0 ? (
+      <Empty>No changes recorded yet.</Empty>
+    ) : (
+      <div className="table-wrapper">
+        <table className="table table-hover">
+          <thead className="thead-sm">
+            <tr className="bg-light/25 text-xs uppercase">
+              <th>When</th>
+              <th>What</th>
+              <th>By</th>
             </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan={3} className="text-default-400 py-4 text-center">
-              No history yet.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
+          </thead>
+          <tbody>
+            {history.map((h) => (
+              <tr key={h.id}>
+                <td className="text-nowrap">{h.created_at}</td>
+                <td>{h.description}</td>
+                <td>{h.causer ?? 'System'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </Section>
 )
 
 // --- Page -------------------------------------------------------------------------
 
-const Page = ({ person, workOrders, hours, adjustments, charges, pto, history }: Props) => {
-  // The hiring fee is the one worth surfacing outside the tab — a cancelled or
-  // fully-paid one still shows, so "no card" unambiguously means "no fee".
-  const activeFee = charges?.find((c) => c.reason === 'hiring_fee') ?? null
+/** Old tab links still land somewhere sensible. */
+const HASH_ALIASES: Record<string, string> = { charges: 'pay', adjustments: 'pay', pto: 'overview' }
 
+const Page = ({ person, workOrders, placements, recentWeeks, lastFullWeek, hours, adjustments, charges, pto, history, can }: Props) => {
+  const firstName = person.name.split(' ')[0]
+  // A cancelled or fully-paid fee still shows, so "no fee card" means "no fee".
+  const hiringFee = charges?.find((c) => c.reason === 'hiring_fee') ?? null
+
+  // Overview always exists, so there is always a tab to land on.
   const tabs = [
-    { key: 'work-orders', label: 'Work Orders', show: workOrders !== null },
+    { key: 'overview', label: 'Overview', show: true },
+    { key: 'work-orders', label: 'Work orders', show: workOrders !== null },
     { key: 'hours', label: 'Hours', show: hours !== null },
-    { key: 'adjustments', label: 'Adjustments', show: adjustments !== null },
-    { key: 'charges', label: 'Deductions', show: charges !== null },
-    { key: 'pto', label: 'Time Off', show: pto !== null },
+    { key: 'pay', label: 'Pay & deductions', show: charges !== null || adjustments !== null },
     { key: 'history', label: 'History', show: history !== null },
   ].filter((t) => t.show)
 
   // Active tab lives in the URL hash so tabs are deep-linkable and survive refresh.
   const tabFromHash = () => {
-    const hash = typeof window === 'undefined' ? '' : window.location.hash.slice(1)
-    return tabs.some((t) => t.key === hash) ? hash : tabs[0].key
+    const raw = typeof window === 'undefined' ? '' : window.location.hash.slice(1)
+    const hash = HASH_ALIASES[raw] ?? raw
+    return tabs.some((t) => t.key === hash) ? hash : 'overview'
   }
   const [active, setActive] = useState(tabFromHash)
 
@@ -629,48 +866,63 @@ const Page = ({ person, workOrders, hours, adjustments, charges, pto, history }:
     window.history.replaceState(null, '', `#${key}`)
   }
 
+  const activeWorkOrders = placements?.length ?? 0
+
   return (
     <>
       <Head title={person.name} />
       <PageBreadcrumb title={person.name} subtitle="People" />
 
-      <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
-        <div className="space-y-6">
-          <IdentityCard person={person} />
-          {activeFee && <FeeCard charge={activeFee} />}
-        </div>
+      {/* Tabs sit under the page title, full width, as on My Profile and the property page. */}
+      <nav className="border-default-300 mt-4 mb-5 flex flex-wrap gap-1 border-b" aria-label="Profile sections" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={active === t.key}
+            onClick={() => selectTab(t.key)}
+            className={cn(
+              '-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 font-medium focus:outline-hidden',
+              active === t.key ? 'border-primary text-default-900' : 'text-default-500 hover:text-default-900 border-transparent',
+            )}>
+            {t.label}
+            {t.key === 'work-orders' && activeWorkOrders > 1 && <span className="badge badge-label bg-light text-default-600">{activeWorkOrders} active</span>}
+          </button>
+        ))}
+      </nav>
 
-        <div className="space-y-6 xl:col-span-2">
-          <div className="card">
-            <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
-              {tabs.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active === t.key}
-                  onClick={() => selectTab(t.key)}
-                  className={cn(
-                    'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                    active === t.key ? 'border-primary text-primary border-b' : '',
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-
-            <div className="card-body p-6">
-              {active === 'work-orders' && workOrders !== null && <WorkOrdersTab workOrders={workOrders} />}
-              {active === 'hours' && hours !== null && <HoursTab hours={hours} />}
-              {active === 'adjustments' && adjustments !== null && <AdjustmentsTab adjustments={adjustments} />}
-              {active === 'charges' && charges !== null && <ChargesTab charges={charges} />}
-              {active === 'pto' && pto !== null && <PtoTab pto={pto} />}
-              {active === 'history' && history !== null && <HistoryTab history={history} />}
-            </div>
+      {active === 'overview' && (
+        <div className="gap-base grid items-start xl:grid-cols-3">
+          <div className="flex flex-col gap-6">
+            <PersonIdentityCard person={person} canInfoChanges={can.infoChanges} />
+            {!person.is_staff && charges !== null && <FeeCard charge={hiringFee} />}
+          </div>
+          <div className="xl:col-span-2">
+            {person.is_staff ? (
+              <StaffOverview pto={pto} canPto={can.pto} />
+            ) : (
+              <ContractorOverview
+                placements={placements ?? []}
+                recentWeeks={recentWeeks}
+                lastFullWeek={lastFullWeek}
+                canOpen={can.openWorkOrders}
+                onAllHours={hours !== null ? () => selectTab('hours') : null}
+              />
+            )}
           </div>
         </div>
-      </div>
+      )}
+
+      {active === 'work-orders' && workOrders !== null && <WorkOrdersTab workOrders={workOrders} canOpen={can.openWorkOrders} />}
+      {active === 'hours' && hours !== null && <HoursTab hours={hours} />}
+      {active === 'pay' && (
+        <div className="flex flex-col gap-6">
+          {charges !== null && <ChargesCard charges={charges} />}
+          {adjustments !== null && <AdjustmentsCard adjustments={adjustments} />}
+        </div>
+      )}
+      {active === 'history' && history !== null && <HistoryTab history={history} name={firstName} />}
     </>
   )
 }
