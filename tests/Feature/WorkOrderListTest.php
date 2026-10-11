@@ -76,13 +76,43 @@ it('filters by status, offering every status rather than only what page one hold
 
     expect(workOrderIds('?status=closed'))->toHaveCount(2)
         ->and(workOrderIds('?status=active'))->toHaveCount(3)
-        // Not a real status — falls back to showing everything.
-        ->and(workOrderIds('?status=deleted'))->toHaveCount(5);
+        ->and(workOrderIds('?status=all'))->toHaveCount(5)
+        // Running placements by default, and for a status that doesn't exist.
+        ->and(workOrderIds())->toHaveCount(3)
+        ->and(workOrderIds('?status=deleted'))->toHaveCount(3);
 
     $this->actingAs(person('office_manager'))->get(main('/admin/work-orders'))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('statuses', count(WorkOrderStatus::cases())),
+            ->has('statuses', count(WorkOrderStatus::cases()))
+            // Each count says what picking that status would show.
+            ->where('counts', ['all' => 5, 'active' => 3, 'closed' => 2, 'suspended' => 0]),
         );
+});
+
+it('counts statuses within the search and property filters', function () {
+    $sunrise = Property::factory()->create();
+    $harbor = Property::factory()->create();
+    workOrdersAt($sunrise, 2, WorkOrderStatus::Active);
+    workOrdersAt($sunrise, 1, WorkOrderStatus::Closed);
+    workOrdersAt($harbor, 4, WorkOrderStatus::Active);
+
+    $this->actingAs(person('office_manager'))->get(main("/admin/work-orders?property_id={$sunrise->id}"))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('counts.all', 3)
+            ->where('counts.active', 2)
+            ->where('counts.closed', 1));
+});
+
+it('closes a work order from the list and returns to it', function () {
+    $wo = WorkOrder::factory()->create();
+
+    $this->actingAs(person('office_manager'))
+        ->from(main('/admin/work-orders?status=all&page=2'))
+        ->post(main("/admin/work-orders/{$wo->id}/close"))
+        ->assertRedirect(main('/admin/work-orders?status=all&page=2'));
+
+    expect($wo->refresh()->status)->toBe(WorkOrderStatus::Closed)
+        ->and($wo->end_date)->not->toBeNull();
 });
 
 it('searches across contractor, property and position', function () {

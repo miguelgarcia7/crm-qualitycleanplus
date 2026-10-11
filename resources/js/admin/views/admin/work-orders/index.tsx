@@ -1,3 +1,4 @@
+import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import ServerPagination, { PaginationMeta } from '@/components/table/ServerPagination'
@@ -32,6 +33,7 @@ type WorkOrderRow = {
   is_temporary_assignment: boolean
   direct_hire: DirectHire | null
   start_date: string
+  end_date: string | null
 }
 type Option = { id: number; name: string }
 /** An open PM staffing request a transfer can fill. */
@@ -50,15 +52,17 @@ type Props = {
   pagination: PaginationMeta
   filters: Filters
   statuses: { value: string; label: string }[]
+  /** Rows per status under the other filters; `all` is every status. */
+  counts: Record<string, number>
   catalogs: Catalogs
-  can: { create: boolean; transfer: boolean; temp: boolean }
+  can: { create: boolean; edit: boolean; close: boolean; transfer: boolean; temp: boolean }
 }
 
 /** Drop empties so the URL carries only what is actually filtering. */
 const queryFrom = (filters: Filters, page: number): Record<string, string> => {
   const params: Record<string, string> = {}
   if (filters.search !== '') params.search = filters.search
-  if (filters.status !== '') params.status = filters.status
+  if (filters.status !== 'active') params.status = filters.status
   if (filters.property_id) params.property_id = String(filters.property_id)
   if (filters.sort !== 'created_at') params.sort = filters.sort
   if (filters.direction !== 'desc') params.direction = filters.direction
@@ -68,14 +72,20 @@ const queryFrom = (filters: Filters, page: number): Record<string, string> => {
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
+// Noon, so no timezone offset can push the date to a neighbouring day.
+const longDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+const shortDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 const statusBadge = (s: string) =>
   s === 'active' ? 'bg-success/15 text-success' : s === 'closed' ? 'bg-secondary/15 text-secondary' : 'bg-warning/15 text-warning'
+
+/** Running first, ended last. */
+const STATUS_ORDER = ['active', 'suspended', 'closed']
 
 type ModalState = { kind: 'transfer' | 'temp'; wo: WorkOrderRow } | null
 
 const columnHelper = createColumnHelper<WorkOrderRow>()
 
-const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Props) => {
+const Page = ({ workOrders, pagination, filters, statuses, counts, catalogs, can }: Props) => {
   const [modal, setModal] = useState<ModalState>(null)
   // "Transfer someone in" on a staffing request lands here with
   // ?staffing_request=<id>: the Transfer form then starts on that request.
@@ -96,7 +106,7 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
       preserveState: true,
       preserveScroll: true,
       replace,
-      only: ['workOrders', 'pagination', 'filters'],
+      only: ['workOrders', 'pagination', 'filters', 'counts'],
     })
   }
 
@@ -117,46 +127,74 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
     [filters.sort, filters.direction],
   )
 
+  // Preline binds its dropdowns to the DOM it can see; rows re-rendered by a
+  // filter or page change need binding again.
+  useEffect(() => {
+    window.HSStaticMethods?.autoInit()
+  }, [workOrders])
+
+  const closeWorkOrder = (w: WorkOrderRow) =>
+    confirmAction({
+      title: 'Close work order',
+      message: (
+        <>
+          End <strong>{w.contractor}</strong>&apos;s placement as {w.position} at <strong>{w.property}</strong> today? They can no longer clock in on it; its
+          hours and invoices stay.
+        </>
+      ),
+      confirmLabel: 'Close Work Order',
+      onConfirm: () => router.post(`/admin/work-orders/${w.id}/close`, {}, { preserveScroll: true }),
+    })
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('contractor', {
         header: 'Contractor',
         cell: ({ row }) => (
-          <Link href={`/admin/people/${row.original.person_id}`} className="hover:text-primary font-medium">
+          <Link href={`/admin/people/${row.original.person_id}`} className="hover:text-primary text-default-900 font-semibold">
             {row.original.contractor}
           </Link>
         ),
       }),
       columnHelper.accessor('property', {
         header: 'Property',
+        cell: ({ row }) => (
+          <Link href={`/admin/properties/${row.original.property_id}`} className="hover:text-primary">
+            {row.original.property}
+          </Link>
+        ),
       }),
       columnHelper.accessor('position', {
         header: 'Position',
       }),
       columnHelper.accessor('pay_rate', {
         header: 'Pay',
-        cell: ({ row }) => money(row.original.pay_rate),
+        cell: ({ row }) => <span className="tabular-nums">{money(row.original.pay_rate)}</span>,
       }),
       columnHelper.accessor('bill_rate', {
         header: 'Bill',
-        cell: ({ row }) => money(row.original.bill_rate),
+        cell: ({ row }) => <span className="tabular-nums">{money(row.original.bill_rate)}</span>,
       }),
       columnHelper.accessor('start_date', {
-        header: 'Start',
+        header: 'Started',
+        cell: ({ row }) => <span className="whitespace-nowrap">{longDate(row.original.start_date)}</span>,
       }),
       columnHelper.accessor('direct_hire', {
-        header: 'Eligibility',
+        header: 'Toward direct hire',
         enableSorting: false,
         cell: ({ row }) => {
-          const dh = row.original.direct_hire
+          const w = row.original
+          const dh = w.direct_hire
+          // A placement that has ended is past the question of direct hire.
+          if (w.status === 'closed') return <span className="text-default-400 whitespace-nowrap">{w.end_date ? `Ended ${shortDate(w.end_date)}` : 'Ended'}</span>
           if (dh === null) return <span className="text-default-400">—</span>
-          if (dh.unrestricted) return <span className="badge badge-label bg-light text-default-600">None</span>
+          if (dh.unrestricted) return <span className="badge badge-label bg-light text-default-600">No threshold</span>
           if (dh.eligible) return <span className="badge badge-label bg-success/15 text-success">Eligible</span>
 
           return (
-            <div className="min-w-28">
+            <div className="min-w-32">
               <span className="text-default-400 mb-1 block text-xs">
-                {Math.round(dh.worked_hours).toLocaleString()} / {Math.round(dh.threshold_hours).toLocaleString()} hrs
+                {Math.round(dh.worked_hours).toLocaleString()} of {Math.round(dh.threshold_hours).toLocaleString()} hrs
               </span>
               <span
                 className="bg-default-100 flex h-1.5 w-full overflow-hidden rounded"
@@ -176,44 +214,56 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
       }),
       columnHelper.accessor('status', {
         header: 'Status',
-        filterFn: 'equalsString',
-        enableColumnFilter: true,
         cell: ({ row }) => (
-          <>
+          <span className="whitespace-nowrap">
             <span className={cn('badge badge-label capitalize', statusBadge(row.original.status))}>{row.original.status}</span>
-            {row.original.is_temporary_assignment && <span className="badge badge-label bg-info/15 text-info ms-1">temp</span>}
-          </>
+            {row.original.is_temporary_assignment && <span className="badge badge-label bg-info/15 text-info ms-1">Temporary</span>}
+          </span>
         ),
       }),
       {
+        id: 'actions',
         header: 'Actions',
         enableSorting: false,
         cell: ({ row }: { row: TableRow<WorkOrderRow> }) => {
           const w = row.original
+          const active = w.status === 'active'
+          const menu = [
+            active && can.transfer && { label: 'Transfer or change position', icon: 'arrows-exchange', onClick: () => setModal({ kind: 'transfer', wo: w }) },
+            active && can.temp && !w.is_temporary_assignment && { label: 'Temporary assignment', icon: 'clock-share', onClick: () => setModal({ kind: 'temp', wo: w }) },
+            w.status !== 'closed' && can.close && { label: 'Close work order', icon: 'circle-x', danger: true, onClick: () => closeWorkOrder(w) },
+          ].filter(Boolean) as { label: string; icon: string; danger?: boolean; onClick: () => void }[]
+
           return (
             <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-              <Link
-                href={`/admin/work-orders/${w.id}/edit`}
-                className="btn btn-icon border-default-300 hover:border-default-400 border"
-                title="Edit work order"
-              >
-                <Icon icon="edit" className="text-base" />
-              </Link>
-              {w.status === 'active' && can.transfer && (
-                <button
-                  className="btn bg-primary/15 text-primary hover:bg-primary hover:text-white"
-                  onClick={() => setModal({ kind: 'transfer', wo: w })}
-                >
-                  Transfer
-                </button>
+              {can.edit && (
+                <Link href={`/admin/work-orders/${w.id}/edit`} className="btn btn-sm border-default-300 hover:border-default-400 border">
+                  <Icon icon="edit" className="size-4" /> Edit
+                </Link>
               )}
-              {w.status === 'active' && can.temp && !w.is_temporary_assignment && (
-                <button
-                  className="btn bg-info/15 text-info hover:bg-info hover:text-white"
-                  onClick={() => setModal({ kind: 'temp', wo: w })}
-                >
-                  Temp
-                </button>
+              {menu.length > 0 && (
+                <div className="hs-dropdown [--placement:bottom-right] relative inline-flex">
+                  <button
+                    type="button"
+                    className="hs-dropdown-toggle btn btn-icon border-default-300 hover:border-default-400 border"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    aria-label={`More actions for ${w.contractor}`}>
+                    <Icon icon="dots" className="text-base" />
+                  </button>
+                  <div className="hs-dropdown-menu min-w-56" role="menu">
+                    {menu.map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        role="menuitem"
+                        className={cn('dropdown-item w-full', item.danger && 'text-danger')}
+                        onClick={item.onClick}>
+                        <Icon icon={item.icon} className="size-4" /> {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )
@@ -221,7 +271,7 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [can.transfer, can.temp],
+    [can.transfer, can.temp, can.close, can.edit],
   )
 
   const table = useReactTable({
@@ -264,8 +314,9 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
             <div className="input-icon-group">
               <Icon icon="search" className="input-icon" />
               <input
-                className="form-input"
-                placeholder="Search contractor, property or position..."
+                className="form-input w-80 max-w-full"
+                placeholder="Search contractor, property or position…"
+                aria-label="Search work orders"
                 value={search}
                 onChange={(e) => {
                   typed.current = true
@@ -283,15 +334,21 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            <span className="me-1 font-semibold text-nowrap">Filter By:</span>
-            <select className="form-select w-auto min-w-36" value={filters.status} onChange={(e) => visit({ status: e.target.value })}>
-              <option value="">Status</option>
-              {statuses.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
+            <div className="bg-light inline-flex rounded-lg p-0.5" role="group" aria-label="Show work orders">
+              {[...[...statuses].sort((a, b) => STATUS_ORDER.indexOf(a.value) - STATUS_ORDER.indexOf(b.value)), { value: 'all', label: 'All' }].map((st) => (
+                <button
+                  key={st.value}
+                  type="button"
+                  aria-pressed={filters.status === st.value}
+                  onClick={() => visit({ status: st.value })}
+                  className={cn(
+                    'rounded-md px-3 py-1 text-sm whitespace-nowrap',
+                    filters.status === st.value ? 'bg-card text-default-900 font-semibold shadow-sm' : 'text-default-500',
+                  )}>
+                  {st.label} <span className="tabular-nums opacity-70">{counts[st.value] ?? 0}</span>
+                </button>
               ))}
-            </select>
+            </div>
             <select
               className="form-select w-auto min-w-40"
               value={filters.property_id ?? ''}
@@ -311,7 +368,11 @@ const Page = ({ workOrders, pagination, filters, statuses, catalogs, can }: Prop
           </div>
         </div>
 
-        <DataTable table={table} emptyMessage="No work orders yet." />
+        <DataTable
+          table={table}
+          emptyMessage={counts.all ? 'No work orders match.' : 'No work orders yet.'}
+          onRowClick={can.edit ? (w) => router.visit(`/admin/work-orders/${w.id}/edit`) : undefined}
+        />
 
         {pagination.total > 0 && (
           <div className="card-footer">

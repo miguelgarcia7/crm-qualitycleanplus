@@ -81,6 +81,7 @@ class WorkOrderController extends Controller
                 'status' => $wo->status->value,
                 'is_temporary_assignment' => $wo->is_temporary_assignment,
                 'start_date' => $wo->start_date->toDateString(),
+                'end_date' => $wo->end_date?->toDateString(),
                 'direct_hire' => $directHire[$wo->id] ?? null,
             ])->all(),
             'pagination' => [
@@ -92,6 +93,7 @@ class WorkOrderController extends Controller
                 'to' => $page->lastItem(),
             ],
             'filters' => $filters,
+            'counts' => $this->statusCounts($filters, $user),
             // From the enum, not from the rows on this page — a status filter
             // that only offers what page 1 happens to contain is useless.
             'statuses' => array_map(
@@ -103,6 +105,8 @@ class WorkOrderController extends Controller
             ],
             'can' => [
                 'create' => $user instanceof Person && $user->can('work_orders.create'),
+                'edit' => $user instanceof Person && $user->can('work_orders.edit'),
+                'close' => $user instanceof Person && $user->can('work_orders.close'),
                 'transfer' => $user instanceof Person && $user->can('workflows.transfer.initiate'),
                 'temp' => $user instanceof Person && $user->can('workflows.temporary_assignment.initiate'),
             ],
@@ -116,18 +120,44 @@ class WorkOrderController extends Controller
      */
     private function filters(Request $request): array
     {
-        $status = (string) $request->string('status');
+        // Running placements by default; "all" shows every status.
+        $status = (string) $request->string('status', WorkOrderStatus::Active->value);
         $sort = (string) $request->string('sort', 'created_at');
         $perPage = $request->integer('per_page', 25);
 
         return [
             'search' => trim((string) $request->string('search')),
-            'status' => WorkOrderStatus::tryFrom($status) !== null ? $status : '',
+            'status' => $status === 'all' || WorkOrderStatus::tryFrom($status) !== null ? $status : WorkOrderStatus::Active->value,
             'property_id' => $request->integer('property_id') ?: null,
             'sort' => array_key_exists($sort, self::SORTS) ? $sort : 'created_at',
             'direction' => $request->string('direction')->lower()->toString() === 'asc' ? 'asc' : 'desc',
             'per_page' => in_array($perPage, self::PER_PAGE, true) ? $perPage : 25,
         ];
+    }
+
+    /**
+     * Work orders per status under every filter except the status itself, so
+     * each count says what picking that status would show.
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array<string, int>
+     */
+    private function statusCounts(array $filters, mixed $user): array
+    {
+        $byStatus = $this->listQuery($filters, $user, applyStatus: false)
+            ->reorder()
+            ->select('work_orders.status')
+            ->selectRaw('count(*) as aggregate')
+            ->groupBy('work_orders.status')
+            ->toBase()
+            ->pluck('aggregate', 'status');
+
+        $counts = ['all' => (int) $byStatus->sum()];
+        foreach (WorkOrderStatus::cases() as $status) {
+            $counts[$status->value] = (int) ($byStatus[$status->value] ?? 0);
+        }
+
+        return $counts;
     }
 
     /**
@@ -140,7 +170,7 @@ class WorkOrderController extends Controller
      * @param  array<string, mixed>  $filters
      * @return Builder<WorkOrder>
      */
-    private function listQuery(array $filters, mixed $user): Builder
+    private function listQuery(array $filters, mixed $user, bool $applyStatus = true): Builder
     {
         return WorkOrder::query()
             ->join('people', 'people.id', '=', 'work_orders.person_id')
@@ -150,7 +180,7 @@ class WorkOrderController extends Controller
                 $user instanceof Person && ! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES),
                 fn (Builder $q) => $q->whereIn('work_orders.property_id', $user->assignedProperties()->pluck('properties.id')->all()),
             )
-            ->when($filters['status'] !== '', fn (Builder $q) => $q->where('work_orders.status', $filters['status']))
+            ->when($applyStatus && $filters['status'] !== 'all', fn (Builder $q) => $q->where('work_orders.status', $filters['status']))
             ->when($filters['property_id'] !== null, fn (Builder $q) => $q->where('work_orders.property_id', $filters['property_id']))
             ->when($filters['search'] !== '', function (Builder $q) use ($filters): void {
                 $like = '%'.$filters['search'].'%';
@@ -255,7 +285,8 @@ class WorkOrderController extends Controller
 
         $action->handle($workOrder);
 
-        return to_route('work-orders.index')->with('success', 'Work order closed.');
+        // Back to wherever it was closed from — the list keeps its filters and page.
+        return back()->with('success', 'Work order closed.');
     }
 
     /** Positions a work order may be created against at a property: those with a current Bible rate. */
