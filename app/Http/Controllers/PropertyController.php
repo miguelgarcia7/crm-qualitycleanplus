@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Dashboards\Services\PropertyListSummary;
 use App\Domain\Dashboards\Services\PropertyOverview;
 use App\Domain\Devices\Models\Device;
 use App\Domain\People\Models\Person;
@@ -36,7 +37,7 @@ class PropertyController extends Controller
 {
     use LogsPropertyActivity;
 
-    public function index(): Response
+    public function index(PropertyListSummary $summary): Response
     {
         $this->authorize('viewAny', Property::class);
 
@@ -49,13 +50,18 @@ class PropertyController extends Controller
             $query->assignedTo($user);
         }
 
-        $properties = $query->get()->map(fn (Property $p): array => [
+        $rows = $query->get();
+        $columns = $user instanceof Person ? $summary->forMany($rows, $user) : [];
+
+        $properties = $rows->map(fn (Property $p): array => [
             'id' => $p->id,
             'name' => $p->name,
             'city' => $p->city,
             'state' => $p->state,
             'pm_name' => $p->pm_name,
             'status' => $p->status->value,
+            'time_source' => $p->time_source->value,
+            ...($columns[$p->id] ?? []),
         ]);
 
         return Inertia::render('admin/properties/index', [
