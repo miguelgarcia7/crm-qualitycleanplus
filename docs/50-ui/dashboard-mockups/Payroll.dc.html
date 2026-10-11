@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payroll dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ea}
+a{color:#46554f}a:hover{color:#313a36}
+a:focus-visible,button:focus-visible{outline:2px solid #596d69;outline-offset:2px}
+.wo{font-family:"Schibsted Grotesk",system-ui,sans-serif;color:#55584f;font-size:15px;line-height:1.45}
+.wo *{box-sizing:border-box}
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sn-head{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#94a09a;font-weight:600;padding:18px 12px 8px}
+.sn-item{display:block;padding:9px 12px;border-radius:8px;color:#94a09a;text-decoration:none;font-weight:500}
+.sn-on,.sn-on:hover{background:#596d69;color:#fff}
+.card{background:#fcfbf7;border-radius:18px;box-shadow:0 4px 18px rgba(70,75,60,.06);display:flex;flex-direction:column}
+.card > .cf{margin-top:auto}
+.ch{padding:18px 22px 14px;border-bottom:1px solid #ece9e0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ct{margin:0;font-size:18px;font-weight:600;color:#313a36}
+.cd{margin:3px 0 0;font-size:14px;color:#64665e}
+.cb{padding:6px 22px 14px}
+.cf{padding:12px 22px;border-top:1px solid #ece9e0;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border-radius:6px;font-family:inherit;font-size:14.5px;font-weight:500;border:1px solid #d9d5c7;cursor:pointer;text-decoration:none;white-space:nowrap;background:none;color:#313a36}
+.btn:hover{border-color:#b6b3a6}
+.btn-p{background:#596d69;color:#fff;border-color:#596d69}.btn-p:hover{background:#46554f;color:#fff}
+.btn-s{min-height:34px;padding:0 11px;font-size:13.5px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.t-warning{background:rgba(216,165,72,.2);color:#6e4c0f}
+.t-danger{background:rgba(190,80,60,.14);color:#8f3524}
+.t-info{background:rgba(93,146,173,.16);color:#2f5c72}
+.t-success{background:rgba(95,161,119,.16);color:#2f6141}
+.t-gray{background:#eceae2;color:#45483f}
+.strong{color:#313a36;font-weight:600}
+.muted{color:#64665e}
+.num{font-variant-numeric:tabular-nums}
+.big{font-size:24px;font-weight:600;color:#313a36;line-height:1.15;font-variant-numeric:tabular-nums}
+.lbl{font-size:14px;color:#55584f;font-weight:500}
+.item{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f1eee6}
+.item:last-child{border-bottom:0}
+.when{margin-left:auto;flex:none;font-size:13.5px;text-align:right}
+.sample{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:#55584f;border:1px dashed #b6b3a6;border-radius:999px;padding:2px 10px}
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#55584f;font-weight:600;padding:10px 22px;background:#f8f6f0;border-bottom:1px solid #e6e3d8;white-space:nowrap}
+.tbl td{padding:10px 22px;border-bottom:1px solid #ece9e0;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .r{text-align:right}
+.ln{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:15px}
+@media (max-width:900px){.sidenav{display:none}.page{padding:20px 16px 40px !important}.g2,.g4{grid-template-columns:minmax(0,1fr) !important}.span2{grid-column:auto !important}}
+</style>
+</helmet>
+
+<div class="wo" style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #f3f1ea">
+  <nav class="sidenav" aria-label="Main" style="flex: 1 1 250px; max-width: 250px; background: #2a322e; padding: 20px 14px 40px">
+    <div style="display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 22px; padding: 4px 10px 10px">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 24px; height: 24px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Minute
+    </div>
+    <div class="sn-head">Main</div>
+    <a class="sn-item sn-on" href="#" aria-current="page">Dashboard</a>
+    <a class="sn-item" href="#">My Tasks</a>
+    <div class="sn-head">Billing</div>
+    <a class="sn-item" href="#">Hour Imports</a>
+    <a class="sn-item" href="#">Invoices</a>
+    <div class="sn-head">Reports</div>
+    <a class="sn-item" href="#">Reports</a>
+  </nav>
+
+  <main class="page" style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 48px">
+    <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+        <div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #313a36">Good morning, Paula</h1>
+          <p class="muted" style="margin: 4px 0 0">Monday, Oct 12 · Paying the week of Sep 28 – Oct 4 · All 30 properties <span class="sample" style="margin-left: 8px">Sample data at production scale</span></p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <a class="btn" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload hours</a>
+          <a class="btn btn-p" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5M4 20h16"/></svg>Export payouts</a>
+        </div>
+      </div>
+
+      <!-- 1. The pay run: is it ready, what does it add up to -->
+      <section class="card">
+        <div class="ch">
+          <div>
+            <h2 class="ct">This pay run · Sep 28 – Oct 4</h2>
+            <p class="cd">Hours, pay and what comes out of it, for every contractor with time that week.</p>
+          </div>
+          <span class="badge t-warning">21 of 30 properties approved</span>
+        </div>
+        <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0">
+          <div style="padding: 18px 22px; border-right: 1px solid #ece9e0">
+            <div class="lbl">Gross pay</div>
+            <div class="big">$56,830.40</div>
+            <div class="muted" style="font-size: 13.5px">97 contractors · 2,812 h</div>
+            <div style="margin-top: 12px; font-size: 14px">
+              <div class="ln"><span>Regular</span><span class="num">2,486.50 h</span></div>
+              <div class="ln"><span>Overtime</span><span class="num">252.25 h</span></div>
+              <div class="ln"><span>Holiday</span><span class="num">58.00 h</span></div>
+              <div class="ln"><span>Training</span><span class="num">15.25 h</span></div>
+            </div>
+          </div>
+          <div style="padding: 18px 22px; border-right: 1px solid #ece9e0">
+            <div class="lbl">Taken out and added</div>
+            <div class="big">−$835.00</div>
+            <div class="muted" style="font-size: 13.5px">net change to pay</div>
+            <div style="margin-top: 12px; font-size: 14px">
+              <div class="ln"><span>Hiring fee installments · 6</span><span class="num">−$300.00</span></div>
+              <div class="ln"><span>Uniform charges · 9</span><span class="num">−$225.00</span></div>
+              <div class="ln"><span>Other deductions · 4</span><span class="num">−$720.00</span></div>
+              <div class="ln"><span>Incentives · 3</span><span class="num" style="color: #2f6141">+$410.00</span></div>
+            </div>
+          </div>
+          <div style="padding: 18px 22px">
+            <div class="lbl">Before you export</div>
+            <div class="big" style="color: #6e4c0f">26</div>
+            <div style="font-size: 13.5px; color: #6e4c0f">contractors at 9 properties not approved yet</div>
+            <p class="muted" style="margin: 12px 0 0; font-size: 14px">Their hours can still change until the property manager approves.</p>
+            <a href="#" style="display: inline-block; margin-top: 8px; font-size: 14px">See the 9 properties →</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Check these before paying -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Check before paying</h2>
+              <p class="cd">Hours that look unusual this run, largest first.</p>
+            </div>
+            <span class="badge t-gray">11 to check</span>
+          </div>
+          <div style="overflow-x: auto">
+            <table class="tbl">
+              <thead><tr><th>Contractor</th><th>Property</th><th>What</th><th class="r">Pay</th></tr></thead>
+              <tbody>
+                <tr><td class="strong">James Carter</td><td>Acme Hotel</td><td><span class="badge t-warning">16.2 h overtime</span></td><td class="r num">$1,189.55</td></tr>
+                <tr><td class="strong">Andre Wilson</td><td>MAG Solutions</td><td><span class="badge t-warning">14 h shift on Oct 2</span></td><td class="r num">$812.40</td></tr>
+                <tr><td class="strong">Linda Park</td><td>QCP Property</td><td><span class="badge t-info">Punch edited by hand</span></td><td class="r num">$603.96</td></tr>
+                <tr><td class="strong">Grace Kim</td><td>MAG Solutions</td><td><span class="badge t-info">Punch edited by hand</span></td><td class="r num">$573.91</td></tr>
+                <tr><td class="strong">Sofia Ramirez</td><td>Acme Hotel</td><td><span class="badge t-gray">First week</span></td><td class="r num">$667.50</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cf"><a href="#">View all 11 →</a></div>
+        </section>
+
+        <!-- 3. Payroll's own tasks from workflows -->
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Your tasks</h2>
+              <p class="cd">From terminations and other workflows.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Final paycheck · Luis Ortega</span><br><span class="muted" style="font-size: 14px">$45 hiring fee still owed · 12 h PTO forfeited</span></span><span class="when"><a class="btn btn-s" href="#">Process</a></span></div>
+            <div class="item"><span><span class="strong">Remove from QuickBooks · Dana Fox</span><br><span class="muted" style="font-size: 14px">Final paycheck done Oct 5 · due Oct 12</span></span><span class="when"><a class="btn btn-s" href="#">Done</a></span></div>
+          </div>
+          <div class="cf"><a href="#">View all in My Tasks →</a></div>
+        </section>
+      </div>
+
+      <!-- 4. Money coming in (payroll records payments), and staff time off in this run -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Overdue invoices</h2>
+              <p class="cd">Mark them paid as payments arrive. Oldest first.</p>
+            </div>
+            <span class="badge t-danger">$11,540 overdue</span>
+          </div>
+          <div style="overflow-x: auto">
+            <table class="tbl">
+              <thead><tr><th>Invoice</th><th>Property</th><th class="r">Total</th><th>Late</th><th></th></tr></thead>
+              <tbody>
+                <tr><td class="strong">INV-2026-000088</td><td>Harbor Point</td><td class="r num">$1,400.00</td><td><span class="badge t-danger">64 days</span></td><td class="r"><a class="btn btn-s" href="#">Mark paid</a></td></tr>
+                <tr><td class="strong">INV-2026-000131</td><td>Harbor Point</td><td class="r num">$4,220.00</td><td><span class="badge t-danger">38 days</span></td><td class="r"><a class="btn btn-s" href="#">Mark paid</a></td></tr>
+                <tr><td class="strong">INV-2026-000152</td><td>Sunrise Villas</td><td class="r num">$3,940.00</td><td><span class="badge t-warning">12 days</span></td><td class="r"><a class="btn btn-s" href="#">Mark paid</a></td></tr>
+                <tr><td class="strong">INV-2026-000158</td><td>Lakeside Suites</td><td class="r num">$1,980.00</td><td><span class="badge t-warning">5 days</span></td><td class="r"><a class="btn btn-s" href="#">Mark paid</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cf"><a href="#">All unpaid invoices →</a></div>
+        </section>
+
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Staff time off</h2>
+              <p class="cd">Approved time off in this run and the next.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Olivia Office</span><br><span class="muted" style="font-size: 14px">Oct 2 · 8 h sick</span></span><span class="when muted">this run</span></div>
+            <div class="item"><span><span class="strong">Rita Recruiter</span><br><span class="muted" style="font-size: 14px">Oct 20 – 24 · 40 h vacation</span></span><span class="when muted">upcoming</span></div>
+          </div>
+          <div class="cf"><a href="#">Time-off balances →</a></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

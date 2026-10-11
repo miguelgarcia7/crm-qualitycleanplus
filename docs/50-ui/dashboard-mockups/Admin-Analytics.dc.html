@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin dashboard · Analytics</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ea}
+a{color:#46554f}a:hover{color:#313a36}
+a:focus-visible,button:focus-visible{outline:2px solid #596d69;outline-offset:2px}
+.wo{font-family:"Schibsted Grotesk",system-ui,sans-serif;color:#55584f;font-size:15px;line-height:1.45}
+.wo *{box-sizing:border-box}
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sn-head{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#94a09a;font-weight:600;padding:18px 12px 8px}
+.sn-item{display:block;padding:9px 12px;border-radius:8px;color:#94a09a;text-decoration:none;font-weight:500}
+.sn-on,.sn-on:hover{background:#596d69;color:#fff}
+.card{background:#fcfbf7;border-radius:18px;box-shadow:0 4px 18px rgba(70,75,60,.06);display:flex;flex-direction:column}
+.card > .cf{margin-top:auto}
+.ch{padding:18px 22px 14px;border-bottom:1px solid #ece9e0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ct{margin:0;font-size:18px;font-weight:600;color:#313a36}
+.cd{margin:3px 0 0;font-size:14px;color:#64665e}
+.cb{padding:16px 22px 18px}
+.cf{padding:12px 22px;border-top:1px solid #ece9e0;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border-radius:6px;font-family:inherit;font-size:14.5px;font-weight:500;border:1px solid #d9d5c7;cursor:pointer;text-decoration:none;white-space:nowrap;background:none;color:#313a36}
+.btn-p{background:#596d69;color:#fff;border-color:#596d69}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.t-warning{background:rgba(216,165,72,.2);color:#6e4c0f}
+.t-danger{background:rgba(190,80,60,.14);color:#8f3524}
+.t-success{background:rgba(95,161,119,.16);color:#2f6141}
+.t-gray{background:#eceae2;color:#45483f}
+.strong{color:#313a36;font-weight:600}
+.muted{color:#64665e}
+.num{font-variant-numeric:tabular-nums}
+.big{font-size:26px;font-weight:600;color:#313a36;line-height:1.15;font-variant-numeric:tabular-nums}
+.lbl{font-size:14px;color:#55584f;font-weight:500}
+.up{color:#2f6141;font-size:13.5px}
+.down{color:#8f3524;font-size:13.5px}
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#55584f;font-weight:600;padding:10px 22px;background:#f8f6f0;border-bottom:1px solid #e6e3d8;white-space:nowrap}
+.tbl td{padding:10px 22px;border-bottom:1px solid #ece9e0;white-space:nowrap}
+.tbl .r{text-align:right}
+.tab{padding:10px 16px;margin-bottom:-1px;border-bottom:2px solid transparent;color:#64665e;font-weight:500;text-decoration:none}
+.tab-on{border-bottom-color:#596d69;color:#313a36}
+.seg{display:inline-flex;background:#eceae2;border-radius:8px;padding:2px}
+.seg span{padding:6px 12px;border-radius:6px;font-size:14px;color:#55584f;white-space:nowrap}
+.seg .on{background:#fcfbf7;color:#313a36;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.sample{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:#55584f;border:1px dashed #b6b3a6;border-radius:999px;padding:2px 10px}
+.bar{border-radius:4px 4px 0 0}
+@media (max-width:900px){.sidenav{display:none}.page{padding:20px 16px 40px !important}.g4,.g2{grid-template-columns:minmax(0,1fr) !important}.span2{grid-column:auto !important}}
+</style>
+</helmet>
+
+<div class="wo" style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #f3f1ea">
+  <nav class="sidenav" aria-label="Main" style="flex: 1 1 250px; max-width: 250px; background: #2a322e; padding: 20px 14px 40px">
+    <div style="display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 22px; padding: 4px 10px 10px">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 24px; height: 24px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Minute
+    </div>
+    <div class="sn-head">Main</div>
+    <a class="sn-item sn-on" href="#" aria-current="page">Dashboard</a>
+    <a class="sn-item" href="#">My Tasks</a>
+    <div class="sn-head">Reports</div>
+    <a class="sn-item" href="#">Reports</a>
+  </nav>
+
+  <main class="page" style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 48px">
+    <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+          <div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #313a36">Good afternoon, Ada</h1>
+            <p class="muted" style="margin: 4px 0 0">All 30 properties <span class="sample" style="margin-left: 8px">Sample data at production scale</span></p>
+          </div>
+          <div class="seg" aria-label="Period"><span class="on">October so far</span><span>September</span><span>Last 3 months</span></div>
+        </div>
+        <nav role="tablist" aria-label="Dashboard views" style="display: flex; gap: 4px; border-bottom: 1px solid #e0ddd2; margin-top: 16px">
+          <a role="tab" aria-selected="false" class="tab" href="Main.dc.html">Today</a>
+          <a role="tab" aria-selected="true" class="tab tab-on" href="AdminAnalytics.dc.html">Analytics</a>
+          <a role="tab" aria-selected="false" class="tab" href="AdminWorkforce.dc.html">Workforce</a>
+        </nav>
+      </div>
+
+      <!-- Headline figures, each compared with the same point last month -->
+      <div class="g4" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+        <div class="card cb"><div class="lbl">Billed</div><div class="big">$186,420</div><div class="up">▲ 8.4% vs same point in Sep</div></div>
+        <div class="card cb"><div class="lbl">Collected</div><div class="big">$171,300</div><div class="muted" style="font-size: 13.5px">Marked paid this month</div></div>
+        <div class="card cb"><div class="lbl">Still owed</div><div class="big">$96,240</div><div class="down">$11,540 overdue · 4 invoices</div></div>
+        <div class="card cb"><div class="lbl">Gross margin</div><div class="big">36.9%</div><div class="down">▼ 0.8 pts vs Sep · overtime up</div></div>
+      </div>
+
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div><h2 class="ct">Revenue and payouts</h2><p class="cd">By month, from frozen invoices. The gap is gross margin.</p></div>
+            <span style="display: flex; gap: 14px; font-size: 13.5px" class="muted">
+              <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #596d69"></span>Revenue</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: #c9c3b0"></span>Payouts</span>
+            </span>
+          </div>
+          <div class="cb">
+            <div role="img" aria-label="Revenue and payouts, May to October. Revenue rises from $258k in May to $296k in September; October so far $186k." style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; align-items: end; height: 190px; border-bottom: 1px solid #e0ddd2; padding: 0 6px">
+              <div style="display: flex; gap: 4px; align-items: flex-end; justify-content: center; height: 100%"><div class="bar" style="width: 26px; height: 87%; background: #596d69"></div><div class="bar" style="width: 26px; height: 55%; background: #c9c3b0"></div></div>
+              <div style="display: flex; gap: 4px; align-items: flex-end; justify-content: center; height: 100%"><div class="bar" style="width: 26px; height: 90%; background: #596d69"></div><div class="bar" style="width: 26px; height: 56%; background: #c9c3b0"></div></div>
+              <div style="display: flex; gap: 4px; align-items: flex-end; justify-content: center; height: 100%"><div class="bar" style="width: 26px; height: 94%; background: #596d69"></div><div class="bar" style="width: 26px; height: 59%; background: #c9c3b0"></div></div>
+              <div style="display: flex; gap: 4px; align-items: flex-end; justify-content: center; height: 100%"><div class="bar" style="width: 26px; height: 96%; background: #596d69"></div><div class="bar" style="width: 26px; height: 61%; background: #c9c3b0"></div></div>
+              <div style="display: flex; gap: 4px; align-items: flex-end; justify-content: center; height: 100%"><div class="bar" style="width: 26px; height: 100%; background: #596d69"></div><div class="bar" style="width: 26px; height: 63%; background: #c9c3b0"></div></div>
+              <div style="display: flex; gap: 4px; align-items: flex-end; justify-content: center; height: 100%"><div class="bar" style="width: 26px; height: 63%; border: 2px dashed #596d69; border-bottom: 0; background: rgba(89,109,105,.18)"></div><div class="bar" style="width: 26px; height: 40%; border: 2px dashed #a8a28d; border-bottom: 0; background: rgba(201,195,176,.35)"></div></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; padding: 8px 6px 0; font-size: 13.5px; text-align: center" class="muted">
+              <span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct so far</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="ch"><div><h2 class="ct">Who owes what</h2><p class="cd">Unpaid invoices by how late they are.</p></div></div>
+          <div class="cb">
+            <div role="img" aria-label="Still owed: current $84,700, 1 to 30 days late $5,920, 31 to 60 days $4,220, over 60 days $1,400" style="display: flex; height: 14px; border-radius: 7px; overflow: hidden">
+              <div style="width: 88%; background: #596d69"></div><div style="width: 6.2%; background: #c99a3c"></div><div style="width: 4.4%; background: #b06a3a"></div><div style="width: 1.4%; background: #8f3524"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; margin-top: 14px; font-size: 14px">
+              <div><div class="muted">Not due yet</div><div class="strong num">$84,700</div></div>
+              <div><div class="muted">1–30 days late</div><div class="strong num" style="color: #6e4c0f">$5,920</div></div>
+              <div><div class="muted">31–60 days late</div><div class="strong num" style="color: #8a4a22">$4,220</div></div>
+              <div><div class="muted">Over 60 days</div><div class="strong num" style="color: #8f3524">$1,400</div></div>
+            </div>
+            <div style="margin-top: 16px; border-top: 1px solid #ece9e0; padding-top: 10px; font-size: 14px">
+              <div style="display: flex; justify-content: space-between; padding: 5px 0"><span>Harbor Point · 2 invoices</span><span class="strong num">$5,620</span></div>
+              <div style="display: flex; justify-content: space-between; padding: 5px 0"><span>Sunrise Villas · 1 invoice</span><span class="strong num">$3,940</span></div>
+              <div style="display: flex; justify-content: space-between; padding: 5px 0"><span>Lakeside Suites · 1 invoice</span><span class="strong num">$1,980</span></div>
+            </div>
+          </div>
+          <div class="cf"><a href="#">All overdue invoices →</a></div>
+        </section>
+      </div>
+
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div><h2 class="ct">Properties this month</h2><p class="cd">Top 5 by billing. Margin and overtime show where profit leaks.</p></div>
+            <div class="seg" aria-label="Sort by"><span class="on">Billed</span><span>Lowest margin</span><span>Most overtime</span></div>
+          </div>
+          <div style="overflow-x: auto">
+            <table class="tbl">
+              <thead><tr><th>Property</th><th class="r">Hours</th><th class="r">Billed</th><th class="r">Margin</th><th class="r">Overtime</th></tr></thead>
+              <tbody>
+                <tr><td class="strong">Acme Hotel</td><td class="r num">1,402</td><td class="r num">$39,880</td><td class="r num">37.2%</td><td class="r"><span class="badge t-warning">11.4%</span></td></tr>
+                <tr><td class="strong">Harbor Point</td><td class="r num">1,120</td><td class="r num">$31,240</td><td class="r num">38.0%</td><td class="r num">6.1%</td></tr>
+                <tr><td class="strong">Lakeside Suites</td><td class="r num">980</td><td class="r num">$27,610</td><td class="r num">35.4%</td><td class="r"><span class="badge t-warning">12.8%</span></td></tr>
+                <tr><td class="strong">Sunrise Villas</td><td class="r num">860</td><td class="r num">$22,970</td><td class="r num">36.8%</td><td class="r num">7.9%</td></tr>
+                <tr><td class="strong">QCP Property</td><td class="r num">610</td><td class="r num">$15,420</td><td class="r num">37.5%</td><td class="r num">4.2%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cf"><a href="#">All 30 properties in Reports →</a></div>
+        </section>
+
+        <section class="card">
+          <div class="ch"><div><h2 class="ct">Hours per week</h2><p class="cd">Last 8 weeks. The darker part is overtime.</p></div></div>
+          <div class="cb">
+            <div role="img" aria-label="Hours per week over 8 weeks, about 2,700 to 2,950, with overtime rising from 7% to 9%" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; align-items: end; height: 150px; border-bottom: 1px solid #e0ddd2">
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 6%; background: #3f4d49"></div><div class="bar" style="height: 84%; background: #8fa29c; border-radius: 0"></div></div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 6%; background: #3f4d49"></div><div style="height: 86%; background: #8fa29c"></div></div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 7%; background: #3f4d49"></div><div style="height: 85%; background: #8fa29c"></div></div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 7%; background: #3f4d49"></div><div style="height: 88%; background: #8fa29c"></div></div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 8%; background: #3f4d49"></div><div style="height: 87%; background: #8fa29c"></div></div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 8%; background: #3f4d49"></div><div style="height: 90%; background: #8fa29c"></div></div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 9%; background: #3f4d49"></div><div style="height: 89%; background: #8fa29c"></div></div>
+              <div style="display: flex; flex-direction: column; justify-content: flex-end; height: 100%"><div style="height: 9%; background: #3f4d49"></div><div style="height: 87%; background: #8fa29c"></div></div>
+            </div>
+            <p class="muted" style="margin: 10px 0 0; font-size: 14px">Overtime is <span class="strong">9.1%</span> of hours this week, up from 7.0% eight weeks ago.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

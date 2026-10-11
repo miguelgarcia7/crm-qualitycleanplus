@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin dashboard · Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ea}
+a{color:#46554f}a:hover{color:#313a36}
+a:focus-visible,button:focus-visible{outline:2px solid #596d69;outline-offset:2px}
+.wo{font-family:"Schibsted Grotesk",system-ui,sans-serif;color:#55584f;font-size:15px;line-height:1.45}
+.wo *{box-sizing:border-box}
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sn-head{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#94a09a;font-weight:600;padding:18px 12px 8px}
+.sn-item{display:block;padding:9px 12px;border-radius:8px;color:#94a09a;text-decoration:none;font-weight:500}
+.sn-on,.sn-on:hover{background:#596d69;color:#fff}
+.card{background:#fcfbf7;border-radius:18px;box-shadow:0 4px 18px rgba(70,75,60,.06);display:flex;flex-direction:column}
+.card > .cf{margin-top:auto}
+.ch{padding:18px 22px 14px;border-bottom:1px solid #ece9e0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ct{margin:0;font-size:18px;font-weight:600;color:#313a36}
+.cd{margin:3px 0 0;font-size:14px;color:#64665e}
+.cb{padding:6px 22px 14px}
+.cf{padding:12px 22px;border-top:1px solid #ece9e0;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border-radius:6px;font-family:inherit;font-size:14.5px;font-weight:500;border:1px solid #d9d5c7;cursor:pointer;text-decoration:none;white-space:nowrap;background:none;color:#313a36}
+.btn:hover{border-color:#b6b3a6}
+.btn-p{background:#596d69;color:#fff;border-color:#596d69}.btn-p:hover{background:#46554f;color:#fff}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.t-warning{background:rgba(216,165,72,.2);color:#6e4c0f}
+.t-danger{background:rgba(190,80,60,.14);color:#8f3524}
+.t-info{background:rgba(93,146,173,.16);color:#2f5c72}
+.t-gray{background:#eceae2;color:#45483f}
+.t-plan{background:transparent;border:1px dashed #b6b3a6;color:#55584f}
+.strong{color:#313a36;font-weight:600}
+.muted{color:#64665e}
+.num{font-variant-numeric:tabular-nums}
+.big{font-size:24px;font-weight:600;color:#313a36;line-height:1.15;font-variant-numeric:tabular-nums}
+.lbl{font-size:14px;color:#55584f;font-weight:500}
+.stage{flex:1 1 150px;min-width:0;padding:14px 18px;border-right:1px solid #ece9e0;text-decoration:none;color:inherit}
+.stage:last-child{border-right:0}
+.stage:hover{background:#f8f6f0;color:inherit}
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#55584f;font-weight:600;padding:10px 22px;background:#f8f6f0;border-bottom:1px solid #e6e3d8;white-space:nowrap}
+.tbl td{padding:10px 22px;border-bottom:1px solid #ece9e0;white-space:nowrap}
+.tbl .r{text-align:right}
+.item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid #f1eee6;text-decoration:none;color:inherit}
+.item:last-child{border-bottom:0}
+.item:hover .strong{text-decoration:underline}
+.when{margin-left:auto;flex:none;font-size:13.5px;text-align:right}
+.tab{padding:10px 16px;margin-bottom:-1px;border-bottom:2px solid transparent;color:#64665e;font-weight:500;text-decoration:none}
+.tab-on{border-bottom-color:#596d69;color:#313a36}
+.sample{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:#55584f;border:1px dashed #b6b3a6;border-radius:999px;padding:2px 10px}
+@media (max-width:900px){.sidenav{display:none}.page{padding:20px 16px 40px !important}.g2,.g3{grid-template-columns:minmax(0,1fr) !important}.span2{grid-column:auto !important}}
+</style>
+</helmet>
+
+<div class="wo" style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #f3f1ea">
+  <nav class="sidenav" aria-label="Main" style="flex: 1 1 250px; max-width: 250px; background: #2a322e; padding: 20px 14px 40px">
+    <div style="display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 22px; padding: 4px 10px 10px">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 24px; height: 24px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Minute
+    </div>
+    <div class="sn-head">Main</div>
+    <a class="sn-item sn-on" href="#" aria-current="page">Dashboard</a>
+    <a class="sn-item" href="#">My Tasks</a>
+    <div class="sn-head">Operations</div>
+    <a class="sn-item" href="#">Property Bible</a>
+    <a class="sn-item" href="#">Work Orders</a>
+    <a class="sn-item" href="#">Timesheets</a>
+  </nav>
+
+  <main class="page" style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 48px">
+    <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+          <div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #313a36">Good afternoon, Ada</h1>
+            <p class="muted" style="margin: 4px 0 0">Sunday, Oct 11 · Week of Oct 5 – 11 · All 30 properties <span class="sample" style="margin-left: 8px">Sample data at production scale</span></p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <a class="btn" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload hours</a>
+            <a class="btn btn-p" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New work order</a>
+          </div>
+        </div>
+        <nav role="tablist" aria-label="Dashboard views" style="display: flex; gap: 4px; border-bottom: 1px solid #e0ddd2; margin-top: 16px">
+          <a role="tab" aria-selected="true" class="tab tab-on" href="Main.dc.html">Today</a>
+          <a role="tab" aria-selected="false" class="tab" href="AdminAnalytics.dc.html">Analytics</a>
+          <a role="tab" aria-selected="false" class="tab" href="AdminWorkforce.dc.html">Workforce</a>
+        </nav>
+      </div>
+
+      <div role="alert" style="display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; border-radius: 14px; background: rgba(190,80,60,.08); border: 1px solid rgba(190,80,60,.3)">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="color: #8f3524; margin-top: 2px"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <div style="flex: 1; min-width: 0">
+          <div class="strong" style="color: #8f3524">Invoice email isn't being delivered</div>
+          <div style="font-size: 14px; color: #7a3a2c">The mailer is set to log, so invoices marked sent never reach a client.</div>
+        </div>
+        <a class="btn" href="#" style="background: #fcfbf7">View invoices</a>
+      </div>
+
+      <!-- 1. Hours → invoice, with the stuck step's chase list (top 5 + view all) -->
+      <section class="card">
+        <div class="ch">
+          <div>
+            <h2 class="ct">Hours on the way to invoices</h2>
+            <p class="cd">Each step waits on someone. The stuck step is highlighted and listed below.</p>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; border-bottom: 1px solid #ece9e0">
+          <a class="stage" href="#"><div class="lbl">Clocked</div><div class="big">2,846 h</div><div class="muted" style="font-size: 13.5px">4 punches still open</div></a>
+          <a class="stage" href="#"><div class="lbl">Submitted</div><div class="big">24 of 30</div><div class="muted" style="font-size: 13.5px">6 properties not sent yet</div></a>
+          <a class="stage" href="#chase" style="background: rgba(216,165,72,.1); box-shadow: inset 0 -3px 0 #c99a3c"><div class="lbl">Awaiting PM approval</div><div class="big" style="color: #6e4c0f">9</div><div style="font-size: 13.5px; color: #6e4c0f">5 past 3 days · list below</div></a>
+          <a class="stage" href="#"><div class="lbl">Ready to send</div><div class="big">4</div><div class="muted" style="font-size: 13.5px">$18,420.55 waiting</div></a>
+          <a class="stage" href="#"><div class="lbl">Sent</div><div class="big">11</div><div class="muted" style="font-size: 13.5px">this week</div></a>
+        </div>
+        <div id="chase" style="overflow-x: auto">
+          <table class="tbl">
+            <caption style="text-align: left; padding: 14px 22px 10px; font-weight: 600; color: #313a36">Who to chase · oldest first</caption>
+            <thead><tr><th>Property</th><th>Week</th><th>Property manager</th><th>Recruiter</th><th class="r">Billable</th><th>Waiting</th></tr></thead>
+            <tbody>
+              <tr><td class="strong">Acme Hotel</td><td>Sep 28 – Oct 4</td><td>Pat Manager</td><td>Rita Recruiter</td><td class="r num">$5,607.83</td><td><span class="badge t-warning">6 days</span></td></tr>
+              <tr><td class="strong">Harbor Point</td><td>Sep 28 – Oct 4</td><td>Dana Ortiz</td><td>Ray Recruiter</td><td class="r num">$4,212.40</td><td><span class="badge t-warning">6 days</span></td></tr>
+              <tr><td class="strong">MAG Solutions</td><td>Sep 28 – Oct 4</td><td>Megan Grant</td><td>Ray Recruiter</td><td class="r num">$2,028.22</td><td><span class="badge t-warning">5 days</span></td></tr>
+              <tr><td class="strong">Sunrise Villas</td><td>Sep 28 – Oct 4</td><td>Lee Turner</td><td>Rita Recruiter</td><td class="r num">$3,940.10</td><td><span class="badge t-warning">4 days</span></td></tr>
+              <tr><td class="strong">QCP Property</td><td>Sep 28 – Oct 4</td><td>Quinn Porter</td><td>Ray Recruiter</td><td class="r num">$1,880.63</td><td><span class="badge t-warning">4 days</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="cf"><a href="#">View all 9 waiting →</a></div>
+      </section>
+
+      <!-- 2. Every request waiting on a decision, one list across types, oldest first -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Needs a decision</h2>
+              <p class="cd">Requests waiting on you or your team, oldest first.</p>
+            </div>
+            <span class="badge t-gray">14 waiting</span>
+          </div>
+          <div class="cb">
+            <a class="item" href="#">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Staffing</span>
+              <span><span class="strong">Lakeside Suites wants 2 more Housekeepers</span><br><span class="muted" style="font-size: 14px">Requested by Dana Ortiz (property manager) · 0 of 2 placed</span></span>
+              <span class="when muted">4 days</span>
+            </a>
+            <a class="item" href="#">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Pay increase</span>
+              <span><span class="strong">Acme Hotel offers +$1.00/h for James Carter</span><br><span class="muted" style="font-size: 14px">Houseman · starts next pay period once approved</span></span>
+              <span class="when muted">2 days</span>
+            </a>
+            <a class="item" href="#">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Termination</span>
+              <span><span class="strong">Tom Nguyen at Acme Hotel</span><br><span class="muted" style="font-size: 14px">Final paycheck and equipment return to review</span></span>
+              <span class="when muted">1 day</span>
+            </a>
+            <a class="item" href="#">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Time off</span>
+              <span><span class="strong">Rita Recruiter · Oct 20 – 24</span><br><span class="muted" style="font-size: 14px">40 h vacation · 0 h left after this</span></span>
+              <span class="when muted">1 day</span>
+            </a>
+            <a class="item" href="#">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Applications</span>
+              <span><span class="strong">6 applications to review</span><br><span class="muted" style="font-size: 14px">2 for Housekeeper at Lakeside Suites · 2 missing onboarding documents</span></span>
+              <span class="when muted">oldest 4 days</span>
+            </a>
+          </div>
+          <div class="cf"><a href="#">View all 14 in My Tasks →</a></div>
+        </section>
+
+        <!-- 3. Anything with an end date coming up -->
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Expiring in 30 days</h2>
+              <p class="cd">Renew before they lapse.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <a class="item" href="#"><span><span class="strong">Harbor Point contract</span><br><span class="muted" style="font-size: 14px">Ends Oct 24</span></span><span class="when"><span class="badge t-danger">13 days</span></span></a>
+            <a class="item" href="#"><span><span class="strong">Andre Wilson · Food handler card</span><br><span class="muted" style="font-size: 14px">Cook at MAG Solutions · ends Oct 30</span></span><span class="when"><span class="badge t-warning">19 days</span></span></a>
+            <a class="item" href="#"><span><span class="strong">Sunrise Villas contract</span><br><span class="muted" style="font-size: 14px">Ends Nov 5</span></span><span class="when"><span class="badge t-gray">25 days</span></span></a>
+            <a class="item" href="#"><span><span class="strong">Grace Kim · Food handler card</span><br><span class="muted" style="font-size: 14px">Dishwasher at MAG Solutions · ends Nov 8</span></span><span class="when"><span class="badge t-gray">28 days</span></span></a>
+          </div>
+          <div class="cf" style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap"><a href="#">View all 7 →</a><span class="badge t-plan">Certifications: new feature</span></div>
+        </section>
+      </div>
+
+      <!-- 4. The next two weeks, and property setup gaps -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Coming up · next 14 days</h2>
+              <p class="cd">Placements starting or ending, staff away, postings closing.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span class="muted num" style="width: 64px; flex: none">Oct 12</span><span><span class="strong">3 placements start</span> <span class="muted">· Lakeside Suites, Harbor Point</span></span><a class="when" href="#">Work orders</a></div>
+            <div class="item"><span class="muted num" style="width: 64px; flex: none">Oct 18</span><span><span class="strong">Housekeeper posting closes</span> <span class="muted">· Lakeside Suites · 9 applicants</span></span><a class="when" href="#">Posting</a></div>
+            <div class="item"><span class="muted num" style="width: 64px; flex: none">Oct 20</span><span><span class="strong">Rita Recruiter away</span> <span class="muted">· through Oct 24 · covers 6 properties</span></span><a class="when" href="#">Time off</a></div>
+            <div class="item"><span class="muted num" style="width: 64px; flex: none">Oct 23</span><span><span class="strong">2 placements end</span> <span class="muted">· fixed-term at Sunrise Villas</span></span><a class="when" href="#">Work orders</a></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Property setup gaps</h2>
+              <p class="cd">Most gaps first.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <a class="item" href="#"><span class="strong">Harbor Point</span><span class="when muted">3 gaps</span></a>
+            <a class="item" href="#"><span class="strong">Acme Hotel</span><span class="when muted">2 gaps</span></a>
+            <a class="item" href="#"><span class="strong">MAG Solutions</span><span class="when muted">2 gaps</span></a>
+            <a class="item" href="#"><span class="strong">QCP Property</span><span class="when muted">2 gaps</span></a>
+            <a class="item" href="#"><span class="strong">Sunrise Villas</span><span class="when muted">1 gap</span></a>
+          </div>
+          <div class="cf"><a href="#">View all 11 properties →</a></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2020}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

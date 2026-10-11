@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin dashboard · Workforce</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ea}
+a{color:#46554f}a:hover{color:#313a36}
+a:focus-visible,button:focus-visible{outline:2px solid #596d69;outline-offset:2px}
+.wo{font-family:"Schibsted Grotesk",system-ui,sans-serif;color:#55584f;font-size:15px;line-height:1.45}
+.wo *{box-sizing:border-box}
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sn-head{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#94a09a;font-weight:600;padding:18px 12px 8px}
+.sn-item{display:block;padding:9px 12px;border-radius:8px;color:#94a09a;text-decoration:none;font-weight:500}
+.sn-on,.sn-on:hover{background:#596d69;color:#fff}
+.card{background:#fcfbf7;border-radius:18px;box-shadow:0 4px 18px rgba(70,75,60,.06);display:flex;flex-direction:column}
+.card > .cf{margin-top:auto}
+.ch{padding:18px 22px 14px;border-bottom:1px solid #ece9e0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ct{margin:0;font-size:18px;font-weight:600;color:#313a36}
+.cd{margin:3px 0 0;font-size:14px;color:#64665e}
+.cb{padding:16px 22px 18px}
+.cf{padding:12px 22px;border-top:1px solid #ece9e0;font-size:14px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.t-warning{background:rgba(216,165,72,.2);color:#6e4c0f}
+.t-success{background:rgba(95,161,119,.16);color:#2f6141}
+.t-gray{background:#eceae2;color:#45483f}
+.t-plan{background:transparent;border:1px dashed #b6b3a6;color:#55584f}
+.strong{color:#313a36;font-weight:600}
+.muted{color:#64665e}
+.num{font-variant-numeric:tabular-nums}
+.big{font-size:26px;font-weight:600;color:#313a36;line-height:1.15;font-variant-numeric:tabular-nums}
+.lbl{font-size:14px;color:#55584f;font-weight:500}
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#55584f;font-weight:600;padding:10px 22px;background:#f8f6f0;border-bottom:1px solid #e6e3d8;white-space:nowrap}
+.tbl td{padding:10px 22px;border-bottom:1px solid #ece9e0;white-space:nowrap}
+.tbl .r{text-align:right}
+.tab{padding:10px 16px;margin-bottom:-1px;border-bottom:2px solid transparent;color:#64665e;font-weight:500;text-decoration:none}
+.tab-on{border-bottom-color:#596d69;color:#313a36}
+.sample{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:#55584f;border:1px dashed #b6b3a6;border-radius:999px;padding:2px 10px}
+.hb{display:grid;grid-template-columns:150px minmax(0,1fr) 44px;gap:12px;align-items:center;padding:7px 0;font-size:14.5px}
+.track{height:10px;background:#ece9e0;border-radius:5px;overflow:hidden}
+.fill{height:10px;background:#596d69}
+.item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #f1eee6}
+.item:last-child{border-bottom:0}
+@media (max-width:900px){.sidenav{display:none}.page{padding:20px 16px 40px !important}.g4,.g2{grid-template-columns:minmax(0,1fr) !important}.span2{grid-column:auto !important}}
+</style>
+</helmet>
+
+<div class="wo" style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #f3f1ea">
+  <nav class="sidenav" aria-label="Main" style="flex: 1 1 250px; max-width: 250px; background: #2a322e; padding: 20px 14px 40px">
+    <div style="display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 22px; padding: 4px 10px 10px">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 24px; height: 24px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Minute
+    </div>
+    <div class="sn-head">Main</div>
+    <a class="sn-item sn-on" href="#" aria-current="page">Dashboard</a>
+    <a class="sn-item" href="#">My Tasks</a>
+    <div class="sn-head">People &amp; hiring</div>
+    <a class="sn-item" href="#">Applicants</a>
+    <a class="sn-item" href="#">People</a>
+  </nav>
+
+  <main class="page" style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 48px">
+    <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <div>
+        <div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #313a36">Good afternoon, Ada</h1>
+          <p class="muted" style="margin: 4px 0 0">Sunday, Oct 11 · All 30 properties <span class="sample" style="margin-left: 8px">Sample data at production scale</span></p>
+        </div>
+        <nav role="tablist" aria-label="Dashboard views" style="display: flex; gap: 4px; border-bottom: 1px solid #e0ddd2; margin-top: 16px">
+          <a role="tab" aria-selected="false" class="tab" href="Main.dc.html">Today</a>
+          <a role="tab" aria-selected="false" class="tab" href="AdminAnalytics.dc.html">Analytics</a>
+          <a role="tab" aria-selected="true" class="tab tab-on" href="AdminWorkforce.dc.html">Workforce</a>
+        </nav>
+      </div>
+
+      <div class="g4" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+        <a class="card cb" href="#" style="text-decoration: none; color: inherit"><div class="lbl">Active contractors</div><div class="big">97</div><div class="muted" style="font-size: 13.5px">+7 placed, −5 ended this month</div></a>
+        <div class="card cb"><div class="lbl">On the clock now</div><div class="big">41</div><div class="muted" style="font-size: 13.5px">at 22 properties</div></div>
+        <a class="card cb" href="#" style="text-decoration: none; color: inherit"><div class="lbl">Open staffing requests</div><div class="big">3</div><div style="font-size: 13.5px; color: #6e4c0f">5 contractors still to place</div></a>
+        <a class="card cb" href="#" style="text-decoration: none; color: inherit"><div class="lbl">Onboarding pending</div><div class="big">4</div><div class="muted" style="font-size: 13.5px">documents still missing</div></a>
+      </div>
+
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div><h2 class="ct">Contractors by property</h2><p class="cd">Active placements, largest first. Open requests show where you're short.</p></div>
+          </div>
+          <div class="cb">
+            <div class="hb"><span class="strong">Acme Hotel</span><div class="track"><div class="fill" style="width: 100%"></div></div><span class="num r strong" style="text-align: right">14</span></div>
+            <div class="hb"><span class="strong">Harbor Point</span><div class="track"><div class="fill" style="width: 79%"></div></div><span class="num strong" style="text-align: right">11</span></div>
+            <div class="hb"><span><span class="strong">Lakeside Suites</span> <span class="badge t-warning" style="margin-left: 4px">+2 needed</span></span><div class="track"><div class="fill" style="width: 64%"></div></div><span class="num strong" style="text-align: right">9</span></div>
+            <div class="hb"><span class="strong">Sunrise Villas</span><div class="track"><div class="fill" style="width: 57%"></div></div><span class="num strong" style="text-align: right">8</span></div>
+            <div class="hb"><span class="strong">QCP Property</span><div class="track"><div class="fill" style="width: 43%"></div></div><span class="num strong" style="text-align: right">6</span></div>
+            <div class="hb"><span class="strong">MAG Solutions</span><div class="track"><div class="fill" style="width: 36%"></div></div><span class="num strong" style="text-align: right">5</span></div>
+          </div>
+          <div class="cf"><a href="#">All 30 properties →</a></div>
+        </section>
+
+        <section class="card">
+          <div class="ch"><div><h2 class="ct">Hiring</h2><p class="cd">This month, from posting to placement.</p></div></div>
+          <div class="cb">
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: center">
+              <div><div class="big" style="font-size: 22px">38</div><div class="muted" style="font-size: 13px">applied</div></div>
+              <div><div class="big" style="font-size: 22px">9</div><div class="muted" style="font-size: 13px">in review</div></div>
+              <div><div class="big" style="font-size: 22px">7</div><div class="muted" style="font-size: 13px">placed</div></div>
+            </div>
+            <div style="margin-top: 16px; border-top: 1px solid #ece9e0; padding-top: 6px">
+              <div class="item"><span><span class="strong">Housekeeper</span><br><span class="muted" style="font-size: 13.5px">Lakeside Suites · closes Oct 18</span></span><span class="muted num" style="margin-left: auto">9 applied</span></div>
+              <div class="item"><span><span class="strong">Line Cook</span><br><span class="muted" style="font-size: 13.5px">Harbor Point · open</span></span><span class="muted num" style="margin-left: auto">5 applied</span></div>
+              <div class="item"><span><span class="strong">Houseman</span><br><span class="muted" style="font-size: 13.5px">Acme Hotel · open</span></span><span class="muted num" style="margin-left: auto">3 applied</span></div>
+            </div>
+          </div>
+          <div class="cf"><a href="#">All 6 open postings →</a></div>
+        </section>
+      </div>
+
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch"><div><h2 class="ct">Recruiters this week</h2><p class="cd">Their properties, visits, and timesheets still to send.</p></div></div>
+          <div style="overflow-x: auto">
+            <table class="tbl">
+              <thead><tr><th>Recruiter</th><th class="r">Properties</th><th class="r">Contractors</th><th class="r">Field visits</th><th>Visits left open</th><th class="r">Timesheets not sent</th></tr></thead>
+              <tbody>
+                <tr><td class="strong">Rita Recruiter</td><td class="r num">9</td><td class="r num">34</td><td class="r num">7</td><td class="muted">None</td><td class="r num">2</td></tr>
+                <tr><td class="strong">Ray Recruiter</td><td class="r num">8</td><td class="r num">27</td><td class="r num">3</td><td><span class="badge t-warning">1 open</span></td><td class="r"><span class="badge t-warning">4</span></td></tr>
+                <tr><td class="strong">Ana Reyes</td><td class="r num">7</td><td class="r num">21</td><td class="r num">6</td><td class="muted">None</td><td class="r num">0</td></tr>
+                <tr><td class="strong">Marcus Webb</td><td class="r num">6</td><td class="r num">15</td><td class="r num">5</td><td class="muted">None</td><td class="r num">0</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="ch"><div><h2 class="ct">Close to direct hire</h2><p class="cd">Contractors a property may soon hire directly.</p></div></div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Maria Lopez</span><br><span class="muted" style="font-size: 13.5px">Acme Hotel · 1,980 of 2,080 h</span></span><span class="badge t-warning" style="margin-left: auto">~3 weeks</span></div>
+            <div class="item"><span><span class="strong">Carlos Mendez</span><br><span class="muted" style="font-size: 13.5px">QCP Property · 1,890 of 2,080 h</span></span><span class="badge t-gray" style="margin-left: auto">~5 weeks</span></div>
+            <div class="item"><span><span class="strong">Linda Park</span><br><span class="muted" style="font-size: 13.5px">QCP Property · 1,840 of 2,080 h</span></span><span class="badge t-gray" style="margin-left: auto">~6 weeks</span></div>
+          </div>
+          <div class="cf"><a href="#">All 12 within 10 weeks →</a></div>
+        </section>
+      </div>
+
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card">
+          <div class="ch"><div><h2 class="ct">Staff away</h2><p class="cd">Approved time off, next 30 days.</p></div></div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Rita Recruiter</span><br><span class="muted" style="font-size: 13.5px">Oct 20 – 24 · vacation</span></span></div>
+            <div class="item"><span><span class="strong">Olivia Office</span><br><span class="muted" style="font-size: 13.5px">Nov 3 · personal</span></span></div>
+          </div>
+        </section>
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div><h2 class="ct">Recent property expenses</h2><p class="cd">Lost equipment, uncovered charges and other costs logged against QCP.</p></div>
+            <span class="badge t-plan">In the legacy app only, not built here yet</span>
+          </div>
+          <div class="cb"><p class="muted" style="margin: 0">Placeholder: once expenses come over, the latest five would list here with a link to all of them.</p></div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

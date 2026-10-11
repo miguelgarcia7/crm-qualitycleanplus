@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HR dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ea}
+a{color:#46554f}a:hover{color:#313a36}
+a:focus-visible,button:focus-visible{outline:2px solid #596d69;outline-offset:2px}
+.wo{font-family:"Schibsted Grotesk",system-ui,sans-serif;color:#55584f;font-size:15px;line-height:1.45}
+.wo *{box-sizing:border-box}
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sn-head{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#94a09a;font-weight:600;padding:18px 12px 8px}
+.sn-item{display:block;padding:9px 12px;border-radius:8px;color:#94a09a;text-decoration:none;font-weight:500}
+.sn-on,.sn-on:hover{background:#596d69;color:#fff}
+.card{background:#fcfbf7;border-radius:18px;box-shadow:0 4px 18px rgba(70,75,60,.06);display:flex;flex-direction:column}
+.card > .cf{margin-top:auto}
+.ch{padding:18px 22px 14px;border-bottom:1px solid #ece9e0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ct{margin:0;font-size:18px;font-weight:600;color:#313a36}
+.cd{margin:3px 0 0;font-size:14px;color:#64665e}
+.cb{padding:6px 22px 14px}
+.cf{padding:12px 22px;border-top:1px solid #ece9e0;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border-radius:6px;font-family:inherit;font-size:14.5px;font-weight:500;border:1px solid #d9d5c7;cursor:pointer;text-decoration:none;white-space:nowrap;background:none;color:#313a36}
+.btn:hover{border-color:#b6b3a6}
+.btn-p{background:#596d69;color:#fff;border-color:#596d69}.btn-p:hover{background:#46554f;color:#fff}
+.btn-s{min-height:34px;padding:0 11px;font-size:13.5px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.t-warning{background:rgba(216,165,72,.2);color:#6e4c0f}
+.t-danger{background:rgba(190,80,60,.14);color:#8f3524}
+.t-info{background:rgba(93,146,173,.16);color:#2f5c72}
+.t-success{background:rgba(95,161,119,.16);color:#2f6141}
+.t-gray{background:#eceae2;color:#45483f}
+.t-plan{background:transparent;border:1px dashed #b6b3a6;color:#55584f}
+.strong{color:#313a36;font-weight:600}
+.muted{color:#64665e}
+.num{font-variant-numeric:tabular-nums}
+.big{font-size:24px;font-weight:600;color:#313a36;line-height:1.15;font-variant-numeric:tabular-nums}
+.lbl{font-size:14px;color:#55584f;font-weight:500}
+.item{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f1eee6}
+.item:last-child{border-bottom:0}
+.when{margin-left:auto;flex:none;font-size:13.5px;text-align:right}
+.sample{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:#55584f;border:1px dashed #b6b3a6;border-radius:999px;padding:2px 10px}
+.stage{flex:1 1 140px;min-width:0;padding:14px 18px;border-right:1px solid #ece9e0;text-decoration:none;color:inherit}
+.stage:last-child{border-right:0}
+.stage:hover{background:#f8f6f0;color:inherit}
+.doc{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;padding:2px 8px;border-radius:999px;border:1px solid #e0ddd2;color:#55584f;white-space:nowrap}
+@media (max-width:900px){.sidenav{display:none}.page{padding:20px 16px 40px !important}.g2{grid-template-columns:minmax(0,1fr) !important}.span2{grid-column:auto !important}}
+</style>
+</helmet>
+
+<div class="wo" style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #f3f1ea">
+  <nav class="sidenav" aria-label="Main" style="flex: 1 1 250px; max-width: 250px; background: #2a322e; padding: 20px 14px 40px">
+    <div style="display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 22px; padding: 4px 10px 10px">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 24px; height: 24px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Minute
+    </div>
+    <div class="sn-head">Main</div>
+    <a class="sn-item sn-on" href="#" aria-current="page">Dashboard</a>
+    <a class="sn-item" href="#">My Tasks</a>
+    <div class="sn-head">People &amp; hiring</div>
+    <a class="sn-item" href="#">Applicants</a>
+    <a class="sn-item" href="#">Job Postings</a>
+    <a class="sn-item" href="#">People</a>
+    <a class="sn-item" href="#">Time Off</a>
+  </nav>
+
+  <main class="page" style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 48px">
+    <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+        <div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #313a36">Good morning, Hannah</h1>
+          <p class="muted" style="margin: 4px 0 0">Monday, Oct 12 · 97 contractors · 12 staff <span class="sample" style="margin-left: 8px">Sample data at production scale</span></p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <a class="btn" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>Invite staff</a>
+          <a class="btn btn-p" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New job posting</a>
+        </div>
+      </div>
+
+      <!-- 1. Hiring, from posting to placed, with the step that needs HR highlighted -->
+      <section class="card">
+        <div class="ch">
+          <div>
+            <h2 class="ct">Hiring</h2>
+            <p class="cd">From application to contractor. Click a step to open it.</p>
+          </div>
+          <span class="badge t-gray">6 open postings</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap">
+          <a class="stage" href="#"><div class="lbl">New applications</div><div class="big">6</div><div class="muted" style="font-size: 13.5px">not opened yet</div></a>
+          <a class="stage" href="#" style="background: rgba(216,165,72,.1); box-shadow: inset 0 -3px 0 #c99a3c"><div class="lbl">In review</div><div class="big" style="color: #6e4c0f">9</div><div style="font-size: 13.5px; color: #6e4c0f">4 missing documents</div></a>
+          <a class="stage" href="#ready"><div class="lbl">Ready to promote</div><div class="big">2</div><div class="muted" style="font-size: 13.5px">all documents in</div></a>
+          <a class="stage" href="#"><div class="lbl">Became contractors</div><div class="big">7</div><div class="muted" style="font-size: 13.5px">this month</div></a>
+        </div>
+      </section>
+
+      <!-- 2. What HR approves or verifies, and applicants stuck on documents -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Waiting on you</h2>
+              <p class="cd">Requests HR approves or verifies, oldest first.</p>
+            </div>
+            <span class="badge t-gray">4 waiting</span>
+          </div>
+          <div class="cb">
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Info change</span>
+              <span><span class="strong">Maria Lopez · new address</span><br><span class="muted" style="font-size: 14px">Needs a matching document before it's verified</span></span>
+              <span class="when"><span class="muted">3 days</span><br><a href="#">Verify</a></span>
+            </div>
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Time off</span>
+              <span><span class="strong">Rita Recruiter · Oct 20 – 24</span><br><span class="muted" style="font-size: 14px">40 h vacation · 0 h left after this</span></span>
+              <span class="when"><span class="muted">1 day</span><br><a href="#">Review</a></span>
+            </div>
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Time off</span>
+              <span><span class="strong">Sam Front · Nov 14</span><br><span class="muted" style="font-size: 14px">8 h personal · 16 h left after this</span></span>
+              <span class="when"><span class="muted">1 day</span><br><a href="#">Review</a></span>
+            </div>
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Info change</span>
+              <span><span class="strong">Carlos Mendez · new phone number</span><br><span class="muted" style="font-size: 14px">Submitted from QC Minute</span></span>
+              <span class="when"><span class="muted">today</span><br><a href="#">Verify</a></span>
+            </div>
+          </div>
+          <div class="cf"><a href="#">Open My Tasks →</a></div>
+        </section>
+
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Missing documents</h2>
+              <p class="cd">Applicants in review who can't be promoted yet.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Marcus Hill</span><br><span style="display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 4px"><span class="doc">I-9</span><span class="doc">W-9</span></span></span><span class="when muted">6 days</span></div>
+            <div class="item"><span><span class="strong">Elena Cruz</span><br><span style="display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 4px"><span class="doc">Signed agreement</span></span></span><span class="when muted">4 days</span></div>
+            <div class="item"><span><span class="strong">Tyrone Banks</span><br><span style="display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 4px"><span class="doc">ID (back)</span><span class="doc">I-9</span></span></span><span class="when muted">3 days</span></div>
+          </div>
+          <div class="cf"><a href="#">All 4 →</a></div>
+        </section>
+      </div>
+
+      <!-- 3. Applicants ready to become contractors, and documents about to expire -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" id="ready" style="grid-column: span 2">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Ready to promote</h2>
+              <p class="cd">Every onboarding item is in. One click makes them a contractor.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Jordan Ellis</span><br><span class="muted" style="font-size: 14px">Housekeeper · Lakeside Suites posting</span></span><span class="when"><a class="btn btn-s btn-p" href="#">Promote</a></span></div>
+            <div class="item"><span><span class="strong">Priya Shah</span><br><span class="muted" style="font-size: 14px">Line Cook · Harbor Point posting</span></span><span class="when"><a class="btn btn-s btn-p" href="#">Promote</a></span></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Expiring documents</h2>
+              <p class="cd">Renew before someone can't work.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Andre Wilson · Food handler card</span><br><span class="muted" style="font-size: 14px">Oct 30</span></span><span class="when"><span class="badge t-warning">18 days</span></span></div>
+            <div class="item"><span><span class="strong">Priya Shah · Work authorization</span><br><span class="muted" style="font-size: 14px">Nov 20</span></span><span class="when"><span class="badge t-gray">39 days</span></span></div>
+          </div>
+          <div class="cf"><span class="badge t-plan">Certifications &amp; expiry dates: new feature</span></div>
+        </section>
+      </div>
+
+      <!-- 4. Staff: who's away, and whose PTO changes soon -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Staff away · next 30 days</h2>
+              <p class="cd">Approved time off.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Ray Recruiter</span><br><span class="muted" style="font-size: 14px">Oct 15 · personal · his 8 properties need cover</span></span></div>
+            <div class="item"><span><span class="strong">Olivia Office</span><br><span class="muted" style="font-size: 14px">Nov 3 · personal</span></span></div>
+          </div>
+          <div class="cf"><a href="#">Time-off calendar and balances →</a></div>
+        </section>
+
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Moving up a time-off tier</h2>
+              <p class="cd">Staff whose hire anniversary changes how much time off they earn.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Ray Recruiter</span><br><span class="muted" style="font-size: 14px">1 year on Oct 28 · moves to the top tier</span></span><span class="when muted">16 days</span></div>
+            <div class="item"><span><span class="strong">Sam Front</span><br><span class="muted" style="font-size: 14px">6 months on Nov 4 · moves to tier 2</span></span><span class="when muted">23 days</span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

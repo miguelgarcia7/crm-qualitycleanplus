@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recruiter dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f3f1ea}
+a{color:#46554f}a:hover{color:#313a36}
+a:focus-visible,button:focus-visible{outline:2px solid #596d69;outline-offset:2px}
+.wo{font-family:"Schibsted Grotesk",system-ui,sans-serif;color:#55584f;font-size:15px;line-height:1.45}
+.wo *{box-sizing:border-box}
+.ico{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sn-head{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#94a09a;font-weight:600;padding:18px 12px 8px}
+.sn-item{display:block;padding:9px 12px;border-radius:8px;color:#94a09a;text-decoration:none;font-weight:500}
+.sn-on,.sn-on:hover{background:#596d69;color:#fff}
+.card{background:#fcfbf7;border-radius:18px;box-shadow:0 4px 18px rgba(70,75,60,.06);display:flex;flex-direction:column}
+.card > .cf{margin-top:auto}
+.ch{padding:18px 22px 14px;border-bottom:1px solid #ece9e0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.ct{margin:0;font-size:18px;font-weight:600;color:#313a36}
+.cd{margin:3px 0 0;font-size:14px;color:#64665e}
+.cb{padding:6px 22px 14px}
+.cf{padding:12px 22px;border-top:1px solid #ece9e0;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 14px;border-radius:6px;font-family:inherit;font-size:14.5px;font-weight:500;border:1px solid #d9d5c7;cursor:pointer;text-decoration:none;white-space:nowrap;background:none;color:#313a36}
+.btn:hover{border-color:#b6b3a6}
+.btn-p{background:#596d69;color:#fff;border-color:#596d69}.btn-p:hover{background:#46554f;color:#fff}
+.btn-s{min-height:34px;padding:0 11px;font-size:13.5px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.t-warning{background:rgba(216,165,72,.2);color:#6e4c0f}
+.t-danger{background:rgba(190,80,60,.14);color:#8f3524}
+.t-info{background:rgba(93,146,173,.16);color:#2f5c72}
+.t-success{background:rgba(95,161,119,.16);color:#2f6141}
+.t-gray{background:#eceae2;color:#45483f}
+.t-plan{background:transparent;border:1px dashed #b6b3a6;color:#55584f}
+.strong{color:#313a36;font-weight:600}
+.muted{color:#64665e}
+.num{font-variant-numeric:tabular-nums}
+.big{font-size:24px;font-weight:600;color:#313a36;line-height:1.15;font-variant-numeric:tabular-nums}
+.lbl{font-size:14px;color:#55584f;font-weight:500}
+.item{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #f1eee6}
+.item:last-child{border-bottom:0}
+.when{margin-left:auto;flex:none;font-size:13.5px;text-align:right}
+.sample{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:#55584f;border:1px dashed #b6b3a6;border-radius:999px;padding:2px 10px}
+.wk{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(4,minmax(0,1fr));gap:0;font-size:14.5px}
+.wk > div{padding:10px 14px;border-bottom:1px solid #f1eee6}
+.wk .h{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#55584f;font-weight:600;background:#f8f6f0;border-bottom:1px solid #e6e3d8}
+@media (max-width:900px){.sidenav{display:none}.page{padding:20px 16px 40px !important}.g2,.g4{grid-template-columns:minmax(0,1fr) !important}.span2{grid-column:auto !important}}
+</style>
+</helmet>
+
+<div class="wo" style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #f3f1ea">
+  <nav class="sidenav" aria-label="Main" style="flex: 1 1 250px; max-width: 250px; background: #2a322e; padding: 20px 14px 40px">
+    <div style="display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 22px; padding: 4px 10px 10px">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" style="width: 24px; height: 24px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Minute
+    </div>
+    <div class="sn-head">Main</div>
+    <a class="sn-item sn-on" href="#" aria-current="page">Dashboard</a>
+    <a class="sn-item" href="#">My Tasks</a>
+    <div class="sn-head">Operations</div>
+    <a class="sn-item" href="#">Property Bible</a>
+    <a class="sn-item" href="#">Work Orders</a>
+    <a class="sn-item" href="#">Timesheets</a>
+    <a class="sn-item" href="#">Field Visits</a>
+  </nav>
+
+  <main class="page" style="flex: 999 1 560px; min-width: 0; padding: 28px 32px 48px">
+    <div style="max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+
+      <!-- Header: whose book of business this is; the two things a recruiter starts from here -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+        <div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 600; color: #313a36">Good morning, Rita</h1>
+          <p class="muted" style="margin: 4px 0 0">Monday, Oct 12 · Your 9 properties · 34 contractors <span class="sample" style="margin-left: 8px">Sample data at production scale</span></p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <a class="btn" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Check in at a property</a>
+          <a class="btn btn-p" href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New work order</a>
+        </div>
+      </div>
+
+      <!-- 1. The weekly job: last week's timesheets, one row per property, from punches to sent -->
+      <section class="card">
+        <div class="ch">
+          <div>
+            <h2 class="ct">Last week's timesheets · Oct 5 – 11</h2>
+            <p class="cd">The week closed last night. Fix open punches, then submit each property to its manager.</p>
+          </div>
+          <span class="badge t-warning">5 of 9 not submitted</span>
+        </div>
+        <div style="overflow-x: auto">
+          <div class="wk" role="table" aria-label="Last week's timesheets by property">
+            <div class="h" role="columnheader">Property</div><div class="h" role="columnheader" style="text-align: right">Hours</div><div class="h" role="columnheader">Open punches</div><div class="h" role="columnheader">Status</div><div class="h" role="columnheader"></div>
+            <div class="strong" role="cell">QCP Property</div><div class="num" role="cell" style="text-align: right">412.50</div><div role="cell"><span class="badge t-danger">2 to fix</span></div><div role="cell"><span class="badge t-warning">Draft</span></div><div role="cell" style="text-align: right"><a class="btn btn-s" href="#">Fix punches</a></div>
+            <div class="strong" role="cell">Acme Hotel</div><div class="num" role="cell" style="text-align: right">586.25</div><div class="muted" role="cell">None</div><div role="cell"><span class="badge t-warning">Draft</span></div><div role="cell" style="text-align: right"><a class="btn btn-s btn-p" href="#">Submit</a></div>
+            <div class="strong" role="cell">Sunrise Villas</div><div class="num" role="cell" style="text-align: right">298.00</div><div class="muted" role="cell">None</div><div role="cell"><span class="badge t-warning">Draft</span></div><div role="cell" style="text-align: right"><a class="btn btn-s btn-p" href="#">Submit</a></div>
+            <div class="strong" role="cell">Bayview Inn</div><div class="num" role="cell" style="text-align: right">221.75</div><div class="muted" role="cell">None</div><div role="cell"><span class="badge t-warning">Draft</span></div><div role="cell" style="text-align: right"><a class="btn btn-s btn-p" href="#">Submit</a></div>
+            <div class="strong" role="cell">Cedar Lodge</div><div class="num" role="cell" style="text-align: right">164.00</div><div class="muted" role="cell">None</div><div role="cell"><span class="badge t-warning">Draft</span></div><div role="cell" style="text-align: right"><a class="btn btn-s btn-p" href="#">Submit</a></div>
+          </div>
+        </div>
+        <div class="cf" style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap"><span class="muted">4 already submitted · 0 sent back</span><a href="#">All 9 properties →</a></div>
+      </section>
+
+      <!-- 2. Everything else waiting on Rita, one list, oldest first -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card span2" style="grid-column: span 2">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Waiting on you</h2>
+              <p class="cd">Requests from your properties and contractors, oldest first.</p>
+            </div>
+            <span class="badge t-gray">8 waiting</span>
+          </div>
+          <div class="cb">
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Staffing</span>
+              <span><span class="strong">Lakeside Suites wants 2 more Housekeepers</span><br><span class="muted" style="font-size: 14px">0 of 2 placed · requested by Dana Ortiz</span></span>
+              <span class="when"><span class="muted">4 days</span><br><a href="#">Place contractor</a></span>
+            </div>
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Pay increase</span>
+              <span><span class="strong">Acme Hotel offers +$1.00/h for James Carter</span><br><span class="muted" style="font-size: 14px">Bill goes $29.50 → $30.50 · you set the new pay</span></span>
+              <span class="when"><span class="muted">2 days</span><br><a href="#">Review</a></span>
+            </div>
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Invoice</span>
+              <span><span class="strong">Send Harbor Point's invoice for Sep 28 – Oct 4</span><br><span class="muted" style="font-size: 14px">Approved Friday · $4,212.40</span></span>
+              <span class="when"><span class="muted">3 days</span><br><a href="#">Send</a></span>
+            </div>
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Applications</span>
+              <span><span class="strong">3 applications to review</span><br><span class="muted" style="font-size: 14px">For postings at your properties</span></span>
+              <span class="when"><span class="muted">oldest 2 days</span><br><a href="#">Review</a></span>
+            </div>
+            <div class="item">
+              <span class="badge t-info" style="width: 112px; justify-content: center">Onboarding</span>
+              <span><span class="strong">Jordan Ellis is missing 2 documents</span><br><span class="muted" style="font-size: 14px">I-9 and direct deposit · can't be placed yet</span></span>
+              <span class="when"><span class="muted">1 day</span><br><a href="#">Open</a></span>
+            </div>
+          </div>
+          <div class="cf"><a href="#">View all 8 in My Tasks →</a></div>
+        </section>
+
+        <!-- 3. Who to chase: Rita's submitted weeks the property managers haven't approved -->
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Waiting on property managers</h2>
+              <p class="cd">Submitted, not yet approved.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Acme Hotel</span><br><span class="muted" style="font-size: 14px">Sep 28 – Oct 4 · Pat Manager</span></span><span class="when"><span class="badge t-warning">6 days</span></span></div>
+            <div class="item"><span><span class="strong">Sunrise Villas</span><br><span class="muted" style="font-size: 14px">Sep 28 – Oct 4 · Lee Turner</span></span><span class="when"><span class="badge t-warning">4 days</span></span></div>
+          </div>
+          <div class="cf muted" style="font-size: 13.5px">Oldest first. Anything over 3 days is flagged.</div>
+        </section>
+      </div>
+
+      <!-- 4. Contractors: the ones that need attention, not the whole roster -->
+      <div class="g2" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch">
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Expiring in 30 days</h2>
+              <p class="cd">Your properties and contractors.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Andre Wilson · Food handler card</span><br><span class="muted" style="font-size: 14px">Cook at MAG Solutions · Oct 30</span></span><span class="when"><span class="badge t-warning">18 days</span></span></div>
+            <div class="item"><span><span class="strong">Sunrise Villas contract</span><br><span class="muted" style="font-size: 14px">Ends Nov 5</span></span><span class="when"><span class="badge t-gray">24 days</span></span></div>
+          </div>
+          <div class="cf"><span class="badge t-plan">Certifications: new feature</span></div>
+        </section>
+
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Close to direct hire</h2>
+              <p class="cd">Talk to the property before they hire directly.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Maria Lopez</span><br><span class="muted" style="font-size: 14px">Acme Hotel · 1,980 of 2,080 h</span></span><span class="when"><span class="badge t-warning">~3 weeks</span></span></div>
+            <div class="item"><span><span class="strong">Carlos Mendez</span><br><span class="muted" style="font-size: 14px">QCP Property · 1,890 of 2,080 h</span></span><span class="when"><span class="badge t-gray">~5 weeks</span></span></div>
+          </div>
+          <div class="cf"><a href="#">All 5 within 10 weeks →</a></div>
+        </section>
+
+        <section class="card">
+          <div class="ch">
+            <div>
+              <h2 class="ct">Visits</h2>
+              <p class="cd">Properties you haven't checked in at lately.</p>
+            </div>
+          </div>
+          <div class="cb">
+            <div class="item"><span><span class="strong">Cedar Lodge</span><br><span class="muted" style="font-size: 14px">Last visit Sep 18</span></span><span class="when"><span class="badge t-warning">24 days</span></span></div>
+            <div class="item"><span><span class="strong">Bayview Inn</span><br><span class="muted" style="font-size: 14px">Last visit Sep 29</span></span><span class="when"><span class="badge t-gray">13 days</span></span></div>
+          </div>
+          <div class="cf muted" style="font-size: 13.5px">7 visits this week · none left open</div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
