@@ -33,6 +33,7 @@ class InvoiceController extends Controller
         'invoice_number' => 'invoices.invoice_number',
         'property' => 'properties.name',
         'issue_date' => 'invoices.issue_date',
+        'due_date' => 'invoices.due_date',
         'total' => 'invoices.total',
         'status' => 'invoices.status',
     ];
@@ -62,13 +63,19 @@ class InvoiceController extends Controller
             'invoices' => collect($page->items())->map(fn (Invoice $i): array => [
                 'id' => $i->id,
                 'invoice_number' => $i->invoice_number,
+                'property_id' => $i->property_id,
                 'property' => $i->property?->name,
+                // The timesheet week the invoice bills.
+                'week_start' => $i->payrollPeriod?->week_start->toDateString(),
+                'week_end' => $i->payrollPeriod?->week_end->toDateString(),
                 'issue_date' => $i->issue_date->toDateString(),
+                'due_date' => $i->due_date->toDateString(),
                 'total' => $i->total,
                 'status' => $i->status->value,
                 'status_label' => $i->status->label(),
                 'paid_at' => $i->paid_at?->toDateString(),
                 'is_overdue' => $i->isOverdue(),
+                'days_overdue' => $i->isOverdue() ? (int) $i->due_date->diffInDays(today(), absolute: true) : null,
             ])->all(),
             'pagination' => [
                 'current_page' => $page->currentPage(),
@@ -165,7 +172,7 @@ class InvoiceController extends Controller
                     ->orWhere('properties.name', 'like', $like));
             })
             ->select('invoices.*')
-            ->with('property:id,name')
+            ->with(['property:id,name', 'payrollPeriod:id,week_start,week_end'])
             ->orderBy(self::SORTS[$filters['sort']], $filters['direction'])
             // A day's invoices all share an issue date — without a stable
             // tiebreaker one can appear on two pages and another on none.

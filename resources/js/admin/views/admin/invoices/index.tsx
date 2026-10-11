@@ -10,13 +10,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 type Row = {
   id: number
   invoice_number: string
+  property_id: number
   property: string | null
+  week_start: string | null
+  week_end: string | null
   issue_date: string
+  due_date: string
   total: number
   status: string
   status_label: string
   paid_at: string | null
   is_overdue: boolean
+  days_overdue: number | null
 }
 type Filters = {
   search: string
@@ -50,7 +55,18 @@ const queryFrom = (filters: Filters, page: number): Record<string, string> => {
   return params
 }
 
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
+const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+// Noon, so no timezone offset can push the date to a neighbouring day.
+const at = (iso: string) => new Date(`${iso}T12:00:00`)
+const longDate = (iso: string) => at(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+/** "Oct 5 – 11", or "Sep 28 – Oct 4" across a month; the year only when it isn't this one. */
+const weekLabel = (start: string, end: string) => {
+  const s = at(start)
+  const e = at(end)
+  const month = (d: Date) => d.toLocaleDateString('en-US', { month: 'short' })
+  const range = s.getMonth() === e.getMonth() ? `${month(s)} ${s.getDate()} – ${e.getDate()}` : `${month(s)} ${s.getDate()} – ${month(e)} ${e.getDate()}`
+  return e.getFullYear() === new Date().getFullYear() ? range : `${range}, ${e.getFullYear()}`
+}
 
 const statusBadge: Record<string, string> = {
   draft: 'bg-warning/15 text-warning',
@@ -105,26 +121,52 @@ const Page = ({ invoices, pagination, filters, statuses, paymentStates, properti
       }),
       columnHelper.accessor('property', {
         header: 'Property',
-        cell: ({ row }) => row.original.property ?? '—',
+        cell: ({ row }) =>
+          row.original.property ? (
+            <Link href={`/admin/properties/${row.original.property_id}`} className="hover:text-primary">
+              {row.original.property}
+            </Link>
+          ) : (
+            '—'
+          ),
+      }),
+      columnHelper.accessor('week_start', {
+        header: 'Week',
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.week_start && row.original.week_end ? (
+            <span className="whitespace-nowrap">{weekLabel(row.original.week_start, row.original.week_end)}</span>
+          ) : (
+            '—'
+          ),
       }),
       columnHelper.accessor('issue_date', {
         header: 'Issued',
+        cell: ({ row }) => <span className="whitespace-nowrap">{longDate(row.original.issue_date)}</span>,
+      }),
+      columnHelper.accessor('due_date', {
+        header: 'Due',
+        cell: ({ row }) => <span className="whitespace-nowrap">{longDate(row.original.due_date)}</span>,
       }),
       columnHelper.accessor('total', {
         header: 'Total',
-        cell: ({ row }) => money(row.original.total),
+        meta: { align: 'end' },
+        cell: ({ row }) => <span className="tabular-nums">{money(row.original.total)}</span>,
       }),
       columnHelper.accessor('paid_at', {
         header: 'Payment',
         enableSorting: false,
-        cell: ({ row }) =>
-          row.original.paid_at ? (
-            <span className="badge badge-label bg-success/15 text-success">Paid {row.original.paid_at}</span>
-          ) : row.original.is_overdue ? (
-            <span className="badge badge-label bg-danger/15 text-danger">Overdue</span>
-          ) : (
-            <span className="text-default-400">—</span>
-          ),
+        cell: ({ row }) => {
+          const i = row.original
+          if (i.paid_at) return <span className="badge badge-label bg-success/15 text-success whitespace-nowrap">Paid {longDate(i.paid_at)}</span>
+          if (i.is_overdue)
+            return (
+              <span className="badge badge-label bg-danger/15 text-danger whitespace-nowrap">
+                Overdue{i.days_overdue ? ` · ${i.days_overdue} ${i.days_overdue === 1 ? 'day' : 'days'}` : ''}
+              </span>
+            )
+          return <span className="text-default-400">—</span>
+        },
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -139,11 +181,18 @@ const Page = ({ invoices, pagination, filters, statuses, paymentStates, properti
         enableSorting: false,
         cell: ({ row }: { row: TableRow<Row> }) => (
           <div className="flex justify-center gap-1.5">
+            <a
+              href={`/admin/invoices/${row.original.id}/pdf`}
+              className="btn btn-icon border-default-300 hover:border-default-400 border"
+              title="Download PDF"
+              aria-label={`Download ${row.original.invoice_number} as a PDF`}>
+              <Icon icon="download" className="text-base" />
+            </a>
             <Link
               href={`/admin/invoices/${row.original.id}`}
               className="btn btn-icon border-default-300 hover:border-default-400 border"
               title="View invoice"
-            >
+              aria-label={`View ${row.original.invoice_number}`}>
               <Icon icon="eye" className="text-base" />
             </Link>
           </div>
@@ -194,7 +243,7 @@ const Page = ({ invoices, pagination, filters, statuses, paymentStates, properti
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             <span className="me-1 font-semibold text-nowrap">Filter By:</span>
             <select className="form-select w-auto" value={filters.status} onChange={(e) => visit({ status: e.target.value })}>
-              <option value="">Status</option>
+              <option value="">All statuses</option>
               {statuses.map((status) => (
                 <option key={status.value} value={status.value}>
                   {status.label}
@@ -202,7 +251,7 @@ const Page = ({ invoices, pagination, filters, statuses, paymentStates, properti
               ))}
             </select>
             <select className="form-select w-auto" value={filters.payment} onChange={(e) => visit({ payment: e.target.value })}>
-              <option value="">Payment</option>
+              <option value="">All payments</option>
               {paymentStates.map((state) => (
                 <option key={state} value={state} className="capitalize">
                   {state[0].toUpperCase() + state.slice(1)}
@@ -230,7 +279,10 @@ const Page = ({ invoices, pagination, filters, statuses, paymentStates, properti
           </div>
         </div>
 
-        <DataTable table={table} emptyMessage="No invoices yet." />
+        <DataTable
+          table={table}
+          emptyMessage={filters.search || filters.status || filters.payment || filters.property_id ? 'No invoices match these filters.' : 'No invoices yet.'}
+        />
 
         {pagination.total > 0 && (
           <div className="card-footer">

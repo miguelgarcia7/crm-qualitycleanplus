@@ -4,7 +4,9 @@ use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Time\Models\PayrollPeriod;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function () {
@@ -154,4 +156,32 @@ it('keeps a recruiter scoped to their properties, filter dropdown included', fun
             ->has('properties', 1)
             ->where('properties.0.name', 'Assigned Place'),
         );
+});
+
+it('shows the week billed, the due date and how long an unpaid invoice is overdue', function () {
+    $this->travelTo(Carbon::parse('2026-10-10 12:00:00'));
+    $period = PayrollPeriod::factory()->forWeek(Carbon::parse('2026-09-21'))->create();
+    $invoice = Invoice::factory()->create([
+        'property_id' => $period->property_id,
+        'payroll_period_id' => $period->id,
+        'issue_date' => '2026-09-28',
+        'due_date' => '2026-09-28',
+    ]);
+
+    $this->actingAs(person('office_manager'))->get(main('/admin/invoices'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('invoices.0.id', $invoice->id)
+            ->where('invoices.0.property_id', $period->property_id)
+            ->where('invoices.0.week_start', '2026-09-21')
+            ->where('invoices.0.week_end', '2026-09-27')
+            ->where('invoices.0.due_date', '2026-09-28')
+            ->where('invoices.0.is_overdue', true)
+            ->where('invoices.0.days_overdue', 12),
+        );
+
+    $invoice->update(['paid_at' => now()]);
+
+    $this->actingAs(person('office_manager'))->get(main('/admin/invoices'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('invoices.0.days_overdue', null));
 });
