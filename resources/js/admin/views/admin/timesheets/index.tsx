@@ -286,7 +286,7 @@ const Page = ({ timesheets, pagination, filters, counts, oldest_pending_days, pr
             <div className="input-icon-group">
               <Icon icon="search" className="input-icon" />
               <input
-                className="form-input w-72 max-w-full"
+                className="form-input"
                 placeholder="Search property or invoice #…"
                 aria-label="Search timesheets"
                 value={search}
@@ -298,20 +298,26 @@ const Page = ({ timesheets, pagination, filters, counts, oldest_pending_days, pr
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
             {properties.length > 1 && (
-              <select
-                className="form-select w-auto min-w-40"
-                aria-label="Property"
-                value={filters.property_id ?? ''}
-                onChange={(e) => visit({ property_id: e.target.value === '' ? null : Number(e.target.value) })}>
-                <option value="">All properties</option>
-                {properties.map((property) => (
-                  <option key={property.id} value={property.id}>
-                    {property.name}
-                  </option>
-                ))}
-              </select>
+              <>
+                <span className="me-1 font-semibold text-nowrap">Filter By:</span>
+                <div className="input-icon-group">
+                  <Icon icon="building" className="input-icon" />
+                  <select
+                    className="form-select !w-auto"
+                    aria-label="Property"
+                    value={filters.property_id ?? ''}
+                    onChange={(e) => visit({ property_id: e.target.value === '' ? null : Number(e.target.value) })}>
+                    <option value="">All properties</option>
+                    {properties.map((property) => (
+                      <option key={property.id} value={property.id}>
+                        {property.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
             <select className="form-select w-20" aria-label="Rows per page" value={filters.per_page} onChange={(e) => visit({ per_page: Number(e.target.value) })}>
               {[10, 25, 50].map((size) => (
