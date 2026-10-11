@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property CarbonImmutable $issue_date
  * @property CarbonImmutable $due_date
  * @property CarbonImmutable|null $paid_at
+ * @property CarbonImmutable|null $notification_sent_at
  * @property int|null $paid_by
  * @property array<string, mixed> $property_snapshot
  * @property array<string, mixed> $invoicer_snapshot

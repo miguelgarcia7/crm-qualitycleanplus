@@ -11,8 +11,13 @@ type Item = {
   job_code: string | null
   regular_minutes: number
   overtime_minutes: number
+  holiday_minutes: number
+  training_minutes: number
   bill_rate: number
   ot_bill_rate: number
+  /** Read back from the frozen amount; null when the line has none. */
+  holiday_rate: number | null
+  training_rate: number | null
   total_bill: number
 }
 type PositionSummary = {
@@ -43,17 +48,58 @@ type Invoice = {
   tax_amount: number
   total: number
   notification_recipient: string | null
+  notification_sent_at: string | null
+  property_id: number
+  week_start: string | null
+  week_end: string | null
   paid_at: string | null
   paid_by: string | null
   is_overdue: boolean
+  days_overdue: number | null
   items: Item[]
   position_summary: PositionSummary[]
 }
 
 type Props = { invoice: Invoice; can: { send: boolean; markPaid: boolean }; previewNotice: PreviewNotice }
 
-const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
+const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const hrs = (m: number) => (m / 60).toFixed(2)
+// Noon, so no timezone offset can push the date to a neighbouring day.
+const at = (iso: string) => new Date(`${iso}T12:00:00`)
+const longDate = (iso: string) => at(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+const shortDate = (iso: string) => at(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+/** "Sep 21 – 27", or "Sep 28 – Oct 4" across a month. */
+const weekLabel = (start: string, end: string) => {
+  const s = at(start)
+  const e = at(end)
+  const month = (d: Date) => d.toLocaleDateString('en-US', { month: 'short' })
+  return s.getMonth() === e.getMonth() ? `${month(s)} ${s.getDate()} – ${e.getDate()}` : `${month(s)} ${s.getDate()} – ${month(e)} ${e.getDate()}`
+}
+
+const statusBadge: Record<string, string> = {
+  draft: 'bg-warning/15 text-warning',
+  invoiced: 'bg-info/15 text-info',
+  invoice_sent: 'bg-success/15 text-success',
+  voided: 'bg-danger/15 text-danger',
+}
+
+/** Hours, with the rate they were billed at when there are any. */
+const HoursAndRate = ({ minutes, rate }: { minutes: number; rate: number | null }) =>
+  minutes > 0 && rate !== null ? (
+    <>
+      {hrs(minutes)} <span className="text-default-400">| {money(rate)}</span>
+    </>
+  ) : (
+    <>{hrs(minutes)}</>
+  )
+
+/** One labelled fact in the invoice's header block. */
+const Fact = ({ label, children }: { label: string; children: React.ReactNode }) => (
+  <div>
+    <div className="text-default-400 text-xs uppercase">{label}</div>
+    <div className="text-default-900 font-medium">{children}</div>
+  </div>
+)
 
 /** One rate for the position, or a flag that its contractors were billed differently. */
 const RateCell = ({ rate }: { rate: number | null }) =>
@@ -83,6 +129,11 @@ const PreviewOnlyNotice = ({ notice }: { notice: PreviewNotice }) =>
 
 const Page = ({ invoice, can, previewNotice }: Props) => {
   const [sending, setSending] = useState(false)
+  const sent = invoice.status === 'invoice_sent'
+  // Holiday and training are part of each line's amount, so they get columns
+  // whenever any line has them; otherwise hours times rate never adds up.
+  const withHoliday = invoice.items.some((it) => it.holiday_minutes > 0)
+  const withTraining = invoice.items.some((it) => it.training_minutes > 0)
 
   // Confirmed both ways: recording money that never arrived is as wrong as
   // un-recording money that did.
@@ -106,7 +157,7 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
       message: (
         <>
           Put <strong className="text-default-900">{invoice.invoice_number}</strong> back to owing? It was recorded paid on{' '}
-          {invoice.paid_at}
+          {invoice.paid_at && longDate(invoice.paid_at)}
           {invoice.paid_by ? ` by ${invoice.paid_by}` : ''}.
         </>
       ),
@@ -117,55 +168,82 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
   return (
     <>
       <Head title={invoice.invoice_number} />
-      <PageBreadcrumb title={invoice.invoice_number} subtitle="Invoice" />
+      <PageBreadcrumb title={invoice.invoice_number} subtitle="Invoices" />
 
       <div className="card">
         <div className="card-header">
-          <div className="flex items-center gap-3">
-            <h4 className="card-title">{invoice.invoice_number}</h4>
-            <span className="badge badge-label bg-secondary/15 text-secondary">{invoice.status_label}</span>
-            {invoice.paid_at ? (
-              <span className="badge badge-label bg-success/15 text-success">Paid {invoice.paid_at}</span>
-            ) : (
-              invoice.is_overdue && <span className="badge badge-label bg-danger/15 text-danger">Overdue</span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={cn('badge badge-label', statusBadge[invoice.status] ?? 'bg-secondary/15 text-secondary')}>{invoice.status_label}</span>
+              {invoice.paid_at ? (
+                <span className="badge badge-label bg-success/15 text-success">Paid {longDate(invoice.paid_at)}</span>
+              ) : (
+                invoice.is_overdue && (
+                  <span className="badge badge-label bg-danger/15 text-danger">
+                    Overdue{invoice.days_overdue ? ` · ${invoice.days_overdue} ${invoice.days_overdue === 1 ? 'day' : 'days'}` : ''}
+                  </span>
+                )
+              )}
+            </div>
+            {invoice.notification_recipient && (
+              <p className="text-default-500 mt-1.5 text-sm">
+                Sent{invoice.notification_sent_at ? ` ${shortDate(invoice.notification_sent_at)}` : ''} to {invoice.notification_recipient}
+              </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/admin/invoices" className="btn btn-light text-nowrap">
-              <Icon icon="arrow-left" className="me-1 size-4" /> All invoices
-            </Link>
-            <a href={`/admin/invoices/${invoice.id}/pdf`} className="btn btn-light px-4 py-1.5">Download PDF</a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href={`/admin/invoices/${invoice.id}/pdf`} className="btn border-default-300 hover:border-default-400 border">
+              <Icon icon="download" className="size-4" /> Download PDF
+            </a>
             {can.send && (
-              <button className="btn bg-primary hover:bg-primary-hover px-4 py-1.5 font-semibold text-white" onClick={() => setSending(true)}>Send to Property</button>
+              <button
+                type="button"
+                className={cn('btn', sent ? 'border-default-300 hover:border-default-400 border' : 'bg-primary hover:bg-primary-hover font-semibold text-white')}
+                onClick={() => setSending(true)}>
+                <Icon icon="send" className="size-4" /> {sent ? 'Resend' : 'Send to Property'}
+              </button>
             )}
             {can.markPaid &&
               (invoice.paid_at ? (
-                <button className="btn bg-light hover:text-primary px-4 py-1.5" onClick={confirmUnpaid}>
+                <button type="button" className="btn border-default-300 hover:border-default-400 border" onClick={confirmUnpaid}>
                   Mark unpaid
                 </button>
               ) : (
-                <button className="btn bg-success hover:bg-success/90 px-4 py-1.5 font-semibold text-white" onClick={confirmPaid}>
-                  <Icon icon="check" className="me-1 size-4" /> Mark paid
+                <button
+                  type="button"
+                  className={cn('btn', sent || !can.send ? 'bg-primary hover:bg-primary-hover font-semibold text-white' : 'border-default-300 hover:border-default-400 border')}
+                  onClick={confirmPaid}>
+                  <Icon icon="check" className="size-4" /> Mark paid
                 </button>
               ))}
           </div>
         </div>
 
-        <div className="card-body p-6">
-          <div className="mb-6 grid grid-cols-2 gap-6">
+        <div className="card-body">
+          <div className="mb-6 grid grid-cols-2 gap-6 md:grid-cols-4">
+            <Fact label="From">{invoice.invoicer_snapshot.name}</Fact>
             <div>
-              <div className="text-default-400 text-xs uppercase">From</div>
-              <div className="font-medium">{invoice.invoicer_snapshot.name}</div>
-            </div>
-            <div>
-              <div className="text-default-400 text-xs uppercase">Bill To</div>
-              <div className="font-medium">{invoice.property_snapshot.name}</div>
+              <div className="text-default-400 text-xs uppercase">Bill to</div>
+              <Link href={`/admin/properties/${invoice.property_id}`} className="text-default-900 hover:text-primary font-medium">
+                {invoice.property_snapshot.name}
+              </Link>
               <div className="text-default-400 text-sm">
                 {invoice.property_snapshot.city} {invoice.property_snapshot.state} {invoice.property_snapshot.zip}
               </div>
             </div>
-            <div><span className="text-default-400">Issued:</span> {invoice.issue_date}</div>
-            <div><span className="text-default-400">Due:</span> {invoice.due_date}</div>
+            <Fact label="Week billed">
+              {invoice.week_start && invoice.week_end ? (
+                <Link href={`/admin/properties/${invoice.property_id}/grid?week=${invoice.week_start}`} className="hover:text-primary">
+                  {weekLabel(invoice.week_start, invoice.week_end)}, {at(invoice.week_end).getFullYear()}
+                </Link>
+              ) : (
+                '—'
+              )}
+            </Fact>
+            <div className="grid grid-cols-2 gap-6">
+              <Fact label="Issued">{longDate(invoice.issue_date)}</Fact>
+              <Fact label="Due">{longDate(invoice.due_date)}</Fact>
+            </div>
           </div>
 
           <div className="table-wrapper">
@@ -176,6 +254,8 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
                   <th>Job Code</th>
                   <th className="text-end">Reg Hrs | Rate</th>
                   <th className="text-end">OT Hrs | Rate</th>
+                  {withHoliday && <th className="text-end">Holiday Hrs | Rate</th>}
+                  {withTraining && <th className="text-end">Training Hrs | Rate</th>}
                   <th className="text-end">Amount</th>
                 </tr>
               </thead>
@@ -187,19 +267,23 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
                       <span className="text-default-400 block text-xs">{it.position_name}</span>
                     </td>
                     <td className="text-default-500">{it.job_code ?? '—'}</td>
-                    <td className="text-end whitespace-nowrap">
+                    <td className="text-end whitespace-nowrap tabular-nums">
                       {hrs(it.regular_minutes)} <span className="text-default-400">| {money(it.bill_rate)}</span>
                     </td>
-                    <td className="text-end whitespace-nowrap">
-                      {it.overtime_minutes > 0 ? (
-                        <>
-                          {hrs(it.overtime_minutes)} <span className="text-default-400">| {money(it.ot_bill_rate)}</span>
-                        </>
-                      ) : (
-                        hrs(it.overtime_minutes)
-                      )}
+                    <td className="text-end whitespace-nowrap tabular-nums">
+                      <HoursAndRate minutes={it.overtime_minutes} rate={it.ot_bill_rate} />
                     </td>
-                    <td className="text-end">{money(it.total_bill)}</td>
+                    {withHoliday && (
+                      <td className="text-end whitespace-nowrap tabular-nums">
+                        <HoursAndRate minutes={it.holiday_minutes} rate={it.holiday_rate} />
+                      </td>
+                    )}
+                    {withTraining && (
+                      <td className="text-end whitespace-nowrap tabular-nums">
+                        <HoursAndRate minutes={it.training_minutes} rate={it.training_rate} />
+                      </td>
+                    )}
+                    <td className="text-default-900 text-end font-medium tabular-nums">{money(it.total_bill)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -208,7 +292,7 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
 
           {invoice.position_summary.length > 0 && (
             <div className="mt-6">
-              <h5 className="mb-2 font-semibold">Position Summary</h5>
+              <h5 className="mb-2 font-semibold">Position summary</h5>
               <div className="table-wrapper">
                 <table className="table">
                   <thead className="thead-sm">
@@ -218,7 +302,8 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
                       <th className="text-end">Rate</th>
                       <th className="text-end">Reg Hrs</th>
                       <th className="text-end">OT Hrs</th>
-                      <th className="text-end">HLD Hrs</th>
+                      <th className="text-end">Holiday Hrs</th>
+                      {withTraining && <th className="text-end">Training Hrs</th>}
                       <th className="text-end">Total Hrs</th>
                       <th className="text-end">Billed</th>
                     </tr>
@@ -231,11 +316,12 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
                         <td className="text-end">
                           <RateCell rate={row.bill_rate} />
                         </td>
-                        <td className="text-end">{hrs(row.regular_minutes)}</td>
-                        <td className="text-end">{hrs(row.overtime_minutes)}</td>
-                        <td className="text-end">{hrs(row.holiday_minutes)}</td>
-                        <td className="text-end font-medium">{hrs(row.total_minutes)}</td>
-                        <td className="text-end">{money(row.total_bill)}</td>
+                        <td className="text-end tabular-nums">{hrs(row.regular_minutes)}</td>
+                        <td className="text-end tabular-nums">{hrs(row.overtime_minutes)}</td>
+                        <td className="text-end tabular-nums">{hrs(row.holiday_minutes)}</td>
+                        {withTraining && <td className="text-end tabular-nums">{hrs(row.training_minutes)}</td>}
+                        <td className="text-end font-medium tabular-nums">{hrs(row.total_minutes)}</td>
+                        <td className="text-end tabular-nums">{money(row.total_bill)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -278,19 +364,22 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
               </tbody>
             </table>
           </div>
-
-          {invoice.notification_recipient && (
-            <p className="text-success mt-4 text-sm">Sent to {invoice.notification_recipient}.</p>
-          )}
         </div>
       </div>
 
-      {sending && <SendModal invoiceId={invoice.id} defaultEmail={invoice.property_snapshot.billing_email ?? ''} onClose={() => setSending(false)} />}
+      {sending && (
+        <SendModal
+          invoiceId={invoice.id}
+          defaultEmail={invoice.notification_recipient ?? invoice.property_snapshot.billing_email ?? ''}
+          resend={sent}
+          onClose={() => setSending(false)}
+        />
+      )}
     </>
   )
 }
 
-const SendModal = ({ invoiceId, defaultEmail, onClose }: { invoiceId: number; defaultEmail: string; onClose: () => void }) => {
+const SendModal = ({ invoiceId, defaultEmail, resend, onClose }: { invoiceId: number; defaultEmail: string; resend: boolean; onClose: () => void }) => {
   const { data, setData, post, processing, errors } = useForm({ recipient: defaultEmail })
 
   const submit = (e: FormEvent) => {
@@ -301,12 +390,12 @@ const SendModal = ({ invoiceId, defaultEmail, onClose }: { invoiceId: number; de
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header"><h4 className="card-title">Send Invoice to Property</h4></div>
+        <div className="card-header"><h4 className="card-title">{resend ? 'Resend invoice' : 'Send invoice to property'}</h4></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="form-label">Recipient email</label>
-              <input type="email" className="form-input" value={data.recipient} onChange={(e) => setData('recipient', e.target.value)} required />
+              <label htmlFor="recipient" className="form-label">Recipient email</label>
+              <input id="recipient" type="email" className="form-input" value={data.recipient} onChange={(e) => setData('recipient', e.target.value)} required />
               {errors.recipient && <p className="text-danger mt-1 text-sm">{errors.recipient}</p>}
             </div>
             <div className="flex justify-end gap-2">

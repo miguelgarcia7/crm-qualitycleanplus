@@ -6,6 +6,7 @@ use App\Domain\Billing\Actions\MarkInvoicePaid;
 use App\Domain\Billing\Actions\SendInvoice;
 use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Models\Invoice;
+use App\Domain\Billing\Models\InvoiceItem;
 use App\Domain\Billing\Support\InvoicePositionSummary;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
@@ -203,7 +204,7 @@ class InvoiceController extends Controller
     {
         $this->authorize('view', $invoice);
 
-        $invoice->load('items');
+        $invoice->load(['items', 'payrollPeriod:id,week_start,week_end']);
         $user = Auth::user();
 
         return Inertia::render('admin/invoices/show', [
@@ -272,16 +273,28 @@ class InvoiceController extends Controller
             'tax_amount' => $invoice->tax_amount,
             'total' => $invoice->total,
             'notification_recipient' => $invoice->notification_recipient,
+            'notification_sent_at' => $invoice->notification_sent_at?->toDateString(),
+            'property_id' => $invoice->property_id,
+            // The timesheet week this invoice bills, so the page can lead back to it.
+            'week_start' => $invoice->payrollPeriod?->week_start->toDateString(),
+            'week_end' => $invoice->payrollPeriod?->week_end->toDateString(),
             'paid_at' => $invoice->paid_at?->toDateString(),
             'paid_by' => $invoice->paidBy?->name,
             // Derived, never stored: unpaid and past its due date.
             'is_overdue' => $invoice->isOverdue(),
-            'items' => $invoice->items->map(fn ($it): array => [
+            'days_overdue' => $invoice->isOverdue() ? (int) $invoice->due_date->diffInDays(today(), absolute: true) : null,
+            'items' => $invoice->items->map(fn (InvoiceItem $it): array => [
                 'contractor_name' => $it->contractor_name,
                 'position_name' => $it->position_name,
                 'job_code' => $it->job_code,
                 'regular_minutes' => $it->regular_minutes,
                 'overtime_minutes' => $it->overtime_minutes,
+                // Holiday and training are part of the amount, so the line
+                // shows them; otherwise hours times rate never adds up.
+                'holiday_minutes' => $it->holiday_minutes,
+                'training_minutes' => $it->training_minutes,
+                'holiday_rate' => $it->holidayBillRate(),
+                'training_rate' => $it->trainingBillRate(),
                 // Frozen at issue, so an old invoice always shows the rate it
                 // was actually billed at (ADR-0005).
                 'bill_rate' => $it->bill_rate,

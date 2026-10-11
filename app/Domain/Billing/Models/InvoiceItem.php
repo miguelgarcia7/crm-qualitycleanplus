@@ -12,7 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $regular_minutes
  * @property int $overtime_minutes
+ * @property int $holiday_minutes
  * @property int $training_minutes
+ * @property int $holiday_amount_bill
+ * @property int $training_amount_bill
  * @property int $total_bill
  * @property int $total_payout
  */
@@ -44,6 +47,27 @@ class InvoiceItem extends Model
             'total_bill' => 'integer',
             'total_payout' => 'integer',
         ];
+    }
+
+    /**
+     * The hourly rate holiday time was billed at. Not frozen on its own (it is
+     * the bill rate times the property's holiday multiplier at the time), so
+     * it is read back from the frozen amount; null when there was no holiday.
+     */
+    public function holidayBillRate(): ?int
+    {
+        return $this->rateFor($this->holiday_minutes, $this->holiday_amount_bill);
+    }
+
+    /** As holidayBillRate(), for training time; zero when training was not billed. */
+    public function trainingBillRate(): ?int
+    {
+        return $this->rateFor($this->training_minutes, $this->training_amount_bill);
+    }
+
+    private function rateFor(int $minutes, int $amount): ?int
+    {
+        return $minutes > 0 ? (int) round($amount / ($minutes / 60)) : null;
     }
 
     /**

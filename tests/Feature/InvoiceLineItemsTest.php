@@ -262,3 +262,52 @@ it('keeps payout off the back-office invoice too', function () {
             ->has('invoice.position_summary.0.total_bill')
             ->missing('invoice.position_summary.0.total_payout'));
 });
+
+/** The demo's James Carter line: regular, overtime and holiday time at 1.5×. */
+function holidayInvoice(): Invoice
+{
+    $invoice = Invoice::factory()->create();
+
+    InvoiceItem::factory()->create([
+        'invoice_id' => $invoice->id,
+        'contractor_name' => 'James Carter',
+        'position_name' => 'Houseman',
+        'regular_minutes' => 1803,      // 30.05 h at $29.50
+        'overtime_minutes' => 603,      // 10.05 h at $44.25
+        'holiday_minutes' => 597,       // 9.95 h at $44.25
+        'bill_rate' => 2950,
+        'ot_bill_rate' => 4425,
+        'regular_amount_bill' => 88648,
+        'overtime_amount_bill' => 44471,
+        'holiday_amount_bill' => 44029,
+        'total_bill' => 177148,
+    ]);
+
+    return $invoice->load('items');
+}
+
+it('shows holiday hours and their rate on the line, so the line adds up', function () {
+    $invoice = holidayInvoice();
+
+    $this->actingAs(person('payroll'))->get(main("/admin/invoices/{$invoice->id}"))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('invoice.items.0.holiday_minutes', 597)
+            ->where('invoice.items.0.holiday_rate', 4425)
+            ->where('invoice.items.0.training_rate', null),
+        );
+});
+
+it('prints holiday hours and their rate on the PDF, and leaves training out when there is none', function () {
+    $html = view('pdf.invoice', ['invoice' => holidayInvoice()])->render();
+
+    expect($html)->toContain('Holiday Hrs | Rate')
+        ->toContain('9.95 <span class="muted">| $44.25</span>')
+        ->not->toContain('Training Hrs');
+});
+
+it('keeps the PDF to regular and overtime columns when no line has holiday time', function () {
+    $html = view('pdf.invoice', ['invoice' => lineItemInvoice()])->render();
+
+    expect($html)->not->toContain('Holiday Hrs | Rate');
+});

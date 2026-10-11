@@ -30,6 +30,13 @@
     $notice = config('qcp.invoice.preview_notice') ?? [];
     $p = $invoice->propertySnapshotFlat();
     $inv = $invoice->invoicerSnapshotFlat();
+    // Holiday and training are in each line's amount, so they get columns
+    // whenever any line has them; otherwise hours times rate never adds up.
+    $withHoliday = $invoice->items->contains(fn ($i) => $i->holiday_minutes > 0);
+    $withTraining = $invoice->items->contains(fn ($i) => $i->training_minutes > 0);
+    $hoursAndRate = fn ($minutes, $rate) => $minutes > 0
+        ? $hrs($minutes) . ' <span class="muted">| ' . e($money($rate)) . '</span>'
+        : $hrs($minutes);
 @endphp
 <body>
     <div class="row">
@@ -78,6 +85,8 @@
                 <th>Job Code</th>
                 <th class="num">Reg Hrs | Rate</th>
                 <th class="num">OT Hrs | Rate</th>
+                @if ($withHoliday)<th class="num">Holiday Hrs | Rate</th>@endif
+                @if ($withTraining)<th class="num">Training Hrs | Rate</th>@endif
                 <th class="num">Amount</th>
             </tr>
         </thead>
@@ -91,6 +100,8 @@
                     <td>{{ $item->job_code ?? '—' }}</td>
                     <td class="num">{{ $hrs($item->regular_minutes) }} <span class="muted">| {{ $money($item->bill_rate) }}</span></td>
                     <td class="num">{{ $hrs($item->overtime_minutes) }}@if ($item->overtime_minutes > 0) <span class="muted">| {{ $money($item->ot_bill_rate) }}</span>@endif</td>
+                    @if ($withHoliday)<td class="num">{!! $hoursAndRate($item->holiday_minutes, $item->holidayBillRate()) !!}</td>@endif
+                    @if ($withTraining)<td class="num">{!! $hoursAndRate($item->training_minutes, $item->trainingBillRate()) !!}</td>@endif
                     <td class="num">{{ $money($item->total_bill) }}</td>
                 </tr>
             @endforeach
@@ -106,7 +117,8 @@
                 <th class="num">Rate</th>
                 <th class="num">Reg Hrs</th>
                 <th class="num">OT Hrs</th>
-                <th class="num">HLD Hrs</th>
+                <th class="num">Holiday Hrs</th>
+                @if ($withTraining)<th class="num">Training Hrs</th>@endif
                 <th class="num">Total Hrs</th>
                 <th class="num">Amount</th>
             </tr>
@@ -121,6 +133,7 @@
                     <td class="num">{{ $hrs($row['regular_minutes']) }}</td>
                     <td class="num">{{ $hrs($row['overtime_minutes']) }}</td>
                     <td class="num">{{ $hrs($row['holiday_minutes']) }}</td>
+                    @if ($withTraining)<td class="num">{{ $hrs($row['training_minutes']) }}</td>@endif
                     <td class="num">{{ $hrs($row['total_minutes']) }}</td>
                     <td class="num">{{ $money($row['total_bill']) }}</td>
                 </tr>
