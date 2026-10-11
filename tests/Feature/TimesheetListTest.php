@@ -101,6 +101,7 @@ it('filters by tab and counts the other tabs under the same filters', function (
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('timesheets', 2)
             ->where('filters.tab', 'pending')
+            ->where('oldest_pending_days', null)
             // Counts describe what switching tabs would show, so they ignore
             // the tab filter itself.
             ->where('counts.draft', 3)
@@ -169,4 +170,60 @@ it('exports what the filters selected, not the whole table', function () {
         ->get(main("/admin/timesheets/export?property_id={$sunrise->id}"))
         ->assertOk()
         ->assertDownload();
+});
+
+it('shows a recruiter only the timesheets of the properties they are assigned', function () {
+    $recruiter = person('recruiter');
+    $theirs = Property::factory()->create(['name' => 'Sunrise Villas']);
+    $theirs->assignments()->create(['person_id' => $recruiter->id, 'role' => 'recruiter']);
+    weeksOfTimesheets($theirs, 2);
+    weeksOfTimesheets(Property::factory()->create(['name' => 'Harbor Point']), 3);
+
+    $this->actingAs($recruiter)->get(main('/admin/timesheets'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('timesheets', 2)
+            ->where('timesheets.0.property', 'Sunrise Villas')
+            ->where('counts.all', 2)
+            ->where('properties', [['id' => $theirs->id, 'name' => 'Sunrise Villas']]),
+        );
+
+    // An office manager sees every property.
+    expect(pageIds())->toHaveCount(5);
+});
+
+it('keeps declined and voided apart, and says why a sheet was declined', function () {
+    $property = Property::factory()->create();
+    [$declined] = weeksOfTimesheets($property, 1, TimesheetStatus::Declined);
+    $declined->update(['decline_reason' => 'Maria is missing Tuesday']);
+    weeksOfTimesheets($property, 2, TimesheetStatus::Voided, skipWeeks: 1);
+
+    $this->actingAs(person('office_manager'))->get(main('/admin/timesheets?tab=declined'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('timesheets', 1)
+            ->where('timesheets.0.decline_reason', 'Maria is missing Tuesday')
+            ->where('counts.declined', 1)
+            ->where('counts.voided', 2),
+        );
+});
+
+it('marks the week in progress and how long a pending sheet has waited', function () {
+    $this->travelTo(Carbon::parse('2026-10-07 18:00:00', 'UTC'));
+    $property = Property::factory()->create(['timezone' => 'America/Chicago']);
+    weeksOfTimesheets($property, 1, TimesheetStatus::PendingApproval)[0]
+        ->update(['sent_for_approval_at' => now()->subDays(3)->subHour()]);
+    $current = PayrollPeriod::factory()->forWeek(Carbon::now()->startOfWeek(Carbon::MONDAY))->create(['property_id' => $property->id]);
+    Timesheet::factory()->create(['property_id' => $property->id, 'payroll_period_id' => $current->id]);
+
+    $this->actingAs(person('office_manager'))->get(main('/admin/timesheets'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('timesheets.0.is_current', true)
+            ->where('timesheets.0.waiting_days', null)
+            ->where('timesheets.1.is_current', false)
+            ->where('timesheets.1.waiting_days', 3)
+            // The Pending card says how long the oldest one has waited.
+            ->where('oldest_pending_days', 3),
+        );
 });

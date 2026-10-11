@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Billing\Actions\SubmitTimesheetForApproval;
+use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Reports\Exports\ArrayReportExport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -33,8 +36,10 @@ class TimesheetController extends Controller
         'all' => null,
         'draft' => ['draft'],
         'pending' => ['pending_approval'],
+        // Declined is back with the recruiter; voided needs nothing from anyone.
+        'declined' => ['declined'],
         'billed' => ['approved', 'invoiced', 'invoice_sent'],
-        'issues' => ['declined', 'voided'],
+        'voided' => ['voided'],
     ];
 
     /**
@@ -49,6 +54,7 @@ class TimesheetController extends Controller
         'total_minutes' => 'sums.total_minutes',
         'total_bill' => 'sums.total_bill',
         'submitted_at' => 'timesheets.sent_for_approval_at',
+        'approved_at' => 'timesheets.approved_at',
         'invoice_number' => 'invoices.invoice_number',
         'status' => 'timesheets.status',
     ];
@@ -61,7 +67,7 @@ class TimesheetController extends Controller
         $user = $request->user();
         $filters = $this->filters($request);
 
-        $page = $this->historyQuery($filters)
+        $page = $this->historyQuery($filters, $user)
             ->paginate($filters['per_page'])
             ->withQueryString();
 
@@ -76,8 +82,9 @@ class TimesheetController extends Controller
                 'to' => $page->lastItem(),
             ],
             'filters' => $filters,
-            'counts' => $this->tabCounts($filters),
-            'properties' => $this->propertyOptions(),
+            'counts' => $this->tabCounts($filters, $user),
+            'oldest_pending_days' => $this->oldestPendingDays($filters, $user),
+            'properties' => $this->propertyOptions($user),
             'can_export' => $user->can('timesheets.export'),
         ]);
     }
@@ -86,13 +93,15 @@ class TimesheetController extends Controller
     {
         // Export what is on screen, not the whole table — a filtered list that
         // exports something else is a reporting bug waiting to happen.
-        $rows = $this->historyQuery($this->filters($request))->get()->map($this->toRow(...));
+        /** @var Person $user */
+        $user = $request->user();
+        $rows = $this->historyQuery($this->filters($request), $user)->get()->map($this->toRow(...));
 
         return Excel::download(new ArrayReportExport(
             ['Property', 'Week Start', 'Week End', 'Status', 'Hours', 'Billed ($)', 'Submitted', 'Approved', 'Invoice #'],
             $rows->map(fn (array $row): array => [
                 $row['property'], $row['week_start'], $row['week_end'], $row['status_label'],
-                round($row['total_minutes'] / 60, 1), $row['total_bill'] / 100,
+                round($row['total_minutes'] / 60, 2), $row['total_bill'] / 100,
                 $row['submitted_at'] ?? '', $row['approved_at'] ?? '', $row['invoice_number'] ?? '',
             ])->all(),
         ), 'timesheets-'.now()->toDateString().'.xlsx');
@@ -127,12 +136,12 @@ class TimesheetController extends Controller
      * @param  array<string, mixed>  $filters
      * @return Builder<Timesheet>
      */
-    private function historyQuery(array $filters): Builder
+    private function historyQuery(array $filters, Person $user): Builder
     {
-        return $this->filteredQuery($filters)
+        return $this->filteredQuery($filters, $user)
             ->select('timesheets.*', 'sums.total_minutes', 'sums.total_bill')
             ->with([
-                'property:id,name',
+                'property:id,name,timezone',
                 'payrollPeriod:id,week_start,week_end',
                 'invoice:id,invoice_number',
             ])
@@ -143,12 +152,13 @@ class TimesheetController extends Controller
     }
 
     /**
-     * Joins and filters shared by the list, the counts and the export.
+     * Joins and filters shared by the list, the counts and the export. A
+     * recruiter or property manager sees only the properties they're assigned.
      *
      * @param  array<string, mixed>  $filters
      * @return Builder<Timesheet>
      */
-    private function filteredQuery(array $filters, bool $applyTab = true): Builder
+    private function filteredQuery(array $filters, Person $user, bool $applyTab = true): Builder
     {
         $sums = DB::table('time_summaries')
             ->groupBy('payroll_period_id')
@@ -166,6 +176,10 @@ class TimesheetController extends Controller
             // This is the timesheet *history* — hide future ahead-periods (kept
             // ready for manual entry, but they have no hours yet).
             ->whereDate('payroll_periods.week_start', '<=', now())
+            ->when(
+                ! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES),
+                fn (Builder $q) => $q->whereIn('timesheets.property_id', $user->assignedProperties()->pluck('properties.id')->all()),
+            )
             ->when(
                 $applyTab && self::TABS[$filters['tab']] !== null,
                 fn (Builder $q) => $q->whereIn('timesheets.status', self::TABS[$filters['tab']]),
@@ -189,9 +203,9 @@ class TimesheetController extends Controller
      * @param  array<string, mixed>  $filters
      * @return array<string, int>
      */
-    private function tabCounts(array $filters): array
+    private function tabCounts(array $filters, Person $user): array
     {
-        $byStatus = $this->filteredQuery($filters, applyTab: false)
+        $byStatus = $this->filteredQuery($filters, $user, applyTab: false)
             ->groupBy('timesheets.status')
             ->pluck(DB::raw('count(*)'), 'timesheets.status');
 
@@ -207,14 +221,34 @@ class TimesheetController extends Controller
     }
 
     /**
-     * Properties that actually have a timesheet, for the filter dropdown.
+     * Whole days the longest-waiting pending sheet has sat with the property
+     * manager, under the same filters as the counts; null when none is waiting.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    private function oldestPendingDays(array $filters, Person $user): ?int
+    {
+        $oldest = $this->filteredQuery($filters, $user, applyTab: false)
+            ->where('timesheets.status', TimesheetStatus::PendingApproval->value)
+            ->min('timesheets.sent_for_approval_at');
+
+        return $oldest === null ? null : (int) Carbon::parse($oldest)->diffInDays(now(), absolute: true);
+    }
+
+    /**
+     * Properties the viewer can see that actually have a timesheet, for the
+     * filter dropdown.
      *
      * @return list<array{id: int, name: string}>
      */
-    private function propertyOptions(): array
+    private function propertyOptions(Person $user): array
     {
         return Property::query()
             ->whereHas('timesheets')
+            ->when(
+                ! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES),
+                fn (Builder $q) => $q->whereIn('id', $user->assignedProperties()->pluck('properties.id')->all()),
+            )
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (Property $p): array => ['id' => $p->id, 'name' => $p->name])
@@ -226,18 +260,28 @@ class TimesheetController extends Controller
      */
     private function toRow(Timesheet $timesheet): array
     {
+        $period = $timesheet->payrollPeriod;
+        $today = now($timesheet->property->timezone ?? config('app.timezone'))->toDateString();
+
         return [
             'id' => $timesheet->id,
             'property' => $timesheet->property->name ?? '—',
             'property_id' => $timesheet->property_id,
-            'week_start' => $timesheet->payrollPeriod->week_start->toDateString(),
-            'week_end' => $timesheet->payrollPeriod->week_end->toDateString(),
+            'week_start' => $period->week_start->toDateString(),
+            'week_end' => $period->week_end->toDateString(),
+            // The week in progress at the property, in its own timezone.
+            'is_current' => $period->week_start->toDateString() <= $today && $today <= $period->week_end->toDateString(),
             'status' => $timesheet->status->value,
             'status_label' => $timesheet->status->label(),
             'total_minutes' => (int) ($timesheet->getAttribute('total_minutes') ?? 0),
             'total_bill' => (int) ($timesheet->getAttribute('total_bill') ?? 0),
             'submitted_at' => $timesheet->sent_for_approval_at?->format('M j, Y'),
             'approved_at' => $timesheet->approved_at?->format('M j, Y'),
+            // Whole days a pending sheet has waited on the property manager.
+            'waiting_days' => $timesheet->status === TimesheetStatus::PendingApproval && $timesheet->sent_for_approval_at !== null
+                ? (int) $timesheet->sent_for_approval_at->diffInDays(now(), absolute: true)
+                : null,
+            'decline_reason' => $timesheet->status === TimesheetStatus::Declined ? $timesheet->decline_reason : null,
             'invoice_id' => $timesheet->invoice_id,
             'invoice_number' => $timesheet->invoice->invoice_number ?? null,
         ];

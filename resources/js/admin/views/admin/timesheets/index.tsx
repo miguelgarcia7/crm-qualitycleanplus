@@ -13,12 +13,15 @@ type TimesheetRow = {
   property_id: number
   week_start: string
   week_end: string
+  is_current: boolean
   status: string
   status_label: string
   total_minutes: number
   total_bill: number
   submitted_at: string | null
   approved_at: string | null
+  waiting_days: number | null
+  decline_reason: string | null
   invoice_id: number | null
   invoice_number: string | null
 }
@@ -37,17 +40,39 @@ type Props = {
   pagination: PaginationMeta
   filters: Filters
   counts: Record<string, number>
+  oldest_pending_days: number | null
   properties: { id: number; name: string }[]
   can_export: boolean
 }
 
 const TABS: { key: string; label: string }[] = [
-  { key: 'all', label: 'All' },
+  { key: 'all', label: 'All timesheets' },
   { key: 'draft', label: 'Drafts' },
-  { key: 'pending', label: 'Pending' },
+  { key: 'pending', label: 'Pending approval' },
+  { key: 'declined', label: 'Declined' },
   { key: 'billed', label: 'Billed' },
-  { key: 'issues', label: 'Issues' },
+  { key: 'voided', label: 'Voided' },
 ]
+
+/** The line under each status card's count: what that pile means right now. */
+const cardNote = (key: string, count: number, oldestPendingDays: number | null): { text: string; warn?: boolean } => {
+  switch (key) {
+    case 'all':
+      return { text: 'Every past week' }
+    case 'draft':
+      return { text: count ? 'Not sent for approval' : 'None' }
+    case 'pending':
+      return oldestPendingDays === null
+        ? { text: 'Nothing waiting' }
+        : { text: oldestPendingDays === 0 ? 'Oldest sent today' : `Oldest waiting ${oldestPendingDays} ${oldestPendingDays === 1 ? 'day' : 'days'}`, warn: oldestPendingDays >= 3 }
+    case 'declined':
+      return count ? { text: 'Back with the recruiter', warn: true } : { text: 'Nothing to fix' }
+    case 'billed':
+      return { text: 'Approved or invoiced' }
+    default:
+      return { text: count ? 'Not billed' : 'None' }
+  }
+}
 
 const statusBadge: Record<string, string> = {
   draft: 'bg-warning/15 text-warning',
@@ -60,11 +85,16 @@ const statusBadge: Record<string, string> = {
 }
 
 const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-const hours = (minutes: number) => (minutes / 60).toFixed(1)
+const hours = (minutes: number) => (minutes / 60).toFixed(2)
+/** "Oct 5 – 11", or "Sep 28 – Oct 4" across a month; the year only when it isn't this one. */
 const weekLabel = (start: string, end: string) => {
-  const fmt = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return `${fmt(start)} – ${fmt(end)}`
+  const s = new Date(`${start}T12:00:00`)
+  const e = new Date(`${end}T12:00:00`)
+  const month = (d: Date) => d.toLocaleDateString('en-US', { month: 'short' })
+  const range = s.getMonth() === e.getMonth() ? `${month(s)} ${s.getDate()} – ${e.getDate()}` : `${month(s)} ${s.getDate()} – ${month(e)} ${e.getDate()}`
+  return e.getFullYear() === new Date().getFullYear() ? range : `${range}, ${e.getFullYear()}`
 }
+const waiting = (days: number) => (days === 0 ? 'Waiting since today' : `Waiting ${days} ${days === 1 ? 'day' : 'days'}`)
 
 /** Drop empties so the URL carries only what is actually filtering. */
 const queryFrom = (filters: Filters, page: number): Record<string, string> => {
@@ -81,7 +111,7 @@ const queryFrom = (filters: Filters, page: number): Record<string, string> => {
 
 const columnHelper = createColumnHelper<TimesheetRow>()
 
-const Page = ({ timesheets, pagination, filters, counts, properties, can_export }: Props) => {
+const Page = ({ timesheets, pagination, filters, counts, oldest_pending_days, properties, can_export }: Props) => {
   const [search, setSearch] = useState(filters.search)
 
   /**
@@ -97,7 +127,7 @@ const Page = ({ timesheets, pagination, filters, counts, properties, can_export 
       // Tabs, filters and page moves push history, so Back steps through them.
       // Search replaces — nobody wants one history entry per keystroke.
       replace,
-      only: ['timesheets', 'pagination', 'filters', 'counts'],
+      only: ['timesheets', 'pagination', 'filters', 'counts', 'oldest_pending_days'],
     })
   }
 
@@ -121,23 +151,38 @@ const Page = ({ timesheets, pagination, filters, counts, properties, can_export 
     () => [
       columnHelper.accessor('property', {
         header: 'Property',
-        cell: ({ row }) => <span className="font-semibold">{row.original.property}</span>,
+        cell: ({ row }) => (
+          <Link href={`/admin/properties/${row.original.property_id}`} className="hover:text-primary text-default-900 font-semibold">
+            {row.original.property}
+          </Link>
+        ),
       }),
       columnHelper.accessor('week_start', {
         header: 'Week',
-        cell: ({ row }) => weekLabel(row.original.week_start, row.original.week_end),
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap">
+            {weekLabel(row.original.week_start, row.original.week_end)}
+            {row.original.is_current && <span className="badge badge-label bg-light text-default-600 ms-2">This week</span>}
+          </span>
+        ),
       }),
       columnHelper.accessor('total_minutes', {
         header: 'Hours',
-        cell: ({ row }) => hours(row.original.total_minutes),
+        meta: { align: 'end' },
+        cell: ({ row }) => <span className="tabular-nums">{hours(row.original.total_minutes)}</span>,
       }),
       columnHelper.accessor('total_bill', {
         header: 'Billed',
-        cell: ({ row }) => (row.original.total_bill > 0 ? money(row.original.total_bill) : '—'),
+        meta: { align: 'end' },
+        cell: ({ row }) => <span className="tabular-nums">{row.original.total_bill > 0 ? money(row.original.total_bill) : '—'}</span>,
       }),
       columnHelper.accessor('submitted_at', {
         header: 'Submitted',
-        cell: ({ row }) => row.original.submitted_at ?? '—',
+        cell: ({ row }) => <span className="whitespace-nowrap">{row.original.submitted_at ?? '—'}</span>,
+      }),
+      columnHelper.accessor('approved_at', {
+        header: 'Approved',
+        cell: ({ row }) => <span className="whitespace-nowrap">{row.original.approved_at ?? '—'}</span>,
       }),
       columnHelper.accessor('invoice_number', {
         header: 'Invoice',
@@ -152,11 +197,22 @@ const Page = ({ timesheets, pagination, filters, counts, properties, can_export 
       }),
       columnHelper.accessor('status', {
         header: 'Status',
-        cell: ({ row }) => (
-          <span className={cn('badge badge-label', statusBadge[row.original.status] ?? 'bg-light text-default-600')}>
-            {row.original.status_label}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const t = row.original
+          return (
+            <div className="max-w-56">
+              <span className={cn('badge badge-label whitespace-nowrap', statusBadge[t.status] ?? 'bg-light text-default-600')}>{t.status_label}</span>
+              {t.waiting_days !== null && (
+                <span className={cn('mt-1 block text-xs whitespace-nowrap', t.waiting_days >= 3 ? 'text-warning' : 'text-default-400')}>{waiting(t.waiting_days)}</span>
+              )}
+              {t.decline_reason && (
+                <span className="text-default-500 mt-1 block truncate text-xs" title={t.decline_reason}>
+                  {t.decline_reason}
+                </span>
+              )}
+            </div>
+          )
+        },
       }),
       {
         header: 'Actions',
@@ -166,7 +222,8 @@ const Page = ({ timesheets, pagination, filters, counts, properties, can_export 
             <Link
               href={`/admin/properties/${row.original.property_id}/grid?week=${row.original.week_start}`}
               className="btn btn-icon border-default-300 hover:border-default-400 border"
-              title="Open weekly grid">
+              title="Open weekly grid"
+              aria-label={`Open the ${row.original.property} grid for ${weekLabel(row.original.week_start, row.original.week_end)}`}>
               <Icon icon="layout" className="text-base" />
             </Link>
           </div>
@@ -199,32 +256,39 @@ const Page = ({ timesheets, pagination, filters, counts, properties, can_export 
       <Head title="Timesheets" />
       <PageBreadcrumb title="Timesheets" subtitle="Operations" />
 
-      <div className="card">
-        <nav className="border-default-300 flex flex-wrap border-b px-4 pt-2" aria-label="Tabs" role="tablist">
-          {TABS.map((tab) => (
+      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" role="group" aria-label="Show timesheets">
+        {TABS.map((tab) => {
+          const on = filters.tab === tab.key
+          const count = counts[tab.key] ?? 0
+          const note = cardNote(tab.key, count, oldest_pending_days)
+          return (
             <button
               key={tab.key}
               type="button"
-              role="tab"
-              aria-selected={filters.tab === tab.key}
-              onClick={() => visit({ tab: tab.key })}
+              aria-pressed={on}
+              // Clicking the selected card again goes back to everything.
+              onClick={() => visit({ tab: on && tab.key !== 'all' ? 'all' : tab.key })}
               className={cn(
-                'hover:text-primary -mb-px inline-flex items-center px-4 py-2 text-center font-medium focus:outline-hidden',
-                filters.tab === tab.key ? 'border-primary text-primary border-b' : '',
+                'bg-card rounded-xl border-2 px-4 py-3 text-start shadow-sm transition-colors',
+                on ? 'border-primary' : 'hover:border-default-300 border-transparent',
               )}>
-              {tab.label}
-              <span className="text-default-400 ms-1.5 text-xs">({counts[tab.key] ?? 0})</span>
+              <span className="text-default-500 block text-sm font-medium">{tab.label}</span>
+              <span className="text-default-900 block text-2xl font-semibold tabular-nums">{count}</span>
+              <span className={cn('block text-xs', note.warn ? 'text-warning' : 'text-default-400')}>{note.text}</span>
             </button>
-          ))}
-        </nav>
+          )
+        })}
+      </div>
 
+      <div className="card">
         <div className="card-header">
           <div className="flex flex-wrap gap-3">
             <div className="input-icon-group">
               <Icon icon="search" className="input-icon" />
               <input
-                className="form-input"
-                placeholder="Search property or invoice #..."
+                className="form-input w-72 max-w-full"
+                placeholder="Search property or invoice #…"
+                aria-label="Search timesheets"
                 value={search}
                 onChange={(e) => {
                   typed.current = true
@@ -234,27 +298,22 @@ const Page = ({ timesheets, pagination, filters, counts, properties, can_export 
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-3">
             {properties.length > 1 && (
-              <>
-                <span className="me-1 font-semibold text-nowrap">Filter By:</span>
-                <div className="input-icon-group">
-                  <Icon icon="building" className="input-icon" />
-                  <select
-                    className="form-select !w-auto"
-                    value={filters.property_id ?? ''}
-                    onChange={(e) => visit({ property_id: e.target.value === '' ? null : Number(e.target.value) })}>
-                    <option value="">All properties</option>
-                    {properties.map((property) => (
-                      <option key={property.id} value={property.id}>
-                        {property.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
+              <select
+                className="form-select w-auto min-w-40"
+                aria-label="Property"
+                value={filters.property_id ?? ''}
+                onChange={(e) => visit({ property_id: e.target.value === '' ? null : Number(e.target.value) })}>
+                <option value="">All properties</option>
+                {properties.map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.name}
+                  </option>
+                ))}
+              </select>
             )}
-            <select className="form-select w-20" value={filters.per_page} onChange={(e) => visit({ per_page: Number(e.target.value) })}>
+            <select className="form-select w-20" aria-label="Rows per page" value={filters.per_page} onChange={(e) => visit({ per_page: Number(e.target.value) })}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
               ))}
@@ -262,14 +321,14 @@ const Page = ({ timesheets, pagination, filters, counts, properties, can_export 
             {can_export && (
               <a
                 href={`/admin/timesheets/export${exportQuery ? `?${exportQuery}` : ''}`}
-                className="btn bg-primary hover:bg-primary-hover text-nowrap text-white">
-                <Icon icon="download" className="me-1 size-4" /> Export Excel
+                className="btn border-default-300 hover:border-default-400 border text-nowrap">
+                <Icon icon="download" className="size-4" /> Export Excel
               </a>
             )}
           </div>
         </div>
 
-        <DataTable table={table} emptyMessage="No timesheets in this view yet." />
+        <DataTable table={table} emptyMessage={counts.all ? 'No timesheets match.' : 'No timesheets yet.'} />
 
         {pagination.total > 0 && (
           <div className="card-footer">

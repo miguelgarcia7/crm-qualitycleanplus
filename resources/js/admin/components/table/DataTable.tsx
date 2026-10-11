@@ -1,8 +1,16 @@
 
 import { cn } from '@/utils/helpers'
-import { flexRender, Table as TableType } from '@tanstack/react-table'
+import { flexRender, RowData, Table as TableType } from '@tanstack/react-table'
 import clsx from 'clsx'
 import Icon from '../wrappers/Icon'
+
+declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /** Right-align the header and cells, for numbers that should line up. */
+    align?: 'end'
+  }
+}
 
 type DataTableProps<TData> = {
   /**
@@ -45,7 +53,11 @@ const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing foun
               <tr key={headerGroup.id} className="bg-light/25 text-xs uppercase">
                 {headerGroup.headers.map((header) => (
                   <th key={header.id} onClick={header.column.getToggleSortingHandler()} className={cn('select-none', header.column.getCanSort() ? 'cursor-pointer' : 'cursor-default')}>
-                    <div className={cn('flex items-center', { 'justify-center': header.column.columnDef.header === 'Actions' })}>
+                    <div
+                      className={cn('flex items-center', {
+                        'justify-center': header.column.columnDef.header === 'Actions',
+                        'justify-end': header.column.columnDef.meta?.align === 'end',
+                      })}>
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getCanSort() &&
                         ({
@@ -75,7 +87,7 @@ const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing foun
                     : undefined
                 }>
                 {row.getVisibleCells().map((cell) => (
-                  <td  key={cell.id}>
+                  <td key={cell.id} className={cn(cell.column.columnDef.meta?.align === 'end' && 'text-end')}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 ))}
