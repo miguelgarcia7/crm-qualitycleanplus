@@ -90,6 +90,8 @@ class TimeEntryController extends Controller
             ->map(fn (TimeSummary $s): array => [
                 'regular_minutes' => $s->regular_minutes,
                 'overtime_minutes' => $s->overtime_minutes,
+                // Work on an observed holiday is its own bucket, not regular time.
+                'holiday_minutes' => $s->holiday_minutes,
                 'training_minutes' => $s->training_minutes,
                 'total_pay' => $s->total_pay,
                 'total_bill' => $s->total_bill,

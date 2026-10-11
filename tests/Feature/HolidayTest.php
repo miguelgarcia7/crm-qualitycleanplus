@@ -219,6 +219,21 @@ it('work on a holiday past the 40h threshold still buckets as holiday, not overt
         ->and($summary->holiday_minutes)->toBe(480);
 });
 
+it('sends holiday time to the grid so its hour totals include it', function () {
+    ['property' => $property, 'workOrder' => $wo, 'monday' => $monday, 'holidayDay' => $holidayDay] = holidayScenario();
+
+    holidayHours($wo, $monday, '08:00', '16:00');      // Mon 8h regular
+    holidayHours($wo, $holidayDay, '08:00', '16:00');  // Wed (holiday) 8h
+
+    $this->actingAs(person('office_manager'))
+        ->get(main("/admin/properties/{$property->id}/grid?week={$monday->toDateString()}"))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/timesheets/grid')
+            ->where("summaries.{$wo->id}.regular_minutes", 480)
+            ->where("summaries.{$wo->id}.holiday_minutes", 480));
+});
+
 it('recomputes open weeks when a property\'s holiday set changes', function () {
     ['property' => $property, 'workOrder' => $wo, 'holidayDay' => $holidayDay] = holidayScenario();
 

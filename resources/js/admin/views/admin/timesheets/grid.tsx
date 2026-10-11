@@ -34,7 +34,7 @@ type Entry = {
   entry_type: string
   gps_flags: string[]
 }
-type Summary = { regular_minutes: number; overtime_minutes: number; training_minutes: number; total_pay: number; total_bill: number }
+type Summary = { regular_minutes: number; overtime_minutes: number; holiday_minutes: number; training_minutes: number; total_pay: number; total_bill: number }
 
 type Timesheet = { id: number; status: string; status_label: string; decline_reason: string | null }
 type Adjustment = {
@@ -223,15 +223,18 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
     return {
       regular: s?.regular_minutes ?? 0,
       overtime: s?.overtime_minutes ?? 0,
+      // Holiday work is bucketed apart from regular time (RecomputeTimeSummary)
+      // but is still hours worked, and its pay is already in the money totals.
+      holiday: s?.holiday_minutes ?? 0,
       training: s?.training_minutes ?? 0,
-      total: (s?.regular_minutes ?? 0) + (s?.overtime_minutes ?? 0) + (s?.training_minutes ?? 0),
+      total: (s?.regular_minutes ?? 0) + (s?.overtime_minutes ?? 0) + (s?.holiday_minutes ?? 0) + (s?.training_minutes ?? 0),
       pay: s?.total_pay ?? 0,
       bill: s?.total_bill ?? 0,
     }
   }
   const totals = rows.map(weekOf).reduce(
-    (t, w) => ({ regular: t.regular + w.regular, overtime: t.overtime + w.overtime, total: t.total + w.total, pay: t.pay + w.pay, bill: t.bill + w.bill }),
-    { regular: 0, overtime: 0, total: 0, pay: 0, bill: 0 },
+    (t, w) => ({ regular: t.regular + w.regular, overtime: t.overtime + w.overtime, holiday: t.holiday + w.holiday, total: t.total + w.total, pay: t.pay + w.pay, bill: t.bill + w.bill }),
+    { regular: 0, overtime: 0, holiday: 0, total: 0, pay: 0, bill: 0 },
   )
   // People, not rows: a pay increase can give one contractor two work orders.
   const personOf = new Map(rows.map((r) => [r.work_order_id, r.person_id]))
@@ -328,7 +331,11 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
       ) : (
         <>
           <div className="card mb-4 grid grid-cols-2 lg:grid-cols-5">
-            <Stat label="Hours" value={hrs(totals.total)} note={`${people} ${people === 1 ? 'person' : 'people'} · ${hrs(totals.regular)} regular`} />
+            <Stat
+              label="Hours"
+              value={hrs(totals.total)}
+              note={`${people} ${people === 1 ? 'person' : 'people'} · ${hrs(totals.regular)} regular${totals.holiday ? ` · ${hrs(totals.holiday)} holiday` : ''}`}
+            />
             <Stat
               label="Overtime"
               value={hrs(totals.overtime)}
@@ -890,7 +897,7 @@ const PersonPanel = ({
   row: Row
   week: Props['week']
   periodId: number
-  summary: { regular: number; overtime: number; training: number; total: number; pay: number; bill: number }
+  summary: { regular: number; overtime: number; holiday: number; training: number; total: number; pay: number; bill: number }
   minutesByDay: number[]
   adjustments: Adjustment[]
   canAdjust: boolean
@@ -948,6 +955,12 @@ const PersonPanel = ({
         <dd className="text-default-900 text-end font-medium">{hrs(summary.regular)} h</dd>
         <dt className="text-default-400">Overtime</dt>
         <dd className={cn('text-end font-medium', summary.overtime ? 'text-secondary' : 'text-default-900')}>{hrs(summary.overtime)} h</dd>
+        {summary.holiday > 0 && (
+          <>
+            <dt className="text-default-400">Holiday</dt>
+            <dd className="text-default-900 text-end font-medium">{hrs(summary.holiday)} h</dd>
+          </>
+        )}
         {summary.training > 0 && (
           <>
             <dt className="text-default-400">Training</dt>
