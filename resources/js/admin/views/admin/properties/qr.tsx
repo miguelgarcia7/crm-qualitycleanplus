@@ -25,11 +25,11 @@ const Page = ({ property, url }: Props) => (
           <div className="card-body p-8 text-center">
             <h2 className="mb-2 text-xl font-bold">{property.name}</h2>
             <p className="text-default-500 text-sm">
-              QR clock-in is not enabled for this property. Turn it on in the property&apos;s{' '}
-              <Link href={`/admin/properties/${property.id}/edit`} className="text-primary underline">
-                Location &amp; Geofence settings
+              QR clock-in is not enabled for this property. Turn it on under the property&apos;s{' '}
+              <Link href={`/admin/properties/${property.id}#settings/clockin`} className="text-primary underline">
+                Clock-in &amp; geofence settings
               </Link>{' '}
-              — a unique code is generated on the first save.
+              — a unique code is generated the first time.
             </p>
           </div>
         </div>

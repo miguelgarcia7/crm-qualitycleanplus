@@ -1,4 +1,5 @@
 import GeofenceMapCard from '@/components/GeofenceMapCard'
+import { PROPERTY_TIMEZONES } from '@/config/constants'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { Head, Link, useForm } from '@inertiajs/react'
@@ -35,15 +36,6 @@ type Props = {
   defaultDirectHireThresholdHours: number
 }
 
-const TIMEZONES = [
-  'America/Phoenix',
-  'America/Los_Angeles',
-  'America/Denver',
-  'America/Chicago',
-  'America/New_York',
-  'America/Anchorage',
-  'Pacific/Honolulu',
-]
 
 const Field = ({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) => (
   <div>
@@ -158,7 +150,7 @@ const Page = ({ property, statuses, timeSources, defaultDirectHireThresholdHours
               </Field>
               <Field label="Timezone" error={errors.timezone}>
                 <select className="form-select" value={data.timezone} onChange={(e) => setData('timezone', e.target.value)}>
-                  {TIMEZONES.map((tz) => (
+                  {PROPERTY_TIMEZONES.map((tz) => (
                     <option key={tz} value={tz}>
                       {tz}
                     </option>

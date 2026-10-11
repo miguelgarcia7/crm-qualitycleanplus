@@ -213,7 +213,7 @@ class PropertyOverview
                     'key' => 'geofence',
                     'title' => 'No geofence set',
                     'detail' => "QR clock-in can't be turned on until the property has coordinates.",
-                    'action' => ['label' => 'Set location', 'href' => "/admin/properties/{$property->id}/edit"],
+                    'action' => ['label' => 'Set location', 'tab' => 'settings', 'section' => 'clockin'],
                 ];
             }
 

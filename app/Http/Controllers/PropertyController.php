@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Dashboards\Services\PropertyOverview;
+use App\Domain\Devices\Models\Device;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Actions\CreateProperty;
 use App\Domain\PropertyBible\Actions\UpdateProperty;
@@ -108,6 +109,18 @@ class PropertyController extends Controller
             'property' => $this->propertyPayload($property),
             'overview' => $user instanceof Person ? $overview->build($property, $user) : null,
             'workOrders' => $user instanceof Person && $user->can('work_orders.view') ? $this->workOrdersPayload($property, $directHire) : null,
+            // Pairing codes are for whoever sets the tablets up.
+            'devices' => $user instanceof Person && $user->can('devices.manage')
+                ? Device::query()->where('property_id', $property->id)->orderBy('name')->get()->map(fn (Device $d): array => [
+                    'id' => $d->id,
+                    'name' => $d->name,
+                    'is_activated' => $d->is_activated,
+                    'activation_code' => $d->is_activated ? null : $d->activation_code,
+                    'last_seen_at' => $d->last_seen_at?->diffForHumans(),
+                ])->all()
+                : null,
+            'timeSources' => $this->timeSourceOptions(),
+            'defaultDirectHireThresholdHours' => intdiv(Property::defaultDirectHireThresholdMinutes(), 60),
             'departments' => $property->departments->map(fn ($d): array => [
                 'id' => $d->id,
                 'department_id' => $d->department_id,
@@ -285,23 +298,19 @@ class PropertyController extends Controller
         ]);
     }
 
-    public function edit(Property $property): Response
+    /** Editing moved onto the property page's Settings tab; old links land there. */
+    public function edit(Property $property): RedirectResponse
     {
         $this->authorize('update', $property);
 
-        return Inertia::render('admin/properties/form', [
-            'property' => $this->propertyPayload($property),
-            'statuses' => $this->statusOptions(),
-            'timeSources' => $this->timeSourceOptions(),
-            'defaultDirectHireThresholdHours' => intdiv(Property::defaultDirectHireThresholdMinutes(), 60),
-        ]);
+        return redirect()->to(route('properties.show', $property).'#settings/details');
     }
 
     public function update(UpdatePropertyRequest $request, Property $property, UpdateProperty $action): RedirectResponse
     {
         $action->handle($property, $request->validated());
 
-        return to_route('properties.show', $property)->with('success', 'Property updated.');
+        return back()->with('success', 'Saved.');
     }
 
     public function destroy(Property $property): RedirectResponse

@@ -1,9 +1,11 @@
 import { confirmAction } from '@/components/ConfirmHost'
+import GeofenceMapCard from '@/components/GeofenceMapCard'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import SidePanel from '@/components/SidePanel'
 import TablePagination from '@/components/table/TablePagination'
 import { Stat, StatusTrack } from '@/components/timesheet/WeekSummary'
 import Icon from '@/components/wrappers/Icon'
+import { PROPERTY_TIMEZONES } from '@/config/constants'
 import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { FormEvent, useEffect, useState } from 'react'
@@ -28,9 +30,12 @@ type Property = {
   qr_clock_enabled: boolean
   closing_day: number | null
   tax_rate: string | null
+  direct_hire_threshold_hours: number | null
   status: string
   time_source: string
 }
+
+type DeviceRow = { id: number; name: string; is_activated: boolean; activation_code: string | null; last_seen_at: string | null }
 
 type Dept = { id: number; department_id: number; name: string | null; manager_name: string | null; manager_phone: string | null; is_active: boolean }
 type Rate = {
@@ -141,6 +146,10 @@ type Props = {
   history: HistoryPage
   holidays: PropertyHoliday[]
   jobCodes: JobCodeRow[]
+  /** Front-desk tablets; null unless the viewer manages devices (pairing codes). */
+  devices: DeviceRow[] | null
+  timeSources: ValueLabel[]
+  defaultDirectHireThresholdHours: number
   catalogs: {
     departments: Option[]
     positions: Option[]
@@ -351,7 +360,7 @@ const AttentionCard = ({ items, onGo }: { items: AttentionItem[]; onGo: (action:
   </div>
 )
 
-const PropertyCard = ({ property, can }: { property: Property; can: Can }) => {
+const PropertyCard = ({ property, can, onEdit }: { property: Property; can: Can; onEdit: () => void }) => {
   const cityState = [property.city, property.state].filter(Boolean).join(', ')
   const fullAddress = [property.address, cityState, property.zip].filter(Boolean).join(', ')
   const taxRate = property.tax_rate !== null ? `${(parseFloat(property.tax_rate) * 100).toFixed(2)}%` : null
@@ -363,9 +372,9 @@ const PropertyCard = ({ property, can }: { property: Property; can: Can }) => {
         title="Property"
         actions={
           can.editProfile && (
-            <Link href={`/admin/properties/${property.id}/edit`} className="text-primary text-sm font-medium underline underline-offset-3">
+            <button type="button" onClick={onEdit} className="text-primary text-sm font-medium underline underline-offset-3">
               Edit
-            </Link>
+            </button>
           )
         }
       />
@@ -480,7 +489,7 @@ const OverviewTab = ({
       <div className="xl:col-span-2">
         <AttentionCard items={overview.attention} onGo={onGo} />
       </div>
-      <PropertyCard property={property} can={can} />
+      <PropertyCard property={property} can={can} onEdit={() => onGo({ label: '', tab: 'settings', section: 'details' })} />
     </div>
 
     {overview.weeks && <RecentWeeksCard property={property} weeks={overview.weeks} onAllWeeks={onAllWeeks} />}
@@ -1541,30 +1550,455 @@ const HistoryTab = ({ property, history }: { property: Property; history: Histor
 }
 
 // --- Settings tab ----------------------------------------------------------------
+// Each card saves only its own fields: UpdatePropertyRequest takes partial updates.
 
-type SectionKey = 'contacts' | 'holidays' | 'contracts' | 'history'
+type SectionKey = 'details' | 'contacts' | 'clockin' | 'billing' | 'holidays' | 'contracts' | 'history' | 'status'
+
+const Field = ({ label, htmlFor, error, help, className, children }: { label: string; htmlFor: string; error?: string; help?: React.ReactNode; className?: string; children: React.ReactNode }) => (
+  <div className={className}>
+    <label htmlFor={htmlFor} className="form-label">
+      {label}
+    </label>
+    {children}
+    {help && <p className="text-default-400 mt-1 text-xs">{help}</p>}
+    {error && <p className="text-danger mt-1 text-sm">{error}</p>}
+  </div>
+)
+
+/** The card footer every settings form ends with, as on My Profile. */
+const SaveFooter = ({ label, processing, saved }: { label: string; processing: boolean; saved: boolean }) => (
+  <div className="border-default-300 flex items-center gap-3 border-t px-6 py-4">
+    <button type="submit" className="btn bg-primary hover:bg-primary-hover px-6 py-2.5 font-semibold text-white" disabled={processing}>
+      {label}
+    </button>
+    {saved && (
+      <span className="text-success flex items-center gap-1 text-sm">
+        <Icon icon="circle-check" className="size-4" /> Saved
+      </span>
+    )}
+  </div>
+)
+
+const propertyUrl = (property: Property) => `/admin/properties/${property.id}`
+
+const DetailsCard = ({ property, can }: { property: Property; can: Can }) => {
+  const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
+    name: property.name,
+    timezone: property.timezone,
+    address: property.address ?? '',
+    city: property.city ?? '',
+    state: property.state ?? '',
+    zip: property.zip ?? '',
+  })
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    patch(propertyUrl(property), { preserveScroll: true })
+  }
+
+  return (
+    <form onSubmit={submit} className="card">
+      <CardHeading title="Details">The property&apos;s name, address and timezone.</CardHeading>
+      <fieldset disabled={!can.editProfile} className="card-body grid gap-5 md:grid-cols-2">
+        <Field label="Name" htmlFor="set-name" error={errors.name}>
+          <input id="set-name" className="form-input" value={data.name} onChange={(e) => setData('name', e.target.value)} required />
+        </Field>
+        <Field label="Timezone" htmlFor="set-timezone" error={errors.timezone} help="Punches, weeks and holidays are judged in this timezone.">
+          <select id="set-timezone" className="form-select" value={data.timezone} onChange={(e) => setData('timezone', e.target.value)}>
+            {PROPERTY_TIMEZONES.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Address" htmlFor="set-address" error={errors.address} className="md:col-span-2" help="Moving the address doesn't move the geofence; update that under Clock-in & geofence.">
+          <input id="set-address" className="form-input" value={data.address} onChange={(e) => setData('address', e.target.value)} />
+        </Field>
+        <Field label="City" htmlFor="set-city" error={errors.city}>
+          <input id="set-city" className="form-input" value={data.city} onChange={(e) => setData('city', e.target.value)} />
+        </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="State" htmlFor="set-state" error={errors.state}>
+            <input id="set-state" className="form-input" value={data.state} onChange={(e) => setData('state', e.target.value)} />
+          </Field>
+          <Field label="Zip" htmlFor="set-zip" error={errors.zip}>
+            <input id="set-zip" className="form-input" value={data.zip} onChange={(e) => setData('zip', e.target.value)} />
+          </Field>
+        </div>
+      </fieldset>
+      {can.editProfile && <SaveFooter label="Save Details" processing={processing} saved={recentlySuccessful} />}
+    </form>
+  )
+}
+
+const HotelContactsCard = ({ property, can }: { property: Property; can: Can }) => {
+  const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
+    pm_name: property.pm_name ?? '',
+    pm_phone: property.pm_phone ?? '',
+    main_phone: property.main_phone ?? '',
+  })
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    patch(propertyUrl(property), { preserveScroll: true })
+  }
+
+  return (
+    <form onSubmit={submit} className="card">
+      <CardHeading title="At the hotel">Who to call at {property.name}.</CardHeading>
+      <fieldset disabled={!can.editProfile} className="card-body grid gap-5 md:grid-cols-3">
+        <Field label="Property manager" htmlFor="set-pm-name" error={errors.pm_name}>
+          <input id="set-pm-name" className="form-input" value={data.pm_name} onChange={(e) => setData('pm_name', e.target.value)} />
+        </Field>
+        <Field label="PM phone" htmlFor="set-pm-phone" error={errors.pm_phone}>
+          <input id="set-pm-phone" className="form-input" value={data.pm_phone} onChange={(e) => setData('pm_phone', e.target.value)} />
+        </Field>
+        <Field label="Hotel main line" htmlFor="set-main-phone" error={errors.main_phone}>
+          <input id="set-main-phone" className="form-input" value={data.main_phone} onChange={(e) => setData('main_phone', e.target.value)} />
+        </Field>
+      </fieldset>
+      {can.editProfile && <SaveFooter label="Save Contacts" processing={processing} saved={recentlySuccessful} />}
+    </form>
+  )
+}
+
+const BillingCard = ({ property, can, defaultDirectHireThresholdHours }: { property: Property; can: Can; defaultDirectHireThresholdHours: number }) => {
+  // Tax is stored as a fraction (0.0625) but read and typed as a percent.
+  const { data, setData, patch, transform, processing, errors, recentlySuccessful } = useForm({
+    closing_day: property.closing_day ? String(property.closing_day) : '',
+    tax_percent: property.tax_rate !== null ? String(Number((parseFloat(property.tax_rate) * 100).toFixed(4))) : '0',
+    billing_email: property.billing_email ?? '',
+    direct_hire_threshold_hours: property.direct_hire_threshold_hours !== null ? String(property.direct_hire_threshold_hours) : '',
+  })
+  const serverErrors = errors as Record<string, string | undefined>
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    transform(({ tax_percent, ...rest }) => ({ ...rest, tax_rate: tax_percent === '' ? '' : String(Number((parseFloat(tax_percent) / 100).toFixed(6))) }))
+    patch(propertyUrl(property), { preserveScroll: true })
+  }
+
+  return (
+    <form onSubmit={submit} className="card">
+      <CardHeading title="Billing & payroll">How the pay week closes and how invoices are built.</CardHeading>
+      <fieldset disabled={!can.editProfile} className="card-body grid gap-5 md:grid-cols-2">
+        <Field label="Week ends on" htmlFor="set-closing-day" error={errors.closing_day} help="Timesheet weeks start the day after: ends Wednesday → Thursday-to-Wednesday weeks.">
+          <select id="set-closing-day" className="form-select" value={data.closing_day} onChange={(e) => setData('closing_day', e.target.value)}>
+            <option value="">Sunday (default, Mon–Sun week)</option>
+            {Object.entries(WEEKDAYS)
+              .filter(([day]) => day !== '7')
+              .map(([day, name]) => (
+                <option key={day} value={day}>
+                  {name}
+                </option>
+              ))}
+          </select>
+        </Field>
+        <Field label="Tax rate (%)" htmlFor="set-tax" error={serverErrors.tax_rate} help="Added to every invoice for this property.">
+          <input id="set-tax" className="form-input" inputMode="decimal" value={data.tax_percent} onChange={(e) => setData('tax_percent', e.target.value)} required />
+        </Field>
+        <Field label="Billing email" htmlFor="set-billing-email" error={errors.billing_email} help="Where invoices are sent by default.">
+          <input id="set-billing-email" type="email" className="form-input" placeholder="ap@hotel.com" value={data.billing_email} onChange={(e) => setData('billing_email', e.target.value)} />
+        </Field>
+        <Field
+          label="Direct-hire threshold (hours)"
+          htmlFor="set-direct-hire"
+          error={errors.direct_hire_threshold_hours}
+          help={`From the contract: hours before this property may hire a contractor directly. Blank uses the default of ${defaultDirectHireThresholdHours}. Copied onto each new work order; running ones keep theirs.`}
+        >
+          <input
+            id="set-direct-hire"
+            type="number"
+            min="0"
+            className="form-input"
+            placeholder={`Default ${defaultDirectHireThresholdHours}`}
+            value={data.direct_hire_threshold_hours}
+            onChange={(e) => setData('direct_hire_threshold_hours', e.target.value)}
+          />
+        </Field>
+      </fieldset>
+      {can.editProfile && <SaveFooter label="Save Billing & Payroll" processing={processing} saved={recentlySuccessful} />}
+    </form>
+  )
+}
+
+const TIME_SOURCE_NOTES: Record<string, string> = {
+  clock_in: 'Contractors punch in with the QR poster or a front-desk tablet.',
+  import: 'The hotel sends an Excel file of hours each week; nobody clocks in.',
+}
+
+const TimeSourceCard = ({ property, can, timeSources }: { property: Property; can: Can; timeSources: ValueLabel[] }) => {
+  const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({ time_source: property.time_source })
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    patch(propertyUrl(property), { preserveScroll: true })
+  }
+
+  return (
+    <form onSubmit={submit} className="card">
+      <CardHeading title="How hours arrive">Decides whether the clock-in tools below apply to this property.</CardHeading>
+      <fieldset disabled={!can.editProfile} className="card-body grid gap-3 md:grid-cols-2" role="radiogroup" aria-label="Time source">
+        {timeSources.map((s) => (
+          <label
+            key={s.value}
+            className={cn(
+              'flex cursor-pointer gap-3 rounded-xl border p-4',
+              data.time_source === s.value ? 'border-primary ring-primary/20 bg-primary/5 ring-2' : 'border-default-300 hover:border-default-400',
+            )}
+          >
+            <input type="radio" name="time_source" className="form-radio mt-0.5 rounded-full!" checked={data.time_source === s.value} onChange={() => setData('time_source', s.value)} />
+            <span>
+              <span className="text-default-900 block font-semibold">{s.label}</span>
+              <span className="text-default-500 text-sm font-normal">{TIME_SOURCE_NOTES[s.value]}</span>
+            </span>
+          </label>
+        ))}
+        {errors.time_source && <p className="text-danger text-sm">{errors.time_source}</p>}
+      </fieldset>
+      {can.editProfile && <SaveFooter label="Save" processing={processing} saved={recentlySuccessful} />}
+    </form>
+  )
+}
+
+const GeofenceCard = ({ property, can }: { property: Property; can: Can }) => {
+  const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
+    latitude: property.latitude ?? '',
+    longitude: property.longitude ?? '',
+    geofence_radius_meters: property.geofence_radius_meters,
+  })
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    patch(propertyUrl(property), { preserveScroll: true })
+  }
+
+  return (
+    <form onSubmit={submit} className="card">
+      <CardHeading title="Geofence">How close a contractor&apos;s phone must be to the property to punch in with the QR poster.</CardHeading>
+      <fieldset disabled={!can.editProfile} className="card-body space-y-4">
+        <GeofenceMapCard
+          latitude={data.latitude}
+          longitude={data.longitude}
+          radius={data.geofence_radius_meters}
+          addressQuery={[property.address, property.city, property.state].filter(Boolean).join(', ')}
+          onCoordinates={(lat, lng) => setData((d) => ({ ...d, latitude: lat, longitude: lng }))}
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Latitude" htmlFor="set-lat" error={errors.latitude}>
+            <input id="set-lat" className="form-input" value={data.latitude} onChange={(e) => setData('latitude', e.target.value)} placeholder="33.4484" />
+          </Field>
+          <Field label="Longitude" htmlFor="set-lng" error={errors.longitude}>
+            <input id="set-lng" className="form-input" value={data.longitude} onChange={(e) => setData('longitude', e.target.value)} placeholder="-112.0740" />
+          </Field>
+          <Field label="Radius (m)" htmlFor="set-radius" error={errors.geofence_radius_meters} help="Between 50 and 5,000 meters.">
+            <input
+              id="set-radius"
+              type="number"
+              min={50}
+              max={5000}
+              className="form-input"
+              value={data.geofence_radius_meters}
+              onChange={(e) => setData('geofence_radius_meters', Number(e.target.value))}
+            />
+          </Field>
+        </div>
+      </fieldset>
+      {can.editProfile && <SaveFooter label="Save Geofence" processing={processing} saved={recentlySuccessful} />}
+    </form>
+  )
+}
+
+/** Turning QR on or off takes effect at once; off asks first, since the printed poster stops working. */
+const QrCard = ({ property, can }: { property: Property; can: Can }) => {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const hasLocation = property.latitude !== null && property.longitude !== null
+  const on = property.qr_clock_enabled
+
+  const save = (enabled: boolean) =>
+    router.patch(
+      propertyUrl(property),
+      { qr_clock_enabled: enabled },
+      {
+        preserveScroll: true,
+        onStart: () => {
+          setBusy(true)
+          setError(null)
+        },
+        onError: (e) => setError(e.qr_clock_enabled ?? 'Could not save.'),
+        onFinish: () => setBusy(false),
+      },
+    )
+
+  const toggle = () =>
+    on
+      ? confirmAction({
+          title: 'Turn off QR clock-in',
+          message: (
+            <>
+              The printed poster at <strong>{property.name}</strong> stops working until you turn it back on. Tablets keep working.
+            </>
+          ),
+          confirmLabel: 'Turn Off',
+          onConfirm: () => save(false),
+        })
+      : save(true)
+
+  return (
+    <div className="card">
+      <CardHeading
+        title="QR clock-in"
+        actions={
+          can.editProfile && (
+            <input
+              type="checkbox"
+              role="switch"
+              className="form-switch"
+              aria-label="QR clock-in"
+              checked={on}
+              disabled={busy || (!on && !hasLocation)}
+              title={!on && !hasLocation ? 'Set the geofence first' : undefined}
+              onChange={toggle}
+            />
+          )
+        }
+      />
+      <div className="card-body">
+        {on ? (
+          <>
+            <p className="text-success flex items-center gap-2 font-medium">
+              <span className="bg-success size-2 rounded-full" /> On: the poster is live
+            </p>
+            <p className="text-default-500 mt-1 text-sm">Contractors scan it with their phone, then take a selfie inside the geofence.</p>
+            <Link href={`${propertyUrl(property)}/qr`} className="btn border-default-300 hover:border-default-400 mt-4 border">
+              <Icon icon="printer" className="size-4" /> Print Poster
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="text-default-500 flex items-center gap-2 font-medium">
+              <span className="bg-default-300 size-2 rounded-full" /> Off
+            </p>
+            <p className="text-default-500 mt-1 text-sm">
+              {hasLocation ? 'Turn it on to print a poster contractors can scan.' : 'Set the geofence above before turning QR clock-in on.'}
+            </p>
+          </>
+        )}
+        {error && <p className="text-danger mt-2 text-sm">{error}</p>}
+      </div>
+    </div>
+  )
+}
+
+const TabletsCard = ({ devices }: { devices: DeviceRow[] }) => (
+  <div className="card">
+    <CardHeading
+      title="Tablets"
+      actions={
+        <Link href="/admin/devices" className="text-primary text-sm font-medium underline underline-offset-3">
+          Manage in Devices
+        </Link>
+      }
+    />
+    <div className="card-body pt-2">
+      {devices.length === 0 ? (
+        <p className="text-default-500 py-2">No front-desk tablet is paired with this property.</p>
+      ) : (
+        <ul className="divide-default-200 divide-y">
+          {devices.map((d) => (
+            <li key={d.id} className="flex items-center gap-3 py-3">
+              <div className="btn btn-icon bg-light size-8! shrink-0">
+                <Icon icon="device-tablet" className="text-secondary text-lg" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-default-900 font-semibold">{d.name}</p>
+                <p className="text-default-500 text-sm">
+                  {d.is_activated ? (d.last_seen_at ? `Last seen ${d.last_seen_at}` : 'Paired') : `Pairing code ${d.activation_code}`}
+                </p>
+              </div>
+              <span className={cn('badge badge-label', d.is_activated ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning')}>
+                {d.is_activated ? 'Active' : 'Not activated'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </div>
+)
+
+const StatusCard = ({ property, can }: { property: Property; can: Can }) => {
+  const active = property.status === 'active'
+
+  const change = () =>
+    confirmAction({
+      title: active ? 'Mark property inactive' : 'Reactivate property',
+      message: active ? (
+        <>
+          <strong>{property.name}</strong> drops off property pickers and no new work orders can be created here. Its history, timesheets and invoices stay.
+        </>
+      ) : (
+        <>
+          Make <strong>{property.name}</strong> active again?
+        </>
+      ),
+      confirmLabel: active ? 'Mark Inactive' : 'Reactivate',
+      tone: active ? 'danger' : 'primary',
+      onConfirm: () => router.patch(propertyUrl(property), { status: active ? 'inactive' : 'active' }, { preserveScroll: true }),
+    })
+
+  return (
+    <div className="card">
+      <CardHeading title="Status">An inactive property drops off pickers and takes no new work orders. Its history stays.</CardHeading>
+      <div className="card-body flex flex-wrap items-center justify-between gap-4">
+        <span className={cn('badge badge-label capitalize', active ? 'bg-success/15 text-success' : 'bg-secondary/15 text-secondary')}>{property.status}</span>
+        {can.editProfile && (
+          <button
+            type="button"
+            onClick={change}
+            className={cn('btn border', active ? 'border-danger/40 text-danger hover:bg-danger/10' : 'border-default-300 hover:border-default-400')}
+          >
+            {active ? 'Mark Inactive' : 'Reactivate'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const SettingsTab = ({
   section: requested,
   onSection,
   ...props
-}: Pick<Props, 'property' | 'departments' | 'assignments' | 'contracts' | 'history' | 'holidays' | 'catalogs' | 'can'> & {
+}: Pick<Props, 'property' | 'departments' | 'assignments' | 'contracts' | 'history' | 'holidays' | 'catalogs' | 'can' | 'devices' | 'timeSources' | 'defaultDirectHireThresholdHours'> & {
   section: SectionKey
   onSection: (key: SectionKey) => void
 }) => {
-  const { property, can } = props
-  const sections: { key: SectionKey; label: string; show: boolean }[] = [
-    { key: 'contacts', label: 'Contacts', show: true },
+  const { property, can, devices } = props
+  const clockIn = property.time_source === 'clock_in'
+  const sections: { key: SectionKey; label: string; show: boolean; flag?: boolean }[] = [
+    { key: 'details', label: 'Details', show: true },
+    { key: 'contacts', label: 'Contacts', show: true, flag: props.departments.length === 0 },
+    {
+      key: 'clockin',
+      label: 'Clock-in & geofence',
+      show: true,
+      flag: clockIn && (property.latitude === null || (devices ?? []).some((d) => !d.is_activated)),
+    },
+    { key: 'billing', label: 'Billing & payroll', show: true },
     { key: 'holidays', label: 'Holidays', show: true },
-    { key: 'contracts', label: 'Contracts', show: can.viewContracts },
+    { key: 'contracts', label: 'Contracts', show: can.viewContracts, flag: !props.contracts.some((c) => c.is_active) },
     { key: 'history', label: 'History', show: true },
+    { key: 'status', label: 'Status', show: true },
   ]
   // A link to a section this viewer can't see lands on the first one instead.
-  const section = sections.some((s) => s.key === requested && s.show) ? requested : 'contacts'
+  const section = sections.some((s) => s.key === requested && s.show) ? requested : 'details'
 
   return (
     <div className="gap-base grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)]">
-      <nav className="flex flex-wrap gap-1 lg:flex-col" aria-label="Settings sections">
+      <nav className="flex flex-wrap gap-1 self-start lg:flex-col" aria-label="Settings sections">
         {sections
           .filter((s) => s.show)
           .map((s) => (
@@ -1574,18 +2008,21 @@ const SettingsTab = ({
               aria-current={section === s.key ? 'page' : undefined}
               onClick={() => onSection(s.key)}
               className={cn(
-                'rounded-lg px-3 py-2.5 text-start font-medium',
+                'flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-start font-medium',
                 section === s.key ? 'bg-light text-default-900 font-semibold' : 'text-default-600 hover:bg-light/60 hover:text-default-900',
               )}
             >
               {s.label}
+              {s.flag && <span className="bg-warning size-2 rounded-full" title="Needs attention" />}
             </button>
           ))}
       </nav>
 
       <div className="min-w-0 space-y-6">
+        {section === 'details' && <DetailsCard property={property} can={can} />}
         {section === 'contacts' && (
           <>
+            <HotelContactsCard property={property} can={can} />
             <div className="card">
               <CardHeading title="Departments">Each department at the hotel and the manager who runs it.</CardHeading>
               <div className="card-body">
@@ -1600,6 +2037,35 @@ const SettingsTab = ({
             </div>
           </>
         )}
+        {section === 'clockin' && (
+          <>
+            <TimeSourceCard property={property} can={can} timeSources={props.timeSources} />
+            {clockIn ? (
+              <>
+                <GeofenceCard property={property} can={can} />
+                <div className="gap-base grid grid-cols-1 xl:grid-cols-2">
+                  <QrCard property={property} can={can} />
+                  {devices && <TabletsCard devices={devices} />}
+                </div>
+              </>
+            ) : (
+              <div className="card">
+                <div className="card-body">
+                  <div className="border-default-300 bg-light/40 rounded-xl border border-dashed p-8 text-center">
+                    <p className="text-default-900 font-semibold">Clock-in is off for hour-import properties</p>
+                    <p className="text-default-500 mx-auto mt-1 max-w-lg text-sm">
+                      Hours come in through Hour Imports. The geofence, QR poster and tablets stay saved in case you switch back.
+                    </p>
+                    <Link href="/admin/imports" className="btn bg-primary hover:bg-primary-hover mt-4 text-white">
+                      Go to Hour Imports
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {section === 'billing' && <BillingCard property={property} can={can} defaultDirectHireThresholdHours={props.defaultDirectHireThresholdHours} />}
         {section === 'holidays' && (
           <div className="card">
             <CardHeading title="Holidays observed">Which holidays this property pays and bills at the holiday rate.</CardHeading>
@@ -1624,6 +2090,7 @@ const SettingsTab = ({
             </div>
           </div>
         )}
+        {section === 'status' && <StatusCard property={property} can={can} />}
       </div>
     </div>
   )
@@ -1650,7 +2117,7 @@ const LEGACY_HASHES: Record<string, string> = {
   history: 'settings/history',
 }
 
-const SECTIONS: SectionKey[] = ['contacts', 'holidays', 'contracts', 'history']
+const SECTIONS: SectionKey[] = ['details', 'contacts', 'clockin', 'billing', 'holidays', 'contracts', 'history', 'status']
 
 /** The URL hash holds the tab, and for Settings its section: #overview, #settings/holidays. */
 const locationFromHash = (): { tab: TabKey; section: SectionKey } => {
@@ -1659,11 +2126,27 @@ const locationFromHash = (): { tab: TabKey; section: SectionKey } => {
 
   return {
     tab: TABS.some((t) => t.key === tab) ? (tab as TabKey) : 'overview',
-    section: SECTIONS.includes(section as SectionKey) ? (section as SectionKey) : 'contacts',
+    section: SECTIONS.includes(section as SectionKey) ? (section as SectionKey) : 'details',
   }
 }
 
-const Page = ({ property, overview, workOrders, departments, rates, assignments, contracts, history, holidays, jobCodes, catalogs, can }: Props) => {
+const Page = ({
+  property,
+  overview,
+  workOrders,
+  departments,
+  rates,
+  assignments,
+  contracts,
+  history,
+  holidays,
+  jobCodes,
+  devices,
+  timeSources,
+  defaultDirectHireThresholdHours,
+  catalogs,
+  can,
+}: Props) => {
   const [location, setLocation] = useState(locationFromHash)
 
   useEffect(() => {
@@ -1680,10 +2163,15 @@ const Page = ({ property, overview, workOrders, departments, rates, assignments,
   // Weeks someone has to act on: waiting for the PM, or sent back to us.
   const stalledWeeks = overview?.weeks?.filter((w) => ['pending_approval', 'declined'].includes(w.status)).length ?? 0
 
-  const go = (next: TabKey, section: SectionKey = location.section) => {
-    setLocation({ tab: next, section })
-    window.history.replaceState(null, '', next === 'settings' ? `#settings/${section}` : `#${next}`)
-  }
+  const go = (next: TabKey, section: SectionKey = location.section) => setLocation({ tab: next, section })
+
+  // Keep the hash in step with the tab — also after a save, whose redirect
+  // comes back without it, so a refresh lands where the reader was. Inertia
+  // keeps its page in history.state, so that is carried over untouched.
+  const hash = location.tab === 'settings' ? `#settings/${location.section}` : `#${location.tab}`
+  useEffect(() => {
+    if (window.location.hash !== hash) window.history.replaceState(window.history.state, '', hash)
+  })
 
   const goToAction = (action: AttentionAction) => {
     if (TABS.some((t) => t.key === action.tab)) {
@@ -1746,6 +2234,9 @@ const Page = ({ property, overview, workOrders, departments, rates, assignments,
           contracts={contracts}
           history={history}
           holidays={holidays}
+          devices={devices}
+          timeSources={timeSources}
+          defaultDirectHireThresholdHours={defaultDirectHireThresholdHours}
           catalogs={catalogs}
           can={can}
         />
