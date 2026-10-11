@@ -269,13 +269,27 @@ class WorkOrderController extends Controller
         return to_route('work-orders.index')->with('success', 'Work order created.');
     }
 
-    public function edit(WorkOrder $workOrder, DirectHireProgress $progress): Response
+    public function edit(Request $request, WorkOrder $workOrder, DirectHireProgress $progress): Response
     {
         $this->authorize('update', $workOrder);
+
+        $workOrder->loadMissing(['person:id,name', 'property:id,name,direct_hire_threshold_minutes', 'position:id,name']);
+        $bible = $workOrder->property?->currentRateFor($workOrder->position_id);
+        /** @var Person $user */
+        $user = $request->user();
 
         return Inertia::render('admin/work-orders/form', [
             'workOrder' => [
                 'id' => $workOrder->id,
+                'contractor' => $workOrder->person?->name,
+                'property' => $workOrder->property?->name,
+                'position' => $workOrder->position?->name,
+                // What the property's Bible pays for the position today, to set
+                // this placement's rate against.
+                'bible_rate' => $bible === null ? null : ['pay_rate' => $bible->pay_rate, 'bill_rate' => $bible->bill_rate],
+                // The property's contracted threshold, offered as a one-click value.
+                'property_direct_hire_hours' => intdiv($workOrder->property?->directHireThresholdMinutes() ?? Property::defaultDirectHireThresholdMinutes(), 60),
+                'can_close' => $workOrder->status !== WorkOrderStatus::Closed && $user->can('close', $workOrder),
                 'person_id' => $workOrder->person_id,
                 'property_id' => $workOrder->property_id,
                 'position_id' => $workOrder->position_id,
@@ -346,7 +360,14 @@ class WorkOrderController extends Controller
             'contractors' => Person::query()
                 ->whereIn('status', [PersonStatus::ContractorActive, PersonStatus::ContractorInactive])
                 ->orderBy('name')->get(['id', 'name']),
-            'properties' => Property::query()->orderBy('name')->get(['id', 'name']),
+            // Each with its contracted direct-hire threshold, which a new work
+            // order takes when the field is left blank.
+            'properties' => Property::query()->orderBy('name')->get(['id', 'name', 'direct_hire_threshold_minutes'])
+                ->map(fn (Property $p): array => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'direct_hire_hours' => intdiv($p->directHireThresholdMinutes() ?? Property::defaultDirectHireThresholdMinutes(), 60),
+                ])->all(),
             'positions' => Position::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'moreStaffRequests' => MoreStaffRequest::query()
                 ->whereIn('status', [MoreStaffStatus::Submitted, MoreStaffStatus::InProgress])

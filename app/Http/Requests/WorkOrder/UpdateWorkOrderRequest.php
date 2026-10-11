@@ -22,6 +22,16 @@ class UpdateWorkOrderRequest extends FormRequest
      */
     public function rules(): array
     {
+        $workOrder = $this->route('work_order');
+
+        // Closing goes through the Close action, which records the end date
+        // and logs it; the form may only keep a work order that is already
+        // closed as closed (or reopen it).
+        $statuses = [WorkOrderStatus::Active, WorkOrderStatus::Suspended];
+        if ($workOrder instanceof WorkOrder && $workOrder->status === WorkOrderStatus::Closed) {
+            $statuses[] = WorkOrderStatus::Closed;
+        }
+
         return [
             'pay_rate' => ['required', 'numeric', 'min:0', 'max:100000'],
             'bill_rate' => ['required', 'numeric', 'min:0', 'max:100000'],
@@ -29,9 +39,9 @@ class UpdateWorkOrderRequest extends FormRequest
             'ot_bill_rate' => ['required', 'numeric', 'min:0', 'max:100000'],
             'start_date' => ['required', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'status' => ['required', Rule::enum(WorkOrderStatus::class)],
+            'status' => ['required', Rule::enum(WorkOrderStatus::class)->only($statuses)],
             // Hours before the property may hire this contractor directly.
-            // Blank falls back to the property's contracted value.
+            // Blank leaves the work order's current value as it is.
             'direct_hire_threshold_hours' => ['nullable', 'integer', 'min:0', 'max:20000'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ];
