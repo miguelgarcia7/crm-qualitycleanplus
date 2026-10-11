@@ -2,6 +2,7 @@ import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import ServerPagination, { PaginationMeta } from '@/components/table/ServerPagination'
+import WorkOrderPanel, { WorkOrderPanelData } from '@/components/work-orders/WorkOrderPanel'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
@@ -54,6 +55,8 @@ type Props = {
   statuses: { value: string; label: string }[]
   /** Rows per status under the other filters; `all` is every status. */
   counts: Record<string, number>
+  /** The work order open in the side panel (?panel=<id>), or null. */
+  panel: WorkOrderPanelData | null
   catalogs: Catalogs
   can: { create: boolean; edit: boolean; close: boolean; transfer: boolean; temp: boolean }
 }
@@ -85,7 +88,7 @@ type ModalState = { kind: 'transfer' | 'temp'; wo: WorkOrderRow } | null
 
 const columnHelper = createColumnHelper<WorkOrderRow>()
 
-const Page = ({ workOrders, pagination, filters, statuses, counts, catalogs, can }: Props) => {
+const Page = ({ workOrders, pagination, filters, statuses, counts, panel, catalogs, can }: Props) => {
   const [modal, setModal] = useState<ModalState>(null)
   // "Transfer someone in" on a staffing request lands here with
   // ?staffing_request=<id>: the Transfer form then starts on that request.
@@ -106,9 +109,42 @@ const Page = ({ workOrders, pagination, filters, statuses, counts, catalogs, can
       preserveState: true,
       preserveScroll: true,
       replace,
-      only: ['workOrders', 'pagination', 'filters', 'counts'],
+      // A filter or page change closes the panel: its row may not be on screen any more.
+      only: ['workOrders', 'pagination', 'filters', 'counts', 'panel'],
     })
   }
+
+  /**
+   * The panel lives in the URL (?panel=<id>), so an open work order is a link
+   * and Back closes it. Only the panel's data comes down; the list stays.
+   */
+  const showPanel = (id: number | null) => {
+    router.get(
+      '/admin/work-orders',
+      { ...queryFrom(filters, pagination.current_page), ...(id === null ? {} : { panel: String(id) }) },
+      { preserveState: true, preserveScroll: true, only: ['panel'] },
+    )
+  }
+
+  /** The panel's work order in the shape the Transfer and Temporary dialogs take. */
+  const panelRow = (w: WorkOrderPanelData): WorkOrderRow => ({
+    id: w.id,
+    person_id: w.person_id,
+    contractor: w.contractor,
+    property_id: w.property_id,
+    property: w.property,
+    position_id: w.position_id,
+    position: w.position,
+    pay_rate: w.pay_rate,
+    bill_rate: w.bill_rate,
+    ot_pay_rate: w.ot_pay_rate,
+    ot_bill_rate: w.ot_bill_rate,
+    status: w.status,
+    is_temporary_assignment: w.is_temporary_assignment,
+    direct_hire: w.direct_hire,
+    start_date: w.start_date,
+    end_date: w.end_date,
+  })
 
   // Debounced so typing does not fire a request per keystroke; replaces
   // history rather than pushing, so Back does not walk the search letter by
@@ -371,7 +407,7 @@ const Page = ({ workOrders, pagination, filters, statuses, counts, catalogs, can
         <DataTable
           table={table}
           emptyMessage={counts.all ? 'No work orders match.' : 'No work orders yet.'}
-          onRowClick={can.edit ? (w) => router.visit(`/admin/work-orders/${w.id}/edit`) : undefined}
+          onRowClick={(w) => showPanel(w.id)}
         />
 
         {pagination.total > 0 && (
@@ -380,6 +416,17 @@ const Page = ({ workOrders, pagination, filters, statuses, counts, catalogs, can
           </div>
         )}
       </div>
+
+      {panel && (
+        <WorkOrderPanel
+          workOrder={panel}
+          onClose={() => showPanel(null)}
+          onTransfer={() => setModal({ kind: 'transfer', wo: panelRow(panel) })}
+          onTemp={() => setModal({ kind: 'temp', wo: panelRow(panel) })}
+          onCloseWorkOrder={() => closeWorkOrder(panelRow(panel))}
+          escapeDisabled={modal !== null}
+        />
+      )}
 
       {modal?.kind === 'transfer' && <TransferModal wo={modal.wo} catalogs={catalogs} filling={fillingRequest} onClose={() => setModal(null)} />}
       {modal?.kind === 'temp' && <TempModal wo={modal.wo} catalogs={catalogs} onClose={() => setModal(null)} />}

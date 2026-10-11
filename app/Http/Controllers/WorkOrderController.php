@@ -16,6 +16,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Support\DirectHireProgress;
+use App\Domain\WorkOrders\Support\WorkOrderPanel;
 use App\Http\Requests\WorkOrder\StoreWorkOrderRequest;
 use App\Http\Requests\WorkOrder\UpdateWorkOrderRequest;
 use Illuminate\Database\Eloquent\Builder;
@@ -50,7 +51,7 @@ class WorkOrderController extends Controller
 
     private const PER_PAGE = [10, 25, 50];
 
-    public function index(Request $request, DirectHireProgress $progress): Response
+    public function index(Request $request, DirectHireProgress $progress, WorkOrderPanel $panel): Response
     {
         $this->authorize('viewAny', WorkOrder::class);
 
@@ -94,6 +95,10 @@ class WorkOrderController extends Controller
             ],
             'filters' => $filters,
             'counts' => $this->statusCounts($filters, $user),
+            // The side panel's work order, from ?panel=<id>. A closure, so a
+            // partial reload of just the panel skips the list's queries and a
+            // shared link still opens with the panel showing.
+            'panel' => fn (): ?array => $this->panelFor($request->integer('panel'), $user, $panel),
             // From the enum, not from the rows on this page — a status filter
             // that only offers what page 1 happens to contain is useless.
             'statuses' => array_map(
@@ -133,6 +138,23 @@ class WorkOrderController extends Controller
             'direction' => $request->string('direction')->lower()->toString() === 'asc' ? 'asc' : 'desc',
             'per_page' => in_array($perPage, self::PER_PAGE, true) ? $perPage : 25,
         ];
+    }
+
+    /**
+     * One work order for the side panel, or null when there's none to show —
+     * a stale or foreign id closes the panel rather than failing the list.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function panelFor(int $id, mixed $user, WorkOrderPanel $panel): ?array
+    {
+        $workOrder = $id > 0 ? WorkOrder::find($id) : null;
+
+        if ($workOrder === null || ! $user instanceof Person || ! $user->can('view', $workOrder)) {
+            return null;
+        }
+
+        return $panel->build($workOrder, $user);
     }
 
     /**
