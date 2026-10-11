@@ -54,6 +54,7 @@ class PropertyController extends Controller
             'name' => $p->name,
             'city' => $p->city,
             'state' => $p->state,
+            'pm_name' => $p->pm_name,
             'status' => $p->status->value,
         ]);
 

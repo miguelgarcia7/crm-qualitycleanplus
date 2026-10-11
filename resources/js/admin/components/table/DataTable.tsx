@@ -24,9 +24,16 @@ type DataTableProps<TData> = {
    * @default true
    */
   showHeaders?: boolean
+
+  /**
+   * Open the row's record when the row is clicked. Clicks on a link, button or
+   * field inside the row keep their own behaviour; keyboard users reach the
+   * record through the row's own link.
+   */
+  onRowClick?: (row: TData) => void
 }
 
-const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing found.', showHeaders = true }: DataTableProps<TData>) => {
+const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing found.', showHeaders = true, onRowClick }: DataTableProps<TData>) => {
   'use no memo'
   const columns = table.getAllColumns()
   return (
@@ -56,7 +63,17 @@ const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing foun
         <tbody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
+              <tr
+                key={row.id}
+                className={cn(onRowClick && 'cursor-pointer')}
+                onClick={
+                  onRowClick
+                    ? (e) => {
+                        if ((e.target as HTMLElement).closest('a, button, input, select, textarea, label')) return
+                        onRowClick(row.original)
+                      }
+                    : undefined
+                }>
                 {row.getVisibleCells().map((cell) => (
                   <td  key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
