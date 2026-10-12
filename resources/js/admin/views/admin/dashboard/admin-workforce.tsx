@@ -1,5 +1,6 @@
 import DashCard, { DashEmpty, DashRow, ViewAll } from '@/components/dashboard/DashCard'
 import DashboardHeader, { DashboardTab } from '@/components/dashboard/DashboardHeader'
+import DirectHireCard, { DirectHire } from '@/components/dashboard/DirectHireCard'
 import { cn } from '@/utils/helpers'
 import { Link } from '@inertiajs/react'
 import type { AdminHeader } from './admin-today'
@@ -8,7 +9,6 @@ type Stat = { key: string; label: string; value: number; note: string; warn: boo
 type PropertyRow = { id: number; name: string; contractors: number; needed: number }
 type Posting = { id: number; title: string; where: string | null; applied: number }
 type Recruiter = { id: number; name: string; properties: number; contractors: number; visits: number; openVisits: number; notSent: number }
-type DirectHire = { id: number; name: string | null; property: string | null; worked: number; threshold: number; weeks: number; href: string }
 type Away = { id: number; name: string | null; dates: string; kind: string; now: boolean }
 
 type Workforce = {
@@ -16,7 +16,7 @@ type Workforce = {
   byProperty: { rows: PropertyRow[]; total: number }
   hiring: { applied: number; inReview: number; placed: number; postings: Posting[]; openPostings: number }
   recruiters: Recruiter[]
-  directHire: { rows: DirectHire[]; total: number; withinWeeks: number }
+  directHire: DirectHire
   staffAway: { rows: Away[]; total: number }
 }
 
@@ -152,30 +152,6 @@ const Recruiters = ({ rows }: { rows: Recruiter[] }) => (
   </DashCard>
 )
 
-const DirectHireCard = ({ data }: { data: Workforce['directHire'] }) => (
-  <DashCard
-    title="Close to direct hire"
-    description={`Contractors a property may soon hire directly, within ${data.withinWeeks} weeks at their recent pace.`}
-    footer={data.total > data.rows.length ? <span className="text-default-400">{data.total - data.rows.length} more within {data.withinWeeks} weeks</span> : undefined}>
-    {data.rows.length === 0 ? (
-      <DashEmpty>Nobody is within {data.withinWeeks} weeks of direct hire.</DashEmpty>
-    ) : (
-      data.rows.map((row) => (
-        <DashRow
-          key={row.id}
-          end={<span className={cn('badge badge-label whitespace-nowrap', row.weeks <= 4 ? 'bg-warning/15 text-warning' : 'bg-light text-default-600')}>~{plural(row.weeks, 'week', 'weeks')}</span>}>
-          <Link href={row.href} className="text-default-900 hover:text-primary font-medium">
-            {row.name}
-          </Link>
-          <div className="text-default-400 text-sm">
-            {row.property} · {row.worked.toLocaleString()} of {row.threshold.toLocaleString()} h
-          </div>
-        </DashRow>
-      ))
-    )}
-  </DashCard>
-)
-
 const StaffAway = ({ data }: { data: Workforce['staffAway'] }) => (
   <DashCard
     title="Staff away"
@@ -217,7 +193,10 @@ const Page = ({ workforce, header, tabs, view }: { workforce: Workforce; header:
       </div>
 
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
-        <DirectHireCard data={workforce.directHire} />
+        <DirectHireCard
+          data={workforce.directHire}
+          description={`Contractors a property may soon hire directly, within ${workforce.directHire.withinWeeks} weeks at their recent pace.`}
+        />
         <StaffAway data={workforce.staffAway} />
       </div>
     </div>

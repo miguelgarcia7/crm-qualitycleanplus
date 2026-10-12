@@ -1,5 +1,7 @@
 import DashCard, { DashEmpty, DashRow, ViewAll } from '@/components/dashboard/DashCard'
 import DashboardHeader, { DashboardTab } from '@/components/dashboard/DashboardHeader'
+import ExpiringCard, { Expiring } from '@/components/dashboard/ExpiringCard'
+import RequestList, { Requests } from '@/components/dashboard/RequestList'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Link } from '@inertiajs/react'
@@ -22,8 +24,6 @@ type ChaseRow = {
   href: string
 }
 
-type Decision = { key: string; type: string; title: string; detail: string; age: string | null; action: Target }
-type Expiring = { id: number; title: string; detail: string; days: number; tone: 'danger' | 'warning' | 'gray'; href: string }
 type Event = { date: string; day: string; title: string; detail: string; link: Target }
 type Gap = { id: number; name: string; count: number; top: string | null; href: string }
 
@@ -33,8 +33,8 @@ type Today = {
   actions: Action[]
   alerts: { key: string; title: string; body: string; actionLabel: string; actionHref: string }[]
   pipeline: { stages: Stage[]; chase: ChaseRow[]; chaseTotal: number } | null
-  decisions: { rows: Decision[]; total: number; hidden: number; byType: { label: string; count: number; href: string }[] }
-  expiring: { rows: Expiring[]; total: number } | null
+  decisions: Requests
+  expiring: Expiring | null
   comingUp: { rows: Event[]; total: number }
   setupGaps: { rows: Gap[]; total: number }
 }
@@ -42,12 +42,6 @@ type Today = {
 const money = (dollars: number) => `$${dollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`
-
-const toneBadge: Record<Expiring['tone'], string> = {
-  danger: 'bg-danger/15 text-danger',
-  warning: 'bg-warning/15 text-warning',
-  gray: 'bg-light text-default-600',
-}
 
 /** Hours on the way to invoices: each step, the stuck one highlighted, and who to chase. */
 const Pipeline = ({ pipeline }: { pipeline: NonNullable<Today['pipeline']> }) => (
@@ -140,77 +134,6 @@ const Pipeline = ({ pipeline }: { pipeline: NonNullable<Today['pipeline']> }) =>
           </tbody>
         </table>
       </div>
-    )}
-  </DashCard>
-)
-
-const Decisions = ({ decisions, className }: { decisions: Today['decisions']; className?: string }) => {
-  const more = decisions.hidden > 0
-
-  return (
-    <DashCard
-      className={className}
-      title="Needs a decision"
-      description="Requests waiting on you or your team, oldest first."
-      aside={decisions.total > 0 && <span className="badge badge-label bg-light text-default-600 shrink-0">{decisions.total} waiting</span>}
-      footer={
-        more ? (
-          <div className="flex flex-wrap gap-x-5 gap-y-1">
-            {decisions.byType.map((type) => (
-              <Link key={type.label} href={type.href} className="text-primary font-medium">
-                {type.label} ({type.count}) →
-              </Link>
-            ))}
-          </div>
-        ) : undefined
-      }>
-      {decisions.rows.length === 0 ? (
-        <DashEmpty>Nothing is waiting on a decision.</DashEmpty>
-      ) : (
-        decisions.rows.map((row) => (
-          <DashRow
-            key={row.key}
-            end={
-              <>
-                {row.age && <span className="text-default-400 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>}
-                <Link href={row.action.href} className="btn btn-sm border-default-300 hover:border-default-400 border">
-                  {row.action.label}
-                </Link>
-              </>
-            }>
-            <div className="flex items-start gap-3">
-              <span className="badge badge-label bg-info/15 text-info mt-0.5 hidden w-28 shrink-0 justify-center sm:inline-flex">{row.type}</span>
-              <div className="min-w-0">
-                <div className="text-default-900 font-medium">{row.title}</div>
-                <div className="text-default-400 text-sm">
-                  <span className="sm:hidden">{row.type} · </span>
-                  {row.detail}
-                </div>
-              </div>
-            </div>
-          </DashRow>
-        ))
-      )}
-    </DashCard>
-  )
-}
-
-const ExpiringCard = ({ expiring }: { expiring: NonNullable<Today['expiring']> }) => (
-  <DashCard
-    title="Expiring in 30 days"
-    description="Contracts to renew before they lapse."
-    footer={expiring.total > expiring.rows.length ? <ViewAll href="/admin/properties">View all {expiring.total}</ViewAll> : undefined}>
-    {expiring.rows.length === 0 ? (
-      <DashEmpty>Nothing expires in the next 30 days.</DashEmpty>
-    ) : (
-      expiring.rows.map((row) => (
-        <DashRow key={row.id} end={<span className={cn('badge badge-label whitespace-nowrap', toneBadge[row.tone])}>{row.days === 0 ? 'Today' : plural(row.days, 'day', 'days')}</span>}>
-          <Link href={row.href} className="text-default-900 hover:text-primary font-medium">
-            {row.title}
-          </Link>
-          <div className="text-default-400 text-sm">{row.detail}</div>
-        </DashRow>
-      ))
     )}
   </DashCard>
 )
@@ -310,8 +233,14 @@ const Page = ({ today, header, tabs, view }: { today: Today; header: AdminHeader
         {today.pipeline && <Pipeline pipeline={today.pipeline} />}
 
         <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-3">
-          <Decisions decisions={today.decisions} className={today.expiring ? 'xl:col-span-2' : 'xl:col-span-3'} />
-          {today.expiring && <ExpiringCard expiring={today.expiring} />}
+          <RequestList
+            title="Needs a decision"
+            description="Requests waiting on you or your team, oldest first."
+            emptyText="Nothing is waiting on a decision."
+            data={today.decisions}
+            className={today.expiring ? 'xl:col-span-2' : 'xl:col-span-3'}
+          />
+          {today.expiring && <ExpiringCard data={today.expiring} description="Contracts to renew before they lapse." />}
         </div>
 
         <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-3">

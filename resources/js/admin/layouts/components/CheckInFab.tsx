@@ -17,6 +17,11 @@ const distanceMeters = (aLat: number, aLng: number, bLat: number, bLng: number):
   return R * 2 * Math.asin(Math.min(1, Math.sqrt(s)))
 }
 
+const CHECK_IN_EVENT = 'qcp:check-in'
+
+/** Open the check-in panel from anywhere on the page. */
+export const openCheckIn = () => window.dispatchEvent(new Event(CHECK_IN_EVENT))
+
 const CheckInFab = () => {
   const permissions = (usePage().props as { auth?: { permissions?: string[] } }).auth?.permissions ?? []
   const enabled = permissions.includes('field_visits.create')
@@ -56,6 +61,14 @@ const CheckInFab = () => {
     setOpen(true)
     void loadContext()
   }
+
+  // Other screens (the recruiter dashboard) open this panel with openCheckIn().
+  useEffect(() => {
+    const onOpen = () => openModal()
+    window.addEventListener(CHECK_IN_EVENT, onOpen)
+    return () => window.removeEventListener(CHECK_IN_EVENT, onOpen)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const closeModal = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop())

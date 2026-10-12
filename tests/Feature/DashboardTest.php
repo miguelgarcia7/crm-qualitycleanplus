@@ -21,26 +21,19 @@ function widgetTitles(mixed $widgets): Collection
 }
 
 it('gives a recruiter property-scoped widgets and no office/payroll widgets', function () {
+    // Recruiters land on their own dashboard now; the widget service still builds these.
     $recruiter = person('recruiter');
     $mine = Property::factory()->create();
     Property::factory()->create(); // someone else's
     $mine->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
 
-    $this->actingAs($recruiter)->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('admin/dashboard/index')
-            ->where('widgets', function ($widgets) {
-                $titles = widgetTitles($widgets);
-                $myProperties = collect($widgets['stats'])->firstWhere('title', 'My properties');
+    $widgets = app(DashboardMetrics::class)->forBackOffice($recruiter);
+    $titles = widgetTitles($widgets);
 
-                return $titles->contains('My open tasks')
-                    && $titles->contains('My properties')
-                    && $titles->contains('Weekly hours')
-                    && ! $titles->contains('Open periods')        // payroll-only
-                    && ! $titles->contains('Recent imports')      // office-only
-                    && $myProperties['value'] === 1;              // scoped to the one assigned property
-            }),
-        );
+    expect($titles)->toContain('My open tasks', 'My properties', 'Weekly hours')
+        ->not->toContain('Open periods')    // payroll-only
+        ->not->toContain('Recent imports')  // office-only
+        ->and(collect($widgets['stats'])->firstWhere('title', 'My properties')['value'])->toBe(1);
 });
 
 it('gives office manager the operations widgets and a revenue chart', function () {

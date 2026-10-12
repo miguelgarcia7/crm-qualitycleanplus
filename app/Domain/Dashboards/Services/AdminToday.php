@@ -6,26 +6,20 @@ use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
+use App\Domain\Dashboards\Support\ApprovalQueue;
+use App\Domain\Dashboards\Support\DashboardFormat;
+use App\Domain\Dashboards\Support\RequestQueue;
 use App\Domain\People\Models\Person;
-use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
-use App\Domain\PropertyBible\Models\PropertyAssignment;
 use App\Domain\Pto\Enums\PtoRequestStatus;
 use App\Domain\Pto\Models\PtoRequest;
-use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
-use App\Domain\Workflows\Enums\WorkflowStatus;
-use App\Domain\Workflows\Enums\WorkflowType;
-use App\Domain\Workflows\Models\Workflow;
-use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
-use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -40,14 +34,15 @@ class AdminToday
 {
     private const LIST_LIMIT = 5;
 
-    /** A timesheet with the property manager longer than this is overdue. */
-    private const APPROVAL_SLA_DAYS = 3;
-
     private const EXPIRING_DAYS = 30;
 
     private const COMING_UP_DAYS = 14;
 
-    public function __construct(private readonly PropertyAttention $attention) {}
+    public function __construct(
+        private readonly PropertyAttention $attention,
+        private readonly ApprovalQueue $approvals,
+        private readonly RequestQueue $requests,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -76,18 +71,12 @@ class AdminToday
     {
         $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
 
-        $greeting = match (true) {
-            $now->hour < 12 => 'Good morning',
-            $now->hour < 17 => 'Good afternoon',
-            default => 'Good evening',
-        };
-
         $weekStart = $now->startOfWeek(CarbonImmutable::MONDAY);
 
         return [
-            'greeting' => $greeting.', '.strtok((string) $user->name, ' '),
+            'greeting' => DashboardFormat::greeting($user, $now),
             'date' => $now->format('l, M j'),
-            'week' => 'Week of '.$this->range($weekStart, $weekStart->addDays(6)),
+            'week' => 'Week of '.DashboardFormat::range($weekStart, $weekStart->addDays(6)),
             'properties' => Property::query()->count(),
         ];
     }
@@ -173,9 +162,9 @@ class AdminToday
 
         $notSent = count($workedLastWeek) - $submitted;
 
-        $pending = Timesheet::query()->pendingApproval();
+        $pending = $this->approvals->query(null);
         $pendingCount = $pending->clone()->count();
-        $overdue = $pending->clone()->where('sent_for_approval_at', '<', $now->subDays(self::APPROVAL_SLA_DAYS))->count();
+        $overdue = $pending->clone()->where('sent_for_approval_at', '<', $now->subDays(ApprovalQueue::SLA_DAYS))->count();
 
         $ready = Invoice::query()->awaitingSend()->whereNull('notification_sent_at');
         $readyCount = $ready->clone()->count();
@@ -192,7 +181,7 @@ class AdminToday
                     'key' => 'clocked',
                     'label' => 'Clocked',
                     'value' => number_format((int) round($clockedMinutes / 60)).' h',
-                    'note' => $openPunches > 0 ? $this->plural($openPunches, 'punch', 'punches').' still open' : 'All punches closed',
+                    'note' => $openPunches > 0 ? DashboardFormat::plural($openPunches, 'punch', 'punches').' still open' : 'All punches closed',
                     'href' => '/admin/timesheets',
                     'stuck' => false,
                 ],
@@ -202,7 +191,7 @@ class AdminToday
                     'value' => $workedLastWeek === [] ? '—' : $submitted.' of '.count($workedLastWeek),
                     'note' => match (true) {
                         $workedLastWeek === [] => 'No hours last week',
-                        $notSent > 0 => $this->plural($notSent, 'property', 'properties').' not sent yet',
+                        $notSent > 0 => DashboardFormat::plural($notSent, 'property', 'properties').' not sent yet',
                         default => 'Every property sent last week',
                     },
                     'href' => '/admin/timesheets?tab=draft',
@@ -213,8 +202,8 @@ class AdminToday
                     'label' => 'Awaiting PM approval',
                     'value' => (string) $pendingCount,
                     'note' => match (true) {
-                        $overdue > 0 => $overdue.' past '.self::APPROVAL_SLA_DAYS.' days · list below',
-                        $pendingCount > 0 => 'All within '.self::APPROVAL_SLA_DAYS.' days',
+                        $overdue > 0 => $overdue.' past '.ApprovalQueue::SLA_DAYS.' days · list below',
+                        $pendingCount > 0 => 'All within '.ApprovalQueue::SLA_DAYS.' days',
                         default => 'Nothing waiting',
                     },
                     'href' => '/admin/timesheets?tab=pending',
@@ -237,63 +226,9 @@ class AdminToday
                     'stuck' => false,
                 ],
             ],
-            'chase' => $this->chase($now),
+            'chase' => $this->approvals->oldest(null, $now, self::LIST_LIMIT),
             'chaseTotal' => $pendingCount,
         ];
-    }
-
-    /**
-     * Timesheets with a property manager, oldest first.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function chase(CarbonImmutable $now): array
-    {
-        $sheets = Timesheet::query()
-            ->pendingApproval()
-            ->with(['property:id,name', 'payrollPeriod:id,week_start,week_end', 'sentForApprovalBy:id,name'])
-            ->orderBy('sent_for_approval_at')
-            ->limit(self::LIST_LIMIT)
-            ->get();
-
-        if ($sheets->isEmpty()) {
-            return [];
-        }
-
-        $bills = TimeSummary::query()
-            ->whereIn('payroll_period_id', $sheets->pluck('payroll_period_id'))
-            ->groupBy('payroll_period_id')
-            ->selectRaw('payroll_period_id, SUM(total_bill) as bill')
-            ->pluck('bill', 'payroll_period_id');
-
-        $managers = PropertyAssignment::query()
-            ->whereIn('property_id', $sheets->pluck('property_id'))
-            ->where('role', PropertyAssignmentRole::PropertyManager->value)
-            ->with('person:id,name,email')
-            ->orderBy('id')
-            ->get()
-            ->groupBy('property_id');
-
-        return $sheets->map(function (Timesheet $sheet) use ($bills, $managers, $now): array {
-            $period = $sheet->payrollPeriod;
-            $manager = $managers->get($sheet->property_id)?->first()?->person;
-            $days = $sheet->sent_for_approval_at === null ? 0 : (int) $sheet->sent_for_approval_at->diffInDays($now);
-
-            return [
-                'id' => $sheet->id,
-                'property' => $sheet->property?->name,
-                'week' => $period !== null ? $this->range($period->week_start, $period->week_end) : null,
-                'manager' => $manager?->name,
-                'managerEmail' => $manager?->email,
-                'recruiter' => $sheet->sentForApprovalBy?->name,
-                'billable' => round(((int) ($bills[$sheet->payroll_period_id] ?? 0)) / 100, 2),
-                'waitingDays' => $days,
-                'overdue' => $days > self::APPROVAL_SLA_DAYS,
-                'href' => $period !== null
-                    ? "/admin/properties/{$sheet->property_id}/grid?week={$period->week_start->toDateString()}"
-                    : "/admin/properties/{$sheet->property_id}",
-            ];
-        })->all();
     }
 
     /**
@@ -304,155 +239,16 @@ class AdminToday
      */
     private function decisions(Person $user, CarbonImmutable $now): array
     {
-        /** @var Collection<int, array<string, mixed>> $rows */
-        $rows = collect();
-        $totals = [];
+        $groups = array_values(array_filter([
+            $user->can('workflows.more_staff.fulfill') ? $this->requests->staffing(null) : null,
+            $user->can('workflows.pay_increase.approve') ? $this->requests->payIncreases(null) : null,
+            $user->can('workflows.termination.initiate') || $user->can('termination_records.view') ? $this->requests->terminations() : null,
+            $user->can('workflows.pto.approve') ? $this->requests->timeOff() : null,
+            $user->can('workflows.change_personal_info.verify') ? $this->requests->infoChanges() : null,
+            $user->can('people.applicants.view') ? $this->requests->applications(null) : null,
+        ]));
 
-        if ($user->can('workflows.more_staff.fulfill')) {
-            $requests = MoreStaffRequest::query()
-                ->whereIn('status', [MoreStaffStatus::Submitted->value, MoreStaffStatus::InProgress->value])
-                ->with(['property:id,name', 'position:id,name', 'initiatedBy:id,name'])
-                ->get();
-
-            $totals[] = ['label' => 'Staffing requests', 'count' => $requests->count(), 'href' => '/admin/staffing-requests'];
-
-            foreach ($requests as $request) {
-                $rows->push([
-                    'key' => "staffing-{$request->id}",
-                    'type' => 'Staffing',
-                    'title' => "{$request->property?->name} wants {$request->remaining()} more ".$request->position->name,
-                    'detail' => collect([
-                        $request->initiatedBy?->name !== null ? 'Requested by '.$request->initiatedBy->name : null,
-                        "{$request->quantity_fulfilled} of {$request->quantity_requested} placed",
-                        'needed by '.$request->by_date->format('M j'),
-                    ])->filter()->implode(' · '),
-                    'since' => $request->created_at?->toImmutable(),
-                    'action' => ['label' => 'Place', 'href' => '/admin/staffing-requests'],
-                ]);
-            }
-        }
-
-        if ($user->can('workflows.pay_increase.approve')) {
-            $increases = $this->openWorkflows(WorkflowType::PayIncrease);
-            $workOrders = WorkOrder::query()
-                ->whereIn('id', $increases->map(fn (Workflow $w) => $w->data['work_order_id'] ?? null)->filter())
-                ->with(['person:id,name', 'property:id,name', 'position:id,name'])
-                ->get()
-                ->keyBy('id');
-
-            $totals[] = ['label' => 'Pay increases', 'count' => $increases->count(), 'href' => '/admin/pay-increases'];
-
-            foreach ($increases as $workflow) {
-                $workOrder = $workOrders->get($workflow->data['work_order_id'] ?? 0);
-                $cents = (int) ($workflow->data['pm_requested_increase_cents'] ?? 0);
-
-                $rows->push([
-                    'key' => "pay-{$workflow->id}",
-                    'type' => 'Pay increase',
-                    'title' => $cents > 0
-                        ? "{$workOrder?->property?->name} offers +$".number_format($cents / 100, 2)."/h for {$workOrder?->person?->name}"
-                        : "Pay increase for {$workOrder?->person?->name}",
-                    'detail' => collect([
-                        $workOrder?->position?->name,
-                        $workOrder?->property?->name !== null && $cents === 0 ? $workOrder->property->name : null,
-                        $workflow->initiator?->name !== null ? 'requested by '.$workflow->initiator->name : null,
-                    ])->filter()->implode(' · '),
-                    'since' => $workflow->created_at?->toImmutable(),
-                    'action' => ['label' => 'Review', 'href' => '/admin/pay-increases'],
-                ]);
-            }
-        }
-
-        if ($user->can('workflows.termination.initiate') || $user->can('termination_records.view')) {
-            $terminations = $this->openWorkflows(WorkflowType::Termination, withSteps: true);
-
-            $totals[] = ['label' => 'Terminations', 'count' => $terminations->count(), 'href' => '/admin/terminations'];
-
-            foreach ($terminations as $workflow) {
-                $step = $workflow->steps->firstWhere('step_index', $workflow->current_step_index);
-
-                $rows->push([
-                    'key' => "termination-{$workflow->id}",
-                    'type' => 'Termination',
-                    'title' => $workflow->subject instanceof Person ? $workflow->subject->name : 'Termination',
-                    'detail' => $step !== null
-                        ? 'Next: '.lcfirst($step->name).($step->assigned_role !== null ? ' · '.str_replace('_', ' ', $step->assigned_role) : '')
-                        : 'In progress',
-                    'since' => $workflow->created_at?->toImmutable(),
-                    'action' => ['label' => 'Open', 'href' => "/admin/terminations/{$workflow->id}"],
-                ]);
-            }
-        }
-
-        if ($user->can('workflows.pto.approve')) {
-            $requests = PtoRequest::query()->pending()->with('person:id,name')->get();
-
-            $totals[] = ['label' => 'Time off', 'count' => $requests->count(), 'href' => '/admin/pto'];
-
-            foreach ($requests as $request) {
-                $rows->push([
-                    'key' => "pto-{$request->id}",
-                    'type' => 'Time off',
-                    'title' => "{$request->person?->name} · ".$this->range($request->start_date, $request->end_date),
-                    'detail' => rtrim(rtrim((string) $request->hours, '0'), '.').' h '.strtolower($request->bucket->label()),
-                    'since' => ($request->submitted_at ?? $request->created_at)?->toImmutable(),
-                    'action' => ['label' => 'Review', 'href' => '/admin/pto'],
-                ]);
-            }
-        }
-
-        if ($user->can('workflows.change_personal_info.verify')) {
-            $changes = $this->openWorkflows(WorkflowType::ChangePersonalInfo);
-
-            $totals[] = ['label' => 'Info changes', 'count' => $changes->count(), 'href' => '/admin/info-changes'];
-
-            foreach ($changes as $workflow) {
-                $rows->push([
-                    'key' => "info-{$workflow->id}",
-                    'type' => 'Info change',
-                    'title' => ($workflow->subject instanceof Person ? $workflow->subject->name : 'Someone').' updated their details',
-                    'detail' => 'Verify before it replaces what is on file',
-                    'since' => $workflow->created_at?->toImmutable(),
-                    'action' => ['label' => 'Verify', 'href' => '/admin/info-changes'],
-                ]);
-            }
-        }
-
-        if ($user->can('people.applicants.view')) {
-            $applications = JobApplication::query()->pending();
-            $count = $applications->clone()->count();
-
-            $totals[] = ['label' => 'Applications', 'count' => $count, 'href' => '/admin/applicants'];
-
-            if ($count > 0) {
-                $oldest = CarbonImmutable::parse((string) $applications->clone()->min('submitted_at'));
-
-                $rows->push([
-                    'key' => 'applications',
-                    'type' => 'Applications',
-                    'title' => $this->plural($count, 'application', 'applications').' to review',
-                    'detail' => 'Oldest sent '.$oldest->format('M j'),
-                    'since' => $oldest,
-                    'represents' => $count,
-                    'action' => ['label' => 'Review', 'href' => '/admin/applicants'],
-                ]);
-            }
-        }
-
-        $sorted = $rows->sortBy(fn (array $row) => $row['since']?->getTimestamp() ?? PHP_INT_MAX)->values();
-        $shown = $sorted->take(self::LIST_LIMIT);
-        $total = (int) collect($totals)->sum('count');
-
-        return [
-            'rows' => $shown->map(fn (array $row): array => [
-                ...collect($row)->except(['since', 'represents'])->all(),
-                'age' => $row['since'] !== null ? $this->age($row['since'], $now) : null,
-            ])->all(),
-            'total' => $total,
-            // Requests not on screen; the grouped applications row stands for all of them.
-            'hidden' => $total - (int) $shown->sum(fn (array $row): int => $row['represents'] ?? 1),
-            'byType' => collect($totals)->where('count', '>', 0)->values()->all(),
-        ];
+        return $this->requests->merge($groups, $now, self::LIST_LIMIT);
     }
 
     /**
@@ -509,7 +305,7 @@ class AdminToday
             foreach ($starting as $date => $group) {
                 $events->push([
                     'date' => $date,
-                    'title' => $this->plural($group->count(), 'placement', 'placements').' '.($group->count() === 1 ? 'starts' : 'start'),
+                    'title' => DashboardFormat::plural($group->count(), 'placement', 'placements').' '.($group->count() === 1 ? 'starts' : 'start'),
                     'detail' => $this->names($group->map(fn (WorkOrder $wo) => $wo->property?->name)->all()),
                     'link' => ['label' => 'Work orders', 'href' => '/admin/work-orders'],
                 ]);
@@ -527,7 +323,7 @@ class AdminToday
             foreach ($ending as $date => $group) {
                 $events->push([
                     'date' => $date,
-                    'title' => $this->plural($group->count(), 'placement', 'placements').' '.($group->count() === 1 ? 'ends' : 'end'),
+                    'title' => DashboardFormat::plural($group->count(), 'placement', 'placements').' '.($group->count() === 1 ? 'ends' : 'end'),
                     'detail' => $this->names($group->map(fn (WorkOrder $wo) => $wo->property?->name)->all()),
                     'link' => ['label' => 'Work orders', 'href' => '/admin/work-orders'],
                 ]);
@@ -601,18 +397,6 @@ class AdminToday
     }
 
     /**
-     * @return Collection<int, Workflow>
-     */
-    private function openWorkflows(WorkflowType $type, bool $withSteps = false): Collection
-    {
-        return Workflow::query()
-            ->where('type', $type->value)
-            ->where('status', WorkflowStatus::InProgress->value)
-            ->with(array_filter(['initiator:id,name', 'subject', $withSteps ? 'steps' : null]))
-            ->get();
-    }
-
-    /**
      * @param  array<int, string|null>  $names
      */
     private function names(array $names): string
@@ -620,23 +404,5 @@ class AdminToday
         $unique = collect($names)->filter()->unique()->values();
 
         return $unique->take(2)->implode(', ').($unique->count() > 2 ? ' +'.($unique->count() - 2).' more' : '');
-    }
-
-    private function range(CarbonImmutable $start, CarbonImmutable $end): string
-    {
-        return $start->format('M j').' – '.($start->isSameMonth($end) ? $end->format('j') : $end->format('M j'));
-    }
-
-    /** "today", "1 day", "12 days". */
-    private function age(CarbonImmutable $since, CarbonImmutable $now): string
-    {
-        $days = (int) $since->diffInDays($now);
-
-        return $days < 1 ? 'today' : $this->plural($days, 'day', 'days');
-    }
-
-    private function plural(int $count, string $one, string $many): string
-    {
-        return number_format($count).' '.($count === 1 ? $one : $many);
     }
 }

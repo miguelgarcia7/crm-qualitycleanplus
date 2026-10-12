@@ -4,6 +4,8 @@ namespace App\Domain\Dashboards\Services;
 
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
+use App\Domain\Dashboards\Support\DashboardFormat;
+use App\Domain\Dashboards\Support\DirectHireSoon;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
@@ -19,12 +21,10 @@ use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\TimeEntry;
-use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
-use App\Domain\WorkOrders\Support\DirectHireProgress;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -41,12 +41,9 @@ class AdminWorkforce
 
     private const POSTING_ROWS = 3;
 
-    /** Contractors this close to their direct-hire hours are worth a heads-up. */
-    private const DIRECT_HIRE_WEEKS = 10;
-
     private const STAFF_AWAY_DAYS = 30;
 
-    public function __construct(private readonly DirectHireProgress $directHire) {}
+    public function __construct(private readonly DirectHireSoon $directHire) {}
 
     /**
      * @return array<string, mixed>
@@ -63,7 +60,7 @@ class AdminWorkforce
             'byProperty' => $this->byProperty($activeWorkOrders),
             'hiring' => $this->hiring($today),
             'recruiters' => $this->recruiters($today, $activeWorkOrders),
-            'directHire' => $this->directHire($today, $activeWorkOrders),
+            'directHire' => $this->directHire->build($activeWorkOrders, $today, self::LIST_LIMIT),
             'staffAway' => $this->staffAway($today),
         ];
     }
@@ -105,7 +102,7 @@ class AdminWorkforce
                 'key' => 'clock',
                 'label' => 'On the clock now',
                 'value' => $onClock,
-                'note' => $onClock > 0 ? 'at '.$this->plural($atProperties, 'property', 'properties') : 'Nobody clocked in',
+                'note' => $onClock > 0 ? 'at '.DashboardFormat::plural($atProperties, 'property', 'properties') : 'Nobody clocked in',
                 'warn' => false,
                 'href' => '/admin/timesheets',
             ],
@@ -113,7 +110,7 @@ class AdminWorkforce
                 'key' => 'staffing',
                 'label' => 'Open staffing requests',
                 'value' => $requests->count(),
-                'note' => $toPlace > 0 ? $this->plural($toPlace, 'contractor', 'contractors').' still to place' : 'Nothing to fill',
+                'note' => $toPlace > 0 ? DashboardFormat::plural($toPlace, 'contractor', 'contractors').' still to place' : 'Nothing to fill',
                 'warn' => $toPlace > 0,
                 'href' => '/admin/staffing-requests',
             ],
@@ -265,70 +262,6 @@ class AdminWorkforce
     }
 
     /**
-     * Contractors who reach their property's direct-hire hours within ten
-     * weeks at their recent pace (the average of their last two finished
-     * weeks), soonest first.
-     *
-     * @param  Collection<int, WorkOrder>  $activeWorkOrders
-     * @return array<string, mixed>
-     */
-    private function directHire(CarbonImmutable $today, Collection $activeWorkOrders): array
-    {
-        $progress = $this->directHire->forMany($activeWorkOrders);
-
-        $candidates = $activeWorkOrders->filter(fn (WorkOrder $wo): bool => ! $progress[$wo->id]['eligible'] && ! $progress[$wo->id]['unrestricted']);
-
-        $pace = TimeSummary::query()
-            ->whereIn('work_order_id', $candidates->pluck('id'))
-            ->whereDate('week_end', '<', $today->toDateString())
-            ->whereDate('week_start', '>=', $today->subWeeks(5)->toDateString())
-            ->orderByDesc('week_start')
-            ->get(['work_order_id', 'week_start', 'regular_minutes', 'overtime_minutes', 'holiday_minutes'])
-            ->groupBy('work_order_id')
-            ->map(fn (Collection $weeks): float => $weeks->take(2)->avg(fn (TimeSummary $s): int => $s->regular_minutes + $s->overtime_minutes + $s->holiday_minutes) / 60);
-
-        $rows = $candidates
-            ->map(function (WorkOrder $wo) use ($progress, $pace): ?array {
-                $hours = (float) ($pace[$wo->id] ?? 0);
-                if ($hours < 1) {
-                    return null;
-                }
-
-                $weeks = (int) ceil($progress[$wo->id]['remaining_hours'] / $hours);
-
-                return $weeks <= self::DIRECT_HIRE_WEEKS ? [
-                    'workOrderId' => $wo->id,
-                    'personId' => $wo->person_id,
-                    'propertyId' => $wo->property_id,
-                    'worked' => $progress[$wo->id]['worked_hours'],
-                    'threshold' => $progress[$wo->id]['threshold_hours'],
-                    'weeks' => $weeks,
-                ] : null;
-            })
-            ->filter()
-            ->sortBy('weeks')
-            ->values();
-
-        $shown = $rows->take(self::LIST_LIMIT);
-        $names = Person::query()->whereIn('id', $shown->pluck('personId'))->pluck('name', 'id');
-        $properties = Property::withTrashed()->whereIn('id', $shown->pluck('propertyId'))->pluck('name', 'id');
-
-        return [
-            'rows' => $shown->map(fn (array $row): array => [
-                'id' => $row['workOrderId'],
-                'name' => $names[$row['personId']] ?? null,
-                'property' => $properties[$row['propertyId']] ?? null,
-                'worked' => $row['worked'],
-                'threshold' => $row['threshold'],
-                'weeks' => $row['weeks'],
-                'href' => "/admin/people/{$row['personId']}",
-            ])->all(),
-            'total' => $rows->count(),
-            'withinWeeks' => self::DIRECT_HIRE_WEEKS,
-        ];
-    }
-
-    /**
      * Approved time off for staff in the next 30 days, soonest first.
      *
      * @return array<string, mixed>
@@ -347,25 +280,11 @@ class AdminWorkforce
             'rows' => $requests->take(self::LIST_LIMIT)->map(fn (PtoRequest $request): array => [
                 'id' => $request->id,
                 'name' => $request->person?->name,
-                'dates' => $this->range($request->start_date, $request->end_date),
+                'dates' => DashboardFormat::range($request->start_date, $request->end_date),
                 'kind' => strtolower($request->bucket->label()),
                 'now' => $request->start_date->toDateString() <= $today->toDateString(),
             ])->all(),
             'total' => $requests->count(),
         ];
-    }
-
-    private function range(CarbonImmutable $start, CarbonImmutable $end): string
-    {
-        if ($start->isSameDay($end)) {
-            return $start->format('M j');
-        }
-
-        return $start->format('M j').' – '.($start->isSameMonth($end) ? $end->format('j') : $end->format('M j'));
-    }
-
-    private function plural(int $count, string $one, string $many): string
-    {
-        return number_format($count).' '.($count === 1 ? $one : $many);
     }
 }

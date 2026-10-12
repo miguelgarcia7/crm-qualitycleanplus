@@ -6,6 +6,7 @@ use App\Domain\Dashboards\Services\AdminAnalytics;
 use App\Domain\Dashboards\Services\AdminToday;
 use App\Domain\Dashboards\Services\AdminWorkforce;
 use App\Domain\Dashboards\Services\DashboardMetrics;
+use App\Domain\Dashboards\Services\RecruiterHome;
 use App\Domain\People\Models\Person;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,15 +15,21 @@ use Inertia\Response;
 /**
  * The back-office landing dashboard. Admins get the role dashboard designed in
  * docs/50-ui/dashboard-mockups, as tabs (Today, Analytics, Workforce) picked with
- * ?view=; the other roles keep the Phase 06 widgets ({@see DashboardMetrics})
+ * ?view=; recruiters get their own page; the other roles keep the Phase 06 widgets ({@see DashboardMetrics})
  * until their own view is built.
  */
 class DashboardController extends Controller
 {
-    public function index(Request $request, DashboardMetrics $metrics, AdminToday $today, AdminAnalytics $analytics, AdminWorkforce $workforce): Response
+    public function index(Request $request, DashboardMetrics $metrics, AdminToday $today, AdminAnalytics $analytics, AdminWorkforce $workforce, RecruiterHome $recruiter): Response
     {
         $user = $request->user();
         abort_unless($user instanceof Person, 403);
+
+        if (! $user->hasAnyRole(['super_admin', 'admin']) && $user->hasRole('recruiter')) {
+            return Inertia::render('admin/dashboard/recruiter', [
+                'home' => $recruiter->build($user),
+            ]);
+        }
 
         if (! $user->hasAnyRole(['super_admin', 'admin'])) {
             return Inertia::render('admin/dashboard/index', [
