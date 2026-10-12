@@ -12,7 +12,7 @@ Status: build one role at a time, on branch `dashboard`. The property manager's 
 |---|---|
 | Admin · Today | Yes: `AdminToday` service, `admin/dashboard/admin-today` page, shared `components/dashboard/DashCard` |
 | Admin · Analytics | Yes: `AdminAnalytics` service, `admin/dashboard/admin-analytics` page, tabs via `?view=analytics` (needs `reports.financial.view`), period via `?period=mtd|last_month|quarter` |
-| Admin · Workforce | Not yet. Add it as a third tab in `DashboardController` |
+| Admin · Workforce | Yes: `AdminWorkforce` service, `admin/dashboard/admin-workforce` page, `?view=workforce` (needs `people.contractors.view`). Recruiters table is full width; property expenses card left out until expenses are ported |
 | Recruiter, Payroll, HR, Office manager, Front desk | Not yet. These roles still see the Phase 06 widgets (`DashboardMetrics`) |
 
 ## Rules for every dashboard
