@@ -138,6 +138,16 @@ it('flags big overtime, long shifts, hand-edited punches and first weeks', funct
     expect(collect(payroll()['checks']['rows'])->pluck('what'))->toContain('First week');
 });
 
+it("doesn't call a pay raise's new work order a first week", function () {
+    $property = Property::factory()->create();
+    $raised = payWeek($property, '2026-09-28', TimesheetStatus::Approved);
+    // The same contractor worked the week before on the work order the raise replaced.
+    $before = WorkOrder::factory()->create(['person_id' => $raised->person_id, 'property_id' => $property->id]);
+    TimeSummary::factory()->create(['work_order_id' => $before->id, 'person_id' => $raised->person_id, 'property_id' => $property->id, 'week_start' => '2026-09-21', 'week_end' => '2026-09-27', 'regular_minutes' => 2400]);
+
+    expect(collect(payroll()['checks']['rows'])->pluck('what'))->not->toContain('First week');
+});
+
 it('lists overdue invoices oldest first with the amount owed', function () {
     Invoice::factory()->create(['status' => InvoiceStatus::InvoiceSent, 'due_date' => '2026-08-09', 'total' => 1400_00, 'invoice_number' => 'INV-OLD']);
     Invoice::factory()->create(['status' => InvoiceStatus::InvoiceSent, 'due_date' => '2026-10-07', 'total' => 1980_00]);

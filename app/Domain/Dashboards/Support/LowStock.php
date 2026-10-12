@@ -36,7 +36,8 @@ class LowStock
                 ])
                 ->all(),
             'total' => $low->clone()->count(),
-            'onOrder' => PurchaseOrder::query()->where('status', PurchaseOrderStatus::Ordered->value)->count(),
+            // Not received yet; orders start as drafts and are received from there.
+            'onOrder' => PurchaseOrder::query()->whereIn('status', [PurchaseOrderStatus::Draft->value, PurchaseOrderStatus::Ordered->value])->count(),
         ];
     }
 }

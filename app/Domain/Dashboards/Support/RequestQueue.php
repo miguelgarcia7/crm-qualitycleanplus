@@ -18,6 +18,7 @@ use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * The requests a role decides on, built per type and merged into one list,
@@ -47,7 +48,7 @@ class RequestQueue
         return $this->group('Staffing requests', '/admin/staffing-requests', $requests->map(fn (MoreStaffRequest $request): array => [
             'key' => "staffing-{$request->id}",
             'type' => 'Staffing',
-            'title' => "{$request->property?->name} wants {$request->remaining()} more ".$request->position->name,
+            'title' => "{$request->property?->name} wants {$request->remaining()} more ".Str::plural($request->position->name, $request->remaining()),
             'detail' => collect([
                 "{$request->quantity_fulfilled} of {$request->quantity_requested} placed",
                 $request->initiatedBy?->name !== null ? 'requested by '.$request->initiatedBy->name : null,

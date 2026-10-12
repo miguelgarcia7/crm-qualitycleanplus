@@ -52,10 +52,11 @@ it('lists purchase orders on the way', function () {
     $order = PurchaseOrder::factory()->create(['status' => PurchaseOrderStatus::Ordered, 'ordered_at' => '2026-10-06 15:00:00']);
     $order->items()->create(['item_variant_id' => ItemVariant::factory()->create(['item_id' => Item::factory()->create(['name' => 'Polo shirt'])->id])->id, 'quantity' => 24]);
     PurchaseOrder::factory()->create(['status' => PurchaseOrderStatus::Received]);
+    PurchaseOrder::factory()->create(['status' => PurchaseOrderStatus::Draft]); // how the app creates them: still to receive
 
     $deliveries = frontDesk()['deliveries'];
 
-    expect($deliveries['total'])->toBe(1)
+    expect($deliveries['total'])->toBe(2)
         ->and($deliveries['rows'][0]['detail'])->toBe('Polo shirt · 24 units · ordered Oct 6');
 });
 

@@ -10,6 +10,7 @@ use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Demo\Concerns\TravelsInTime;
+use App\Domain\Demo\DemoRoster;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
@@ -21,7 +22,8 @@ use Illuminate\Validation\ValidationException;
  * on a human cadence, so every stage is always on screen at once: the
  * recruiter submits Monday morning, the PM approves a week later (freezing the
  * invoice), it's emailed the next day, and paid about three weeks after the
- * week closed. Each step runs once its planned time has passed, stamped at
+ * week closed (MAG Solutions takes about seven, so some of its invoices are
+ * overdue; see DemoRoster::PAYS_AFTER_DAYS). Each step runs once its planned time has passed, stamped at
  * that time; anything a viewer already moved by hand (a decline, a manual
  * approval) is simply picked up from where it stands.
  */
@@ -63,7 +65,7 @@ class AdvanceDemoBilling
             $submitAt = $closed->addDay()->setTime(9, 30);
             $approveAt = $closed->addDays(8)->setTime(11, 0);
             $sendAt = $closed->addDays(9)->setTime(10, 0);
-            $paidAt = $closed->addDays(22)->setTime(15, 0);
+            $paidAt = $closed->addDays(DemoRoster::PAYS_AFTER_DAYS[$property->name] ?? DemoRoster::DEFAULT_PAYS_AFTER_DAYS)->setTime(15, 0);
 
             if ($timesheet->status === TimesheetStatus::Draft && $submitAt <= $until) {
                 try {

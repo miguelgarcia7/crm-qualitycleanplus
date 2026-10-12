@@ -19,6 +19,17 @@ use Carbon\CarbonImmutable;
 final class DemoRoster
 {
     /**
+     * Days after a week ends that each company pays its invoice. MAG Solutions
+     * pays late, past the 30-day due date, so there are always overdue
+     * invoices to chase; the others pay in about three weeks.
+     *
+     * @var array<string, int>
+     */
+    public const PAYS_AFTER_DAYS = ['MAG Solutions' => 52];
+
+    public const DEFAULT_PAYS_AFTER_DAYS = 22;
+
+    /**
      * Every non-contractor login: email => [role, name, months employed].
      * Property managers are the companies' own people, not QCP staff, so they
      * have no hire date.
@@ -29,7 +40,8 @@ final class DemoRoster
         'super-admin@example.com' => ['super_admin', 'Sam Super', 48],
         'admin@example.com' => ['admin', 'Ada Admin', 40],
         'office-manager@example.com' => ['office_manager', 'Olivia Office', 30],
-        'front-desk@example.com' => ['front_desk', 'Frank Desk', 4],
+        // Five months in, so his six-month time-off tier change is coming up.
+        'front-desk@example.com' => ['front_desk', 'Frank Desk', 5],
         'hr@example.com' => ['hr', 'Hannah HR', 26],
         'payroll@example.com' => ['payroll', 'Paul Payroll', 14],
         'recruiter@example.com' => ['recruiter', 'Rita Recruiter', 18],

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Domain\Demo\Actions\AdvanceDemoBilling;
 use App\Domain\Demo\Actions\SimulateClock;
 use App\Domain\Demo\Concerns\TravelsInTime;
+use App\Domain\Demo\DemoActivity;
 use App\Domain\Demo\DemoRoster;
 use App\Domain\Devices\Models\Device;
 use App\Domain\People\Enums\BackgroundCheckStatus;
@@ -153,6 +154,9 @@ class DemoSeeder extends Seeder
         }
 
         $this->seedRecruiting($properties, $now);
+
+        // Requests, time off, uniforms, inquiries and visits for the dashboards.
+        app(DemoActivity::class)->handle($this->people, $properties, $now);
 
         Artisan::call('payroll:ensure-periods');
     }

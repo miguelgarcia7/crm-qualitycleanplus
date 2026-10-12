@@ -5,29 +5,45 @@ use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Demo\DemoRoster;
+use App\Domain\FieldVisits\Enums\FieldVisitStatus;
+use App\Domain\FieldVisits\Models\FieldVisit;
+use App\Domain\Inventory\Models\ItemVariant;
+use App\Domain\Inventory\Models\PurchaseOrder;
+use App\Domain\Inventory\Models\SupplyRequest;
+use App\Domain\Marketing\Models\ContactInquiry;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Pto\Enums\PtoRequestStatus;
+use App\Domain\Pto\Models\PtoRequest;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
+use App\Domain\Workflows\Enums\WorkflowStatus;
+use App\Domain\Workflows\Enums\WorkflowType;
+use App\Domain\Workflows\Models\Workflow;
+use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
+use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\HolidaySeeder;
+use Database\Seeders\InventorySeeder;
 use Database\Seeders\PositionSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 
 /** Thursday 2026-10-01, 10:00 in Chicago — mid-shift, mid-week. */
 function seedDemoAt(string $localTime = '2026-10-01 10:00'): void
 {
     Storage::fake((string) config('filesystems.default'));
-    test()->seed([RolePermissionSeeder::class, PositionSeeder::class, HolidaySeeder::class]);
+    // The structural seeders demo:reset runs before the demo itself.
+    test()->seed([RolePermissionSeeder::class, PositionSeeder::class, HolidaySeeder::class, InventorySeeder::class]);
     test()->travelTo(CarbonImmutable::parse($localTime, 'America/Chicago')->utc());
     test()->seed(DemoSeeder::class);
 }
@@ -126,12 +142,17 @@ it('leaves billing at every stage: last week with the PM, older weeks invoiced, 
     seedDemoAt();
 
     // Weeks close Sunday. Week of 9/21 → submitted 9/28, approval due 10/5.
-    // 8/17–9/14 → invoiced + sent; paid 22 days after close (through 9/6).
-    // Same cadence at each of the three companies.
+    // 8/17–9/14 → invoiced + sent at each of the three companies. Acme and
+    // QCP pay 22 days after close (through 9/6); MAG Solutions pays after 52,
+    // so none of its are paid yet and the oldest (due 9/30) is overdue.
+    $mag = demoProperty('MAG Solutions');
+
     expect(Timesheet::query()->where('status', TimesheetStatus::PendingApproval)->count())->toBe(3)
         ->and(Invoice::query()->count())->toBe(15)
         ->and(Invoice::query()->where('status', InvoiceStatus::InvoiceSent)->count())->toBe(15)
-        ->and(Invoice::query()->whereNotNull('paid_at')->count())->toBe(9);
+        ->and(Invoice::query()->whereNotNull('paid_at')->count())->toBe(6)
+        ->and(Invoice::query()->where('property_id', $mag->id)->whereNotNull('paid_at')->count())->toBe(0)
+        ->and(Invoice::query()->where('property_id', $mag->id)->whereNull('paid_at')->whereDate('due_date', '<', '2026-10-01')->count())->toBe(1);
 });
 
 it('keeps contractors on the clock and punches them out on plan, idempotently', function () {
@@ -155,6 +176,56 @@ it('keeps contractors on the clock and punches them out on plan, idempotently', 
     $count = TimeEntry::query()->count();
     $this->artisan('demo:simulate')->assertSuccessful();
     expect(TimeEntry::query()->count())->toBe($count);
+});
+
+it('seeds the activity the dashboards show: requests, time off, uniforms, inquiries and visits', function () {
+    seedDemoAt();
+
+    // One of each request, waiting on someone.
+    expect(MoreStaffRequest::query()->where('status', MoreStaffStatus::Submitted)->count())->toBe(1)
+        ->and(Workflow::query()->where('type', WorkflowType::PayIncrease->value)->where('status', WorkflowStatus::InProgress)->count())->toBe(1)
+        ->and(Workflow::query()->where('type', WorkflowType::ChangePersonalInfo->value)->where('status', WorkflowStatus::InProgress)->count())->toBe(1);
+
+    // Time off: two waiting, two approved — and the hours came out of the balances.
+    expect(PtoRequest::query()->where('status', PtoRequestStatus::Pending)->count())->toBe(2)
+        ->and(PtoRequest::query()->where('status', PtoRequestStatus::Approved)->count())->toBe(2);
+
+    // Uniforms: mediums low, more on order, two requests to fill.
+    $medium = ItemVariant::query()->where('size', 'M')->firstOrFail();
+    expect($medium->current_stock)->toBe(3)
+        ->and($medium->reorder_threshold)->toBe(10)
+        ->and(PurchaseOrder::query()->count())->toBe(1)
+        ->and(SupplyRequest::query()->pending()->count())->toBe(2)
+        ->and(SupplyRequest::query()->where('quantity', 4)->exists())->toBeTrue();
+
+    // Website inquiries and field visits.
+    expect(ContactInquiry::query()->whereNull('handled_at')->pluck('type')->sort()->values()->all())->toBe(['business', 'job_seeker', 'job_seeker'])
+        ->and(FieldVisit::query()->where('status', FieldVisitStatus::Closed)->count())->toBe(2)
+        ->and(FieldVisit::query()->where('property_id', demoProperty('MAG Solutions')->id)->exists())->toBeFalse();
+});
+
+it('opens every back-office dashboard on the demo data', function () {
+    seedDemoAt();
+
+    foreach ([
+        'admin@example.com' => 'admin/dashboard/admin-today',
+        'recruiter@example.com' => 'admin/dashboard/recruiter',
+        'payroll@example.com' => 'admin/dashboard/payroll',
+        'hr@example.com' => 'admin/dashboard/hr',
+        'office-manager@example.com' => 'admin/dashboard/office',
+        'front-desk@example.com' => 'admin/dashboard/front-desk',
+    ] as $email => $component) {
+        $this->actingAs(Person::query()->where('email', $email)->firstOrFail())
+            ->get(main('/admin/dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page->component($component));
+    }
+
+    foreach (['analytics', 'workforce'] as $view) {
+        $this->actingAs(Person::query()->where('email', 'admin@example.com')->firstOrFail())
+            ->get(main("/admin/dashboard?view={$view}"))
+            ->assertOk();
+    }
 });
 
 it('only simulates in demo mode', function () {

@@ -35,8 +35,8 @@ class PayrollHome
 {
     private const LIST_LIMIT = 5;
 
-    /** Overtime past this in one week, for one placement, is worth a look. */
-    private const OVERTIME_FLAG_MINUTES = 10 * 60;
+    /** A full extra day of overtime in one week, for one placement, is worth a look. */
+    private const OVERTIME_FLAG_MINUTES = 8 * 60;
 
     /** A single shift longer than this is usually a missed clock-out. */
     private const LONG_SHIFT_MINUTES = 12 * 60;
@@ -251,17 +251,19 @@ class PayrollHome
             }
         }
 
-        // A placement with no hours before this run is in its first week.
+        // A contractor with no hours before this run is in their first week.
+        // Judged per person, not per work order: a pay raise replaces the work
+        // order, and that isn't anyone's first week.
         $earlier = TimeSummary::query()
-            ->whereIn('work_order_id', $summaries->pluck('work_order_id')->unique())
+            ->whereIn('person_id', $summaries->pluck('person_id')->unique())
             ->whereNotIn('payroll_period_id', $periodIds)
             ->where('week_start', '<', $periods->min('week_start') ?? now())
             ->distinct()
-            ->pluck('work_order_id')
+            ->pluck('person_id')
             ->all();
 
         foreach ($summaries as $summary) {
-            if (! in_array($summary->work_order_id, $earlier, true)) {
+            if (! in_array($summary->person_id, $earlier, true)) {
                 $rows->push($this->check($summary, 4, 'first', 'First week', 'gray'));
             }
         }

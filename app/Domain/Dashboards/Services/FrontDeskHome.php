@@ -135,18 +135,21 @@ class FrontDeskHome
     }
 
     /**
-     * Purchase orders on their way, oldest order first.
+     * Purchase orders not received yet, oldest first. An order is placed when
+     * it's created (it starts as a draft and is received from there), so both
+     * draft and ordered count as on the way.
      *
      * @return array<string, mixed>
      */
     private function deliveries(): array
     {
-        $orders = PurchaseOrder::query()->where('status', PurchaseOrderStatus::Ordered->value);
+        $orders = PurchaseOrder::query()->whereIn('status', [PurchaseOrderStatus::Draft->value, PurchaseOrderStatus::Ordered->value]);
 
         return [
             'rows' => $orders->clone()
                 ->with('items.itemVariant.item:id,name')
-                ->orderBy('ordered_at')
+                ->orderBy('created_at')
+                ->orderBy('id')
                 ->limit(self::LIST_LIMIT)
                 ->get()
                 ->map(function (PurchaseOrder $order): array {
@@ -161,7 +164,9 @@ class FrontDeskHome
                                 ? $first->itemVariant->item->name.($order->items->count() > 1 ? ' and '.($order->items->count() - 1).' more' : '')
                                 : null,
                             DashboardFormat::plural($units, 'unit', 'units'),
-                            $order->ordered_at !== null ? 'ordered '.$order->ordered_at->setTimezone(AutomationCatalog::DISPLAY_TIMEZONE)->format('M j') : null,
+                            ($order->ordered_at ?? $order->created_at) !== null
+                                ? 'ordered '.($order->ordered_at ?? $order->created_at)->setTimezone(AutomationCatalog::DISPLAY_TIMEZONE)->format('M j')
+                                : null,
                         ])->filter()->implode(' · '),
                     ];
                 })

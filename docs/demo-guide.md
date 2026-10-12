@@ -113,6 +113,29 @@ same time zone), Monday–Friday.
 
 Applicants don't have logins.
 
+### Requests, time off and supplies
+
+So every dashboard has something on it. All of it is dated from the moment the demo
+was last reset ("4 days ago", "in two weeks"), so after a few weeks of running it
+starts to look stale: reset it to freshen it up.
+
+| What | Who | Shows on |
+|---|---|---|
+| **Staffing request:** 2 more Housekeepers at Acme Hotel, sent 4 days ago | Pat asks; Rita places | Admin "Needs a decision", Rita "Waiting on you", Admin → Workforce |
+| **Pay increase:** +$1.00/h for Grace Kim, sent 2 days ago | Megan offers; Ray reviews | Admin, Ray |
+| **Info change:** Carlos Mendez's new phone number, sent from QC Minute today | Hannah (HR) verifies | HR "Waiting on you", Admin |
+| **Time off, waiting:** Rita's vacation in two weeks (40 h); a personal day for Frank | Hannah approves | HR, Admin |
+| **Time off, approved:** a day for Ray next week (his 2 companies need cover); a day for Olivia | — | HR, Payroll, Admin → Workforce, Admin "Coming up" |
+| **Uniforms:** polo shirts (S, M, L, XL) and aprons. Mediums are down to 3 (reorder at 10) and 24 more are on order | Frank, Olivia | Front desk, Office manager "Low stock" |
+| **Supply requests:** 4 medium polos for Sofia (only 3 in stock), an apron for Maria | Rita asked; Frank fills | Front desk, Office manager |
+| **Website inquiries:** Northgate Hotel (business) and two job seekers | — | Office manager |
+| **Field visits:** Rita at Acme last week; Ray at QCP Property three weeks ago, never at MAG Solutions | — | Rita and Ray "Visits", Admin → Workforce |
+
+**MAG Solutions pays late** (about seven weeks after the week ends, past the 30-day
+due date), so it always has an overdue invoice or two: Payroll "Overdue invoices"
+and Admin → Analytics "Who owes what". Frank (front desk) is five months in, so HR
+sees his six-month time-off tier change coming up.
+
 ---
 
 ## What you'll see
@@ -121,7 +144,7 @@ Applicants don't have logins.
 |---|---|
 | Dashboard → **On the clock** | During work hours, everyone currently clocked in. Before lunch, after lunch, and after 4:00 (only James) all look different. |
 | Timesheets | At each company, **this week** is still filling up and **last week** is waiting for its property manager to approve it. |
-| Invoices | Older weeks are invoiced and emailed; the oldest are marked **paid**. |
+| Invoices | Older weeks are invoiced and emailed; the oldest are marked **paid**, except MAG Solutions', which run late and go **overdue**. |
 | James's hours | Overtime every week. |
 | Carlos, Linda, Andre or Grace → Work Orders | The old work order (closed) and the pay-increase one that replaced it. |
 | Applicants, Job Postings | Three of each, at different stages. |
@@ -137,7 +160,7 @@ Applicants don't have logins.
 | Monday 9:30 | The recruiter sends last week's timesheet to the property manager |
 | The following Monday 11:00 | The property manager approves it, which creates the invoice |
 | That Tuesday 10:00 | The invoice is emailed to the hotel |
-| About 3 weeks after the week ends | Payroll marks the invoice paid |
+| About 3 weeks after the week ends (MAG Solutions: about 7) | Payroll marks the invoice paid |
 
 If you do one of these steps yourself first (approve, decline, clock someone out),
 the demo carries on from there.

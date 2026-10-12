@@ -16,7 +16,6 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Notifications\WorkflowNotice;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia;
 use Spatie\Activitylog\Models\Activity;
@@ -38,10 +37,12 @@ function payIncreaseScenario(): array
     $pm = person('property_manager');
     $property->assignments()->create(['person_id' => $pm->id, 'role' => PropertyAssignmentRole::PropertyManager->value]);
 
-    $monday = Carbon::now()->startOfWeek(Carbon::MONDAY);
+    // The property's own week, in its time zone, the way the app works it out.
+    // From UTC it was already "next week" on US Sunday evenings.
+    $weekStart = $property->weekStartFor(now($property->timezone));
     $period = PayrollPeriod::factory()->create([
-        'property_id' => $property->id, 'week_start' => $monday->toDateString(),
-        'week_end' => $monday->copy()->addDays(6)->toDateString(), 'status' => PayrollPeriodStatus::Open,
+        'property_id' => $property->id, 'week_start' => $weekStart->toDateString(),
+        'week_end' => $weekStart->addDays(6)->toDateString(), 'status' => PayrollPeriodStatus::Open,
     ]);
 
     return compact('wo', 'property', 'contractor', 'pm', 'period');
