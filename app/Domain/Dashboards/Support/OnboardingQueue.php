@@ -48,6 +48,7 @@ class OnboardingQueue
                 'id' => $application->id,
                 'name' => $application->person->name,
                 'missing' => array_map(fn (string $key): string => self::SHORT[$key] ?? $key, $missing),
+                'missingKeys' => $missing,
                 'role' => $application->job_posting_id !== null
                     ? collect([$application->jobPosting->title, $application->jobPosting->locationName()])->filter()->implode(' · ').' posting'
                     : (string) $application->desired_position,

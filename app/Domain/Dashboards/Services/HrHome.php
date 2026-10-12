@@ -48,6 +48,8 @@ class HrHome
         $today = $now->startOfDay();
 
         [$missing, $ready] = $this->onboarding->inReview($now);
+        $strip = fn (array $rows): array => array_map(fn (array $row): array => collect($row)->except('missingKeys')->all(), $rows);
+        [$missing, $ready] = [$strip($missing), $strip($ready)];
 
         return [
             'header' => [

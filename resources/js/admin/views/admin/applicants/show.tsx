@@ -162,20 +162,14 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
                 onChange={(e) => upload(e.target.files?.[0])}
               />
               {item.file_id === null ? (
-                <button
-                  className="btn btn-icon bg-primary hover:bg-primary-hover size-8 rounded-full text-white"
-                  onClick={() => fileInput.current?.click()}
-                  title="Upload document"
-                >
+                <button type="button" className="btn btn-sm bg-primary hover:bg-primary-hover text-white" onClick={() => fileInput.current?.click()}>
                   <Icon icon="cloud-upload" className="text-base" />
+                  Upload
                 </button>
               ) : (
-                <button
-                  className="btn btn-icon border-default-300 hover:border-default-400 border"
-                  onClick={() => fileInput.current?.click()}
-                  title="Replace document"
-                >
+                <button type="button" className="btn btn-sm border-default-300 hover:border-default-400 border" onClick={() => fileInput.current?.click()}>
                   <Icon icon="cloud-upload" className="text-base" />
+                  Replace
                 </button>
               )}
             </>

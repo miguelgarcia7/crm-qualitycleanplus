@@ -40,6 +40,7 @@ class FrontDeskHome
     {
         $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
         [$missing] = $this->onboarding->inReview($now);
+        $toCollect = $this->collectable($missing);
 
         return [
             'header' => [
@@ -55,13 +56,38 @@ class FrontDeskHome
             'deliveries' => $user->can('inventory.purchase_orders.view') ? $this->deliveries() : null,
             'terminations' => $user->can('workflows.termination.physical_tasks') ? $this->terminationSteps($user, $now) : null,
             'documents' => $user->can('people.applicants.onboarding_checklist.edit')
-                ? [
-                    'rows' => array_map(fn (array $row): array => [...$row, 'href' => $row['href'].'#onboarding'], array_slice($missing, 0, self::LIST_LIMIT)),
-                    'total' => count($missing),
-                ]
+                ? ['rows' => array_slice($toCollect, 0, self::LIST_LIMIT), 'total' => count($toCollect)]
                 : null,
             'stock' => $user->can('inventory.items.view') ? $this->lowStock->build(self::LIST_LIMIT) : null,
         ];
+    }
+
+    /**
+     * Applicants still missing paperwork the desk can take in. The background
+     * check is a status HR sets, not something anyone hands over, so it is
+     * left out; an applicant waiting only on it doesn't appear.
+     *
+     * @param  list<array<string, mixed>>  $missing
+     * @return list<array<string, mixed>>
+     */
+    private function collectable(array $missing): array
+    {
+        $rows = [];
+
+        foreach ($missing as $row) {
+            $documents = [];
+            foreach ($row['missingKeys'] as $i => $key) {
+                if ($key !== 'background_check') {
+                    $documents[] = $row['missing'][$i];
+                }
+            }
+
+            if ($documents !== []) {
+                $rows[] = [...collect($row)->except('missingKeys')->all(), 'missing' => $documents, 'href' => $row['href'].'#onboarding'];
+            }
+        }
+
+        return $rows;
     }
 
     /**

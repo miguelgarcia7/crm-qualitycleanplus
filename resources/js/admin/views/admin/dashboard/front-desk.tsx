@@ -126,7 +126,7 @@ const Terminations = ({ data }: { data: NonNullable<Home['terminations']> }) => 
       <DashEmpty>No termination steps are waiting on you.</DashEmpty>
     ) : (
       data.rows.map((row) => (
-        <DashRow key={row.id} end={<OpenButton href={row.href}>Open</OpenButton>}>
+        <DashRow key={row.id} top end={<OpenButton href={row.href}>Open</OpenButton>}>
           <div className="text-default-900 font-medium">{row.title}</div>
           {row.items.length > 0 && (
             <div className="mt-1 flex flex-wrap gap-1.5">
@@ -145,13 +145,20 @@ const Terminations = ({ data }: { data: NonNullable<Home['terminations']> }) => 
 const Documents = ({ data }: { data: NonNullable<Home['documents']> }) => (
   <DashCard
     title="Documents to collect"
-    description="Applicants missing paperwork. Scan it in when they come by."
+    description="Applicants missing paperwork. Open their checklist to upload it when they come by."
     footer={data.total > data.rows.length ? <ViewAll href="/admin/applicants?status=reviewing">All {data.total}</ViewAll> : undefined}>
     {data.rows.length === 0 ? (
-      <DashEmpty>No applicant is missing documents.</DashEmpty>
+      <DashEmpty>No applicant is missing paperwork.</DashEmpty>
     ) : (
       data.rows.map((row) => (
-        <DashRow key={row.id} end={<OpenButton href={row.href}>Open checklist</OpenButton>}>
+        <DashRow
+          key={row.id}
+          top
+          end={
+            <OpenButton href={row.href} primary>
+              Open checklist
+            </OpenButton>
+          }>
           <div className="text-default-900 font-medium">{row.name}</div>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {row.missing.map((doc) => (

@@ -40,8 +40,8 @@ export const ViewAll = ({ href, children }: { href: string; children: ReactNode 
 )
 
 /** One line in a dashboard list: what it is on the left, its next action on the right. */
-export const DashRow = ({ children, end }: { children: ReactNode; end?: ReactNode }) => (
-  <div className="border-default-200 flex items-center gap-3 border-b border-dashed py-3 last:border-0">
+export const DashRow = ({ children, end, top }: { children: ReactNode; end?: ReactNode; top?: boolean }) => (
+  <div className={cn('border-default-200 flex gap-3 border-b border-dashed py-3 last:border-0', top ? 'items-start' : 'items-center')}>
     <div className="min-w-0 flex-1">{children}</div>
     {end && <div className="flex shrink-0 items-center gap-3 text-end">{end}</div>}
   </div>

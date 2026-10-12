@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Dashboards\Services\FrontDeskHome;
+use App\Domain\Dashboards\Services\HrHome;
 use App\Domain\Inventory\Enums\PurchaseOrderStatus;
 use App\Domain\Inventory\Models\EquipmentAssignment;
 use App\Domain\Inventory\Models\Item;
@@ -10,6 +11,7 @@ use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\Recruiting\Models\JobApplication;
+use App\Domain\Shared\Models\File;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
@@ -84,7 +86,22 @@ it('lists applicants missing documents, each opening their checklist', function 
     expect($documents['total'])->toBe(1)
         ->and($documents['rows'][0]['name'])->toBe('Marcus Hill')
         ->and($documents['rows'][0]['missing'])->toContain('I-9', 'W-9')
+        ->and($documents['rows'][0]['missing'])->not->toContain('Background check')
+        ->and($documents['rows'][0])->not->toHaveKey('missingKeys')
         ->and($documents['rows'][0]['href'])->toBe("/admin/applicants/{$application->id}#onboarding");
+});
+
+it('leaves out applicants who are only waiting on their background check', function () {
+    $applicant = Person::factory()->create(['status' => PersonStatus::Applicant]);
+    $file = File::factory()->create(['fileable_type' => $applicant->getMorphClass(), 'fileable_id' => $applicant->id])->id;
+    $applicant->forceFill([
+        'id_front_file_id' => $file, 'id_back_file_id' => $file, 'i9_file_id' => $file, 'i9_verified_at' => now(),
+        'w9_file_id' => $file, 'contractor_agreement_file_id' => $file, 'background_check_status' => 'pending',
+    ])->save();
+    JobApplication::factory()->reviewing()->create(['person_id' => $applicant->id]);
+
+    expect(frontDesk()['documents']['total'])->toBe(0)
+        ->and(app(HrHome::class)->build(person('hr'))['missing']['rows'][0]['missing'])->toBe(['Background check']);
 });
 
 it('hides what the role cannot act on', function () {

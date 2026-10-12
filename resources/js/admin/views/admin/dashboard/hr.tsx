@@ -83,6 +83,7 @@ const MissingDocuments = ({ data }: { data: Home['missing'] }) => (
       data.rows.map((row) => (
         <DashRow
           key={row.id}
+          top
           end={
             <>
               <span className="text-default-400 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>
