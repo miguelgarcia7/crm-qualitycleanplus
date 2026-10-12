@@ -51,16 +51,10 @@ it('gives office manager the operations widgets and a revenue chart', function (
 });
 
 it('gives payroll period + invoice widgets', function () {
-    $this->actingAs(person('payroll'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', function ($widgets) {
-                $titles = widgetTitles($widgets);
+    // Payroll lands on its own dashboard now; the widget service still builds these.
+    $titles = widgetTitles(app(DashboardMetrics::class)->forBackOffice(person('payroll')));
 
-                return $titles->contains('Open periods')
-                    && $titles->contains('Voided invoices')
-                    && $titles->contains('Invoices to send');
-            }),
-        );
+    expect($titles)->toContain('Open periods', 'Voided invoices', 'Invoices to send');
 });
 
 it('gives HR people + workflow widgets', function () {

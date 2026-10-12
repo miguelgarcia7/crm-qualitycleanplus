@@ -54,7 +54,7 @@ it('lands admins on the Today view and keeps the other roles on their widgets', 
     $this->actingAs(person('super_admin'))->get(main('/admin/dashboard'))
         ->assertInertia(fn (AssertableInertia $page) => $page->component('admin/dashboard/admin-today'));
 
-    $this->actingAs(person('payroll'))->get(main('/admin/dashboard'))
+    $this->actingAs(person('hr'))->get(main('/admin/dashboard'))
         ->assertInertia(fn (AssertableInertia $page) => $page->component('admin/dashboard/index'));
 });
 
