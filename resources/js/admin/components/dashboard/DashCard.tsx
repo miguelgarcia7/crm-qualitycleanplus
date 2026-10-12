@@ -23,7 +23,8 @@ const DashCard = ({ title, description, aside, footer, className, flush, childre
     <div className="card-header flex items-start justify-between gap-3">
       <div>
         <h4 className="card-title">{title}</h4>
-        {description && <p className="text-default-400 mt-1 text-sm">{description}</p>}
+        {/* default-500, not 400: 400 is under 4.5:1 on the card. */}
+        {description && <p className="text-default-500 mt-1 text-sm">{description}</p>}
       </div>
       {aside}
     </div>

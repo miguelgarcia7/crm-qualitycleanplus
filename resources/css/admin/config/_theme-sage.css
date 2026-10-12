@@ -290,9 +290,11 @@ html[data-skin="sage"] {
         color: var(--color-default-900);
     }
 
-    /* Card titles at 18px, so they read above the 16px field labels inside */
+    /* Card titles at 18px, so they read above the 16px field labels inside,
+       in heading ink like the page title (body gray read as secondary text) */
     .card-title {
         font-size: 1.125rem;
+        color: var(--color-default-900);
     }
 
     /* Status labels as soft pills */
