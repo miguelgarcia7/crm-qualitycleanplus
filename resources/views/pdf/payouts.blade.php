@@ -36,6 +36,7 @@
                 <th>Job Code</th>
                 <th class="num">Regular (h)</th>
                 <th class="num">Overtime (h)</th>
+                <th class="num">Holiday (h)</th>
                 <th class="num">Training (h)</th>
                 <th class="num">Total Pay</th>
             </tr>
@@ -49,19 +50,21 @@
                     <td>{{ $row['job_code'] ?? '—' }}</td>
                     <td class="num">{{ $hours($row['regular_minutes']) }}</td>
                     <td class="num">{{ $hours($row['overtime_minutes']) }}</td>
+                    <td class="num">{{ $hours($row['holiday_minutes']) }}</td>
                     <td class="num">{{ $hours($row['training_minutes']) }}</td>
                     <td class="num">{{ $money($row['total_pay']) }}</td>
                 </tr>
             @empty
-                <tr><td colspan="7">No hours recorded for this week.</td></tr>
+                <tr><td colspan="9">No hours recorded for this week.</td></tr>
             @endforelse
         </tbody>
         @if (count($rows) > 0)
             <tfoot>
                 <tr>
-                    <td colspan="3">Total</td>
+                    <td colspan="4">Total</td>
                     <td class="num">{{ $hours($totals['regular_minutes']) }}</td>
                     <td class="num">{{ $hours($totals['overtime_minutes']) }}</td>
+                    <td class="num">{{ $hours($totals['holiday_minutes']) }}</td>
                     <td class="num">{{ $hours($totals['training_minutes']) }}</td>
                     <td class="num">{{ $money($totals['total_pay']) }}</td>
                 </tr>

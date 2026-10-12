@@ -10,6 +10,7 @@ type Row = {
   job_code: string | null
   regular_minutes: number
   overtime_minutes: number
+  holiday_minutes: number
   training_minutes: number
   total_pay: number
 }
@@ -19,7 +20,7 @@ type Props = {
   weeks: string[]
   properties: { id: number; name: string }[]
   rows: Row[]
-  totals: Pick<Row, 'regular_minutes' | 'overtime_minutes' | 'training_minutes' | 'total_pay'>
+  totals: Pick<Row, 'regular_minutes' | 'overtime_minutes' | 'holiday_minutes' | 'training_minutes' | 'total_pay'>
 }
 
 const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
@@ -102,6 +103,7 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
             { label: 'Job Code' },
             { label: 'Regular (h)', numeric: true },
             { label: 'Overtime (h)', numeric: true },
+            { label: 'Holiday (h)', numeric: true },
             { label: 'Training (h)', numeric: true },
             { label: 'Total Pay', numeric: true },
           ]}
@@ -112,6 +114,7 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
             r.job_code ?? '—',
             hours(r.regular_minutes),
             hours(r.overtime_minutes),
+            hours(r.holiday_minutes),
             hours(r.training_minutes),
             <span className="font-semibold">{money(r.total_pay)}</span>,
           ])}
@@ -122,6 +125,7 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
             '',
             hours(totals.regular_minutes),
             hours(totals.overtime_minutes),
+            hours(totals.holiday_minutes),
             hours(totals.training_minutes),
             money(totals.total_pay),
           ]}

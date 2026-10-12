@@ -146,11 +146,11 @@ class ReportController extends Controller
         $data = $this->payoutsData($request);
 
         return Excel::download(new ArrayReportExport(
-            ['Contractor', 'Property', 'Position', 'Job Code', 'Regular (h)', 'Overtime (h)', 'Training (h)', 'Total Pay ($)'],
+            ['Contractor', 'Property', 'Position', 'Job Code', 'Regular (h)', 'Overtime (h)', 'Holiday (h)', 'Training (h)', 'Total Pay ($)'],
             collect($data['rows'])->map(fn (array $row): array => [
                 $row['contractor'], $row['property'], $row['position'], $row['job_code'] ?? '',
                 round($row['regular_minutes'] / 60, 1), round($row['overtime_minutes'] / 60, 1),
-                round($row['training_minutes'] / 60, 1), $row['total_pay'] / 100,
+                round($row['holiday_minutes'] / 60, 1), round($row['training_minutes'] / 60, 1), $row['total_pay'] / 100,
             ])->all(),
         ), 'payouts-'.($data['filters']['week'] ?? 'none').'.xlsx');
     }
@@ -343,6 +343,7 @@ class ReportController extends Controller
                     'property_position_codes.job_code',
                     'time_summaries.regular_minutes',
                     'time_summaries.overtime_minutes',
+                    'time_summaries.holiday_minutes',
                     'time_summaries.training_minutes',
                     'time_summaries.total_pay',
                 ])
@@ -355,6 +356,8 @@ class ReportController extends Controller
                     'job_code' => $row->job_code === null ? null : (string) $row->job_code,
                     'regular_minutes' => (int) $row->regular_minutes,
                     'overtime_minutes' => (int) $row->overtime_minutes,
+                    // Holiday pay is in total_pay, so its hours must show too or the row won't add up.
+                    'holiday_minutes' => (int) $row->holiday_minutes,
                     'training_minutes' => (int) $row->training_minutes,
                     'total_pay' => (int) $row->total_pay,
                 ]);
@@ -367,6 +370,7 @@ class ReportController extends Controller
             'totals' => [
                 'regular_minutes' => (int) $rows->sum('regular_minutes'),
                 'overtime_minutes' => (int) $rows->sum('overtime_minutes'),
+                'holiday_minutes' => (int) $rows->sum('holiday_minutes'),
                 'training_minutes' => (int) $rows->sum('training_minutes'),
                 'total_pay' => (int) $rows->sum('total_pay'),
             ],

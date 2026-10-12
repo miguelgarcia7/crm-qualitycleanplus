@@ -9,6 +9,7 @@ use App\Domain\Billing\Models\Timesheet;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Reports\Actions\RefreshWeeklyRollup;
+use App\Domain\Reports\Exports\ArrayReportExport;
 use App\Domain\Reports\Models\ReportMonthlyRevenue;
 use App\Domain\Reports\Models\ReportWeeklyRollup;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
@@ -18,6 +19,8 @@ use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
+use Inertia\Testing\AssertableInertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
 
@@ -249,6 +252,49 @@ it('reports payouts by contractor for the latest payroll week', function () {
         ->assertSee($wo->person->name)
         ->assertSee('1001-10') // the property's job code rides along per row
         ->assertSee('95000');
+});
+
+it('shows holiday hours on the payouts report, since holiday pay is in the total', function () {
+    // 8 h regular at $20 and 8 h holiday at $30 (1.5×): $160 + $240 = $400.
+    $summary = TimeSummary::factory()->create([
+        'week_start' => '2026-09-28',
+        'week_end' => '2026-10-04',
+        'regular_minutes' => 480,
+        'holiday_minutes' => 480,
+        'regular_amount_pay' => 160_00,
+        'holiday_amount_pay' => 240_00,
+        'total_pay' => 400_00,
+    ]);
+
+    $this->actingAs(person('payroll'))->get(main('/admin/reports/payouts?week=2026-09-28'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('rows.0.holiday_minutes', 480)
+            ->where('rows.0.total_pay', 400_00)
+            ->where('totals.holiday_minutes', 480));
+
+    Excel::fake();
+    $this->actingAs(person('payroll'))->get(main('/admin/reports/payouts/export?week=2026-09-28'))->assertOk();
+    Excel::assertDownloaded('payouts-2026-09-28.xlsx', function (ArrayReportExport $export) use ($summary): bool {
+        $row = $export->array()[0];
+
+        return $export->headings()[6] === 'Holiday (h)'
+            && $row[0] === $summary->person->name
+            && $row[6] === 8.0;
+    });
+});
+
+it('lines the payouts PDF totals up under their columns', function () {
+    $html = view('pdf.payouts', [
+        'week' => '2026-09-28',
+        'rows' => [['contractor' => 'A', 'property' => 'B', 'position' => 'C', 'job_code' => null, 'regular_minutes' => 60, 'overtime_minutes' => 0, 'holiday_minutes' => 120, 'training_minutes' => 0, 'total_pay' => 100]],
+        'totals' => ['regular_minutes' => 60, 'overtime_minutes' => 0, 'holiday_minutes' => 120, 'training_minutes' => 0, 'total_pay' => 100],
+        'generatedAt' => now(),
+    ])->render();
+
+    // Four label columns (contractor, property, position, job code) before the numbers.
+    expect($html)->toContain('Holiday (h)')
+        ->toContain('<td colspan="4">Total</td>');
 });
 
 // ── Exports ─────────────────────────────────────────────────────────────────
