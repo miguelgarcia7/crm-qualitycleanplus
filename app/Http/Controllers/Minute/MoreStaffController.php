@@ -44,7 +44,7 @@ class MoreStaffController extends Controller
 
         $requests = MoreStaffRequest::query()
             ->where('initiated_by', $pm->id)
-            ->with(['property:id,name', 'position:id,name', 'workOrders.person:id,name'])
+            ->with(['property:id,name', 'position:id,name', 'workOrders.person:id,name', 'assignedRecruiter:id,name'])
             ->latest('id')
             ->get()
             ->map(fn (MoreStaffRequest $r): array => [
@@ -59,6 +59,11 @@ class MoreStaffController extends Controller
                 'quantity_fulfilled' => $r->quantity_fulfilled,
                 'by_date' => $r->by_date->toDateString(),
                 'urgency' => $r->urgency->value,
+                'urgency_label' => $r->urgency->label(),
+                'recruiter' => $r->assignedRecruiter?->name,
+                'created_at' => $r->created_at?->toDateString(),
+                // When it left the open list: filled, declined or cancelled.
+                'closed_at' => ($r->fulfilled_at ?? $r->declined_at ?? $r->cancelled_at)?->toDateString(),
                 'status' => $r->status->value,
                 'status_label' => $r->status->label(),
                 'is_overdue' => $r->isOverdue(),
@@ -69,6 +74,8 @@ class MoreStaffController extends Controller
             'requests' => $requests,
             'urgencies' => array_map(fn (MoreStaffUrgency $u): array => ['value' => $u->value, 'label' => $u->label()], MoreStaffUrgency::cases()),
             'can' => ['initiate' => $pm->can('workflows.more_staff.initiate')],
+            // `?new=1` (from the dashboard and Contractors) opens the request form.
+            'open_form' => $request->boolean('new'),
         ]);
     }
 

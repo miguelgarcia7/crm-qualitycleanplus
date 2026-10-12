@@ -273,3 +273,15 @@ it('refuses to link a transfer to a request at a different property', function (
 
     expect($elsewhere->fresh()->status)->toBe(WorkOrderStatus::Active);
 });
+
+it('names the recruiter on the PM\'s request, and opens the form from a link', function () {
+    $s = moreStaffScenario();
+    submitStaffRequest($s);
+
+    $this->actingAs($s['pm'])
+        ->get(qcminute('/staffing-requests?new=1'))
+        ->assertInertia(fn ($page) => $page
+            ->where('open_form', true)
+            ->where('requests.0.recruiter', $s['recruiter']->name)
+            ->where('requests.0.urgency_label', 'High'));
+});

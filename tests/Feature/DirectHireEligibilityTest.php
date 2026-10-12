@@ -116,6 +116,59 @@ it('reports eligible once the threshold is reached', function () {
     expect(app(DirectHireProgress::class)->for($workOrder)['eligible'])->toBeTrue();
 });
 
+it('keeps counting the hours worked before a pay raise opened a new work order', function () {
+    $before = WorkOrder::factory()->create(['direct_hire_threshold_minutes' => 100 * 60]);
+    $after = WorkOrder::factory()->create([
+        'person_id' => $before->person_id,
+        'property_id' => $before->property_id,
+        'direct_hire_threshold_minutes' => 100 * 60,
+    ]);
+    workedMinutes($before, regular: 60 * 60);
+    // The raise's week is a later one at the same property.
+    TimeSummary::factory()->create([
+        'work_order_id' => $after->id,
+        'person_id' => $after->person_id,
+        'property_id' => $after->property_id,
+        'payroll_period_id' => PayrollPeriod::factory()->create([
+            'property_id' => $after->property_id,
+            'week_start' => now()->addWeeks(3)->startOfWeek()->toDateString(),
+            'week_end' => now()->addWeeks(3)->endOfWeek()->toDateString(),
+        ])->id,
+        'regular_minutes' => 30 * 60,
+        'overtime_minutes' => 0,
+        'holiday_minutes' => 0,
+        'training_minutes' => 0,
+    ]);
+
+    // Same person, another property: those hours are not for this hotel.
+    workedMinutes(WorkOrder::factory()->create(['person_id' => $before->person_id]), regular: 50 * 60);
+
+    $progress = app(DirectHireProgress::class);
+
+    expect($progress->for($after)['worked_hours'])->toBe(90.0)
+        ->and($progress->forMany(collect([$after]))[$after->id]['worked_hours'])->toBe(90.0);
+});
+
+it('does not tell the recruiters twice when a raise moves an eligible placement', function () {
+    Notification::fake();
+
+    $recruiter = person('recruiter');
+    $before = WorkOrder::factory()->create(['direct_hire_threshold_minutes' => 100 * 60]);
+    $before->property->assignments()->create(['person_id' => $recruiter->id, 'role' => PropertyAssignmentRole::Recruiter->value]);
+    workedMinutes($before, regular: 120 * 60);
+    app(NotifyDirectHireEligible::class)->handle($before->fresh());
+
+    $after = WorkOrder::factory()->create([
+        'person_id' => $before->person_id,
+        'property_id' => $before->property_id,
+        'direct_hire_threshold_minutes' => 100 * 60,
+    ]);
+    app(NotifyDirectHireEligible::class)->handle($after->fresh());
+
+    Notification::assertSentToTimes($recruiter, DirectHireEligible::class, 1);
+    expect($after->fresh()->direct_hire_notified_at)->not->toBeNull();
+});
+
 it('treats a zero threshold as unrestricted rather than instantly eligible', function () {
     $workOrder = WorkOrder::factory()->create(['direct_hire_threshold_minutes' => 0]);
 
@@ -247,4 +300,17 @@ it('notifies the primary recruiter even with no property assignment', function (
     app(NotifyDirectHireEligible::class)->handle($workOrder);
 
     Notification::assertSentTo($recruiter, DirectHireEligible::class);
+});
+
+it('shows the PM how long someone has been with them, from before a pay raise', function () {
+    $pm = person('property_manager');
+    $first = WorkOrder::factory()->create(['start_date' => '2026-03-02', 'status' => 'closed']);
+    $first->property->assignments()->create(['person_id' => $pm->id, 'role' => PropertyAssignmentRole::PropertyManager->value]);
+    WorkOrder::factory()->create(['person_id' => $first->person_id, 'property_id' => $first->property_id, 'start_date' => '2026-09-07']);
+
+    $this->actingAs($pm)
+        ->get(qcminute('/contractors'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('contractors', 1)
+            ->where('contractors.0.started_on', '2026-03-02'));
 });

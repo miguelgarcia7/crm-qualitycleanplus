@@ -356,3 +356,17 @@ it('sends the approval task only to the property\'s recruiters, with a Review li
 
     expect($workflow->fresh()->status)->toBe(WorkflowStatus::InProgress);
 });
+
+it('opens the request form from a Contractors row with that contractor picked', function () {
+    $s = payIncreaseScenario();
+
+    $this->actingAs($s['pm'])
+        ->get(qcminute("/pay-increases?work_order={$s['wo']->id}"))
+        ->assertInertia(fn ($page) => $page
+            ->where('open_form', true)
+            ->where('preselect', $s['wo']->id));
+
+    $this->actingAs($s['pm'])
+        ->get(qcminute('/pay-increases'))
+        ->assertInertia(fn ($page) => $page->where('open_form', false)->where('preselect', null));
+});

@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Progress toward direct-hire eligibility: how much of the contracted threshold
- * a contractor has worked on a given work order.
+ * a contractor has worked at the work order's property.
+ *
+ * The hours are the person's at that property across all of their work orders
+ * there, not just this one: a pay raise closes the work order and opens a new
+ * one, and the hours before it still count. The threshold is this work order's.
  *
  * The threshold is a commercial term — the hours a property must wait before it
  * may hire a QCP contractor directly. It counts WORKED time from the weekly
@@ -28,7 +32,7 @@ class DirectHireProgress
     {
         return $this->build(
             (int) $workOrder->direct_hire_threshold_minutes,
-            $this->workedMinutes($workOrder->id),
+            $this->workedMinutes($workOrder),
         );
     }
 
@@ -44,27 +48,34 @@ class DirectHireProgress
             return [];
         }
 
+        // One query: minutes per person and property, across every work order there.
         $worked = TimeSummary::query()
-            ->whereIn('work_order_id', $workOrders->pluck('id'))
-            ->selectRaw('work_order_id, SUM(regular_minutes + overtime_minutes + holiday_minutes) as minutes')
-            ->groupBy('work_order_id')
-            ->pluck('minutes', 'work_order_id');
+            ->join('work_orders', 'work_orders.id', '=', 'time_summaries.work_order_id')
+            ->whereIn('work_orders.person_id', $workOrders->pluck('person_id')->unique())
+            ->whereIn('work_orders.property_id', $workOrders->pluck('property_id')->unique())
+            ->groupBy('work_orders.person_id', 'work_orders.property_id')
+            ->selectRaw('work_orders.person_id, work_orders.property_id, SUM(regular_minutes + overtime_minutes + holiday_minutes) as minutes')
+            ->toBase()
+            ->get()
+            ->mapWithKeys(fn (object $row): array => ["{$row->person_id}:{$row->property_id}" => (int) $row->minutes]);
 
         $out = [];
         foreach ($workOrders as $workOrder) {
             $out[$workOrder->id] = $this->build(
                 (int) $workOrder->direct_hire_threshold_minutes,
-                (int) ($worked[$workOrder->id] ?? 0),
+                (int) ($worked["{$workOrder->person_id}:{$workOrder->property_id}"] ?? 0),
             );
         }
 
         return $out;
     }
 
-    private function workedMinutes(int $workOrderId): int
+    private function workedMinutes(WorkOrder $workOrder): int
     {
         return (int) TimeSummary::query()
-            ->where('work_order_id', $workOrderId)
+            ->join('work_orders', 'work_orders.id', '=', 'time_summaries.work_order_id')
+            ->where('work_orders.person_id', $workOrder->person_id)
+            ->where('work_orders.property_id', $workOrder->property_id)
             ->sum(DB::raw('regular_minutes + overtime_minutes + holiday_minutes'));
     }
 

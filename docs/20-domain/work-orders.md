@@ -202,6 +202,13 @@ holiday. Training is excluded: QCP pays it and never bills it, so it is not time
 worked for the property. Elapsed calendar time is irrelevant; a contractor on
 two shifts a week takes proportionally longer to become eligible.
 
+The hours are the person's **at that property, across every work order there**
+(2026-10-12). A pay raise closes the work order and opens a new one, and the
+hours before it still count; before this fix the count restarted at zero. The
+threshold is still the work order's own. The eligibility notice fires once per
+person and property: a raise's new work order is stamped as already notified
+when an earlier one was.
+
 **Who sees it.** Property managers see progress and an eligible state on QC
 Minute at `/contractors`; the back office sees the same on the work-order list.
 When a placement crosses the threshold, the contractor's primary recruiter and

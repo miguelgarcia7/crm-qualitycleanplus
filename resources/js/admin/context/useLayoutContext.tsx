@@ -147,6 +147,21 @@ export const LayoutProvider = ({ children }: { children: ReactNode }) => {
     toggleAttribute('dir', settings.dir)
   }, [settings])
 
+  // The same width rules once on first load, not only on resize: a phone never
+  // fires a resize, so it kept the desktop sidebar squeezing the page and pushing
+  // the top bar off the side. Desktop widths are left alone, so a size picked in
+  // the customizer survives a reload.
+  useEffect(() => {
+    const width = window.innerWidth
+    if (settings.orientation === 'vertical') {
+      if (width <= 768) updateSettings({ sidenavSize: 'offcanvas' })
+      else if (width <= 1140 && settings.sidenavSize !== 'offcanvas') updateSettings({ sidenavSize: 'condensed' })
+    } else if (settings.orientation === 'horizontal' && width < 992) {
+      updateSettings({ sidenavSize: 'offcanvas' })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth

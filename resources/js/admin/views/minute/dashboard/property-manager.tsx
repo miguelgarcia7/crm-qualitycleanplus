@@ -66,12 +66,12 @@ const Page = (props: Props) => {
         aside={
           <div className="flex flex-wrap gap-2">
             {hasPermission('workflows.pay_increase.initiate', permissions) && (
-              <Link href="/pay-increases" className="btn btn-light px-4">
+              <Link href="/pay-increases?new=1" className="btn btn-light px-4">
                 Request a pay increase
               </Link>
             )}
             {hasPermission('workflows.more_staff.initiate', permissions) && (
-              <Link href="/staffing-requests" className="btn bg-primary hover:bg-primary-hover px-4 font-semibold text-white">
+              <Link href="/staffing-requests?new=1" className="btn bg-primary hover:bg-primary-hover px-4 font-semibold text-white">
                 Request staff
               </Link>
             )}

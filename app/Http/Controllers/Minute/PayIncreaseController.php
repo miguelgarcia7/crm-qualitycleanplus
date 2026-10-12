@@ -41,17 +41,25 @@ class PayIncreaseController extends Controller
             ->get()
             ->keyBy('id');
 
+        $assignable = $this->assignableWorkOrders($pm)->sortBy(fn (WorkOrder $wo): string => (string) $wo->person?->name)->values();
+        $manyProperties = $assignable->pluck('property_id')->unique()->count() > 1;
+
         return Inertia::render('minute/pay-increases/index', [
             'requests' => $requests->map(fn (Workflow $wf): array => $this->requestPayload($wf, $workOrders->get($wf->data['work_order_id'] ?? 0)))->values(),
             // The bill rate is the hotel's own number, shown so the PM can see
             // what an increase does to their rate. Never add pay_rate here:
             // PMs must not see what QCP pays the contractor (ADR-0020).
-            'workOrders' => $this->assignableWorkOrders($pm)->map(fn (WorkOrder $wo): array => [
+            'workOrders' => $assignable->map(fn (WorkOrder $wo): array => [
                 'id' => $wo->id,
-                'label' => "{$wo->person?->name} — {$wo->position?->name} @ {$wo->property?->name}",
+                'label' => "{$wo->person?->name} · {$wo->position?->name}".($manyProperties ? " · {$wo->property?->name}" : ''),
                 'bill_rate' => $wo->bill_rate,
             ])->values(),
             'can' => ['initiate' => $pm->can('workflows.pay_increase.initiate')],
+            // `?new=1` (dashboard) or `?work_order=ID` (a Contractors row) opens the form.
+            'open_form' => $request->boolean('new') || $request->filled('work_order'),
+            'preselect' => $request->integer('work_order') ?: null,
+            'scope' => $manyProperties ? 'Your properties' : $assignable->first()?->property?->name,
+            'many_properties' => $manyProperties,
         ]);
     }
 
@@ -133,6 +141,7 @@ class PayIncreaseController extends Controller
 
         return [
             'id' => $workflow->id,
+            'work_order_id' => $workOrder?->id,
             'status' => $workflow->status->value,
             'contractor' => $workOrder?->person?->name,
             'position' => $workOrder?->position?->name,
@@ -145,7 +154,8 @@ class PayIncreaseController extends Controller
             'effective' => $effective?->format('M j, Y'),
             'decision_note' => $workflow->status === WorkflowStatus::Rejected ? $workflow->cancel_reason : null,
             'reason' => $data['reason'] ?? null,
-            'created_at' => $workflow->created_at?->format('M j, Y'),
+            'created_at' => $workflow->created_at?->format('M j'),
+            'decided_at' => $workflow->status === WorkflowStatus::InProgress ? null : $workflow->updated_at?->format('M j'),
             'can_change' => $workflow->status === WorkflowStatus::InProgress,
         ];
     }

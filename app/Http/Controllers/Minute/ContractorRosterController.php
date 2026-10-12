@@ -38,6 +38,16 @@ class ContractorRosterController extends Controller
 
         $byWorkOrder = $progress->forMany($workOrders);
 
+        // A pay raise opens a new work order; "with you since" is the first one.
+        $firstStart = WorkOrder::query()
+            ->whereIn('person_id', $workOrders->pluck('person_id')->unique())
+            ->whereIn('property_id', $workOrders->pluck('property_id')->unique())
+            ->groupBy('person_id', 'property_id')
+            ->selectRaw('person_id, property_id, MIN(start_date) as first_start')
+            ->toBase()
+            ->get()
+            ->mapWithKeys(fn (object $row): array => ["{$row->person_id}:{$row->property_id}" => substr((string) $row->first_start, 0, 10)]);
+
         return Inertia::render('minute/contractors/index', [
             'contractors' => $workOrders
                 ->sortBy(fn (WorkOrder $wo): string => (string) $wo->person?->name)
@@ -46,10 +56,15 @@ class ContractorRosterController extends Controller
                     'name' => $wo->person?->name,
                     'position' => $wo->position?->name,
                     'property' => $wo->property?->name,
-                    'started_on' => $wo->start_date->toDateString(),
+                    'started_on' => $firstStart["{$wo->person_id}:{$wo->property_id}"] ?? $wo->start_date->toDateString(),
                     'direct_hire' => $byWorkOrder[$wo->id] ?? null,
                 ])
                 ->values(),
+            'many_properties' => $workOrders->pluck('property_id')->unique()->count() > 1,
+            'can' => [
+                'request_raise' => $user instanceof Person && $user->can('workflows.pay_increase.initiate'),
+                'request_staff' => $user instanceof Person && $user->can('workflows.more_staff.initiate'),
+            ],
         ]);
     }
 }

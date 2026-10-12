@@ -1,6 +1,7 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import Icon from '@/components/wrappers/Icon'
-import { Head } from '@inertiajs/react'
+import { monthDay, Pill } from '@/components/timesheet/PmTimesheet'
+import { cn } from '@/utils/helpers'
+import { Head, Link } from '@inertiajs/react'
 
 type DirectHire = {
   threshold_hours: number
@@ -20,103 +21,147 @@ type Row = {
   direct_hire: DirectHire | null
 }
 
-type Props = { contractors: Row[] }
+type Props = { contractors: Row[]; many_properties: boolean; can: { request_raise: boolean; request_staff: boolean } }
 
-const hours = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+const hours = (n: number) => Math.round(n).toLocaleString('en-US')
+const initials = (name: string | null) =>
+  (name ?? '?')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('')
+
+/** "3 weeks", "5 months", "2 years", from a start date to today. */
+const tenure = (start: string) => {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(start + 'T12:00:00').getTime()) / 86_400_000))
+  if (days < 14) return days === 1 ? '1 day' : `${days} days`
+  if (days < 60) return `${Math.floor(days / 7)} weeks`
+  if (days < 730) return `${Math.floor(days / 30.4)} months`
+  return `${Math.floor(days / 365)} years`
+}
 
 const DirectHireCell = ({ dh }: { dh: DirectHire | null }) => {
   if (dh === null) return <span className="text-default-400">—</span>
-
-  if (dh.unrestricted) {
-    return <span className="badge badge-label bg-success/15 text-success">No restriction</span>
-  }
-
-  if (dh.eligible) {
-    return (
-      <span className="badge badge-label bg-success/15 text-success">
-        <Icon icon="circle-check" className="me-1 size-3.5" />
-        Eligible
-      </span>
-    )
-  }
+  if (dh.unrestricted) return <Pill tone="success">No restriction</Pill>
 
   return (
-    <div className="min-w-40">
-      <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
-        <span className="text-default-500">
-          {hours(dh.worked_hours)} / {hours(dh.threshold_hours)} hrs
-        </span>
-        <span className="text-default-400">{hours(dh.remaining_hours)} to go</span>
-      </div>
+    <div className="flex items-center gap-3">
       <span
-        className="bg-default-100 flex h-1.5 w-full overflow-hidden rounded"
+        className="bg-default-200 h-2 min-w-20 flex-1 overflow-hidden rounded-full"
         role="progressbar"
-        aria-label={`${hours(dh.worked_hours)} of ${hours(dh.threshold_hours)} hours toward direct-hire eligibility`}
+        aria-label={`${hours(dh.worked_hours)} of ${hours(dh.threshold_hours)} hours toward direct hire`}
         aria-valuenow={dh.percent}
         aria-valuemin={0}
         aria-valuemax={100}>
-        <span className="bg-primary flex flex-col justify-center overflow-hidden transition duration-500" style={{ width: `${Math.max(2, dh.percent)}%` }} />
+        <span className={cn('block h-full rounded-full', dh.eligible ? 'bg-success' : 'bg-primary')} style={{ width: `${Math.max(2, dh.percent)}%` }} />
+      </span>
+      <span className="w-32 shrink-0 text-end text-sm tabular-nums">
+        <strong className="text-default-900">{hours(dh.worked_hours)}</strong> of {hours(dh.threshold_hours)} h
+        <span className="text-default-500 block text-xs">{dh.eligible ? 'Eligible now' : `${hours(dh.remaining_hours)} to go`}</span>
       </span>
     </div>
   )
 }
 
-const Page = ({ contractors }: Props) => (
-  <>
-    <Head title="Contractors" />
-    <PageBreadcrumb title="Contractors" subtitle="Your properties" />
+const Page = ({ contractors, many_properties: many, can }: Props) => {
+  const scope = many ? 'Your properties' : (contractors[0]?.property ?? 'Your property')
 
-    <div className="card">
-      <div className="card-header">
-        <h4 className="card-title">
-          Contractors on site
-          {contractors.length > 0 && <span className="text-default-400 ms-1 text-sm font-normal">({contractors.length})</span>}
-        </h4>
+  return (
+    <>
+      <Head title="Contractors" />
+      <PageBreadcrumb title="Contractors" />
+      <div className="-mt-3 mb-6 flex flex-wrap items-end justify-between gap-3">
+        <p className="text-default-500">
+          {scope} · {contractors.length} placed with you
+        </p>
+        {can.request_staff && (
+          <Link href="/staffing-requests?new=1" className="btn bg-primary hover:bg-primary-hover px-4 font-semibold text-white">
+            Request staff
+          </Link>
+        )}
       </div>
 
-      <div className="table-wrapper">
-        <table className="table table-hover">
-          <thead className="thead-sm">
-            <tr className="bg-light/25 text-2xs uppercase">
-              <th>Contractor</th>
-              <th>Position</th>
-              <th>Property</th>
-              <th>Started</th>
-              <th>Direct-hire eligibility</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contractors.length ? (
-              contractors.map((row) => (
-                <tr key={row.id}>
-                  <td className="font-medium">{row.name}</td>
-                  <td>{row.position}</td>
-                  <td>{row.property}</td>
-                  <td>{row.started_on ?? '—'}</td>
-                  <td>
-                    <DirectHireCell dh={row.direct_hire} />
+      <div className="card">
+        <div className="card-header flex flex-wrap items-center justify-between gap-3">
+          <h4 className="card-title">On site</h4>
+          <span className="text-default-500 text-sm">Sorted by name</span>
+        </div>
+
+        <div className="relative overflow-x-auto">
+          <table className="w-full min-w-[820px] text-sm">
+            <thead>
+              <tr className="bg-light/25 text-default-500 text-2xs uppercase">
+                <th className="py-2.5 ps-6 pe-3 text-start font-medium">Contractor</th>
+                {many && <th className="px-3 py-2.5 text-start font-medium">Property</th>}
+                <th className="px-3 py-2.5 text-start font-medium">With you since</th>
+                <th className="w-[38%] px-3 py-2.5 text-start font-medium">Toward direct hire</th>
+                <th className="py-2.5 ps-3 pe-6">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {contractors.length ? (
+                contractors.map((row) => (
+                  <tr key={row.id} className="border-default-300 border-t">
+                    <td className="py-3 ps-6 pe-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="bg-primary/12 text-primary-hover grid size-8 shrink-0 place-items-center rounded-full text-xs font-semibold" aria-hidden="true">
+                          {initials(row.name)}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="text-default-900 block font-semibold">{row.name}</span>
+                          <span className="text-default-500 block text-xs">{row.position}</span>
+                        </span>
+                      </div>
+                    </td>
+                    {many && <td className="text-default-900 px-3 py-3">{row.property}</td>}
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {row.started_on ? (
+                        <>
+                          <span className="text-default-900">
+                            {monthDay(row.started_on)}
+                            {row.started_on.slice(0, 4) !== String(new Date().getFullYear()) && `, ${row.started_on.slice(0, 4)}`}
+                          </span>
+                          <span className="text-default-500 block text-xs">{tenure(row.started_on)}</span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      <DirectHireCell dh={row.direct_hire} />
+                    </td>
+                    <td className="py-3 ps-3 pe-6 text-end">
+                      {can.request_raise && (
+                        <Link href={`/pay-increases?work_order=${row.id}`} className="btn btn-sm btn-light px-3 font-semibold whitespace-nowrap">
+                          Request a raise
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={many ? 5 : 4} className="text-default-500 border-default-300 border-t py-6 text-center">
+                    No contractors are placed with you right now.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="text-default-400 py-4 text-center">
-                  No contractors are currently placed at your properties.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      <div className="card-footer">
-        <p className="text-default-400 text-sm">
-          Direct-hire eligibility is the hours a contractor must work at your property before you may offer them a position directly. Hours
-          counted are worked hours, not calendar time.
-        </p>
+        <div className="card-footer border-default-300 border-t px-6 py-3.5">
+          <p className="text-default-500 text-sm">
+            Direct hire: the hours a contractor works at your property before you may offer them a position directly. Every hour counts, including
+            the time before a pay raise.
+          </p>
+        </div>
       </div>
-    </div>
-  </>
-)
+    </>
+  )
+}
 
 export default Page

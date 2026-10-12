@@ -27,6 +27,20 @@ class NotifyDirectHireEligible
             return;
         }
 
+        // Hours count across the person's work orders at the property, so a pay
+        // raise's new work order is already past the line: the recruiters were
+        // told when the old one crossed it.
+        $alreadyTold = WorkOrder::query()
+            ->where('person_id', $workOrder->person_id)
+            ->where('property_id', $workOrder->property_id)
+            ->whereNotNull('direct_hire_notified_at')
+            ->exists();
+        if ($alreadyTold) {
+            $workOrder->forceFill(['direct_hire_notified_at' => now()])->save();
+
+            return;
+        }
+
         $progress = $this->progress->for($workOrder);
 
         // An unrestricted work order has no moment to announce.
