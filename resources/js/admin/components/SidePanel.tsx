@@ -65,7 +65,7 @@ const SidePanel = ({ title, subtitle, leading, toolbar, footer, children, onClos
             <h4 id="side-panel-title" className="text-default-900 text-base font-semibold">
               {title}
             </h4>
-            {subtitle && <div className="text-default-400 text-sm">{subtitle}</div>}
+            {subtitle && <div className="text-default-500 text-sm">{subtitle}</div>}
           </div>
           <button ref={closeRef} type="button" className="hover:bg-light rounded-lg p-1.5" onClick={onClose} aria-label="Close panel">
             <Icon icon="x" className="size-5" />

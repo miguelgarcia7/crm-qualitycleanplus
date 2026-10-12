@@ -26,7 +26,7 @@ const Page = () => {
                   <div className="p-9 text-center">
                     <div className="from-primary my-4 bg-linear-to-r to-danger bg-clip-text text-7xl font-bold text-transparent">500</div>
                     <h3 className="mb-2 text-xl font-bold uppercase">Server Error</h3>
-                    <p className="text-default-400">We ran into an issue while processing your request. Please try again in a moment.</p>
+                    <p className="text-default-500">We ran into an issue while processing your request. Please try again in a moment.</p>
                     <div className="mt-8 flex items-center justify-center gap-1.5">
                       <button className="btn bg-primary text-white hover:bg-primary-hover">Try Again</button>
                       <button className="btn border-info text-info hover:bg-info hover:text-white">Get Support</button>
@@ -35,7 +35,7 @@ const Page = () => {
                 </div>
               </div>
 
-              <p className="text-default-400 mt-7.5 text-center">
+              <p className="text-default-500 mt-7.5 text-center">
                 &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
               </p>
             </div>

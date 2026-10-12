@@ -102,8 +102,8 @@ const Page = ({ categories, items, stats, can }: Props) => {
                 visibleItems.flatMap((item) =>
                   item.variants.map((v, idx) => (
                     <tr key={v.id}>
-                      <td>{idx === 0 ? <div><div className="font-medium">{item.name}</div><div className="text-default-400 text-xs">{item.category}</div></div> : ''}</td>
-                      <td>{v.label}{v.sku && <span className="text-default-400 text-xs"> · {v.sku}</span>}</td>
+                      <td>{idx === 0 ? <div><div className="font-medium">{item.name}</div><div className="text-default-500 text-xs">{item.category}</div></div> : ''}</td>
+                      <td>{v.label}{v.sku && <span className="text-default-500 text-xs"> · {v.sku}</span>}</td>
                       <td className="text-end">{v.current_stock}</td>
                       <td><span className={`badge badge-label ${statusBadge(v.status)}`}>{statusLabel(v.status)}</span></td>
                       <td className="text-end whitespace-nowrap">
@@ -117,7 +117,7 @@ const Page = ({ categories, items, stats, can }: Props) => {
                   )),
                 )
               ) : (
-                <tr><td colSpan={5} className="text-default-400 py-4 text-center">{category === 'all' ? 'No items yet.' : 'No items in this category.'}</td></tr>
+                <tr><td colSpan={5} className="text-default-500 py-4 text-center">{category === 'all' ? 'No items yet.' : 'No items in this category.'}</td></tr>
               )}
             </tbody>
           </table>
@@ -185,7 +185,7 @@ const NewItemModal = ({ categories, onClose }: { categories: Category[]; onClose
                     <input type="number" min="0" className="form-input" placeholder="Reorder" value={v.reorder_threshold} onChange={(e) => { const n = [...data.variants]; n[i].reorder_threshold = Number(e.target.value); setData('variants', n) }} />
                   </div>
                 ))}
-                {data.variants.length === 0 && <p className="text-default-400 text-sm">Add at least one size/color variant.</p>}
+                {data.variants.length === 0 && <p className="text-default-500 text-sm">Add at least one size/color variant.</p>}
               </div>
             ) : (
               <div>
@@ -216,7 +216,7 @@ const MovementModal = ({ variant, mode, onClose }: { variant: Variant; mode: 're
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="card w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="card-header"><h4 className="card-title">{title}</h4><p className="text-default-400 text-sm">{variant.label} — {variant.current_stock} on hand</p></div>
+        <div className="card-header"><h4 className="card-title">{title}</h4><p className="text-default-500 text-sm">{variant.label} — {variant.current_stock} on hand</p></div>
         <div className="card-body p-5">
           <form onSubmit={submit} className="space-y-4">
             <div>

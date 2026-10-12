@@ -27,7 +27,7 @@ const Page = () => {
                     <div className="mb-7.5 flex flex-col items-center justify-center text-center">
                       <AuthLogo />
                       <h4 className="text-default-900 mt-7.5 mb-2 text-base font-bold">Welcome to Admin</h4>
-                      <p className="text-default-400 mx-auto w-full">This screen is locked. Enter your PIN to continue.</p>
+                      <p className="text-default-500 mx-auto w-full">This screen is locked. Enter your PIN to continue.</p>
                     </div>
 
                     <form>
@@ -61,14 +61,14 @@ const Page = () => {
                       </div>
                     </form>
 
-                    <p className="text-default-400 mt-7.5 text-center">
+                    <p className="text-default-500 mt-7.5 text-center">
                       Not you? Return to&nbsp;
                       <Link href="/auth/card/sign-in" className="text-primary font-semibol underline underline-offset-3">
                         Sign in
                       </Link>
                     </p>
 
-                    <p className="text-default-400 mt-7.5 text-center">
+                    <p className="text-default-500 mt-7.5 text-center">
                       &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                     </p>
                   </div>

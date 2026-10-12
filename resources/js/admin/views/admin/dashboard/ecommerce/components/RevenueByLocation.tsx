@@ -98,12 +98,12 @@ const RevenueByLocation = () => {
                 </div>
                 <div>
                   <h5 className="text-md">Congratulations !...</h5>
-                  <p className="text-sm text-default-400">You&apos;ve just hit a new record..</p>
+                  <p className="text-sm text-default-500">You&apos;ve just hit a new record..</p>
                 </div>
               </div>
               <div className="ms-auto">
                 <h4 className="mt-1.25 text-end text-base">25.9k</h4>
-                <span className="text-default-400 text-xs uppercase">Order</span>
+                <span className="text-default-500 text-xs uppercase">Order</span>
               </div>
             </div>
           </div>
@@ -111,21 +111,21 @@ const RevenueByLocation = () => {
             <Icon icon="circle" className="text-info text-md" />
             <div>United States</div>
             <p className="ms-auto">
-              <span className="font-semibold">$48.6k</span> <span className="text-default-400">Revenue</span>
+              <span className="font-semibold">$48.6k</span> <span className="text-default-500">Revenue</span>
             </p>
           </div>
           <div className="flex items-center mb-2.5 gap-2.5">
             <Icon icon="circle" className="text-primary text-md" />
             <div>United Kingdom</div>
             <p className="ms-auto">
-              <span className="font-semibold">$26.4k</span> <span className="text-default-400">Revenue</span>
+              <span className="font-semibold">$26.4k</span> <span className="text-default-500">Revenue</span>
             </p>
           </div>
           <div className="flex items-center gap-2.5">
             <Icon icon="circle" className="text-secondary text-md" />
             <div>Australia</div>
             <p className="ms-auto">
-              <span className="font-semibold">$18.9k</span> <span className="text-default-400">Revenue</span>
+              <span className="font-semibold">$18.9k</span> <span className="text-default-500">Revenue</span>
             </p>
           </div>
         </div>

@@ -87,7 +87,7 @@ const Page = ({ applications, filter }: Props) => {
             <Link href={`/admin/applicants/${row.original.id}`} className="hover:text-primary font-semibold">
               {row.original.name}
             </Link>
-            {row.original.email && <p className="text-default-400 text-xs">{row.original.email}</p>}
+            {row.original.email && <p className="text-default-500 text-xs">{row.original.email}</p>}
             {row.original.email_match && (
               <span className="badge badge-label bg-warning/15 text-warning mt-1" title="Email matches an existing person — link or dismiss on the application">
                 Email match
@@ -193,7 +193,7 @@ const Page = ({ applications, filter }: Props) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            <span className="text-default-400 text-sm text-nowrap">Rows per page</span>
+            <span className="text-default-500 text-sm text-nowrap">Rows per page</span>
             <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
               {[10, 25, 50, 100].map((size) => (
                 <option key={size}>{size}</option>

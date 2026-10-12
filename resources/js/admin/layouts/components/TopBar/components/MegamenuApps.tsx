@@ -24,7 +24,7 @@ const Megamenu = () => {
                         </span>
                         <span>
                           <h5 className="text-xs">{app.title}</h5>
-                          <span className="text-default-400 text-xs">{app.subtitle}</span>
+                          <span className="text-default-500 text-xs">{app.subtitle}</span>
                         </span>
                       </span>
                     </Link>
@@ -53,11 +53,11 @@ const Megamenu = () => {
               <div className="col-span-2">
                 <div className="grid grid-cols-2 border-t border-light border-dashed text-center">
                   <div className="p-6">
-                    <p className="font-medium text-default-400 mb-1 text-2xs uppercase">-: &nbsp; Support &nbsp;:-</p>
+                    <p className="font-medium text-default-500 mb-1 text-2xs uppercase">-: &nbsp; Support &nbsp;:-</p>
                     <h5 className="text-md">help@mydomain.com</h5>
                   </div>
                   <div className="p-6">
-                    <p className="font-medium text-default-400 mb-1 text-2xs uppercase">-: &nbsp; Help: &nbsp;:-</p>
+                    <p className="font-medium text-default-500 mb-1 text-2xs uppercase">-: &nbsp; Help: &nbsp;:-</p>
                     <h5 className="text-md">+(12) 3456 7890</h5>
                   </div>
                 </div>

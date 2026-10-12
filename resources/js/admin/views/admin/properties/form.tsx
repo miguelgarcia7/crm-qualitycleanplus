@@ -88,7 +88,7 @@ const Page = ({ statuses, timeSources, defaultDirectHireThresholdHours }: Props)
                   onChange={(e) => setData('billing_email', e.target.value)}
                   placeholder="ap@hotel.com"
                 />
-                <p className="text-default-400 mt-1 text-xs">Where invoices are sent by default.</p>
+                <p className="text-default-500 mt-1 text-xs">Where invoices are sent by default.</p>
               </Field>
               <Field label="Address" error={errors.address}>
                 <input className="form-input" value={data.address} onChange={(e) => setData('address', e.target.value)} />
@@ -122,7 +122,7 @@ const Page = ({ statuses, timeSources, defaultDirectHireThresholdHours }: Props)
                   <option value="6">Saturday</option>
                   <option value="7">Sunday</option>
                 </select>
-                <p className="text-default-400 mt-1 text-xs">
+                <p className="text-default-500 mt-1 text-xs">
                   The property's closing day. Timesheet weeks start the next day — ends Wednesday → Thursday-to-Wednesday weeks.
                 </p>
               </Field>
@@ -138,7 +138,7 @@ const Page = ({ statuses, timeSources, defaultDirectHireThresholdHours }: Props)
                   value={data.direct_hire_threshold_hours}
                   onChange={(e) => setData('direct_hire_threshold_hours', e.target.value)}
                 />
-                <p className="text-default-400 mt-1 text-xs">
+                <p className="text-default-500 mt-1 text-xs">
                   Hours a contractor must work here before this property may hire them directly, from their contract. Leave blank to use the
                   default of {defaultDirectHireThresholdHours}. Copied onto each new work order — changing it does not affect placements already running.
                 </p>
@@ -151,14 +151,14 @@ const Page = ({ statuses, timeSources, defaultDirectHireThresholdHours }: Props)
                     </option>
                   ))}
                 </select>
-                <p className="text-default-400 mt-1 text-xs">Import = no clock-in; hours arrive via the weekly Excel import.</p>
+                <p className="text-default-500 mt-1 text-xs">Import = no clock-in; hours arrive via the weekly Excel import.</p>
               </Field>
             </div>
 
             <div className="space-y-4">
               <div>
                 <h5 className="font-semibold">Location &amp; Geofence</h5>
-                <p className="text-default-400 text-sm">
+                <p className="text-default-500 text-sm">
                   Where the property is and how close a contractor's phone must be to QR clock-in.
                 </p>
               </div>
@@ -201,10 +201,10 @@ const Page = ({ statuses, timeSources, defaultDirectHireThresholdHours }: Props)
                   />
                   <span className="font-medium">Enable QR clock-in</span>
                 </label>
-                <p className="text-default-400 mt-1 ps-10 text-sm">
+                <p className="text-default-500 mt-1 ps-10 text-sm">
                   Contractors punch in by scanning this property's poster with their phone. Requires coordinates.
                 </p>
-                <p className={`mt-2 flex items-center gap-2 ps-10 text-sm font-medium ${data.qr_clock_enabled ? 'text-warning' : 'text-default-400'}`}>
+                <p className={`mt-2 flex items-center gap-2 ps-10 text-sm font-medium ${data.qr_clock_enabled ? 'text-warning' : 'text-default-500'}`}>
                   <span className={`size-2 rounded-full ${data.qr_clock_enabled ? 'bg-warning' : 'bg-default-300'}`} />
                   {data.qr_clock_enabled ? 'A QR code is created when you save' : 'Off'}
                 </p>

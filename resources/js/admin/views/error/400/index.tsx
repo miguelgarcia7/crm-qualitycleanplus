@@ -28,7 +28,7 @@ const Page = () => {
                   <div className="p-3 text-center">
                     <div className="from-primary my-4 bg-linear-to-r to-danger bg-clip-text text-7xl font-bold text-transparent">400</div>
                     <h3 className="mb-2 text-xl font-bold uppercase">Oops! Invalid Request</h3>
-                    <p className="text-default-400">The request couldn’t be processed. Please check the URL or try again.</p>
+                    <p className="text-default-500">The request couldn’t be processed. Please check the URL or try again.</p>
                     <div className="flex justify-center gap-3 mt-7.5">
                       <button className="btn border border-secondary text-secondary hover:text-white hover:bg-secondary">Go Back</button>
 
@@ -40,7 +40,7 @@ const Page = () => {
                 </div>
               </div>
 
-              <p className="text-default-400 mt-7.5 text-center">
+              <p className="text-default-500 mt-7.5 text-center">
                 &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
               </p>
             </div>

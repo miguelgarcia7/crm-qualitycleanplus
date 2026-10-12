@@ -40,7 +40,7 @@ const TasksCard = ({ tasks }: { tasks: Tasks }) => {
         cell: ({ row }) => (
           <>
             <h5>{row.original.label}</h5>
-            {row.original.sublabel && <span className="text-default-400 text-xs">{row.original.sublabel}</span>}
+            {row.original.sublabel && <span className="text-default-500 text-xs">{row.original.sublabel}</span>}
           </>
         ),
       }),
@@ -49,7 +49,7 @@ const TasksCard = ({ tasks }: { tasks: Tasks }) => {
         cell: ({ row }) => (
           <>
             <h5>{row.original.age ?? '—'}</h5>
-            <span className="text-default-400 text-xs">Waiting</span>
+            <span className="text-default-500 text-xs">Waiting</span>
           </>
         ),
       }),

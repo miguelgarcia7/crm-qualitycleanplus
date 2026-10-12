@@ -31,7 +31,7 @@ const Page = ({ groups }: Props) => (
                   </span>
                   <div>
                     <h5 className="font-semibold">{report.title}</h5>
-                    <p className="text-default-400 mt-1 text-sm">{report.description}</p>
+                    <p className="text-default-500 mt-1 text-sm">{report.description}</p>
                   </div>
                 </div>
               </Link>

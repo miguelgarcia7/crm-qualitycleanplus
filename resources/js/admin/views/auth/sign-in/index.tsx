@@ -25,13 +25,13 @@ const Page = () => {
                   <div className="mb-7.5 flex flex-col items-center justify-center text-center">
                     <AuthLogo />
                     <h4 className="mt-5 mb-2 text-base font-bold">Great to see you here 👋</h4>
-                    <p className="text-default-400 mx-auto w-full lg:w-3/4">Let’s get you signed in. Enter your email and password to continue.</p>
+                    <p className="text-default-500 mx-auto w-full lg:w-3/4">Let’s get you signed in. Enter your email and password to continue.</p>
                   </div>
 
                   <div className="rounded-md">
                     <Form />
 
-                    <p className="text-default-400 mt-7.5 text-center">
+                    <p className="text-default-500 mt-7.5 text-center">
                       &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                     </p>
                   </div>

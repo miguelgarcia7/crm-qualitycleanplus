@@ -76,7 +76,7 @@ const statusBadge: Record<string, string> = {
 /** Label/value cell for the 3-column info grids (HRM staff-profile pattern). */
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <p className="text-default-400 mb-1.25 font-medium">{label}</p>
+    <p className="text-default-500 mb-1.25 font-medium">{label}</p>
     <p>{children}</p>
   </div>
 )
@@ -136,7 +136,7 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
     <tr>
       <td>
         <span className="font-medium">{item.label}</span>
-        {item.completed_at && <div className="text-default-400 text-xs">{item.completed_at}</div>}
+        {item.completed_at && <div className="text-default-500 text-xs">{item.completed_at}</div>}
       </td>
       <td>
         <span className={cn('badge badge-label', status.cls)}>{status.label}</span>
@@ -407,7 +407,7 @@ const Page = ({ application: app, person, match, other_applications, checklist, 
                   </div>
                   <div>
                     <h5 className="font-medium">{person.name}</h5>
-                    <p className="text-default-400 mb-3">{app.desired_position ?? 'Open application'}</p>
+                    <p className="text-default-500 mb-3">{app.desired_position ?? 'Open application'}</p>
                     <span className={cn('badge badge-label', statusBadge[app.status] ?? 'bg-light text-dark')}>{app.status_label}</span>
                   </div>
                 </div>
@@ -482,7 +482,7 @@ const Page = ({ application: app, person, match, other_applications, checklist, 
             </div>
 
             <div className="card-body border-default-200 border-t py-3">
-              <p className="text-default-400 text-xs">
+              <p className="text-default-500 text-xs">
                 Promotion requires every item complete or waived (waiving is an HR/admin power). Uniform issuance is tracked through Inventory.
               </p>
             </div>
@@ -516,15 +516,15 @@ const Page = ({ application: app, person, match, other_applications, checklist, 
               <Field label="Reliable transportation">{yesNo(app.transportation)}</Field>
               <Field label="Worked at QCP (last 6 months)">
                 {yesNo(app.work_at_qcp)}
-                {app.work_at_qcp_explain && <span className="text-default-400"> — {app.work_at_qcp_explain}</span>}
+                {app.work_at_qcp_explain && <span className="text-default-500"> — {app.work_at_qcp_explain}</span>}
               </Field>
               <Field label="Another staffing agency">
                 {yesNo(app.another_staff_agency)}
-                {app.non_complete && <span className="text-default-400"> — non-compete: {app.non_complete}</span>}
+                {app.non_complete && <span className="text-default-500"> — non-compete: {app.non_complete}</span>}
               </Field>
               <Field label="Felony conviction">
                 {yesNo(app.convicted_felon)}
-                {app.felony_conviction && <span className="text-default-400"> — {app.felony_conviction}</span>}
+                {app.felony_conviction && <span className="text-default-500"> — {app.felony_conviction}</span>}
               </Field>
               <Field label="Certified true & correct">{app.acknowledgement ? 'Yes' : 'No'}</Field>
             </div>

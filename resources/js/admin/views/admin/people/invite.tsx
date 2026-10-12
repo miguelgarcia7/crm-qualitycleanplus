@@ -115,7 +115,7 @@ const Page = ({ roles, properties, preselectedPropertyId }: Props) => {
                     onChange={(e) => setData('hire_date', e.target.value)}
                     required
                   />
-                  <p className="text-default-400 mt-1 text-xs">PTO accrual tiers and anniversaries are based on this date.</p>
+                  <p className="text-default-500 mt-1 text-xs">PTO accrual tiers and anniversaries are based on this date.</p>
                   {errors.hire_date && <p className="text-danger mt-1 text-sm">{errors.hire_date}</p>}
                 </div>
               )}
@@ -132,7 +132,7 @@ const Page = ({ roles, properties, preselectedPropertyId }: Props) => {
                   emptyText="No matching properties."
                 />
                 {isRecruiter && (
-                  <p className="text-default-400 mt-1 text-xs">Their starting book of properties — can be changed later on each property&apos;s Access tab.</p>
+                  <p className="text-default-500 mt-1 text-xs">Their starting book of properties — can be changed later on each property&apos;s Access tab.</p>
                 )}
                 {errors.property_ids && <p className="text-danger mt-1 text-sm">{errors.property_ids}</p>}
               </div>

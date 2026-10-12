@@ -117,13 +117,13 @@ const Page = ({ filters, properties, rows, totals }: Props) => {
           ]}
           emptyMessage="No invoiced months in this range."
           footer={
-            <span className="text-default-400 text-sm">
+            <span className="text-default-500 text-sm">
               {rows.length} row{rows.length === 1 ? '' : 's'} · {filters.from} → {filters.to}
             </span>
           }
         />
       </div>
-      <p className="text-default-400 mt-3 text-xs">
+      <p className="text-default-500 mt-3 text-xs">
         Billed truth from frozen invoices (voided invoices excluded). Months are keyed by the payroll week's start date.
       </p>
     </>

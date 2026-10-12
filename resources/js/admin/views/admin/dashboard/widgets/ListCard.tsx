@@ -28,7 +28,7 @@ const Row = ({ row }: { row: ListRow }) => {
     <div className="flex items-center justify-between gap-3 py-2.5">
       <div className="min-w-0">
         <div className="truncate text-sm font-medium">{row.label}</div>
-        {row.sublabel && <div className="text-default-400 truncate text-xs">{row.sublabel}</div>}
+        {row.sublabel && <div className="text-default-500 truncate text-xs">{row.sublabel}</div>}
       </div>
       {row.meta && <span className={`shrink-0 text-sm font-medium ${metaTone[row.tone ?? 'default']}`}>{row.meta}</span>}
     </div>
@@ -55,7 +55,7 @@ const ListCard = ({ widget }: { widget: ListWidget }) => (
     </div>
     <div className="card-body p-5 pt-0">
       {widget.rows.length === 0 ? (
-        <p className="text-default-400 py-4 text-sm">{widget.emptyText ?? 'Nothing here right now.'}</p>
+        <p className="text-default-500 py-4 text-sm">{widget.emptyText ?? 'Nothing here right now.'}</p>
       ) : (
         widget.rows.map((row, i) => <Row key={i} row={row} />)
       )}

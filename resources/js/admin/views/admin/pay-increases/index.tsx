@@ -81,7 +81,7 @@ const historyColumns = createColumnHelper<Decided>()
 const Who = ({ name, position, property }: { name: string | null; position: string | null; property: string | null }) => (
   <div>
     <span className="font-medium">{name}</span>
-    <p className="text-default-400 text-xs">
+    <p className="text-default-500 text-xs">
       {position}
       {property ? ` · ${property}` : ''}
     </p>
@@ -191,7 +191,7 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
         cell: ({ row }) => (
           <div>
             <span className="font-medium">+{money(row.original.pm_requested_increase)}/hr</span>
-            <p className="text-default-400 text-xs">
+            <p className="text-default-500 text-xs">
               bill {money(row.original.current.bill_rate)} → {money(row.original.current.bill_rate + row.original.pm_requested_increase)}
             </p>
           </div>
@@ -199,7 +199,7 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
       }),
       pendingColumns.accessor('reason', {
         header: 'Reason',
-        cell: ({ row }) => <span className="text-default-400">{row.original.reason}</span>,
+        cell: ({ row }) => <span className="text-default-500">{row.original.reason}</span>,
       }),
       {
         header: 'Actions',
@@ -245,8 +245,8 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
           return (
             <div>
               <span>{r.outcome === 'applied' ? 'Direct raise' : r.requested_by}</span>
-              <p className="text-default-400 text-xs">{r.requested_at}</p>
-              {r.reason && <p className="text-default-400 text-xs italic">“{r.reason}”</p>}
+              <p className="text-default-500 text-xs">{r.requested_at}</p>
+              {r.reason && <p className="text-default-500 text-xs italic">“{r.reason}”</p>}
             </div>
           )
         },
@@ -260,14 +260,14 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
             return (
               <div className="text-nowrap">
                 <p>Pay {money(r.from.pay_rate)} → <span className="font-medium">{money(r.to.pay_rate)}</span></p>
-                <p className="text-default-400 text-xs">Bill {money(r.from.bill_rate)} → {money(r.to.bill_rate)}</p>
+                <p className="text-default-500 text-xs">Bill {money(r.from.bill_rate)} → {money(r.to.bill_rate)}</p>
               </div>
             )
           }
           return r.pm_requested_increase > 0 ? (
             <div className="text-nowrap">
               <p>+{money(r.pm_requested_increase)}/hr asked</p>
-              <p className="text-default-400 text-xs">Bill {money(r.from.bill_rate)} → {money(r.from.bill_rate + r.pm_requested_increase)}</p>
+              <p className="text-default-500 text-xs">Bill {money(r.from.bill_rate)} → {money(r.from.bill_rate + r.pm_requested_increase)}</p>
             </div>
           ) : null
         },
@@ -280,7 +280,7 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
           return (
             <div className="max-w-64">
               <span className={`badge badge-label ${OUTCOMES[r.outcome].className}`}>{OUTCOMES[r.outcome].label}</span>
-              {r.effective && <p className="text-default-400 mt-1 text-xs">From {r.effective}</p>}
+              {r.effective && <p className="text-default-500 mt-1 text-xs">From {r.effective}</p>}
               {r.note && <p className="text-default-500 mt-1 text-xs">{r.note}</p>}
             </div>
           )
@@ -292,7 +292,7 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
         cell: ({ row }) => (
           <div>
             <span>{row.original.decided_by ?? '—'}</span>
-            <p className="text-default-400 text-xs">{row.original.decided_at}</p>
+            <p className="text-default-500 text-xs">{row.original.decided_at}</p>
           </div>
         ),
       }),
@@ -359,7 +359,7 @@ const Page = ({ pending, history, workOrders, can }: Props) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            <span className="text-default-400 text-sm text-nowrap">Rows per page</span>
+            <span className="text-default-500 text-sm text-nowrap">Rows per page</span>
             <select className="form-select w-20" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>
@@ -412,7 +412,7 @@ const initialRaise = (rates: Rates, periodId: number | null): RaiseData => ({
 /** "+$1.00 (6.3%)" against the current rate; red when it goes down. */
 const Change = ({ from, to }: { from: number; to: number }) => {
   const diff = to - from
-  if (diff === 0) return <span className="text-default-400 text-xs">No change</span>
+  if (diff === 0) return <span className="text-default-500 text-xs">No change</span>
   const pct = from > 0 ? ` (${((diff / from) * 100).toFixed(1)}%)` : ''
   return (
     <span className={`text-xs font-medium ${diff > 0 ? 'text-success' : 'text-danger'}`}>
@@ -467,7 +467,7 @@ const RaiseFields = ({
         <span className="font-semibold">Pay</span>
         <span className="font-semibold">Bill</span>
 
-        <span className="text-default-400 text-sm">Current</span>
+        <span className="text-default-500 text-sm">Current</span>
         <span className="text-default-500">{money(current.pay_rate)} / hr</span>
         <span className="text-default-500">{money(current.bill_rate)} / hr</span>
 

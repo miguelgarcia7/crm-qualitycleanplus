@@ -30,7 +30,7 @@ const ActivityCard = ({ rows }: { rows: ActivityRow[] }) => (
         so there is never anything to scroll past. */}
     <div className="card-body">
       {rows.length === 0 ? (
-        <p className="text-default-400 text-sm">No activity yet.</p>
+        <p className="text-default-500 text-sm">No activity yet.</p>
       ) : (
         <div>
           {rows.map((row, idx) => {
@@ -54,7 +54,7 @@ const ActivityCard = ({ rows }: { rows: ActivityRow[] }) => (
                     'pb-7.5': idx !== rows.length - 1,
                   })}>
                   <h5 className="mb-1.25">{row.description}</h5>
-                  <p className="text-default-400 mb-1.25">{row.when}</p>
+                  <p className="text-default-500 mb-1.25">{row.when}</p>
                   <span className="text-primary">By {row.causer ?? 'System'}</span>
                 </div>
               </div>

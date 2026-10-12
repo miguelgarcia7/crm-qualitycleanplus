@@ -43,7 +43,7 @@ const formatSize = (bytes: number) => (bytes >= 1048576 ? `${(bytes / 1048576).t
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <p className="text-default-400 mb-1.25 font-medium">{label}</p>
+    <p className="text-default-500 mb-1.25 font-medium">{label}</p>
     <p>{children}</p>
   </div>
 )
@@ -162,9 +162,9 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
                   {attachments.map((a) => (
                     <li key={a.id} className="flex items-center justify-between gap-3 py-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        <Icon icon={a.is_image ? 'photo' : 'file-text'} className="text-default-400 size-4.5 shrink-0" />
+                        <Icon icon={a.is_image ? 'photo' : 'file-text'} className="text-default-500 size-4.5 shrink-0" />
                         <span className="truncate font-medium">{a.name}</span>
-                        <span className="text-default-400 shrink-0 text-xs">{formatSize(a.size)}</span>
+                        <span className="text-default-500 shrink-0 text-xs">{formatSize(a.size)}</span>
                       </div>
                       <a
                         href={`/admin/kb/attachments/${a.id}`}
@@ -194,7 +194,7 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
               <Field label="Published">{article.published_at ?? 'Not published'}</Field>
               <Field label="Updated">{article.updated_at ?? '—'}</Field>
               <div className="col-span-2">
-                <p className="text-default-400 mb-1.25 font-medium">Categories</p>
+                <p className="text-default-500 mb-1.25 font-medium">Categories</p>
                 <div className="flex flex-wrap gap-1.5">
                   {article.categories.length === 0 ? (
                     <span>—</span>
@@ -208,7 +208,7 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
                 </div>
               </div>
               <div className="col-span-2">
-                <p className="text-default-400 mb-1.25 font-medium">Tags</p>
+                <p className="text-default-500 mb-1.25 font-medium">Tags</p>
                 <div className="flex flex-wrap gap-1.5">
                   {article.tags.length === 0 ? (
                     <span>—</span>
@@ -222,7 +222,7 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
                 </div>
               </div>
               <div className="col-span-2">
-                <p className="text-default-400 mb-1.25 font-medium">Visible to</p>
+                <p className="text-default-500 mb-1.25 font-medium">Visible to</p>
                 <div className="flex flex-wrap gap-1.5">
                   {article.roles.length === 0 ? (
                     <span className="badge badge-label bg-success/15 text-success">All KB readers</span>
@@ -248,15 +248,15 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
             <div className="card-body grid grid-cols-3 gap-3 text-center">
               <div>
                 <p className="text-success text-xl font-semibold">{feedback_stats.helpful}</p>
-                <p className="text-default-400 text-xs">Helpful</p>
+                <p className="text-default-500 text-xs">Helpful</p>
               </div>
               <div>
                 <p className="text-danger text-xl font-semibold">{feedback_stats.not_helpful}</p>
-                <p className="text-default-400 text-xs">Not helpful</p>
+                <p className="text-default-500 text-xs">Not helpful</p>
               </div>
               <div>
                 <p className="text-warning text-xl font-semibold">{feedback_stats.open}</p>
-                <p className="text-default-400 text-xs">Open items</p>
+                <p className="text-default-500 text-xs">Open items</p>
               </div>
             </div>
           </div>
@@ -267,7 +267,7 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
             </div>
             {versions.length === 0 ? (
               <div className="card-body">
-                <p className="text-default-400 text-sm">No earlier versions — snapshots appear here after the first edit.</p>
+                <p className="text-default-500 text-sm">No earlier versions — snapshots appear here after the first edit.</p>
               </div>
             ) : (
               <div className="table-wrapper">
@@ -285,10 +285,10 @@ const Page = ({ article, attachments, versions, feedback_stats, can }: Props) =>
                       <tr key={v.version}>
                         <td>
                           <span className="font-semibold">v{v.version}</span>
-                          {v.change_summary && <p className="text-default-400 max-w-40 truncate text-xs">{v.change_summary}</p>}
+                          {v.change_summary && <p className="text-default-500 max-w-40 truncate text-xs">{v.change_summary}</p>}
                         </td>
                         <td>{v.author}</td>
-                        <td className="text-default-400 text-xs">{v.created_at}</td>
+                        <td className="text-default-500 text-xs">{v.created_at}</td>
                         <td>
                           <Link
                             href={`/admin/kb/articles/${article.slug}/versions/${v.version}`}

@@ -14,7 +14,7 @@ const StaffAwayCard = ({ data, title = 'Staff away', description }: { data: Staf
       data.rows.map((row) => (
         <DashRow key={row.id} end={row.now ? <span className="badge badge-label bg-info/15 text-info">Away now</span> : undefined}>
           <div className="text-default-900 font-medium">{row.name}</div>
-          <div className="text-default-400 text-sm">
+          <div className="text-default-500 text-sm">
             {row.dates} · {row.kind}
             {row.covers > 0 && <span className="text-warning"> · {row.covers} {row.covers === 1 ? 'property needs' : 'properties need'} cover</span>}
           </div>

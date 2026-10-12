@@ -376,7 +376,7 @@ const StatusSteps = ({ status, isCurrent }: { status: string; isCurrent: boolean
 
 /** Hours first; punch times on the toggle. An open punch reads "in since 8:02 am". */
 const DayCell = ({ list, mode }: { list: Entry[]; mode: 'hours' | 'punches' }) => {
-  if (!list.length) return <span className="text-default-400">—</span>
+  if (!list.length) return <span className="text-default-500">—</span>
 
   const open = list.find((e) => e.end_time === null)
   const minutes = minutesOf(list)

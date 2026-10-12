@@ -458,7 +458,7 @@ const RecentWeeksCard = ({ property, weeks, onAllWeeks }: { property: Property; 
             ))
           ) : (
             <tr>
-              <td colSpan={6} className="text-default-400 py-4 text-center">
+              <td colSpan={6} className="text-default-500 py-4 text-center">
                 No weeks yet.
               </td>
             </tr>
@@ -572,7 +572,7 @@ const TimesheetsTab = ({ property, weeks, can }: { property: Property; weeks: We
                     <td>
                       <div className="text-default-900 font-semibold whitespace-nowrap">{weekRange(w.week_start, w.week_end)}</div>
                       {w.is_current && <div className="text-secondary text-xs font-semibold">This week</div>}
-                      {note && <div className="text-default-400 max-w-72 truncate text-xs">{note}</div>}
+                      {note && <div className="text-default-500 max-w-72 truncate text-xs">{note}</div>}
                     </td>
                     <td>
                       <span className={cn('badge badge-label', statusBadge[w.status] ?? 'bg-light text-default-600')}>{w.status_label}</span>
@@ -601,7 +601,7 @@ const TimesheetsTab = ({ property, weeks, can }: { property: Property; weeks: We
               })
             ) : (
               <tr>
-                <td colSpan={9} className="text-default-400 py-4 text-center">
+                <td colSpan={9} className="text-default-500 py-4 text-center">
                   {weeks.length ? 'No weeks match this filter.' : 'No weeks yet.'}
                 </td>
               </tr>
@@ -611,7 +611,7 @@ const TimesheetsTab = ({ property, weeks, can }: { property: Property; weeks: We
       </div>
 
       <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 text-sm">
-        <span className="text-default-400">Showing the latest {weeks.length} {weeks.length === 1 ? 'week' : 'weeks'}</span>
+        <span className="text-default-500">Showing the latest {weeks.length} {weeks.length === 1 ? 'week' : 'weeks'}</span>
         <Link href={`/admin/timesheets?property_id=${property.id}`} className="text-primary font-medium underline underline-offset-3">
           Full history in Timesheets
         </Link>
@@ -624,13 +624,13 @@ const TimesheetsTab = ({ property, weeks, can }: { property: Property; weeks: We
 
 /** Hours worked toward the property's direct-hire threshold, as on the Work Orders list. */
 const DirectHireCell = ({ dh }: { dh: DirectHire | null }) => {
-  if (dh === null) return <span className="text-default-400">—</span>
+  if (dh === null) return <span className="text-default-500">—</span>
   if (dh.unrestricted) return <span className="badge badge-label bg-light text-default-600">None</span>
   if (dh.eligible) return <span className="badge badge-label bg-success/15 text-success">Eligible</span>
 
   return (
     <div className="min-w-36">
-      <span className="text-default-400 mb-1 block text-xs">
+      <span className="text-default-500 mb-1 block text-xs">
         {Math.round(dh.worked_hours).toLocaleString()} of {Math.round(dh.threshold_hours).toLocaleString()} hrs
       </span>
       <span
@@ -730,7 +730,7 @@ const WorkOrdersTab = ({ property, workOrders, can }: { property: Property; work
               ))
             ) : (
               <tr>
-                <td colSpan={8} className="text-default-400 py-4 text-center">
+                <td colSpan={8} className="text-default-500 py-4 text-center">
                   {workOrders.rows.length ? 'No work orders match your search.' : 'No one is placed here right now.'}
                 </td>
               </tr>
@@ -740,7 +740,7 @@ const WorkOrdersTab = ({ property, workOrders, can }: { property: Property; work
       </div>
 
       <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4 text-sm">
-        <span className="text-default-400">
+        <span className="text-default-500">
           {workOrders.rows.length} active or suspended
           {workOrders.closed_count > 0 && ` · ${workOrders.closed_count} closed`}
         </span>
@@ -801,7 +801,7 @@ const DepartmentsTab = ({ property, departments, catalogs, can }: Pick<Props, 'p
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="text-default-400 py-4 text-center">
+                <td colSpan={5} className="text-default-500 py-4 text-center">
                   No departments yet.
                 </td>
               </tr>
@@ -951,7 +951,7 @@ const RatePanel = ({
           </div>
           <div>
             <label htmlFor="rate-ot-pay" className="form-label">
-              OT pay ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+              OT pay ($){!overrideOt && <span className="text-default-500"> · 1.5×</span>}
             </label>
             <input
               id="rate-ot-pay"
@@ -966,7 +966,7 @@ const RatePanel = ({
           </div>
           <div>
             <label htmlFor="rate-ot-bill" className="form-label">
-              OT bill ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+              OT bill ($){!overrideOt && <span className="text-default-500"> · 1.5×</span>}
             </label>
             <input
               id="rate-ot-bill"
@@ -1002,7 +1002,7 @@ const RatePanel = ({
 
         <div>
           <label htmlFor="rate-notes" className="form-label">
-            Notes <span className="text-default-400">(optional)</span>
+            Notes <span className="text-default-500">(optional)</span>
           </label>
           <textarea id="rate-notes" className="form-input" rows={2} value={data.notes} onChange={(e) => setData('notes', e.target.value)} placeholder="e.g. Per the 2027 rate sheet" />
         </div>
@@ -1094,8 +1094,8 @@ const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'pro
                 const first = firstRowOf.get(r.position_id) === r.id
                 const state = RATE_STATE[r.state](r)
                 return (
-                  <tr key={r.id} className={cn(r.state === 'past' && 'text-default-400')}>
-                    <td className={cn(first ? 'text-default-900 font-semibold' : 'text-default-400 ps-8')}>{r.position}</td>
+                  <tr key={r.id} className={cn(r.state === 'past' && 'text-default-500')}>
+                    <td className={cn(first ? 'text-default-900 font-semibold' : 'text-default-500 ps-8')}>{r.position}</td>
                     <td>
                       {first &&
                         (can.editRates ? (
@@ -1150,7 +1150,7 @@ const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'pro
               })
             ) : (
               <tr>
-                <td colSpan={9} className="text-default-400 py-6 text-center">
+                <td colSpan={9} className="text-default-500 py-6 text-center">
                   {rates.length ? 'No current rates. Turn on past rates to see the ones that ended.' : 'No rates yet. Add one so work orders can be created here.'}
                 </td>
               </tr>
@@ -1160,7 +1160,7 @@ const RatesTab = ({ property, rates, jobCodes, catalogs, can }: Pick<Props, 'pro
       </div>
 
       <div className="border-default-300 flex flex-wrap items-center justify-between gap-3 border-t px-6 py-4">
-        <p className="text-default-400 text-sm">Changing a rate adds a new dated row; running work orders keep their own rates.</p>
+        <p className="text-default-500 text-sm">Changing a rate adds a new dated row; running work orders keep their own rates.</p>
         {can.editRates && jobCodes.length > 0 && (
           <button
             type="button"
@@ -1252,7 +1252,7 @@ const ContractsTab = ({ property, contracts, catalogs, can }: Pick<Props, 'prope
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="text-default-400 py-4 text-center">
+                <td colSpan={6} className="text-default-500 py-4 text-center">
                   No contracts yet.
                 </td>
               </tr>
@@ -1344,7 +1344,7 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="text-default-400 py-4 text-center">
+                <td colSpan={3} className="text-default-500 py-4 text-center">
                   No one assigned yet.
                 </td>
               </tr>
@@ -1387,7 +1387,7 @@ const TeamTab = ({ property, assignments, catalogs, can }: Pick<Props, 'property
       )}
 
       {can.inviteUsers && (
-        <p className="text-default-400 text-sm">
+        <p className="text-default-500 text-sm">
           Person not in the list?{' '}
           <Link href={`/admin/people/invite?property_id=${property.id}`} className="text-primary underline">
             Invite a new property user
@@ -1464,7 +1464,7 @@ const HolidaysTab = ({ property, holidays, can }: Pick<Props, 'property' | 'holi
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="text-default-400 py-4 text-center">
+                <td colSpan={4} className="text-default-500 py-4 text-center">
                   No holidays in the calendar yet.
                 </td>
               </tr>
@@ -1483,7 +1483,7 @@ const HolidaysTab = ({ property, holidays, can }: Pick<Props, 'property' | 'holi
           >
             Save Holidays
           </button>
-          <p className="text-default-400 text-sm">
+          <p className="text-default-500 text-sm">
             Work on an observed holiday pays and bills at the holiday rate and never counts as overtime. Changes recompute the current open
             weeks; invoiced weeks are frozen.
           </p>
@@ -1520,7 +1520,7 @@ const HistoryTab = ({ property, history }: { property: Property; history: Histor
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="text-default-400 py-4 text-center">
+                <td colSpan={3} className="text-default-500 py-4 text-center">
                   No history yet.
                 </td>
               </tr>
@@ -1560,7 +1560,7 @@ const Field = ({ label, htmlFor, error, help, className, children }: { label: st
       {label}
     </label>
     {children}
-    {help && <p className="text-default-400 mt-1 text-xs">{help}</p>}
+    {help && <p className="text-default-500 mt-1 text-xs">{help}</p>}
     {error && <p className="text-danger mt-1 text-sm">{error}</p>}
   </div>
 )

@@ -68,14 +68,14 @@ const Pipeline = ({ pipeline }: { pipeline: NonNullable<Today['pipeline']> }) =>
           <span className={cn('mt-1 block text-2xl font-semibold tabular-nums', stage.stuck ? 'text-warning' : 'text-default-900')}>
             {stage.value}
           </span>
-          <span className={cn('mt-0.5 block text-sm', stage.stuck ? 'text-warning' : 'text-default-400')}>{stage.note}</span>
+          <span className={cn('mt-0.5 block text-sm', stage.stuck ? 'text-warning' : 'text-default-500')}>{stage.note}</span>
         </Link>
       ))}
     </div>
 
     <div className="px-6 pt-4 pb-1">
       <h5 className="text-default-900 font-semibold">Who to chase · oldest first</h5>
-      <p className="text-default-400 text-sm">Timesheets waiting on the property manager's approval.</p>
+      <p className="text-default-500 text-sm">Timesheets waiting on the property manager's approval.</p>
     </div>
 
     {pipeline.chase.length === 0 ? (
@@ -105,7 +105,7 @@ const Pipeline = ({ pipeline }: { pipeline: NonNullable<Today['pipeline']> }) =>
                 <td className="whitespace-nowrap">{row.week}</td>
                 <td>
                   {row.manager === null ? (
-                    <span className="text-default-400">No manager assigned</span>
+                    <span className="text-default-500">No manager assigned</span>
                   ) : row.managerEmail ? (
                     <a href={`mailto:${row.managerEmail}`} className="text-primary" title={`Email ${row.manager}`}>
                       {row.manager}
@@ -144,7 +144,7 @@ const ComingUp = ({ comingUp, className }: { comingUp: Today['comingUp']; classN
     className={className}
     title="Coming up · next 14 days"
     description="Placements starting or ending, and staff away."
-    footer={comingUp.total > comingUp.rows.length ? <span className="text-default-400">{comingUp.total - comingUp.rows.length} more later in the two weeks</span> : undefined}>
+    footer={comingUp.total > comingUp.rows.length ? <span className="text-default-500">{comingUp.total - comingUp.rows.length} more later in the two weeks</span> : undefined}>
     {comingUp.rows.length === 0 ? (
       <DashEmpty>Nothing scheduled in the next two weeks.</DashEmpty>
     ) : (
@@ -157,10 +157,10 @@ const ComingUp = ({ comingUp, className }: { comingUp: Today['comingUp']; classN
             </Link>
           }>
           <div className="flex items-baseline gap-4">
-            <span className="text-default-400 w-14 shrink-0 text-sm tabular-nums">{event.day}</span>
+            <span className="text-default-500 w-14 shrink-0 text-sm tabular-nums">{event.day}</span>
             <span className="min-w-0">
               <span className="text-default-900 font-medium">{event.title}</span>
-              {event.detail && <span className="text-default-400"> · {event.detail}</span>}
+              {event.detail && <span className="text-default-500"> · {event.detail}</span>}
             </span>
           </div>
         </DashRow>
@@ -182,7 +182,7 @@ const SetupGaps = ({ gaps }: { gaps: Today['setupGaps'] }) => (
           <Link href={gap.href} className="text-default-900 hover:text-primary font-medium">
             {gap.name}
           </Link>
-          {gap.top && <div className="text-default-400 truncate text-sm">{gap.top}</div>}
+          {gap.top && <div className="text-default-500 truncate text-sm">{gap.top}</div>}
         </DashRow>
       ))
     )}

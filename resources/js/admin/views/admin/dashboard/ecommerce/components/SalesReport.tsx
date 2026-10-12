@@ -94,7 +94,7 @@ const SalesReport = () => {
     <div className="card h-full">
       <div className="card-header md:py-0 pt-6 pb-0">
         <h4 className="card-title">
-          Sales Report<span className="text-default-400 text-sm font-normal ms-1">(25822 Orders)</span>
+          Sales Report<span className="text-default-500 text-sm font-normal ms-1">(25822 Orders)</span>
         </h4>
         <div>
           <nav className="flex gap-x-1" aria-label="Tabs" role="tablist" aria-orientation="horizontal">
@@ -138,7 +138,7 @@ const SalesReport = () => {
         <div className="bg-light/25 border-b border-default-300 border-dashed">
           <div className="grid md:grid-cols-3 grid-cols-2 md:gap-base text-center">
             <div>
-              <p className="text-default-400 mt-5 mb-1.25">Revenue</p>
+              <p className="text-default-500 mt-5 mb-1.25">Revenue</p>
               <h4 className="flex justify-center items-center mb-4 text-lg font-semibold">
                 <Icon icon="wallet" className="text-success me-2" />
                 <span>
@@ -147,7 +147,7 @@ const SalesReport = () => {
               </h4>
             </div>
             <div>
-              <p className="text-default-400 mt-5 mb-1.25">Orders</p>
+              <p className="text-default-500 mt-5 mb-1.25">Orders</p>
               <h4 className="flex justify-center items-center mb-4 text-lg font-semibold">
                 <Icon icon="basket" className="text-success me-2" />
                 <span>
@@ -156,7 +156,7 @@ const SalesReport = () => {
               </h4>
             </div>
             <div>
-              <p className="text-default-400 mt-5 mb-1.25">Growth Rate</p>
+              <p className="text-default-500 mt-5 mb-1.25">Growth Rate</p>
               <h4 className="flex justify-center items-center mb-4 text-lg font-semibold">
                 <Icon icon="trending-up" className="text-success me-2" />
                 <span>
@@ -169,7 +169,7 @@ const SalesReport = () => {
         <div className="p-5 pt-1.25 relative">
           <div className="absolute text-start start-2/25 p-5 z-10 max-w-87.5 hidden md:block">
             <h5 className="text-sm mb-2">Today&apos;s Earning: $8,975.30</h5>
-            <p className="text-default-400 mt-2">Property PS007 is not receiving hits. Either your site is not receiving any sessions.</p>
+            <p className="text-default-500 mt-2">Property PS007 is not receiving hits. Either your site is not receiving any sessions.</p>
           </div>
           <div>
             <div className="apex-charts">

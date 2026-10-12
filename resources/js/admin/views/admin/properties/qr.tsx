@@ -43,7 +43,7 @@ const Page = ({ property, url }: Props) => (
               <QRCodeCanvas value={url} size={260} includeMargin level="M" />
             </div>
 
-            <p className="text-default-400 mt-6 text-xs break-all">{url}</p>
+            <p className="text-default-500 mt-6 text-xs break-all">{url}</p>
           </div>
         </div>
       )}

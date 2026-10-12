@@ -123,9 +123,9 @@ const Page = ({ article, attachments, related, my_vote, can_edit }: Props) => {
                   {documents.map((d) => (
                     <li key={d.id} className="py-2 first:pt-0 last:pb-0">
                       <a href={`/admin/kb/attachments/${d.id}`} className="hover:text-primary flex items-center gap-2">
-                        <Icon icon="file-text" className="text-default-400 size-4.5 shrink-0" />
+                        <Icon icon="file-text" className="text-default-500 size-4.5 shrink-0" />
                         <span className="truncate font-medium">{d.name}</span>
-                        <span className="text-default-400 ms-auto shrink-0 text-xs">{formatSize(d.size)}</span>
+                        <span className="text-default-500 ms-auto shrink-0 text-xs">{formatSize(d.size)}</span>
                       </a>
                     </li>
                   ))}
@@ -146,7 +146,7 @@ const Page = ({ article, attachments, related, my_vote, can_edit }: Props) => {
                       <Link href={`/admin/kb/article/${r.slug}`} className="hover:text-primary font-medium">
                         {r.title}
                       </Link>
-                      {r.summary && <p className="text-default-400 truncate text-xs">{r.summary}</p>}
+                      {r.summary && <p className="text-default-500 truncate text-xs">{r.summary}</p>}
                     </li>
                   ))}
                 </ul>

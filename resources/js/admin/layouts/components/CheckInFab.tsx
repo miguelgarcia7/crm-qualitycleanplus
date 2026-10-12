@@ -260,7 +260,7 @@ const CheckInFab = () => {
                 </>
               )}
 
-              <button className="text-default-400 mt-3 w-full text-center text-sm" onClick={closeModal}>
+              <button className="text-default-500 mt-3 w-full text-center text-sm" onClick={closeModal}>
                 Cancel
               </button>
             </div>

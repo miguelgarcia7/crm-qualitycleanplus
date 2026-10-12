@@ -84,7 +84,7 @@ const Page = ({ roles, groups, total, initial }: Props) => {
           <table className="w-full min-w-[960px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
-                <th scope="col" className="text-default-400 border-default-300 w-80 border-b px-5 py-3 text-start text-xs font-semibold">
+                <th scope="col" className="text-default-500 border-default-300 w-80 border-b px-5 py-3 text-start text-xs font-semibold">
                   Permission
                 </th>
                 {roles.map((r) => (
@@ -119,9 +119,9 @@ const Page = ({ roles, groups, total, initial }: Props) => {
                           disabled={searching}
                           className="text-default-900 flex w-full items-center gap-2 px-5 py-2.5 text-start font-semibold"
                         >
-                          <Icon icon="chevron-right" className={cn('text-default-400 size-4 transition-transform', expanded && 'rotate-90')} />
+                          <Icon icon="chevron-right" className={cn('text-default-500 size-4 transition-transform', expanded && 'rotate-90')} />
                           {g.name}
-                          <span className="text-default-400 text-xs font-medium">{searching ? `${g.rows.length} of ${g.permissions.length}` : g.permissions.length}</span>
+                          <span className="text-default-500 text-xs font-medium">{searching ? `${g.rows.length} of ${g.permissions.length}` : g.permissions.length}</span>
                         </button>
                       </th>
                       {roles.map((r) => {
@@ -151,7 +151,7 @@ const Page = ({ roles, groups, total, initial }: Props) => {
                               {p.super_only && <span className="badge badge-label bg-purple/15 text-purple">Super Admin only</span>}
                               {p.scope && <span className="badge badge-label bg-default-100 text-default-500">{p.scope}</span>}
                             </div>
-                            <div className="text-default-400 font-mono text-xs">{p.key}</div>
+                            <div className="text-default-500 font-mono text-xs">{p.key}</div>
                           </td>
                           {roles.map((r) => (
                             <td key={r.key} className={cn('border-default-100 border-b text-center', col(r.key))}>
@@ -171,7 +171,7 @@ const Page = ({ roles, groups, total, initial }: Props) => {
               })}
               {visibleGroups.length === 0 && (
                 <tr>
-                  <td colSpan={roles.length + 1} className="text-default-400 px-5 py-8 text-center">
+                  <td colSpan={roles.length + 1} className="text-default-500 px-5 py-8 text-center">
                     No permission matches “{query}”.
                   </td>
                 </tr>
@@ -181,7 +181,7 @@ const Page = ({ roles, groups, total, initial }: Props) => {
         </div>
       </div>
 
-      <p className="text-default-400 mt-5 text-sm">Read from this environment's permission settings. Changing what a role can do still happens in code; this page only shows it.</p>
+      <p className="text-default-500 mt-5 text-sm">Read from this environment's permission settings. Changing what a role can do still happens in code; this page only shows it.</p>
     </>
   )
 }

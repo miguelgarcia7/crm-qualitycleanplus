@@ -34,7 +34,7 @@ const ServerPagination = ({ meta, onPageChange, itemsName = 'items', showInfo = 
         showInfo ? 'sm:justify-between' : 'sm:justify-end',
       )}>
       {showInfo && (
-        <div className="text-default-400">
+        <div className="text-default-500">
           Showing <span className="font-semibold">{meta.from ?? 0}</span> to <span className="font-semibold">{meta.to ?? 0}</span> of{' '}
           <span className="font-semibold">{meta.total.toLocaleString('en-US')}</span> {itemsName}
         </div>

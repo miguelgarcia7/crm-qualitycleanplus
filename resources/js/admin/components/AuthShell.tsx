@@ -30,14 +30,14 @@ const AuthShell = ({ title, subtitle, children, footer }: AuthShellProps) => (
                 <div className="mb-7.5 flex flex-col items-center justify-center text-center">
                   <AuthLogo />
                   <h4 className="text-default-900 mt-7.5 mb-2 text-base font-bold">{title}</h4>
-                  {subtitle && <p className="text-default-400 mx-auto w-full lg:w-3/4">{subtitle}</p>}
+                  {subtitle && <p className="text-default-500 mx-auto w-full lg:w-3/4">{subtitle}</p>}
                 </div>
 
                 {children}
 
                 {footer}
 
-                <p className="text-default-400 mt-7.5 text-center">
+                <p className="text-default-500 mt-7.5 text-center">
                   &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                 </p>
               </div>

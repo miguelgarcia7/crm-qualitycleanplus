@@ -95,7 +95,7 @@ const DataTable = <TData,>({ table, className = '', emptyMessage = 'Nothing foun
             ))
           ) : (
             <tr>
-              <td colSpan={columns.length} className="text-center text-default-400 py-3">
+              <td colSpan={columns.length} className="text-center text-default-500 py-3">
                 {emptyMessage}
               </td>
             </tr>

@@ -32,11 +32,11 @@ const PulseStat = ({ stat }: { stat: PulseStatData }) => {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {stat.href ? (
-              <Link href={stat.href} className="text-default-400 hover:text-primary mb-2 block text-sm font-medium uppercase">
+              <Link href={stat.href} className="text-default-500 hover:text-primary mb-2 block text-sm font-medium uppercase">
                 {stat.title}
               </Link>
             ) : (
-              <h5 className="text-default-400 mb-2 text-sm font-medium uppercase">{stat.title}</h5>
+              <h5 className="text-default-500 mb-2 text-sm font-medium uppercase">{stat.title}</h5>
             )}
 
             <h3 className="text-2xl font-semibold">
@@ -44,7 +44,7 @@ const PulseStat = ({ stat }: { stat: PulseStatData }) => {
             </h3>
 
             {typeof stat.change === 'number' && (
-              <p className="text-default-400 mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+              <p className="text-default-500 mt-2 flex flex-wrap items-center gap-1.5 text-sm">
                 <span className={`flex items-center gap-0.5 font-medium ${stat.change >= 0 ? 'text-success' : 'text-danger'}`}>
                   <Icon icon={stat.change >= 0 ? 'arrow-up' : 'arrow-down'} className="size-3.5" />
                   {Math.abs(stat.change)}%
@@ -54,7 +54,7 @@ const PulseStat = ({ stat }: { stat: PulseStatData }) => {
             )}
 
             {stat.sublabel && stat.change == null && (
-              <p className={`mt-2 text-sm ${stat.tone === 'warning' ? 'text-warning' : 'text-default-400'}`}>{stat.sublabel}</p>
+              <p className={`mt-2 text-sm ${stat.tone === 'warning' ? 'text-warning' : 'text-default-500'}`}>{stat.sublabel}</p>
             )}
           </div>
 

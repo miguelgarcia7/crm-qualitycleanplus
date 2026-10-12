@@ -81,7 +81,7 @@ const Page = ({ articles }: Props) => {
               {row.original.is_featured && <Icon icon="star-filled" className="text-warning me-1 inline size-3.5" />}
               {row.original.title}
             </Link>
-            {row.original.tags.length > 0 && <p className="text-default-400 truncate text-xs">{row.original.tags.join(', ')}</p>}
+            {row.original.tags.length > 0 && <p className="text-default-500 truncate text-xs">{row.original.tags.join(', ')}</p>}
           </div>
         ),
       }),

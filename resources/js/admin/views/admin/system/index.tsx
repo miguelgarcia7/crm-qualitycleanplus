@@ -158,7 +158,7 @@ const Page = ({ stats, permissions, automations, notices, timezone }: Props) => 
 
           {words.length === 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-default-400">Examples:</span>
+              <span className="text-default-500">Examples:</span>
               {SUGGESTIONS.map((s) => (
                 <button key={s} type="button" onClick={() => setQuery(s)} className="badge badge-label bg-default-100 text-default-600 hover:bg-primary hover:text-white">
                   {s}
@@ -168,7 +168,7 @@ const Page = ({ stats, permissions, automations, notices, timezone }: Props) => 
           )}
 
           {words.length > 0 && matches.length === 0 && (
-            <p className="text-default-400 mt-3 text-sm">Nothing matches “{query}”. Try a shorter word, like “invoice” or “PTO”.</p>
+            <p className="text-default-500 mt-3 text-sm">Nothing matches “{query}”. Try a shorter word, like “invoice” or “PTO”.</p>
           )}
 
           {matches.length > 0 && (
@@ -185,12 +185,12 @@ const Page = ({ stats, permissions, automations, notices, timezone }: Props) => 
                       <span className="text-default-800 font-medium">{r.title}</span>
                     )}
                     <span className="text-default-500 text-sm">{r.detail}</span>
-                    <span className="text-default-400 ms-auto text-xs">{r.tag}</span>
+                    <span className="text-default-500 ms-auto text-xs">{r.tag}</span>
                   </li>
                 ))}
               </ul>
               {matches.length > MAX_RESULTS && (
-                <p className="text-default-400 mt-2 text-sm">
+                <p className="text-default-500 mt-2 text-sm">
                   Showing {MAX_RESULTS} of {matches.length} matches. Add another word to narrow it down.
                 </p>
               )}
@@ -210,7 +210,7 @@ const Page = ({ stats, permissions, automations, notices, timezone }: Props) => 
                 {t.status ? (
                   <span className={cn('badge badge-label', t.status === 'Planned' ? 'bg-default-100 text-default-500' : 'bg-warning/15 text-warning')}>{t.status}</span>
                 ) : (
-                  <Icon icon="arrow-right" className="text-default-400 size-5" />
+                  <Icon icon="arrow-right" className="text-default-500 size-5" />
                 )}
               </div>
               <div>
@@ -222,7 +222,7 @@ const Page = ({ stats, permissions, automations, notices, timezone }: Props) => 
                   {t.stats.map((s) => (
                     <div key={s.label}>
                       <div className="text-default-800 text-xl font-semibold tabular-nums">{s.n}</div>
-                      <div className="text-default-400 text-xs">{s.label}</div>
+                      <div className="text-default-500 text-xs">{s.label}</div>
                     </div>
                   ))}
                 </div>

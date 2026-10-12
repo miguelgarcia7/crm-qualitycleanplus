@@ -33,7 +33,7 @@ const ExpiringCard = ({ data, description }: { data: Expiring; description: stri
           <Link href={row.href} className="text-default-900 hover:text-primary font-medium">
             {row.title}
           </Link>
-          <div className="text-default-400 text-sm">{row.detail}</div>
+          <div className="text-default-500 text-sm">{row.detail}</div>
         </DashRow>
       ))
     )}

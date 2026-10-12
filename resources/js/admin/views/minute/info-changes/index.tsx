@@ -34,13 +34,13 @@ const Page = ({ current, mine, can }: Props) => {
           <div className="card-header"><h4 className="card-title">Request a Change</h4></div>
           <div className="card-body p-6">
             <div className="bg-light/40 mb-4 rounded-lg p-3 text-sm">
-              <div><span className="text-default-400">Name:</span> {current.name}</div>
-              <div><span className="text-default-400">Email:</span> {current.email}</div>
-              <div><span className="text-default-400">Phone:</span> {current.phone || '—'}</div>
+              <div><span className="text-default-500">Name:</span> {current.name}</div>
+              <div><span className="text-default-500">Email:</span> {current.email}</div>
+              <div><span className="text-default-500">Phone:</span> {current.phone || '—'}</div>
             </div>
             {can.initiate ? (
               <form onSubmit={submit} className="space-y-3">
-                <p className="text-default-400 text-xs">Fill only what should change. HR will verify before it's applied.</p>
+                <p className="text-default-500 text-xs">Fill only what should change. HR will verify before it's applied.</p>
                 <div><label className="form-label">New name</label><input className="form-input" value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder={current.name} />{errors.name && <p className="text-danger mt-1 text-sm">{errors.name}</p>}</div>
                 <div><label className="form-label">New email</label><input type="email" className="form-input" value={data.email} onChange={(e) => setData('email', e.target.value)} placeholder={current.email} />{errors.email && <p className="text-danger mt-1 text-sm">{errors.email}</p>}</div>
                 <div><label className="form-label">New phone</label><input className="form-input" value={data.phone} onChange={(e) => setData('phone', e.target.value)} placeholder={current.phone ?? ''} /></div>
@@ -63,7 +63,7 @@ const Page = ({ current, mine, can }: Props) => {
                     <td>{m.created_at}</td>
                     <td><span className={`badge badge-label ${statusBadge(m.status)}`}>{m.status_label}</span></td>
                   </tr>
-                )) : <tr><td colSpan={3} className="text-default-400 py-4 text-center">No requests yet.</td></tr>}
+                )) : <tr><td colSpan={3} className="text-default-500 py-4 text-center">No requests yet.</td></tr>}
               </tbody>
             </table>
           </div>

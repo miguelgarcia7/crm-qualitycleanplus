@@ -31,7 +31,7 @@ const UserCard = () => {
         <div className="flex justify-between items-center">
           <div className="overflow-hidden">
             <h3 className="font-normal text-xl mb-2">
-              <span className="text-default-400 text-sm uppercase font-medium">Good Day,</span>
+              <span className="text-default-500 text-sm uppercase font-medium">Good Day,</span>
               <br />
               <b>{META_DATA.username}!</b>
             </h3>

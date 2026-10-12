@@ -230,7 +230,7 @@ const Page = ({ devices, properties }: Props) => {
                   Create device
                 </button>
               </form>
-              <p className="text-default-400 mt-4 text-xs">
+              <p className="text-default-500 mt-4 text-xs">
                 After creating, open{' '}
                 <Link href="/device" className="text-primary">
                   the kiosk

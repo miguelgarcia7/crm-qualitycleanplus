@@ -265,7 +265,7 @@ const Page = ({ postings, properties }: Props) => {
               </div>
             )}
           </div>
-          <p className="text-default-400 mt-3 text-xs">
+          <p className="text-default-500 mt-3 text-xs">
             Published postings appear on the public{' '}
             <Link href="/job-openings" className="text-primary">
               job board

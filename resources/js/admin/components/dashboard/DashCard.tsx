@@ -50,7 +50,7 @@ export const DashRow = ({ children, end, top }: { children: ReactNode; end?: Rea
 
 /** Shown in place of a list that has nothing in it. */
 export const DashEmpty = ({ children }: { children: ReactNode }) => (
-  <p className="text-default-400 py-4 text-sm">{children}</p>
+  <p className="text-default-500 py-4 text-sm">{children}</p>
 )
 
 export default DashCard

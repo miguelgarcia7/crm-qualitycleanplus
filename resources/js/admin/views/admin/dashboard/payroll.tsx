@@ -101,7 +101,7 @@ const PayRun = ({ run }: { run: Run }) => {
           <div className="px-6 py-5">
             <span className="text-default-500 block text-sm font-medium">Gross pay</span>
             <span className="text-default-900 mt-1 block text-2xl font-semibold tabular-nums">{money(run.gross)}</span>
-            <span className="text-default-400 block text-sm">
+            <span className="text-default-500 block text-sm">
               {plural(run.contractors, 'contractor', 'contractors')} · {hours(run.hours.regular + run.hours.overtime + run.hours.holiday + run.hours.training)}
             </span>
             <div className="mt-3">
@@ -117,10 +117,10 @@ const PayRun = ({ run }: { run: Run }) => {
             <span className={cn('mt-1 block text-2xl font-semibold tabular-nums', run.adjustments.net < 0 ? 'text-default-900' : 'text-success')}>
               {money(run.adjustments.net, true)}
             </span>
-            <span className="text-default-400 block text-sm">net change to pay</span>
+            <span className="text-default-500 block text-sm">net change to pay</span>
             <div className="mt-3">
               {run.adjustments.lines.length === 0 ? (
-                <p className="text-default-400 py-1.5 text-sm">No deductions or incentives this week.</p>
+                <p className="text-default-500 py-1.5 text-sm">No deductions or incentives this week.</p>
               ) : (
                 run.adjustments.lines.map((line) => (
                   <Line key={line.key} label={`${line.label} · ${line.count}`} value={money(line.amount, true)} className={line.amount > 0 ? 'text-success' : ''} />
@@ -137,7 +137,7 @@ const PayRun = ({ run }: { run: Run }) => {
                 <span className="text-warning block text-sm">
                   contractors at {plural(run.notApproved.properties, 'property', 'properties')} not approved yet
                 </span>
-                <p className="text-default-400 mt-3 text-sm">Their hours can still change until the property manager approves.</p>
+                <p className="text-default-500 mt-3 text-sm">Their hours can still change until the property manager approves.</p>
                 <Link href="/admin/timesheets?tab=pending&sort=submitted_at&direction=asc" className="text-primary mt-2 inline-block text-sm font-medium">
                   See what's waiting →
                 </Link>
@@ -145,7 +145,7 @@ const PayRun = ({ run }: { run: Run }) => {
             ) : (
               <>
                 <span className="text-success mt-1 block text-2xl font-semibold">Ready</span>
-                <span className="text-default-400 block text-sm">Every property with hours is approved.</span>
+                <span className="text-default-500 block text-sm">Every property with hours is approved.</span>
               </>
             )}
           </div>
@@ -165,7 +165,7 @@ const Checks = ({ data, run }: { data: Home['checks']; run: Run }) => (
     footer={
       data.total > data.rows.length ? (
         <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <span className="text-default-400">{data.total - data.rows.length} more this run</span>
+          <span className="text-default-500">{data.total - data.rows.length} more this run</span>
           <ViewAll href={`/admin/reports/payouts?week=${run.start}`}>Payouts report</ViewAll>
         </div>
       ) : undefined
@@ -228,14 +228,14 @@ const Tasks = ({ data }: { data: Home['tasks'] }) => (
           key={task.id}
           end={
             <>
-              {task.age && <span className="text-default-400 hidden text-sm whitespace-nowrap sm:inline">{task.age}</span>}
+              {task.age && <span className="text-default-500 hidden text-sm whitespace-nowrap sm:inline">{task.age}</span>}
               <Link href={task.href} className="btn btn-sm border-default-300 hover:border-default-400 border">
                 Open
               </Link>
             </>
           }>
           <div className="text-default-900 font-medium">{task.title}</div>
-          {task.detail && <div className="text-default-400 text-sm">{task.detail}</div>}
+          {task.detail && <div className="text-default-500 text-sm">{task.detail}</div>}
         </DashRow>
       ))
     )}
@@ -319,9 +319,9 @@ const StaffTimeOff = ({ data }: { data: Home['timeOff'] }) => (
       <DashEmpty>No approved time off coming up.</DashEmpty>
     ) : (
       data.rows.map((row) => (
-        <DashRow key={row.id} end={<span className={cn('text-sm whitespace-nowrap', row.when === 'this run' ? 'text-info font-medium' : 'text-default-400')}>{row.when}</span>}>
+        <DashRow key={row.id} end={<span className={cn('text-sm whitespace-nowrap', row.when === 'this run' ? 'text-info font-medium' : 'text-default-500')}>{row.when}</span>}>
           <div className="text-default-900 font-medium">{row.name}</div>
-          <div className="text-default-400 text-sm">{row.detail}</div>
+          <div className="text-default-500 text-sm">{row.detail}</div>
         </DashRow>
       ))
     )}

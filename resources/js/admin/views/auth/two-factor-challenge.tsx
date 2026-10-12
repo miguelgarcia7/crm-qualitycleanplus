@@ -30,7 +30,7 @@ const Page = () => {
             : 'Enter the 6-digit code from your authenticator app to finish signing in.'
         }
         footer={
-          <p className="text-default-400 mt-7.5 text-center">
+          <p className="text-default-500 mt-7.5 text-center">
             <button type="button" onClick={toggle} className="text-primary font-semibold underline underline-offset-4">
               {useRecovery ? 'Use an authenticator code instead' : 'Lost your device? Use a recovery code'}
             </button>

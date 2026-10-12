@@ -118,7 +118,7 @@ const Page = ({ entries, pagination, filters, options }: Props) => {
                     <td>
                       {entry.description}
                       {entry.log_name && (
-                        <span className="text-default-400 ms-1.5 text-xs capitalize">({prettyLog(entry.log_name)})</span>
+                        <span className="text-default-500 ms-1.5 text-xs capitalize">({prettyLog(entry.log_name)})</span>
                       )}
                     </td>
                     <td>
@@ -152,7 +152,7 @@ const Page = ({ entries, pagination, filters, options }: Props) => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="text-default-400 py-6 text-center">
+                  <td colSpan={5} className="text-default-500 py-6 text-center">
                     No activity matches these filters.
                   </td>
                 </tr>
@@ -163,7 +163,7 @@ const Page = ({ entries, pagination, filters, options }: Props) => {
 
         {pagination.total > 0 && (
           <div className="card-footer flex items-center justify-between">
-            <p className="text-default-400 text-sm">
+            <p className="text-default-500 text-sm">
               Showing {pagination.from}–{pagination.to} of {pagination.total.toLocaleString()} entries
             </p>
             <div className="flex gap-2">
@@ -175,7 +175,7 @@ const Page = ({ entries, pagination, filters, options }: Props) => {
               >
                 <Icon icon="chevron-left" className="size-4" /> Prev
               </button>
-              <span className="text-default-400 self-center text-sm">
+              <span className="text-default-500 self-center text-sm">
                 Page {pagination.page} of {pagination.last_page}
               </span>
               <button

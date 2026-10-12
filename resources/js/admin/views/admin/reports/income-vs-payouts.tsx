@@ -111,13 +111,13 @@ const Page = ({ filters, properties, rows, totals }: Props) => {
           ]}
           emptyMessage="No worked weeks in this range."
           footer={
-            <span className="text-default-400 text-sm">
+            <span className="text-default-500 text-sm">
               {rows.length} propert{rows.length === 1 ? 'y' : 'ies'} · {filters.from} → {filters.to}
             </span>
           }
         />
       </div>
-      <p className="text-default-400 mt-3 text-xs">
+      <p className="text-default-500 mt-3 text-xs">
         Operational truth from weekly time rollups (worked hours at snapshot rates, before invoicing adjustments and tax).
       </p>
     </>

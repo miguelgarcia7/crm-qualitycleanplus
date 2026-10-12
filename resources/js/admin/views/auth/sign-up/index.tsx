@@ -25,10 +25,10 @@ const Page = () => {
                   <div className="mb-7.5 flex flex-col items-center justify-center text-center">
                     <AuthLogo />
                     <h4 className="text-default-900 mt-7.5 mb-2 text-base font-bold">Create New Account</h4>
-                    <p className="text-default-400 mx-auto w-full lg:w-3/4">Let’s get you started. Create your account by entering your details below.</p>
+                    <p className="text-default-500 mx-auto w-full lg:w-3/4">Let’s get you started. Create your account by entering your details below.</p>
                   </div>
 
-                  <div className="grid lg:grid-cols-2 text-default-400 gap-3">
+                  <div className="grid lg:grid-cols-2 text-default-500 gap-3">
                     <div>
                       <Link href="#!" className="btn border border-default-300 text-default-900 hover:border-default-400 hover:bg-default-50 w-full">
                         <svg xmlns="http://www.w3.org/2000/svg" className="me-1" width="13.68px" height="14px" viewBox="0 0 256 262">
@@ -53,20 +53,20 @@ const Page = () => {
                     </div>
                   </div>
 
-                  <p className="relative my-5 text-center text-default-400 after:absolute after:start-0 after:end-0 after:top-2.75 after:h-0.75 after:border-t after:border-b after:border-dashed after:border-default-300">
+                  <p className="relative my-5 text-center text-default-500 after:absolute after:start-0 after:end-0 after:top-2.75 after:h-0.75 after:border-t after:border-b after:border-dashed after:border-default-300">
                     <span className="relative z-10 bg-card font-medium px-4">Continue with Email</span>
                   </p>
 
                   <SignUpForm />
 
-                  <p className="text-default-400 mt-7.5 text-center">
+                  <p className="text-default-500 mt-7.5 text-center">
                     Already have an account? {'  '}
                     <Link href="/auth/card/sign-in" className="text-primary font-semibold underline underline-offset-4">
                       Login
                     </Link>
                   </p>
 
-                  <p className="text-default-400 mt-7.5 text-center">
+                  <p className="text-default-500 mt-7.5 text-center">
                     &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                   </p>
                 </div>

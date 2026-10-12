@@ -21,7 +21,7 @@ const Page = ({ status }: Props) => {
         title="Forgot your password?"
         subtitle="Enter your email address and we’ll send you a link to set a new one."
         footer={
-          <p className="text-default-400 mt-7.5 text-center">
+          <p className="text-default-500 mt-7.5 text-center">
             Return to&nbsp;
             <Link href="/login" className="text-primary font-semibold underline underline-offset-4">
               Sign in

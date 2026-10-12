@@ -165,7 +165,7 @@ const Page = ({ invoices, pagination, filters, statuses, paymentStates, properti
                 Overdue{i.days_overdue ? ` · ${i.days_overdue} ${i.days_overdue === 1 ? 'day' : 'days'}` : ''}
               </span>
             )
-          return <span className="text-default-400">—</span>
+          return <span className="text-default-500">—</span>
         },
       }),
       columnHelper.accessor('status', {

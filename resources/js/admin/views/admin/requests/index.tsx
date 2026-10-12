@@ -190,7 +190,7 @@ const Page = ({ categories, variants, contractors, mine, queue, can }: Props) =>
           </div>
           {queue.length === 0 ? (
             <div className="card-body">
-              <p className="text-default-400 text-sm">Nothing pending.</p>
+              <p className="text-default-500 text-sm">Nothing pending.</p>
             </div>
           ) : (
             <div className="table-wrapper">
@@ -419,7 +419,7 @@ const FulfillModal = ({ request, variants, onClose }: { request: Req; variants: 
                   <option value="">Select…</option>
                   {variants.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
                 </select>
-                <p className="text-default-400 mt-1 text-xs">Create + receive the new item in Inventory first, then issue it here.</p>
+                <p className="text-default-500 mt-1 text-xs">Create + receive the new item in Inventory first, then issue it here.</p>
               </div>
             )}
             {!request.is_new_item && <p className="text-default-500 text-sm">Issue {request.quantity} × {request.item} to {request.beneficiary}?</p>}

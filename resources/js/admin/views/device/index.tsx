@@ -215,7 +215,7 @@ const Page = () => {
                 Continue
               </button>
             </form>
-            <button className="text-default-400 mt-4 w-full text-center text-xs" onClick={unpair}>
+            <button className="text-default-500 mt-4 w-full text-center text-xs" onClick={unpair}>
               Unpair tablet
             </button>
           </Card>
@@ -258,7 +258,7 @@ const Page = () => {
             <button className="btn bg-primary w-full py-2.5 font-semibold text-white disabled:opacity-50" disabled={busy || !selfie || (!openHere && !workOrderId)} onClick={submit}>
               {openHere ? 'Confirm clock out' : 'Confirm clock in'}
             </button>
-            <button className="text-default-400 mt-3 w-full text-center text-sm" onClick={nextContractor}>
+            <button className="text-default-500 mt-3 w-full text-center text-sm" onClick={nextContractor}>
               Cancel
             </button>
           </Card>

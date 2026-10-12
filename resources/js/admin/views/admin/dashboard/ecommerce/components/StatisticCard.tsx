@@ -10,13 +10,13 @@ const StatisticCard = ({ stat }: { stat: StatType }) => {
       <div className="card-body">
         <div className="flex justify-between items-start">
           <div>
-            <h5 className="text-default-400 text-sm uppercase mb-2 font-medium" title="Number of Orders">
+            <h5 className="text-default-500 text-sm uppercase mb-2 font-medium" title="Number of Orders">
               {title}
             </h5>
             <h3 className="my-5 py-1.25 text-xl">
               <CountUp start={0} end={value} prefix={prefix ?? ''} suffix={suffix ?? ''} duration={1} decimals={Number.isInteger(value) ? 0 : 2} />
             </h3>
-            <p className="text-default-400 text-sm flex items-center gap-3.25">
+            <p className="text-default-500 text-sm flex items-center gap-3.25">
               <span className={cn('flex items-center gap-1', change > 0 ? 'text-success' : 'text-danger')}>
                 {change > 0 ? <Icon icon="arrow-up" /> : <Icon icon="arrow-down" />}
                 {Math.abs(change)}%

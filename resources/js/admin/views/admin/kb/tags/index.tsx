@@ -78,7 +78,7 @@ const Page = ({ tags }: Props) => {
       }),
       columnHelper.accessor('slug', {
         header: 'Slug',
-        cell: ({ row }) => <span className="text-default-400">{row.original.slug}</span>,
+        cell: ({ row }) => <span className="text-default-500">{row.original.slug}</span>,
       }),
       columnHelper.accessor('articles_count', {
         header: 'Articles',
@@ -206,7 +206,7 @@ const Page = ({ tags }: Props) => {
                     </button>
                   )}
                 </div>
-                <p className="text-default-400 text-xs">Renaming keeps the slug (links stay stable). Tags are auto-created from the article form too.</p>
+                <p className="text-default-500 text-xs">Renaming keeps the slug (links stay stable). Tags are auto-created from the article form too.</p>
               </form>
             </div>
           </div>

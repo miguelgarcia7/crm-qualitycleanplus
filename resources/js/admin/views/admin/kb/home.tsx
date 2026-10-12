@@ -80,7 +80,7 @@ const SearchBox = () => {
           {suggestions.map((s) => (
             <Link key={s.slug} href={`/admin/kb/article/${s.slug}`} className="hover:bg-light block px-4 py-2.5">
               <p className="font-medium">{s.title}</p>
-              {s.summary && <p className="text-default-400 truncate text-xs">{s.summary}</p>}
+              {s.summary && <p className="text-default-500 truncate text-xs">{s.summary}</p>}
             </Link>
           ))}
         </div>
@@ -101,8 +101,8 @@ const ArticleListCard = ({ title, articles }: { title: string; articles: Article
             <Link href={`/admin/kb/article/${a.slug}`} className="hover:text-primary font-semibold">
               {a.title}
             </Link>
-            {a.summary && <p className="text-default-400 truncate text-sm">{a.summary}</p>}
-            <p className="text-default-400 mt-0.5 text-xs">
+            {a.summary && <p className="text-default-500 truncate text-sm">{a.summary}</p>}
+            <p className="text-default-500 mt-0.5 text-xs">
               {a.categories.map((c) => c.name).join(', ')}
               {a.published_at && ` · ${a.published_at}`}
             </p>
@@ -121,7 +121,7 @@ const Page = ({ featured, recent, categories }: Props) => (
     <div className="card mb-6">
       <div className="card-body py-8">
         <h4 className="mb-1 text-center text-lg font-bold">How can we help?</h4>
-        <p className="text-default-400 mb-4 text-center">Guides, procedures, and answers for day-to-day work.</p>
+        <p className="text-default-500 mb-4 text-center">Guides, procedures, and answers for day-to-day work.</p>
         <SearchBox />
       </div>
     </div>
@@ -136,15 +136,15 @@ const Page = ({ featured, recent, categories }: Props) => (
                   <Icon icon="folder" className="text-primary text-lg" />
                 </span>
                 {c.name}
-                <span className="text-default-400 text-xs font-normal">({c.articles_count})</span>
+                <span className="text-default-500 text-xs font-normal">({c.articles_count})</span>
               </Link>
-              {c.description && <p className="text-default-400 mt-1.5 text-sm">{c.description}</p>}
+              {c.description && <p className="text-default-500 mt-1.5 text-sm">{c.description}</p>}
               {c.children.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {c.children.map((child) => (
                     <li key={child.slug}>
                       <Link href={`/admin/kb/category/${child.slug}`} className="text-default-500 hover:text-primary text-sm">
-                        › {child.name} <span className="text-default-400 text-xs">({child.articles_count})</span>
+                        › {child.name} <span className="text-default-500 text-xs">({child.articles_count})</span>
                       </Link>
                     </li>
                   ))}
@@ -164,7 +164,7 @@ const Page = ({ featured, recent, categories }: Props) => (
     {categories.length === 0 && featured.length === 0 && recent.length === 0 && (
       <div className="card">
         <div className="card-body py-10 text-center">
-          <p className="text-default-400">Nothing published yet — check back soon.</p>
+          <p className="text-default-500">Nothing published yet — check back soon.</p>
         </div>
       </div>
     )}

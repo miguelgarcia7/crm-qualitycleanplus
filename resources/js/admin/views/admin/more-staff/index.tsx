@@ -137,7 +137,7 @@ const Page = ({ requests, history, can }: Props) => {
         {tab === 'open' ? (
           <div className="card-body space-y-3">
             {open.length === 0 && (
-              <p className="text-default-400 py-6 text-center">
+              <p className="text-default-500 py-6 text-center">
                 {requests.length === 0 ? 'No open staffing requests. Decided ones are under History.' : 'No requests match your search.'}
               </p>
             )}
@@ -150,7 +150,7 @@ const Page = ({ requests, history, can }: Props) => {
                       <p className="text-base font-semibold">
                         {plural(r.quantity_requested, r.position)} <span className="text-default-500 font-normal">at {r.property}</span>
                       </p>
-                      <p className="text-default-400 text-sm">
+                      <p className="text-default-500 text-sm">
                         {r.requested_by ?? 'Property manager'} · requested {r.requested_at} · needed by {r.by_date}{' '}
                         <span className={cn(r.is_overdue && 'text-danger font-medium')}>({due(r)})</span>
                       </p>
@@ -162,12 +162,12 @@ const Page = ({ requests, history, can }: Props) => {
                     <div className="mt-3 space-y-1 text-sm">
                       {r.reason && (
                         <p>
-                          <span className="text-default-400">Reason:</span> {r.reason}
+                          <span className="text-default-500">Reason:</span> {r.reason}
                         </p>
                       )}
                       {r.notes && (
                         <p>
-                          <span className="text-default-400">Notes from {r.requested_by?.split(' ')[0] ?? 'the PM'}:</span> {r.notes}
+                          <span className="text-default-500">Notes from {r.requested_by?.split(' ')[0] ?? 'the PM'}:</span> {r.notes}
                         </p>
                       )}
                     </div>
@@ -230,18 +230,18 @@ const Page = ({ requests, history, can }: Props) => {
                     <tr key={r.id}>
                       <td>
                         <span className="font-medium">{plural(r.quantity_requested, r.position)}</span>
-                        <p className="text-default-400 text-xs">{r.property}</p>
+                        <p className="text-default-500 text-xs">{r.property}</p>
                       </td>
                       <td>
                         {r.requested_by ?? '—'}
-                        <p className="text-default-400 text-xs">
+                        <p className="text-default-500 text-xs">
                           {r.requested_at} · needed by {r.by_date}
                         </p>
-                        {r.reason && <p className="text-default-400 text-xs italic">“{r.reason}”</p>}
+                        {r.reason && <p className="text-default-500 text-xs italic">“{r.reason}”</p>}
                       </td>
                       <td>
                         {r.quantity_fulfilled} of {r.quantity_requested}
-                        {r.placed.length > 0 && <p className="text-default-400 text-xs">{r.placed.join(', ')}</p>}
+                        {r.placed.length > 0 && <p className="text-default-500 text-xs">{r.placed.join(', ')}</p>}
                       </td>
                       <td className="max-w-64">
                         <span className={cn('badge badge-label', OUTCOME[r.status] ?? OUTCOME.cancelled)}>{r.status_label}</span>
@@ -249,13 +249,13 @@ const Page = ({ requests, history, can }: Props) => {
                       </td>
                       <td>
                         {r.decided_by ?? '—'}
-                        <p className="text-default-400 text-xs">{r.decided_at}</p>
+                        <p className="text-default-500 text-xs">{r.decided_at}</p>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="text-default-400 py-4 text-center">
+                    <td colSpan={5} className="text-default-500 py-4 text-center">
                       {history.length === 0 ? 'No decided staffing requests yet.' : 'No requests match your search.'}
                     </td>
                   </tr>

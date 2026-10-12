@@ -28,7 +28,7 @@ const TopSellingProducts = () => {
       cell: ({ row }) => (
         <>
           <h5>{row.original.name}</h5>
-          <span className="text-default-400 text-xs">By: {row.original.brand}</span>
+          <span className="text-default-500 text-xs">By: {row.original.brand}</span>
         </>
       ),
     }),
@@ -38,7 +38,7 @@ const TopSellingProducts = () => {
       cell: ({ row }) => (
         <>
           <h5>{row.original.price}</h5>
-          <span className="text-default-400 text-xs">Price</span>
+          <span className="text-default-500 text-xs">Price</span>
         </>
       ),
     }),
@@ -48,7 +48,7 @@ const TopSellingProducts = () => {
       cell: ({ row }) => (
         <>
           <h5>{row.original.quantity}</h5>
-          <span className="text-default-400 text-xs">Quantity</span>
+          <span className="text-default-500 text-xs">Quantity</span>
         </>
       ),
     }),
@@ -58,7 +58,7 @@ const TopSellingProducts = () => {
       cell: ({ row }) => (
         <>
           <h5>{row.original.amount}</h5>
-          <span className="text-default-400 text-xs">Amount</span>
+          <span className="text-default-500 text-xs">Amount</span>
         </>
       ),
     }),

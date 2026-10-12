@@ -61,7 +61,7 @@ const Page = () => {
         <div className="card">
           <div className="card-header block">
             <h4 className="card-title mb-1.25">Overview</h4>
-            <p className="text-default-400">Free and open source icons designed to make your website or app attractive, visually consistent and simply beautiful.</p>
+            <p className="text-default-500">Free and open source icons designed to make your website or app attractive, visually consistent and simply beautiful.</p>
           </div>
 
           <div className="card-body">

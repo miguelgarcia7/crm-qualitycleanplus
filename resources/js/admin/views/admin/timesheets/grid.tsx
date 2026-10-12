@@ -149,7 +149,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
               {gpsFlagged} {gpsFlagged === 1 ? 'punch was' : 'punches were'} recorded without verified GPS.
             </span>
           )}
-          <span className="text-default-400 mt-2 block">
+          <span className="text-default-500 mt-2 block">
             The week is locked while it is with them — further punches need the timesheet to be declined first.
           </span>
         </>
@@ -194,7 +194,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
           </strong>{' '}
           punch for <strong className="text-default-900">{contractor ?? 'this contractor'}</strong> on{' '}
           <strong className="text-default-900">{dayLabel(date)}</strong>?
-          <span className="text-default-400 mt-2 block">This cannot be undone, and the week&apos;s hours will be recalculated.</span>
+          <span className="text-default-500 mt-2 block">This cannot be undone, and the week&apos;s hours will be recalculated.</span>
         </>
       ),
       onConfirm: () => router.delete(`/admin/time-entries/${entry.id}`, keep),
@@ -210,7 +210,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
             {money(adjustment.value)} {adjustment.type}
           </strong>{' '}
           for <strong className="text-default-900">{adjustment.person}</strong>?
-          <span className="text-default-400 mt-2 block">
+          <span className="text-default-500 mt-2 block">
             This cannot be undone{adjustment.is_billable ? ', and it will no longer be billed to the property' : ''}.
           </span>
         </>
@@ -261,7 +261,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
               <div className="text-default-900 text-base font-semibold whitespace-nowrap">
                 {monthDay(week.start)} – {monthDay(week.end)}, {week.end.slice(0, 4)}
               </div>
-              <div className="text-default-400 text-xs">Times in {timezoneName(property.timezone)}</div>
+              <div className="text-default-500 text-xs">Times in {timezoneName(property.timezone)}</div>
             </div>
             <button className="btn btn-icon hover:bg-light" onClick={() => goToWeek(addDays(week.start, 7))} aria-label="Next week" title="Next week">
               <Icon icon="chevron-right" className="size-5" />
@@ -326,7 +326,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
 
       {!period ? (
         <div className="card">
-          <div className="card-body text-default-400 p-6">No payroll period for this week yet.</div>
+          <div className="card-body text-default-500 p-6">No payroll period for this week yet.</div>
         </div>
       ) : (
         <>
@@ -369,7 +369,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                   </button>
                 ))}
               </div>
-              <div className="text-default-400 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <div className="text-default-500 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="bg-secondary size-2 rounded-sm" /> Over 10 h in a day
                 </span>
@@ -391,7 +391,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                   <col className="w-28" />
                 </colgroup>
                 <thead>
-                  <tr className="border-default-300 text-default-400 border-b text-xs uppercase">
+                  <tr className="border-default-300 text-default-500 border-b text-xs uppercase">
                     <th className="bg-card sticky left-0 z-[1] py-2.5 ps-5 text-start font-medium">Contractor</th>
                     {week.days.map((d) => (
                       <th key={d} className={cn('px-1 py-2.5 text-center font-medium', isWeekend(d) && 'bg-light/30', d === today && 'text-primary')}>
@@ -451,14 +451,14 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                           </td>
                           <td className="py-1 pe-5 ps-2 text-end whitespace-nowrap tabular-nums">
                             <div className="text-default-900 font-medium">{money(w.pay)}</div>
-                            <div className="text-default-400 text-xs">{money(w.bill)}</div>
+                            <div className="text-default-500 text-xs">{money(w.bill)}</div>
                           </td>
                         </tr>
                       )
                     })
                   ) : (
                     <tr>
-                      <td colSpan={week.days.length + 3} className="text-default-400 py-4 text-center">
+                      <td colSpan={week.days.length + 3} className="text-default-500 py-4 text-center">
                         No active work orders at this property.
                       </td>
                     </tr>
@@ -467,7 +467,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                 {rows.length > 0 && (
                   <tfoot>
                     <tr className="border-default-300 bg-light/40 text-default-900 border-t font-semibold tabular-nums">
-                      <td className="bg-light/40 text-default-400 sticky left-0 z-[1] py-3 ps-5 text-xs font-medium uppercase">Daily total</td>
+                      <td className="bg-light/40 text-default-500 sticky left-0 z-[1] py-3 ps-5 text-xs font-medium uppercase">Daily total</td>
                       {week.days.map((d) => {
                         const list = dayEntries(d)
                         const onShift = new Set(list.map((e) => personOf.get(e.work_order_id))).size
@@ -476,10 +476,10 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                             {list.length ? (
                               <>
                                 {hrs(minutesOf(list))}
-                                <span className="text-default-400 block text-xs font-normal">{onShift} on shift</span>
+                                <span className="text-default-500 block text-xs font-normal">{onShift} on shift</span>
                               </>
                             ) : (
-                              <span className="text-default-400 font-normal">—</span>
+                              <span className="text-default-500 font-normal">—</span>
                             )}
                           </td>
                         )
@@ -487,7 +487,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
                       <td className="px-2 py-3 text-end">{hrs(totals.total)}</td>
                       <td className="py-3 pe-5 ps-2 text-end whitespace-nowrap">
                         {money(totals.pay)}
-                        <span className="text-default-400 block text-xs font-normal">{money(totals.bill)}</span>
+                        <span className="text-default-500 block text-xs font-normal">{money(totals.bill)}</span>
                       </td>
                     </tr>
                   </tfoot>
@@ -579,7 +579,7 @@ const WorkOrderChange = ({ row, week }: { row: Row; week: Props['week'] }) => {
 
   return (
     <>
-      <span className="text-default-400 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
+      <span className="text-default-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
         <span>{row.position}</span>
         {stoppedBy && <Chip tone="muted">{row.end_date ? `Ended ${monthDay(row.end_date)}` : row.status_label}</Chip>}
         {stoppedBy && row.pay_increase_from && <span>· pay increase from {monthDay(row.pay_increase_from)}</span>}
@@ -593,8 +593,8 @@ const WorkOrderChange = ({ row, week }: { row: Row; week: Props['week'] }) => {
       </span>
       {startsThisWeek && from !== null && to !== null && (
         <span className="mt-0.5 block text-xs tabular-nums">
-          <s className="text-default-400">{money(from)}</s> → <span className="text-success font-semibold">{money(to)}/h</span>{' '}
-          <span className="text-default-400">(+{money(to - from)})</span>
+          <s className="text-default-500">{money(from)}</s> → <span className="text-success font-semibold">{money(to)}/h</span>{' '}
+          <span className="text-default-500">(+{money(to - from)})</span>
         </span>
       )}
     </>
@@ -655,7 +655,7 @@ const DayCell = ({
             {shortClock(e.start_time)}–{e.end_time ? shortClock(e.end_time) : <span className="text-warning font-semibold">?</span>}
           </span>
         ))}
-        <span className="text-default-400 text-[11px] tabular-nums">{hrs(minutes)} h</span>
+        <span className="text-default-500 text-[11px] tabular-nums">{hrs(minutes)} h</span>
       </>
     )
   } else {
@@ -673,7 +673,7 @@ const DayCell = ({
           )}>
           {main}
         </span>
-        <span className="text-default-400 text-[11.5px] whitespace-nowrap tabular-nums">{sub}</span>
+        <span className="text-default-500 text-[11.5px] whitespace-nowrap tabular-nums">{sub}</span>
       </>
     )
   }
@@ -763,7 +763,7 @@ const DayPanel = ({
         return (
           <div key={e.id} className="space-y-3">
             {gap > 0 && (
-              <div className="text-default-400 flex items-center gap-3 text-xs">
+              <div className="text-default-500 flex items-center gap-3 text-xs">
                 <span className="bg-default-300 h-px flex-1" /> Break {gap} min <span className="bg-default-300 h-px flex-1" />
               </div>
             )}
@@ -777,7 +777,7 @@ const DayPanel = ({
                   </span>
                   <span className="text-default-900 font-medium tabular-nums">{isOpen(e) ? '—' : `${hrs(e.duration_minutes)} h`}</span>
                 </div>
-                <div className="text-default-400 mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                <div className="text-default-500 mt-1 flex flex-wrap items-center gap-1.5 text-xs">
                   {e.entry_type === 'training' ? <Chip tone="info">Training</Chip> : <span>Work</span>}
                   {isMissingOut(e, today) && <Chip tone="warning">No clock-out</Chip>}
                   {isOpen(e) && !isMissingOut(e, today) && <Chip tone="info">On the clock</Chip>}
@@ -807,7 +807,7 @@ const DayPanel = ({
         )
       })}
 
-      {!list.length && !adding && <p className="text-default-400 py-2 text-sm">No punches on {longDay(date)}.</p>}
+      {!list.length && !adding && <p className="text-default-500 py-2 text-sm">No punches on {longDay(date)}.</p>}
 
       {adding && <EntryForm workOrderId={row.work_order_id} date={date} onDone={() => setAdding(false)} />}
     </SidePanel>
@@ -867,7 +867,7 @@ const EntryForm = ({ entry, workOrderId, date, onDone }: { entry?: Entry; workOr
         </select>
         {errors.date && <p className="text-danger mt-1 text-sm">{errors.date}</p>}
       </div>
-      <p className="text-default-400 col-span-2 text-xs">A clock-out earlier than the clock-in counts as an overnight shift.</p>
+      <p className="text-default-500 col-span-2 text-xs">A clock-out earlier than the clock-in counts as an overnight shift.</p>
       <div className="col-span-2 flex justify-end gap-2">
         <button type="button" className="btn btn-sm bg-card hover:text-primary" onClick={onDone}>
           Cancel
@@ -918,7 +918,7 @@ const PersonPanel = ({
       escapeDisabled={escapeDisabled}
       toolbar={
         <div className="flex items-center justify-between">
-          <span className="text-default-400">Work order #{row.work_order_id}</span>
+          <span className="text-default-500">Work order #{row.work_order_id}</span>
           <span className="text-default-900 font-semibold tabular-nums">{hrs(summary.total)} h this week</span>
         </div>
       }
@@ -943,7 +943,7 @@ const PersonPanel = ({
                 className={cn('w-full max-w-8 rounded-t-md rounded-b-sm', m ? 'bg-primary/80 group-hover:bg-primary' : 'bg-default-300')}
                 style={{ height: `${Math.max(2, (m / tallest) * 56)}px` }}
               />
-              <span className="text-default-400">{weekday(d)}</span>
+              <span className="text-default-500">{weekday(d)}</span>
             </button>
           )
         })}
@@ -951,25 +951,25 @@ const PersonPanel = ({
 
       <SectionTitle>Week</SectionTitle>
       <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-sm tabular-nums">
-        <dt className="text-default-400">Regular</dt>
+        <dt className="text-default-500">Regular</dt>
         <dd className="text-default-900 text-end font-medium">{hrs(summary.regular)} h</dd>
-        <dt className="text-default-400">Overtime</dt>
+        <dt className="text-default-500">Overtime</dt>
         <dd className={cn('text-end font-medium', summary.overtime ? 'text-secondary' : 'text-default-900')}>{hrs(summary.overtime)} h</dd>
         {summary.holiday > 0 && (
           <>
-            <dt className="text-default-400">Holiday</dt>
+            <dt className="text-default-500">Holiday</dt>
             <dd className="text-default-900 text-end font-medium">{hrs(summary.holiday)} h</dd>
           </>
         )}
         {summary.training > 0 && (
           <>
-            <dt className="text-default-400">Training</dt>
+            <dt className="text-default-500">Training</dt>
             <dd className="text-default-900 text-end font-medium">{hrs(summary.training)} h</dd>
           </>
         )}
         {row.pay_rate !== null && row.bill_rate !== null && (
           <>
-            <dt className="text-default-400">Pay rate · bill rate</dt>
+            <dt className="text-default-500">Pay rate · bill rate</dt>
             <dd className="text-default-900 text-end font-medium">
               {money(row.pay_rate)} · {money(row.bill_rate)}
             </dd>
@@ -977,13 +977,13 @@ const PersonPanel = ({
         )}
         {row.previous_pay_rate !== null && (
           <>
-            <dt className="text-default-400">Pay rate before {monthDay(row.start_date)}</dt>
-            <dd className="text-default-400 text-end font-medium">{money(row.previous_pay_rate)}</dd>
+            <dt className="text-default-500">Pay rate before {monthDay(row.start_date)}</dt>
+            <dd className="text-default-500 text-end font-medium">{money(row.previous_pay_rate)}</dd>
           </>
         )}
-        <dt className="text-default-400">Pay</dt>
+        <dt className="text-default-500">Pay</dt>
         <dd className="text-default-900 text-end font-medium">{money(summary.pay)}</dd>
-        <dt className="text-default-400">Bill</dt>
+        <dt className="text-default-500">Bill</dt>
         <dd className="text-default-900 text-end font-medium">{money(summary.bill)}</dd>
       </dl>
 
@@ -993,8 +993,8 @@ const PersonPanel = ({
           <Chip tone={a.type === 'deduction' ? 'danger' : 'success'}>{a.type === 'deduction' ? 'Deduction' : 'Incentive'}</Chip>
           <span className="min-w-0 flex-1">
             {a.notes}
-            {a.is_billable && <span className="text-default-400"> · billed</span>}
-            {a.source_type !== 'manual' && <span className="text-default-400"> · {a.source_type.replaceAll('_', ' ')}</span>}
+            {a.is_billable && <span className="text-default-500"> · billed</span>}
+            {a.source_type !== 'manual' && <span className="text-default-500"> · {a.source_type.replaceAll('_', ' ')}</span>}
           </span>
           <span className="text-default-900 font-semibold tabular-nums">
             {a.type === 'deduction' ? '−' : '+'}
@@ -1011,14 +1011,14 @@ const PersonPanel = ({
           )}
         </div>
       ))}
-      {!adjustments.length && !adding && <p className="text-default-400 text-sm">No incentives or deductions this week.</p>}
+      {!adjustments.length && !adding && <p className="text-default-500 text-sm">No incentives or deductions this week.</p>}
       {adding && <AdjustmentForm periodId={periodId} row={row} onDone={() => setAdding(false)} />}
     </SidePanel>
   )
 }
 
 const SectionTitle = ({ children }: { children: ReactNode }) => (
-  <div className="text-default-400 pt-1 text-[11px] font-medium tracking-wider uppercase">{children}</div>
+  <div className="text-default-500 pt-1 text-[11px] font-medium tracking-wider uppercase">{children}</div>
 )
 
 const AdjustmentForm = ({ periodId, row, onDone }: { periodId: number; row: Row; onDone: () => void }) => {

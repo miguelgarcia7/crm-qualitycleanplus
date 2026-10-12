@@ -212,7 +212,7 @@ const Page = ({ testimonials, sources }: Props) => {
             )}
             <div>
               <p className="font-semibold">{row.original.name}</p>
-              <p className="text-default-400 text-xs">{row.original.source_label}</p>
+              <p className="text-default-500 text-xs">{row.original.source_label}</p>
             </div>
           </div>
         ),
@@ -356,7 +356,7 @@ const Page = ({ testimonials, sources }: Props) => {
           </div>
         )}
       </div>
-      <p className="text-default-400 mt-3 text-xs">Testimonials marked “On site” show on the public home page, newest first.</p>
+      <p className="text-default-500 mt-3 text-xs">Testimonials marked “On site” show on the public home page, newest first.</p>
 
       {modal !== null && (
         <TestimonialModal key={modal === 'new' ? 'new' : modal.id} editing={modal === 'new' ? null : modal} sources={sources} onClose={() => setModal(null)} />

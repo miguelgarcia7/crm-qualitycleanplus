@@ -77,7 +77,7 @@ const Page = ({ tasks }: Props) => {
                     <td className="font-medium">{t.workflow_type}</td>
                     <td>
                       {t.name}
-                      {t.summary && <p className="text-default-400 text-xs">{t.summary}</p>}
+                      {t.summary && <p className="text-default-500 text-xs">{t.summary}</p>}
                     </td>
                     <td><span className="badge badge-label bg-secondary/15 text-secondary">{t.step_type}</span></td>
                     <td>{t.initiator ?? '—'}</td>
@@ -97,13 +97,13 @@ const Page = ({ tasks }: Props) => {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-default-400">—</span>
+                        <span className="text-default-500">—</span>
                       )}
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={6} className="text-default-400 py-4 text-center">No pending tasks.</td></tr>
+                <tr><td colSpan={6} className="text-default-500 py-4 text-center">No pending tasks.</td></tr>
               )}
             </tbody>
           </table>

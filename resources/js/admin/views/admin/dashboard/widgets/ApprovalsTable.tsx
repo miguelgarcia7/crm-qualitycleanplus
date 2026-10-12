@@ -42,7 +42,7 @@ const ApprovalsTable = ({ approvals }: { approvals: Approvals }) => {
             <Link href={row.original.href} className="hover:text-primary font-semibold">
               {row.original.property}
             </Link>
-            {row.original.week && <span className="text-default-400 block text-xs">Week of {row.original.week}</span>}
+            {row.original.week && <span className="text-default-500 block text-xs">Week of {row.original.week}</span>}
           </>
         ),
       }),
@@ -84,7 +84,7 @@ const ApprovalsTable = ({ approvals }: { approvals: Approvals }) => {
       <div className="card-header">
         <h4 className="card-title">
           {approvals.title}
-          {approvals.total > 0 && <span className="text-default-400 ms-1 text-sm font-normal">({approvals.total} waiting)</span>}
+          {approvals.total > 0 && <span className="text-default-500 ms-1 text-sm font-normal">({approvals.total} waiting)</span>}
         </h4>
         <div>
           <Link href={approvals.viewAllHref} className="btn btn-sm border-default-300 hover:border-default-400 border font-semibold">

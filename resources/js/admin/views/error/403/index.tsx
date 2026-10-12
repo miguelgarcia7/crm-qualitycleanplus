@@ -27,7 +27,7 @@ const Page = () => {
                   <div className="p-9 text-center">
                     <div className="from-primary my-4 bg-linear-to-r to-danger bg-clip-text text-7xl font-bold text-transparent">403</div>
                     <h3 className="mb-2 text-xl font-bold uppercase">Permission Required</h3>
-                    <p className="text-default-400 mx-auto">
+                    <p className="text-default-500 mx-auto">
                       You don’t have the required permissions to view this page.
                       <br />
                       Please contact your administrator or try a different account.
@@ -42,7 +42,7 @@ const Page = () => {
                 </div>
               </div>
 
-              <p className="text-default-400 mt-7.5 text-center">
+              <p className="text-default-500 mt-7.5 text-center">
                 &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
               </p>
             </div>

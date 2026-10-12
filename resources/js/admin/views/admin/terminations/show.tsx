@@ -41,7 +41,7 @@ const workflowBadge = (status: string) =>
 /** Label/value cell for the info grids (HRM staff-profile pattern). */
 const Field = ({ label, children, span = false }: { label: string; children: React.ReactNode; span?: boolean }) => (
   <div className={span ? 'md:col-span-2' : undefined}>
-    <p className="text-default-400 mb-1.25 font-medium">{label}</p>
+    <p className="text-default-500 mb-1.25 font-medium">{label}</p>
     <p>{children}</p>
   </div>
 )
@@ -75,7 +75,7 @@ const StepRow = ({ step, isCurrent }: { step: Step; isCurrent: boolean }) => {
         <Icon icon="x" className="text-base" />
       </span>
     ) : (
-      <span className="bg-light text-default-400 flex size-8 shrink-0 items-center justify-center rounded-full">
+      <span className="bg-light text-default-500 flex size-8 shrink-0 items-center justify-center rounded-full">
         <span className="size-2 rounded-full bg-current" />
       </span>
     )
@@ -85,9 +85,9 @@ const StepRow = ({ step, isCurrent }: { step: Step; isCurrent: boolean }) => {
       {chip}
       <div className="grow">
         <p className={cn('text-sm', isCurrent && 'font-semibold')}>{step.name}</p>
-        <p className="text-default-400 text-xs capitalize">{step.actor.replace(/_/g, ' ')}</p>
+        <p className="text-default-500 text-xs capitalize">{step.actor.replace(/_/g, ' ')}</p>
       </div>
-      <span className="text-default-400 text-xs">
+      <span className="text-default-500 text-xs">
         {step.completed_at ?? (isCurrent ? <span className="badge badge-label bg-primary/15 text-primary">Current</span> : '')}
       </span>
     </li>
@@ -150,7 +150,7 @@ const Page = ({ workflow, person, record, steps, context, can }: Props) => {
                   </div>
                   <div>
                     <h5 className="font-medium">{person.name}</h5>
-                    <p className="text-default-400 mb-3 capitalize">{person.status.replace(/_/g, ' ')}</p>
+                    <p className="text-default-500 mb-3 capitalize">{person.status.replace(/_/g, ' ')}</p>
                     <span className={cn('badge badge-label', workflowBadge(workflow.status))}>{workflow.status}</span>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ const RecoverEquipment = ({ workflowId, equipment }: { workflowId: number; equip
         return (
           <div key={e.id} className="border-default-200 rounded-lg border p-3 text-sm">
             <div className="font-medium">
-              {e.label} <span className="text-default-400">×{e.quantity}</span>
+              {e.label} <span className="text-default-500">×{e.quantity}</span>
             </div>
             <div className="mt-2 flex gap-4">
               <label className="flex items-center gap-1.5">

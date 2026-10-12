@@ -97,7 +97,7 @@ const Page = ({ categories }: Props) => {
         cell: ({ row }) => (
           <div>
             <span className="font-semibold">{row.original.name}</span>
-            {row.original.description && <p className="text-default-400 max-w-60 truncate text-xs">{row.original.description}</p>}
+            {row.original.description && <p className="text-default-500 max-w-60 truncate text-xs">{row.original.description}</p>}
           </div>
         ),
       }),
@@ -218,7 +218,7 @@ const Page = ({ categories }: Props) => {
               </div>
             )}
           </div>
-          <p className="text-default-400 mt-3 text-xs">
+          <p className="text-default-500 mt-3 text-xs">
             Categories can nest (one level shown per row via Parent). Deleting is blocked while articles are attached.
           </p>
         </div>

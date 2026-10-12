@@ -105,7 +105,7 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
         <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={pick} />
       </div>
       {person.avatar && (
-        <button type="button" onClick={remove} className="text-default-400 hover:text-danger cursor-pointer text-xs">
+        <button type="button" onClick={remove} className="text-default-500 hover:text-danger cursor-pointer text-xs">
           Remove photo
         </button>
       )}
@@ -218,7 +218,7 @@ const ProfileTab = ({ person, roles }: { person: PersonInfo; roles: string[] }) 
               Email
             </label>
             <input id="email" type="email" className="form-input" value={data.email} onChange={(e) => setData('email', e.target.value)} required />
-            <p className="text-default-400 mt-1 text-xs">You use this address to sign in.</p>
+            <p className="text-default-500 mt-1 text-xs">You use this address to sign in.</p>
             {errors.email && <p className="text-danger mt-1 text-sm">{errors.email}</p>}
           </div>
         </div>
@@ -280,7 +280,7 @@ const SecurityTab = ({ email }: { email: string }) => {
               onChange={(e) => setData('password', e.target.value)}
               required
             />
-            <p className="text-default-400 mt-1 text-xs">At least 8 characters.</p>
+            <p className="text-default-500 mt-1 text-xs">At least 8 characters.</p>
             {errors.password && <p className="text-danger mt-1 text-sm">{errors.password}</p>}
           </div>
           <div>
@@ -347,7 +347,7 @@ const NotificationsTab = ({ settings }: { settings: NotificationSettings }) => {
                   {category.label}
                   {category.emails && <span className="badge badge-label bg-info/15 text-info ms-2">Email too</span>}
                 </span>
-                <span className="text-default-400 text-sm">{category.description}</span>
+                <span className="text-default-500 text-sm">{category.description}</span>
               </span>
               <input
                 type="checkbox"
@@ -396,7 +396,7 @@ const AccessTab = ({ access, onOpenNotifications }: { access: Access; onOpenNoti
         {summary.map((s) => (
           <div key={s.label} className="card mb-0">
             <div className="card-body">
-              <div className="text-default-400 text-sm">{s.label}</div>
+              <div className="text-default-500 text-sm">{s.label}</div>
               <div className="text-default-900 text-lg font-semibold tabular-nums">{s.value}</div>
               <div className="text-default-500 text-sm">{s.note}</div>
             </div>
@@ -414,12 +414,12 @@ const AccessTab = ({ access, onOpenNotifications }: { access: Access; onOpenNoti
             </label>
           </div>
           <div className="card-body divide-default-100 divide-y py-2">
-            {access.areas.length === 0 && <p className="text-default-400 py-3 text-sm">Nothing yet. An Admin assigns what each role can do.</p>}
+            {access.areas.length === 0 && <p className="text-default-500 py-3 text-sm">Nothing yet. An Admin assigns what each role can do.</p>}
             {access.areas.map((a) => (
               <div key={a.name} className="py-3.5">
                 <div className="mb-2 flex items-baseline justify-between gap-3">
                   <span className="text-default-800 font-semibold">{a.name}</span>
-                  <span className="text-default-400 text-xs tabular-nums">
+                  <span className="text-default-500 text-xs tabular-nums">
                     {a.can.length} of {a.can.length + a.cant.length}
                   </span>
                 </div>
@@ -432,7 +432,7 @@ const AccessTab = ({ access, onOpenNotifications }: { access: Access; onOpenNoti
                   ))}
                   {showCant &&
                     a.cant.map((label) => (
-                      <span key={label} className="badge badge-label border-default-300 text-default-400 border border-dashed line-through">
+                      <span key={label} className="badge badge-label border-default-300 text-default-500 border border-dashed line-through">
                         {label}
                       </span>
                     ))}
@@ -452,14 +452,14 @@ const AccessTab = ({ access, onOpenNotifications }: { access: Access; onOpenNoti
             </div>
           </div>
           <div className="card-body py-2">
-            {!access.has_email && <p className="text-default-400 py-3 text-sm">There’s no email address on your profile, so these arrive in the app only.</p>}
-            {always.length === 0 && <p className="text-default-400 py-3 text-sm">Nothing is sent to your role automatically.</p>}
+            {!access.has_email && <p className="text-default-500 py-3 text-sm">There’s no email address on your profile, so these arrive in the app only.</p>}
+            {always.length === 0 && <p className="text-default-500 py-3 text-sm">Nothing is sent to your role automatically.</p>}
             <div className="divide-default-100 divide-y">
               {always.map((n) => (
                 <div key={n.name} className="flex items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-default-800 font-medium">{n.name}</div>
-                    <div className="text-default-400 text-xs">{n.summary}</div>
+                    <div className="text-default-500 text-xs">{n.summary}</div>
                   </div>
                   {n.muted ? (
                     <span className="badge badge-label bg-default-100 text-default-500">Muted</span>

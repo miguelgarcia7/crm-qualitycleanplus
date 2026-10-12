@@ -141,7 +141,7 @@ const Page = ({ visits, filter, counts, can }: Props) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
-            <span className="text-default-400 text-sm text-nowrap">Rows per page</span>
+            <span className="text-default-500 text-sm text-nowrap">Rows per page</span>
             <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
               {[10, 25, 50].map((size) => (
                 <option key={size}>{size}</option>

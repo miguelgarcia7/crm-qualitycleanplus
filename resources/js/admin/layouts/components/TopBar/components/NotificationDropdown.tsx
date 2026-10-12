@@ -62,7 +62,7 @@ const NotificationDropdown = () => {
 
         <SimpleBar style={{ maxHeight: '300px' }}>
           {items.length === 0 ? (
-            <div className="text-default-400 flex flex-col items-center gap-2 px-4 py-8 text-sm">
+            <div className="text-default-500 flex flex-col items-center gap-2 px-4 py-8 text-sm">
               <Icon icon="bell-off" className="size-6" />
               You&apos;re all caught up.
             </div>
@@ -75,10 +75,10 @@ const NotificationDropdown = () => {
                     <Icon icon={marker.icon} className="size-4.5" />
                   </span>
                   <span className="grow">
-                    <span className={cn('block text-sm', item.read ? 'text-default-400' : 'text-body-color font-medium')}>
+                    <span className={cn('block text-sm', item.read ? 'text-default-500' : 'text-body-color font-medium')}>
                       {item.message}
                     </span>
-                    <span className="text-default-400 text-xs">{item.ago}</span>
+                    <span className="text-default-500 text-xs">{item.ago}</span>
                   </span>
                   {!item.read && <span className="bg-primary mt-2 size-2 shrink-0 rounded-full" aria-label="unread" />}
                 </Link>

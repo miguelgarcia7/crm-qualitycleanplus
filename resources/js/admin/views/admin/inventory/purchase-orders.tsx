@@ -49,7 +49,7 @@ const Page = ({ orders, variants, can }: Props) => {
                     )}
                   </td>
                 </tr>
-              )) : <tr><td colSpan={4} className="text-default-400 py-4 text-center">No purchase orders.</td></tr>}
+              )) : <tr><td colSpan={4} className="text-default-500 py-4 text-center">No purchase orders.</td></tr>}
             </tbody>
           </table>
         </div>

@@ -118,20 +118,20 @@ const Page = ({ entries }: Props) => {
             <p className="truncate" title={row.original.message ?? ''}>
               {row.original.message ?? '—'}
             </p>
-            {row.original.admin_notes && <p className="text-default-400 truncate text-xs">Note: {row.original.admin_notes}</p>}
+            {row.original.admin_notes && <p className="text-default-500 truncate text-xs">Note: {row.original.admin_notes}</p>}
           </div>
         ),
       }),
       columnHelper.accessor('person', { header: 'From' }),
       columnHelper.accessor('created_at', {
         header: 'Submitted',
-        cell: ({ row }) => <span className="text-default-400 text-xs">{row.original.created_at}</span>,
+        cell: ({ row }) => <span className="text-default-500 text-xs">{row.original.created_at}</span>,
       }),
       columnHelper.accessor('is_resolved', {
         header: 'Status',
         cell: ({ row }) =>
           row.original.is_vote ? (
-            <span className="text-default-400 text-xs">—</span>
+            <span className="text-default-500 text-xs">—</span>
           ) : (
             <span
               className={cn('badge badge-label', row.original.is_resolved ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning')}

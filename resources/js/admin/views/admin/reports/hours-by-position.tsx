@@ -103,7 +103,7 @@ const Page = ({ filters, properties, rows, totals }: Props) => {
           totals={['Total', hours(totals.regular_minutes), hours(totals.overtime_minutes), hours(totals.training_minutes), hours(totals.total_minutes), '']}
           emptyMessage="No worked weeks in this range."
           footer={
-            <span className="text-default-400 text-sm">
+            <span className="text-default-500 text-sm">
               {rows.length} position{rows.length === 1 ? '' : 's'} · {filters.from} → {filters.to}
             </span>
           }

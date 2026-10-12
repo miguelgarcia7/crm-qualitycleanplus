@@ -103,7 +103,7 @@ const SearchMultiSelect = ({
               </button>
             ))
           ) : (
-            <p className="text-default-400 px-3 py-2 text-sm">{emptyText}</p>
+            <p className="text-default-500 px-3 py-2 text-sm">{emptyText}</p>
           )}
         </div>
       )}

@@ -67,7 +67,7 @@ const Page = ({ widgets }: Props) => {
       <PageBreadcrumb title="Dashboard" subtitle="Back Office" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-default-400 flex flex-wrap items-center gap-2 text-sm">
+        <div className="text-default-500 flex flex-wrap items-center gap-2 text-sm">
           <span className="border-default-200 bg-card inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
             <Icon icon="calendar" className="size-4" />
             {context.week_label}

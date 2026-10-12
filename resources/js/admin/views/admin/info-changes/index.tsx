@@ -20,7 +20,7 @@ const FIELDS: Array<keyof Changes> = ['name', 'email', 'phone']
 const changeList = (current: QueueItem['current'], changes: Changes) =>
   FIELDS.filter((f) => changes[f] !== undefined).map((f) => (
     <div key={f} className="text-xs">
-      <span className="text-default-400 uppercase">{f}: </span>
+      <span className="text-default-500 uppercase">{f}: </span>
       <span className="line-through">{current[f] || '—'}</span> → <span className="text-success font-medium">{changes[f]}</span>
     </div>
   ))
@@ -48,7 +48,7 @@ const Page = ({ queue, mine, people, can }: Props) => {
                 {queue.length ? queue.map((q) => (
                   <tr key={q.id}>
                     <td className="font-medium">{q.person}</td>
-                    <td>{changeList(q.current, q.changes)}{q.reason && <div className="text-default-400 mt-1 text-xs italic">{q.reason}</div>}</td>
+                    <td>{changeList(q.current, q.changes)}{q.reason && <div className="text-default-500 mt-1 text-xs italic">{q.reason}</div>}</td>
                     <td>{q.requested_by ?? '—'}</td>
                     <td className="text-end whitespace-nowrap">
                       <div className="flex justify-end gap-1.5">
@@ -65,7 +65,7 @@ const Page = ({ queue, mine, people, can }: Props) => {
                       </div>
                     </td>
                   </tr>
-                )) : <tr><td colSpan={4} className="text-default-400 py-4 text-center">Nothing awaiting verification.</td></tr>}
+                )) : <tr><td colSpan={4} className="text-default-500 py-4 text-center">Nothing awaiting verification.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -87,7 +87,7 @@ const Page = ({ queue, mine, people, can }: Props) => {
                   <td>{m.created_at}</td>
                   <td><span className="badge badge-label bg-secondary/15 text-secondary">{m.status}</span></td>
                 </tr>
-              )) : <tr><td colSpan={3} className="text-default-400 py-4 text-center">No requests yet.</td></tr>}
+              )) : <tr><td colSpan={3} className="text-default-500 py-4 text-center">No requests yet.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -122,7 +122,7 @@ const OnBehalfModal = ({ people, onClose }: { people: PersonOption[]; onClose: (
               </select>
               {errors.person_id && <p className="text-danger mt-1 text-sm">{errors.person_id}</p>}
             </div>
-            <p className="text-default-400 text-xs">Fill only the fields that should change.</p>
+            <p className="text-default-500 text-xs">Fill only the fields that should change.</p>
             <div><label className="form-label">New name</label><input className="form-input" value={data.name} onChange={(e) => setData('name', e.target.value)} />{errors.name && <p className="text-danger mt-1 text-sm">{errors.name}</p>}</div>
             <div><label className="form-label">New email</label><input type="email" className="form-input" value={data.email} onChange={(e) => setData('email', e.target.value)} />{errors.email && <p className="text-danger mt-1 text-sm">{errors.email}</p>}</div>
             <div><label className="form-label">New phone</label><input className="form-input" value={data.phone} onChange={(e) => setData('phone', e.target.value)} /></div>

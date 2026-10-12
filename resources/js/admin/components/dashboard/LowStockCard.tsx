@@ -13,7 +13,7 @@ const LowStockCard = ({ data }: { data: LowStock }) => (
     footer={
       <div className="flex w-full flex-wrap items-center justify-between gap-2">
         <ViewAll href="/admin/inventory">Inventory</ViewAll>
-        {data.onOrder > 0 && <span className="text-default-400">{plural(data.onOrder, 'order', 'orders')} on the way</span>}
+        {data.onOrder > 0 && <span className="text-default-500">{plural(data.onOrder, 'order', 'orders')} on the way</span>}
       </div>
     }>
     {data.rows.length === 0 ? (
@@ -22,7 +22,7 @@ const LowStockCard = ({ data }: { data: LowStock }) => (
       data.rows.map((row) => (
         <DashRow key={row.id} end={<span className={cn('badge badge-label', row.urgent ? 'bg-danger/15 text-danger' : 'bg-warning/15 text-warning')}>Low</span>}>
           <div className="text-default-900 font-medium">{row.name}</div>
-          <div className="text-default-400 text-sm">{row.detail}</div>
+          <div className="text-default-500 text-sm">{row.detail}</div>
         </DashRow>
       ))
     )}

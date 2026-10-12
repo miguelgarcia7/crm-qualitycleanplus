@@ -59,7 +59,7 @@ const bucketIcon: Record<string, string> = {
 const PersonCell = ({ name }: { name: string }) => (
   <div className="flex items-center gap-3">
     <div className="bg-light flex size-8 shrink-0 items-center justify-center rounded-full">
-      <Icon icon="user" className="text-default-400" />
+      <Icon icon="user" className="text-default-500" />
     </div>
     {name}
   </div>
@@ -111,8 +111,8 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
                       {b.available}
                       <small className="text-2xs">h available</small>
                     </h5>
-                    <p className="text-default-400">{b.label}</p>
-                    <p className="text-default-400 text-xs">
+                    <p className="text-default-500">{b.label}</p>
+                    <p className="text-default-500 text-xs">
                       {b.pending}h pending · {b.allotted}h allotted
                     </p>
                   </div>
@@ -207,7 +207,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
           </div>
           {myRequests.length === 0 ? (
             <div className="card-body">
-              <p className="text-default-400 text-sm">No requests yet.</p>
+              <p className="text-default-500 text-sm">No requests yet.</p>
             </div>
           ) : (
             <div className="table-wrapper">
@@ -262,7 +262,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
           </div>
           {queue.length === 0 ? (
             <div className="card-body">
-              <p className="text-default-400 text-sm">Nothing awaiting approval.</p>
+              <p className="text-default-500 text-sm">Nothing awaiting approval.</p>
             </div>
           ) : (
             <div className="table-wrapper">
@@ -288,7 +288,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
                         {r.start_date} → {r.end_date}
                       </td>
                       <td>{r.hours}h</td>
-                      <td className="text-default-400">{r.reason ?? '—'}</td>
+                      <td className="text-default-500">{r.reason ?? '—'}</td>
                       <td>
                         <div className="flex justify-center gap-1.5">
                           <button
@@ -344,7 +344,7 @@ const StaffBalances = ({ others, canAdjust, onAdjust }: { others: Other[]; canAd
           header: bucket.charAt(0).toUpperCase() + bucket.slice(1),
           cell: ({ row }: { row: TableRow<Other> }) => {
             const available = availableFor(row.original, bucket)
-            return available === null ? <span className="text-default-400">—</span> : `${available}h`
+            return available === null ? <span className="text-default-500">—</span> : `${available}h`
           },
         }),
       ),
@@ -402,7 +402,7 @@ const StaffBalances = ({ others, canAdjust, onAdjust }: { others: Other[]; canAd
         </div>
         <div className="flex flex-wrap items-center gap-3 md:flex-nowrap">
           <h4 className="card-title me-auto md:hidden">Staff Balances</h4>
-          <span className="text-default-400 text-sm text-nowrap">Rows per page</span>
+          <span className="text-default-500 text-sm text-nowrap">Rows per page</span>
           <select className="form-select w-20" value={pageSize} onChange={(e) => table.setPageSize(Number(e.target.value))}>
             {[10, 25, 50].map((size) => (
               <option key={size}>{size}</option>

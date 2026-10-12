@@ -78,7 +78,7 @@ const Field = ({ label, htmlFor, error, help, children }: { label: ReactNode; ht
       {label}
     </label>
     {children}
-    {help && <p className="text-default-400 mt-1 text-xs">{help}</p>}
+    {help && <p className="text-default-500 mt-1 text-xs">{help}</p>}
     {error && <p className="text-danger mt-1 text-sm">{error}</p>}
   </div>
 )
@@ -99,7 +99,7 @@ const Section = ({ title, description, children }: { title: string; description:
 /** A read-only value in the Placement card when editing. */
 const Fixed = ({ label, children }: { label: string; children: ReactNode }) => (
   <div>
-    <div className="text-default-400 text-xs uppercase">{label}</div>
+    <div className="text-default-500 text-xs uppercase">{label}</div>
     <div className="text-default-900 font-medium">{children}</div>
   </div>
 )
@@ -360,7 +360,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                   <Fixed label="OT bill">{money(workOrder.ot_bill_rate)}</Fixed>
                 </div>
                 <div className="bg-light/60 text-default-600 mt-5 flex items-start gap-3 rounded-lg px-4 py-3 text-sm">
-                  <Icon icon="lock" className="text-default-400 mt-0.5 size-4 shrink-0" />
+                  <Icon icon="lock" className="text-default-500 mt-0.5 size-4 shrink-0" />
                   <p>
                     Rates are locked once hours are logged, so hours already worked keep the rate they were worked at. To raise them,{' '}
                     {workOrder.can_pay_increase ? (
@@ -386,7 +386,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                   <Field
                     label={
                       <>
-                        OT pay ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+                        OT pay ($){!overrideOt && <span className="text-default-500"> · 1.5×</span>}
                       </>
                     }
                     htmlFor="wo-ot-pay"
@@ -405,7 +405,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                   <Field
                     label={
                       <>
-                        OT bill ($){!overrideOt && <span className="text-default-400"> · 1.5×</span>}
+                        OT bill ($){!overrideOt && <span className="text-default-500"> · 1.5×</span>}
                       </>
                     }
                     htmlFor="wo-ot-bill"
@@ -428,7 +428,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                   Set OT rates by hand (the contract isn’t 1.5×)
                 </label>
                 {editing && (
-                  <p className="text-default-400 mt-2 text-xs">Rates can be changed until the first hours are logged. After that they lock.</p>
+                  <p className="text-default-500 mt-2 text-xs">Rates can be changed until the first hours are logged. After that they lock.</p>
                 )}
               </>
             )}
@@ -442,7 +442,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                   </p>
                 )}
                 {payVsBible !== null && bibleRate && (
-                  <p className={payVsBible === 0 ? 'text-default-400' : 'text-default-700'}>
+                  <p className={payVsBible === 0 ? 'text-default-500' : 'text-default-700'}>
                     {payVsBible === 0
                       ? `Matches ${editing ? workOrder.property : property?.name}'s current ${positionName ?? 'position'} rate.`
                       : `${money(Math.abs(payVsBible))} ${payVsBible > 0 ? 'above' : 'below'} ${editing ? workOrder.property : property?.name}'s current ${positionName ?? 'position'} pay of ${money(bibleRate.pay_rate)}.`}
@@ -486,7 +486,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                   <button type="button" className="text-danger text-sm font-medium hover:underline" onClick={closeWorkOrder}>
                     Close work order…
                   </button>
-                  <p className="text-default-400 mt-1 text-xs">Ends the placement today and records the end date.</p>
+                  <p className="text-default-500 mt-1 text-xs">Ends the placement today and records the end date.</p>
                 </div>
               )}
             </div>
@@ -515,7 +515,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                   value={data.direct_hire_threshold_hours}
                   onChange={(e) => setData('direct_hire_threshold_hours', e.target.value)}
                 />
-                <span className="text-default-400 text-sm">h</span>
+                <span className="text-default-500 text-sm">h</span>
               </div>
             </Field>
             {editing && propertyHours !== null && String(propertyHours) !== data.direct_hire_threshold_hours && (
@@ -534,7 +534,7 @@ const Page = ({ workOrder, catalogs, placingFor = null, propertyId = null }: Pro
                     <span className="text-default-900 font-semibold">{Math.round(directHire.worked_hours).toLocaleString()}</span> of{' '}
                     {directHire.threshold_hours.toLocaleString()} h worked
                   </span>
-                  <span className={directHire.eligible ? 'text-success font-semibold' : 'text-default-400'}>
+                  <span className={directHire.eligible ? 'text-success font-semibold' : 'text-default-500'}>
                     {directHire.eligible ? 'Eligible' : `${directHire.percent}%`}
                   </span>
                 </div>

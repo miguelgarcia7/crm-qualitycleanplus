@@ -46,7 +46,7 @@ const LiveRosterCard = ({ data }: { data: LiveRoster }) => {
             <Link href={`/admin/people/${row.original.person_id}`} className="hover:text-primary">
               <h5>{row.original.contractor}</h5>
             </Link>
-            <span className="text-default-400 text-xs">{row.original.property}</span>
+            <span className="text-default-500 text-xs">{row.original.property}</span>
           </>
         ),
       }),
@@ -58,7 +58,7 @@ const LiveRosterCard = ({ data }: { data: LiveRoster }) => {
               {row.original.over && <Icon icon="alert-triangle" className="me-1 inline text-sm" />}
               {row.original.elapsed}
             </h5>
-            <span className="text-default-400 text-xs">in at {row.original.started_at ?? '—'}</span>
+            <span className="text-default-500 text-xs">in at {row.original.started_at ?? '—'}</span>
           </div>
         ),
       }),
@@ -92,13 +92,13 @@ const LiveRosterCard = ({ data }: { data: LiveRoster }) => {
       {(data.overCount > 0 || data.moreCount > 0) && (
         <div className="card-footer">
           {data.overCount > 0 && (
-            <p className="text-default-400 flex items-center gap-2 text-sm">
+            <p className="text-default-500 flex items-center gap-2 text-sm">
               <Icon icon="alert-triangle" className="text-warning text-base" />
               {data.overCount} past {data.thresholdHours}h — check for a missed clock-out
             </p>
           )}
           {data.moreCount > 0 && (
-            <p className="text-default-400 mt-1 text-sm">
+            <p className="text-default-500 mt-1 text-sm">
               +{data.moreCount} more on the clock —{' '}
               <Link href={data.viewAllHref} className="text-primary">
                 see all

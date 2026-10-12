@@ -53,7 +53,7 @@ const Page = ({ assignments, can }: Props) => {
                     )}
                   </td>
                 </tr>
-              )) : <tr><td colSpan={5} className="text-default-400 py-4 text-center">No assigned equipment.</td></tr>}
+              )) : <tr><td colSpan={5} className="text-default-500 py-4 text-center">No assigned equipment.</td></tr>}
             </tbody>
           </table>
         </div>

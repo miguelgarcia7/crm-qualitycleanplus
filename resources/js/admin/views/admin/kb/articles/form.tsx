@@ -201,15 +201,15 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                 </div>
                 <div className="card-body">
                   {attachments.length === 0 ? (
-                    <p className="text-default-400 text-sm">No attachments. Images show inline on the article; documents become download links.</p>
+                    <p className="text-default-500 text-sm">No attachments. Images show inline on the article; documents become download links.</p>
                   ) : (
                     <ul className="divide-default-200 divide-y">
                       {attachments.map((a) => (
                         <li key={a.id} className="flex items-center justify-between gap-3 py-2">
                           <div className="flex min-w-0 items-center gap-2">
-                            <Icon icon={a.is_image ? 'photo' : 'file-text'} className="text-default-400 size-4.5 shrink-0" />
+                            <Icon icon={a.is_image ? 'photo' : 'file-text'} className="text-default-500 size-4.5 shrink-0" />
                             <span className="truncate font-medium">{a.name}</span>
-                            <span className="text-default-400 shrink-0 text-xs">{formatSize(a.size)}</span>
+                            <span className="text-default-500 shrink-0 text-xs">{formatSize(a.size)}</span>
                           </div>
                           <div className="flex shrink-0 gap-1.5">
                             <a
@@ -261,7 +261,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                     Cancel
                   </Link>
                 </div>
-                {!article && <p className="text-default-400 text-xs">New articles start as drafts — publish from the article page.</p>}
+                {!article && <p className="text-default-500 text-xs">New articles start as drafts — publish from the article page.</p>}
               </div>
             </div>
 
@@ -271,7 +271,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
               </div>
               <div className="card-body">
                 {categoryOptions.length === 0 ? (
-                  <p className="text-default-400 text-sm">
+                  <p className="text-default-500 text-sm">
                     No categories yet —{' '}
                     <Link href="/admin/kb/categories" className="text-primary">
                       create one
@@ -331,7 +331,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                       <option key={t} value={t} />
                     ))}
                 </datalist>
-                <p className="text-default-400 mt-1.5 text-xs">New tags are created automatically.</p>
+                <p className="text-default-500 mt-1.5 text-xs">New tags are created automatically.</p>
               </div>
             </div>
 
@@ -341,7 +341,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
                   <h4 className="card-title">Visibility</h4>
                 </div>
                 <div className="card-body">
-                  <p className="text-default-400 mb-2 text-sm">No roles selected = visible to everyone who can read the KB.</p>
+                  <p className="text-default-500 mb-2 text-sm">No roles selected = visible to everyone who can read the KB.</p>
                   <div className="space-y-1.5">
                     {roleOptions.map((r) => (
                       <div key={r.id} className="flex items-center gap-2">

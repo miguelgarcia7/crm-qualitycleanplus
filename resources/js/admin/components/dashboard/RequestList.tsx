@@ -43,7 +43,7 @@ const RequestList = ({ title, description, data, emptyText, className }: Props) 
           key={row.key}
           end={
             <>
-              {row.age && <span className="text-default-400 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>}
+              {row.age && <span className="text-default-500 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>}
               <Link href={row.action.href} className="btn btn-sm border-default-300 hover:border-default-400 border">
                 {row.action.label}
               </Link>
@@ -53,7 +53,7 @@ const RequestList = ({ title, description, data, emptyText, className }: Props) 
             <span className="badge badge-label bg-info/15 text-info mt-0.5 hidden w-28 shrink-0 justify-center sm:inline-flex">{row.type}</span>
             <div className="min-w-0">
               <div className="text-default-900 font-medium">{row.title}</div>
-              <div className="text-default-400 text-sm">
+              <div className="text-default-500 text-sm">
                 <span className="sm:hidden">{row.type} · </span>
                 {row.detail}
               </div>

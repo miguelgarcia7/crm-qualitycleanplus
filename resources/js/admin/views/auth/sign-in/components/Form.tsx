@@ -74,7 +74,7 @@ const Form = () => {
             Keep me signed in
           </label>
         </div>
-        <Link href="/forgot-password" className="text-default-400 underline underline-offset-4">
+        <Link href="/forgot-password" className="text-default-500 underline underline-offset-4">
           Forgot Password?
         </Link>
       </div>

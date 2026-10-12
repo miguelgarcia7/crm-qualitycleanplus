@@ -97,7 +97,7 @@ const PersonCell = ({ id, name, email, avatar }: { id: number; name: string; ema
     )}
     <span>
       <span className="text-dark hover:text-primary block font-semibold">{name}</span>
-      <span className="text-default-400 block text-xs">{email}</span>
+      <span className="text-default-500 block text-xs">{email}</span>
     </span>
   </Link>
 )
@@ -108,7 +108,7 @@ const PhoneLink = ({ phone }: { phone: string | null }) =>
       {phone}
     </a>
   ) : (
-    <span className="text-default-400">—</span>
+    <span className="text-default-500">—</span>
   )
 
 const StatusBadge = ({ status, label }: { status: string; label: string }) => (
@@ -201,12 +201,12 @@ const Page = ({ people, pagination, filters, counts, statuses, statusCounts, can
                   <Link href={`/admin/properties/${p.property_id}`} className="hover:text-primary">
                     {p.property}
                   </Link>
-                  {p.position && <span className="text-default-400"> · {p.position}</span>}
+                  {p.position && <span className="text-default-500"> · {p.position}</span>}
                 </li>
               ))}
             </ul>
           ) : (
-            <span className="text-default-400">No active work orders</span>
+            <span className="text-default-500">No active work orders</span>
           ),
       }),
       ...(can.recruiterColumn

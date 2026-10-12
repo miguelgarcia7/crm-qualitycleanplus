@@ -42,7 +42,7 @@ const tenure = (start: string) => {
 }
 
 const DirectHireCell = ({ dh }: { dh: DirectHire | null }) => {
-  if (dh === null) return <span className="text-default-400">—</span>
+  if (dh === null) return <span className="text-default-500">—</span>
   if (dh.unrestricted) return <Pill tone="success">No restriction</Pill>
 
   return (

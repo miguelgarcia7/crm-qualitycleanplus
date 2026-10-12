@@ -67,14 +67,14 @@ const Page = ({ batches, can }: Props) => {
     () => [
       columnHelper.accessor('id', {
         header: '#',
-        cell: ({ row }) => <span className="text-default-400">{row.original.id}</span>,
+        cell: ({ row }) => <span className="text-default-500">{row.original.id}</span>,
       }),
       columnHelper.accessor('property', {
         header: 'Property / Week',
         cell: ({ row }) => (
           <div>
             <div className="font-medium">{row.original.property ?? '—'}</div>
-            <div className="text-default-400 text-xs">{row.original.period}</div>
+            <div className="text-default-500 text-xs">{row.original.period}</div>
           </div>
         ),
       }),
@@ -96,7 +96,7 @@ const Page = ({ batches, can }: Props) => {
         cell: ({ row }) => (
           <div>
             <div>{row.original.uploaded_by ?? '—'}</div>
-            <div className="text-default-400 text-xs">{row.original.created_at}</div>
+            <div className="text-default-500 text-xs">{row.original.created_at}</div>
           </div>
         ),
       }),
@@ -109,7 +109,7 @@ const Page = ({ batches, can }: Props) => {
               {row.original.invoice.number}
             </Link>
           ) : (
-            <span className="text-default-400">—</span>
+            <span className="text-default-500">—</span>
           ),
       }),
       {

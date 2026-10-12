@@ -27,7 +27,7 @@ const Page = ({ email, token }: Props) => {
         title="Set your password"
         subtitle="Choose a password for your account. You’ll use it together with your email address to sign in."
         footer={
-          <p className="text-default-400 mt-7.5 text-center">
+          <p className="text-default-500 mt-7.5 text-center">
             Return to&nbsp;
             <Link href="/login" className="text-primary font-semibold underline underline-offset-4">
               Sign in

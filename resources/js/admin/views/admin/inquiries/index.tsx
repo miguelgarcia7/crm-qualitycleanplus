@@ -84,7 +84,7 @@ const destroy = (inquiry: Inquiry, onSuccess?: () => void) =>
 
 const Field = ({ label, children }: { label: string; children: ReactNode }) => (
   <div>
-    <dt className="text-default-400 text-xs">{label}</dt>
+    <dt className="text-default-500 text-xs">{label}</dt>
     <dd className="break-words">{children}</dd>
   </div>
 )
@@ -114,7 +114,7 @@ const InquiryModal = ({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => v
           <div>
             <h4 className="card-title" id="inquiry-modal-title">
               {inquiry.name}
-              {inquiry.company && <span className="text-default-400 font-normal"> · {inquiry.company}</span>}
+              {inquiry.company && <span className="text-default-500 font-normal"> · {inquiry.company}</span>}
             </h4>
             <p className="text-default-500 text-xs">Received {formatDateTime(inquiry.received_at)}</p>
           </div>
@@ -153,10 +153,10 @@ const InquiryModal = ({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => v
           </dl>
 
           <Field label="Message">
-            {inquiry.message ? <p className="whitespace-pre-line">{inquiry.message}</p> : <span className="text-default-400">No message.</span>}
+            {inquiry.message ? <p className="whitespace-pre-line">{inquiry.message}</p> : <span className="text-default-500">No message.</span>}
           </Field>
 
-          <div className="text-default-400 space-y-1 border-t border-dashed border-default-200 pt-3 text-xs">
+          <div className="text-default-500 space-y-1 border-t border-dashed border-default-200 pt-3 text-xs">
             {inquiry.spam_check && (
               <p className={cn(inquiry.unverified && 'text-warning')}>
                 <Icon icon={inquiry.unverified ? 'alert-triangle' : 'shield-check'} className="me-1 inline" />
@@ -225,7 +225,7 @@ const Page = ({ inquiries, open }: Props) => {
         cell: ({ row }) => (
           <button type="button" className="text-start" onClick={() => setViewingId(row.original.id)}>
             <p className={cn('font-semibold', !row.original.handled_at && 'text-default-800')}>{row.original.name}</p>
-            <p className="text-default-400 text-xs">{row.original.company ?? row.original.email}</p>
+            <p className="text-default-500 text-xs">{row.original.company ?? row.original.email}</p>
           </button>
         ),
       }),
@@ -381,7 +381,7 @@ const Page = ({ inquiries, open }: Props) => {
           </div>
         )}
       </div>
-      <p className="text-default-400 mt-3 text-xs">
+      <p className="text-default-500 mt-3 text-xs">
         Every inquiry is also emailed to the form&apos;s recipients. Mark one handled once someone has followed up.
       </p>
 

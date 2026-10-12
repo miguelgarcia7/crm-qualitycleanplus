@@ -27,7 +27,7 @@ const StatCard = ({ stat }: { stat: Stat }) => {
     <div className="card-body p-5">
       <div className="flex items-start justify-between">
         <div>
-          <h5 className="text-default-400 mb-2 text-sm font-medium uppercase">{stat.title}</h5>
+          <h5 className="text-default-500 mb-2 text-sm font-medium uppercase">{stat.title}</h5>
           <h3 className="text-2xl font-semibold">
             {typeof stat.value === 'number' ? (
               <CountUp start={0} end={stat.value} prefix={stat.prefix ?? ''} suffix={stat.suffix ?? ''} duration={1} decimals={Number.isInteger(stat.value) ? 0 : 2} />
@@ -39,9 +39,9 @@ const StatCard = ({ stat }: { stat: Stat }) => {
               </>
             )}
           </h3>
-          {stat.sublabel && <p className="text-default-400 mt-2 text-sm">{stat.sublabel}</p>}
+          {stat.sublabel && <p className="text-default-500 mt-2 text-sm">{stat.sublabel}</p>}
           {typeof stat.change === 'number' && (
-            <p className="text-default-400 mt-2 flex items-center gap-1.5 text-sm">
+            <p className="text-default-500 mt-2 flex items-center gap-1.5 text-sm">
               <span className={`flex items-center gap-0.5 font-medium ${stat.change >= 0 ? 'text-success' : 'text-danger'}`}>
                 <Icon icon={stat.change >= 0 ? 'arrow-up' : 'arrow-down'} className="size-3.5" />
                 {Math.abs(stat.change)}%

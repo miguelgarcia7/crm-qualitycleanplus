@@ -69,7 +69,7 @@ const FeedbackWidget = ({ endpoint, myVote }: { endpoint: string; myVote: string
           </button>
         </div>
 
-        {errors.feedback && <p className="text-default-400 mt-2 text-sm">{errors.feedback}</p>}
+        {errors.feedback && <p className="text-default-500 mt-2 text-sm">{errors.feedback}</p>}
 
         {showForm && (
           <form onSubmit={submitDetail} className="border-default-200 mt-4 space-y-3 border-t pt-4">

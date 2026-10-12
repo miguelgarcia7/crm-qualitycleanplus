@@ -13,7 +13,7 @@ const DirectHireCard = ({ data, description }: { data: DirectHire; description: 
   <DashCard
     title="Close to direct hire"
     description={description}
-    footer={data.total > data.rows.length ? <span className="text-default-400">{data.total - data.rows.length} more within {data.withinWeeks} weeks</span> : undefined}>
+    footer={data.total > data.rows.length ? <span className="text-default-500">{data.total - data.rows.length} more within {data.withinWeeks} weeks</span> : undefined}>
     {data.rows.length === 0 ? (
       <DashEmpty>Nobody is within {data.withinWeeks} weeks of direct hire.</DashEmpty>
     ) : (
@@ -28,7 +28,7 @@ const DirectHireCard = ({ data, description }: { data: DirectHire; description: 
           <Link href={row.href} className="text-default-900 hover:text-primary font-medium">
             {row.name}
           </Link>
-          <div className="text-default-400 text-sm">
+          <div className="text-default-500 text-sm">
             {row.property} · {row.worked.toLocaleString()} of {row.threshold.toLocaleString()} h
           </div>
         </DashRow>

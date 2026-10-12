@@ -30,7 +30,7 @@ const OnTheClockCard = ({ data }: { data: OnTheClock }) => {
         cell: ({ row }) => (
           <>
             <h5>{row.original.property}</h5>
-            <span className="text-default-400 text-xs">On shift now</span>
+            <span className="text-default-500 text-xs">On shift now</span>
           </>
         ),
       }),
@@ -39,7 +39,7 @@ const OnTheClockCard = ({ data }: { data: OnTheClock }) => {
         cell: ({ row }) => (
           <>
             <h5>{row.original.count}</h5>
-            <span className="text-default-400 text-xs">Contractors</span>
+            <span className="text-default-500 text-xs">Contractors</span>
           </>
         ),
       }),
@@ -91,7 +91,7 @@ const OnTheClockCard = ({ data }: { data: OnTheClock }) => {
 
       {data.flaggedToday > 0 && (
         <div className="card-footer">
-          <p className="text-default-400 flex items-center gap-2 text-sm">
+          <p className="text-default-500 flex items-center gap-2 text-sm">
             <Icon icon="map-pin-off" className="text-warning text-base" />
             {data.flaggedToday} {data.flaggedToday === 1 ? 'punch' : 'punches'} flagged today —{' '}
             <Link href={data.viewAllHref} className="text-primary">

@@ -37,7 +37,7 @@ const Page = () => {
           <Link key={card.href} href={card.href} className="card rounded-2xl transition hover:shadow-lg">
             <div className="card-body p-6">
               <h5 className="font-semibold">{card.title}</h5>
-              <p className="text-default-400 text-sm">{card.desc}</p>
+              <p className="text-default-500 text-sm">{card.desc}</p>
               <p className="text-primary mt-2 text-sm">Open →</p>
             </div>
           </Link>

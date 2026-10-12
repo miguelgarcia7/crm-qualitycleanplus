@@ -85,14 +85,14 @@ const Supplies = ({ data, className }: { data: NonNullable<Home['supplies']>; cl
           key={row.id}
           end={
             <>
-              {row.age && <span className="text-default-400 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>}
+              {row.age && <span className="text-default-500 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>}
               <OpenButton href="/admin/requests" primary>
                 Fill
               </OpenButton>
             </>
           }>
           <div className="text-default-900 font-medium">{row.title}</div>
-          <div className="text-default-400 text-sm">
+          <div className="text-default-500 text-sm">
             {row.detail && `${row.detail} · `}
             <span className={row.stock.short ? 'text-warning' : ''}>{row.stock.text}</span>
           </div>
@@ -110,7 +110,7 @@ const Deliveries = ({ data }: { data: NonNullable<Home['deliveries']> }) => (
       data.rows.map((row) => (
         <DashRow key={row.id} end={<OpenButton href="/admin/inventory/purchase-orders">Receive</OpenButton>}>
           <div className="text-default-900 font-medium">{row.title}</div>
-          <div className="text-default-400 text-sm">{row.detail}</div>
+          <div className="text-default-500 text-sm">{row.detail}</div>
         </DashRow>
       ))
     )}
@@ -135,7 +135,7 @@ const Terminations = ({ data }: { data: NonNullable<Home['terminations']> }) => 
               ))}
             </div>
           )}
-          {row.detail && <div className="text-default-400 text-sm">{row.detail}</div>}
+          {row.detail && <div className="text-default-500 text-sm">{row.detail}</div>}
         </DashRow>
       ))
     )}

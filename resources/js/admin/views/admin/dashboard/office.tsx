@@ -95,7 +95,7 @@ const HoursToInvoices = ({ p }: { p: Pipeline }) => {
             )}>
             <span className="text-default-500 block text-sm font-medium">{stage.label}</span>
             <span className="text-default-900 mt-1 block text-2xl font-semibold tabular-nums">{stage.value}</span>
-            <span className={cn('mt-0.5 block text-sm', stage.key === 'awaiting' && p.awaitingOverdue > 0 ? 'text-warning' : 'text-default-400')}>{stage.note}</span>
+            <span className={cn('mt-0.5 block text-sm', stage.key === 'awaiting' && p.awaitingOverdue > 0 ? 'text-warning' : 'text-default-500')}>{stage.note}</span>
           </Link>
         ))}
       </div>
@@ -164,7 +164,7 @@ const Punches = ({ data, className }: { data: Home['punches']; className?: strin
     title="Punches to fix"
     description={`Clocked in more than ${data.hours} hours ago and never clocked out.`}
     aside={data.total > 0 && <span className="badge badge-label bg-danger/15 text-danger shrink-0">{data.total} open</span>}
-    footer={data.total > data.rows.length ? <span className="text-default-400">{data.total - data.rows.length} more open punches</span> : undefined}>
+    footer={data.total > data.rows.length ? <span className="text-default-500">{data.total - data.rows.length} more open punches</span> : undefined}>
     {data.rows.length === 0 ? (
       <div className="px-6 py-2">
         <DashEmpty>No punches are left open.</DashEmpty>
@@ -193,7 +193,7 @@ const Punches = ({ data, className }: { data: Home['punches']; className?: strin
                 </td>
                 <td>{punch.property}</td>
                 <td className="whitespace-nowrap">{punch.clockedIn}</td>
-                <td>{punch.recruiter ?? <span className="text-default-400">None assigned</span>}</td>
+                <td>{punch.recruiter ?? <span className="text-default-500">None assigned</span>}</td>
                 <td className="pe-6 text-end">
                   <Link href={punch.href} className="btn btn-sm border-default-300 hover:border-default-400 border">
                     Fix
@@ -228,7 +228,7 @@ const Imports = ({ data }: { data: NonNullable<Home['imports']> }) => (
             </Link>
           }>
           <div className="text-default-900 font-medium">{row.name}</div>
-          <div className={cn('text-sm', row.in ? 'text-default-400' : 'text-warning')}>{row.detail}</div>
+          <div className={cn('text-sm', row.in ? 'text-default-500' : 'text-warning')}>{row.detail}</div>
         </DashRow>
       ))
     )}
@@ -241,9 +241,9 @@ const Supplies = ({ data }: { data: NonNullable<Home['supplies']> }) => (
       <DashEmpty>No supply requests are waiting.</DashEmpty>
     ) : (
       data.rows.map((row) => (
-        <DashRow key={row.id} end={row.age && <span className="text-default-400 text-sm whitespace-nowrap">{row.age}</span>}>
+        <DashRow key={row.id} end={row.age && <span className="text-default-500 text-sm whitespace-nowrap">{row.age}</span>}>
           <div className="text-default-900 font-medium">{row.title}</div>
-          {row.detail && <div className="text-default-400 text-sm">{row.detail}</div>}
+          {row.detail && <div className="text-default-500 text-sm">{row.detail}</div>}
         </DashRow>
       ))
     )}
@@ -256,7 +256,7 @@ const Inquiries = ({ data }: { data: NonNullable<Home['inquiries']> }) => (
       <DashEmpty>No new inquiries.</DashEmpty>
     ) : (
       data.rows.map((row) => (
-        <DashRow key={row.key} end={row.age && <span className="text-default-400 text-sm whitespace-nowrap">{row.age}</span>}>
+        <DashRow key={row.key} end={row.age && <span className="text-default-500 text-sm whitespace-nowrap">{row.age}</span>}>
           <div className="flex items-start gap-3">
             <span
               className={cn(
@@ -267,7 +267,7 @@ const Inquiries = ({ data }: { data: NonNullable<Home['inquiries']> }) => (
             </span>
             <div className="min-w-0">
               <div className="text-default-900 font-medium">{row.title}</div>
-              {row.detail && <div className="text-default-400 truncate text-sm">{row.detail}</div>}
+              {row.detail && <div className="text-default-500 truncate text-sm">{row.detail}</div>}
             </div>
           </div>
         </DashRow>

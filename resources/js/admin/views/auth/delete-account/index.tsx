@@ -34,7 +34,7 @@ const Page = () => {
                     </div>
 
                     <h4 className="mb-6 text-center text-lg font-bold">Account Deactivated</h4>
-                    <p className="text-default-400 mb-9 text-center">Your account is currently inactive. Reactivate now to regain access to all features and opportunities.</p>
+                    <p className="text-default-500 mb-9 text-center">Your account is currently inactive. Reactivate now to regain access to all features and opportunities.</p>
 
                     <div>
                       <button type="submit" className="btn bg-primary w-full py-3 font-semibold text-white hover:bg-primary-hover">
@@ -43,7 +43,7 @@ const Page = () => {
                     </div>
                   </form>
 
-                  <p className="text-default-400 mt-7.5 text-center">
+                  <p className="text-default-500 mt-7.5 text-center">
                     &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                   </p>
                 </div>

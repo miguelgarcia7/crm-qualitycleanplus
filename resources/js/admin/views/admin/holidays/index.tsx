@@ -95,7 +95,7 @@ const Page = ({ holidays, can }: Props) => {
               </table>
             </div>
           </div>
-          <p className="text-default-400 mt-3 text-xs">
+          <p className="text-default-500 mt-3 text-xs">
             Legal holidays follow their calendar rule every year (e.g. Thanksgiving = 4th Thursday of November) and can&apos;t be deleted.
             Which holidays a property observes is chosen on each property&apos;s Holidays tab. Work on an observed holiday pays and bills at
             the holiday rate and never counts as overtime.
@@ -142,7 +142,7 @@ const Page = ({ holidays, can }: Props) => {
                       {errors.day && <p className="text-danger text-sm">{errors.day}</p>}
                     </div>
                   </div>
-                  <p className="text-default-400 text-xs">Repeats on this date every year.</p>
+                  <p className="text-default-500 text-xs">Repeats on this date every year.</p>
                   <button className="btn bg-primary hover:bg-primary-hover w-full py-2 font-semibold text-white" disabled={processing}>
                     Create holiday
                   </button>

@@ -22,7 +22,7 @@ const AlertBanner = ({ alert }: { alert: PulseAlert }) => (
 
       <div className="min-w-60 flex-1">
         <h5 className="font-semibold">{alert.title}</h5>
-        <p className="text-default-400 mt-0.5 text-sm">
+        <p className="text-default-500 mt-0.5 text-sm">
           {alert.body}
           {alert.meta && <span className="text-danger ms-1 font-medium">{alert.meta}.</span>}
         </p>

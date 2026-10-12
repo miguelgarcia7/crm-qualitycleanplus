@@ -70,7 +70,7 @@ const Page = ({ positions, can }: Props) => {
         cell: ({ row }) => (
           <div>
             <span className="font-semibold">{row.original.name}</span>
-            {row.original.notes && <p className="text-default-400 max-w-60 truncate text-xs">{row.original.notes}</p>}
+            {row.original.notes && <p className="text-default-500 max-w-60 truncate text-xs">{row.original.notes}</p>}
           </div>
         ),
       }),
@@ -187,7 +187,7 @@ const Page = ({ positions, can }: Props) => {
               </div>
             )}
           </div>
-          <p className="text-default-400 mt-3 text-xs">
+          <p className="text-default-500 mt-3 text-xs">
             One canonical name per position, shared by every property — renaming here updates it everywhere. Pay &amp; bill rates are set per
             property on each property&apos;s Rates tab. Positions can&apos;t be deleted once referenced; deactivate to retire one.
           </p>

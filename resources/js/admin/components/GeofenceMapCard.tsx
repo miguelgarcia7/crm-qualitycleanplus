@@ -259,7 +259,7 @@ const GeofenceMapCard = ({
 
   if (mapFailed) {
     return (
-      <p className="text-default-400 text-sm">
+      <p className="text-default-500 text-sm">
         Map preview is unavailable — enter the coordinates manually below (right-click a location in Google Maps to copy them).
       </p>
     )
@@ -270,7 +270,7 @@ const GeofenceMapCard = ({
       <div ref={containerRef} className="border-default-200 h-120 w-full overflow-hidden rounded-lg border" />
 
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <p className="text-default-400 text-xs">
+        <p className="text-default-500 text-xs">
           Drag the pin or click the map to set the location. The circle shows the geofence — contractors can only QR clock-in inside it.
         </p>
         <button

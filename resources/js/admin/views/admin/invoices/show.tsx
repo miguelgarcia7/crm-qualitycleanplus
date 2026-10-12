@@ -87,7 +87,7 @@ const statusBadge: Record<string, string> = {
 const HoursAndRate = ({ minutes, rate }: { minutes: number; rate: number | null }) =>
   minutes > 0 && rate !== null ? (
     <>
-      {hrs(minutes)} <span className="text-default-400">| {money(rate)}</span>
+      {hrs(minutes)} <span className="text-default-500">| {money(rate)}</span>
     </>
   ) : (
     <>{hrs(minutes)}</>
@@ -96,7 +96,7 @@ const HoursAndRate = ({ minutes, rate }: { minutes: number; rate: number | null 
 /** One labelled fact in the invoice's header block. */
 const Fact = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
-    <div className="text-default-400 text-xs uppercase">{label}</div>
+    <div className="text-default-500 text-xs uppercase">{label}</div>
     <div className="text-default-900 font-medium">{children}</div>
   </div>
 )
@@ -223,11 +223,11 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
           <div className="mb-6 grid grid-cols-2 gap-6 md:grid-cols-4">
             <Fact label="From">{invoice.invoicer_snapshot.name}</Fact>
             <div>
-              <div className="text-default-400 text-xs uppercase">Bill to</div>
+              <div className="text-default-500 text-xs uppercase">Bill to</div>
               <Link href={`/admin/properties/${invoice.property_id}`} className="text-default-900 hover:text-primary font-medium">
                 {invoice.property_snapshot.name}
               </Link>
-              <div className="text-default-400 text-sm">
+              <div className="text-default-500 text-sm">
                 {invoice.property_snapshot.city} {invoice.property_snapshot.state} {invoice.property_snapshot.zip}
               </div>
             </div>
@@ -264,11 +264,11 @@ const Page = ({ invoice, can, previewNotice }: Props) => {
                   <tr key={idx}>
                     <td>
                       <span className="font-medium">{it.contractor_name}</span>
-                      <span className="text-default-400 block text-xs">{it.position_name}</span>
+                      <span className="text-default-500 block text-xs">{it.position_name}</span>
                     </td>
                     <td className="text-default-500">{it.job_code ?? '—'}</td>
                     <td className="text-end whitespace-nowrap tabular-nums">
-                      {hrs(it.regular_minutes)} <span className="text-default-400">| {money(it.bill_rate)}</span>
+                      {hrs(it.regular_minutes)} <span className="text-default-500">| {money(it.bill_rate)}</span>
                     </td>
                     <td className="text-end whitespace-nowrap tabular-nums">
                       <HoursAndRate minutes={it.overtime_minutes} rate={it.ot_bill_rate} />

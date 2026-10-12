@@ -51,7 +51,7 @@ const submit = (week: Week, timesheetId: number) =>
       <>
         Send <strong className="text-default-900">{week.property}</strong> for <strong className="text-default-900">{week.week}</strong> ({week.hours.toFixed(2)} h)
         to the property manager?
-        <span className="text-default-400 mt-2 block">The week is locked while it is with them.</span>
+        <span className="text-default-500 mt-2 block">The week is locked while it is with them.</span>
       </>
     ),
     confirmLabel: 'Send',
@@ -78,7 +78,7 @@ const LastWeek = ({ data }: { data: Home['lastWeek'] }) => {
       footer={
         data.total > 0 ? (
           <div className="flex w-full flex-wrap items-center justify-between gap-2">
-            <span className="text-default-400">{plural(data.submitted, 'property', 'properties')} already submitted</span>
+            <span className="text-default-500">{plural(data.submitted, 'property', 'properties')} already submitted</span>
             <ViewAll href="/admin/timesheets">All timesheets</ViewAll>
           </div>
         ) : undefined
@@ -118,7 +118,7 @@ const LastWeek = ({ data }: { data: Home['lastWeek'] }) => {
                     {week.openPunches > 0 ? (
                       <span className="badge badge-label bg-danger/15 text-danger">{week.openPunches} to fix</span>
                     ) : (
-                      <span className="text-default-400">None</span>
+                      <span className="text-default-500">None</span>
                     )}
                   </td>
                   <td>
@@ -153,7 +153,7 @@ const Managers = ({ data }: { data: Home['managers'] }) => (
       data.total > data.rows.length ? (
         <ViewAll href="/admin/timesheets?tab=pending&sort=submitted_at&direction=asc">View all {data.total} waiting</ViewAll>
       ) : (
-        <span className="text-default-400">Anything over {data.slaDays} days is flagged.</span>
+        <span className="text-default-500">Anything over {data.slaDays} days is flagged.</span>
       )
     }>
     {data.rows.length === 0 ? (
@@ -170,7 +170,7 @@ const Managers = ({ data }: { data: Home['managers'] }) => (
           <Link href={row.href} className="text-default-900 hover:text-primary font-medium">
             {row.property}
           </Link>
-          <div className="text-default-400 text-sm">
+          <div className="text-default-500 text-sm">
             {row.week}
             {row.manager && (
               <>
@@ -196,7 +196,7 @@ const Visits = ({ data }: { data: Home['visits'] }) => (
     title="Visits"
     description="Your properties you haven't checked in at lately."
     footer={
-      <span className="text-default-400">
+      <span className="text-default-500">
         {plural(data.thisWeek, 'visit', 'visits')} this week · {data.open > 0 ? <span className="text-warning">{data.open} left open</span> : 'none left open'}
       </span>
     }>
@@ -214,7 +214,7 @@ const Visits = ({ data }: { data: Home['visits'] }) => (
           <Link href={`/admin/properties/${row.id}`} className="text-default-900 hover:text-primary font-medium">
             {row.name}
           </Link>
-          <div className="text-default-400 text-sm">{row.lastVisit ? `Last visit ${row.lastVisit}` : 'No visit yet'}</div>
+          <div className="text-default-500 text-sm">{row.lastVisit ? `Last visit ${row.lastVisit}` : 'No visit yet'}</div>
         </DashRow>
       ))
     )}

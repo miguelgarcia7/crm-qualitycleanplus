@@ -58,7 +58,7 @@ const IdentityCard = ({
           {avatar}
           <div>
             <h5 className="font-medium">{name}</h5>
-            <p className="text-default-400 mb-3">{subtitle}</p>
+            <p className="text-default-500 mb-3">{subtitle}</p>
             <div className="flex flex-wrap gap-1.5">{badges}</div>
           </div>
         </div>
@@ -66,7 +66,7 @@ const IdentityCard = ({
 
       <div className="flex flex-col gap-y-3">{children}</div>
 
-      {footer && <p className="text-default-400 border-default-200 mt-6 border-t pt-4 text-xs">{footer}</p>}
+      {footer && <p className="text-default-500 border-default-200 mt-6 border-t pt-4 text-xs">{footer}</p>}
     </div>
   </div>
 )

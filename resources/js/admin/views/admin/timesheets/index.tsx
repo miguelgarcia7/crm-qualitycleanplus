@@ -203,7 +203,7 @@ const Page = ({ timesheets, pagination, filters, counts, oldest_pending_days, pr
             <div className="max-w-56">
               <span className={cn('badge badge-label whitespace-nowrap', statusBadge[t.status] ?? 'bg-light text-default-600')}>{t.status_label}</span>
               {t.waiting_days !== null && (
-                <span className={cn('mt-1 block text-xs whitespace-nowrap', t.waiting_days >= 3 ? 'text-warning' : 'text-default-400')}>{waiting(t.waiting_days)}</span>
+                <span className={cn('mt-1 block text-xs whitespace-nowrap', t.waiting_days >= 3 ? 'text-warning' : 'text-default-500')}>{waiting(t.waiting_days)}</span>
               )}
               {t.decline_reason && (
                 <span className="text-default-500 mt-1 block truncate text-xs" title={t.decline_reason}>
@@ -274,7 +274,7 @@ const Page = ({ timesheets, pagination, filters, counts, oldest_pending_days, pr
               )}>
               <span className="text-default-500 block text-sm font-medium">{tab.label}</span>
               <span className="text-default-900 block text-2xl font-semibold tabular-nums">{count}</span>
-              <span className={cn('block text-xs', note.warn ? 'text-warning' : 'text-default-400')}>{note.text}</span>
+              <span className={cn('block text-xs', note.warn ? 'text-warning' : 'text-default-500')}>{note.text}</span>
             </button>
           )
         })}

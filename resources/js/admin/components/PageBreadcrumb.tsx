@@ -29,7 +29,7 @@ const PageBreadcrumb = ({ title, subtitle }: PageBreadcrumbProps) => {
               <Icon icon="chevron-right" className="shrink-0 text-sm rtl:rotate-180"></Icon>
             </>
           )}
-          <Link href="" className="text-default-400 text-sm font-medium" aria-current="page">
+          <Link href="" className="text-default-500 text-sm font-medium" aria-current="page">
             {title}
           </Link>
         </div>

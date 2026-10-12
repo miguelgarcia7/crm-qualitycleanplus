@@ -32,7 +32,7 @@ const ReportTable = ({ columns, rows, totals, emptyMessage, footer }: Props) => 
       <tbody>
         {rows.length === 0 ? (
           <tr>
-            <td colSpan={columns.length} className="text-default-400 py-8 text-center">
+            <td colSpan={columns.length} className="text-default-500 py-8 text-center">
               {emptyMessage}
             </td>
           </tr>

@@ -17,31 +17,31 @@ const Megamenu = () => {
                 <ul className="list-unstyled megamenu-list">
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       Sales Dashboard
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       Marketing Dashboard
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       Finance Overview
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       User Analytics
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       Traffic Insights
                     </Link>
                   </li>
@@ -52,31 +52,31 @@ const Megamenu = () => {
                 <ul className="list-unstyled megamenu-list">
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="minus" className="align-middle me-1 text-default-400" />
+                      <Icon icon="minus" className="align-middle me-1 text-default-500" />
                       Kanban Workflow
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="minus" className="align-middle me-1 text-default-400" />
+                      <Icon icon="minus" className="align-middle me-1 text-default-500" />
                       Project Timeline
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="minus" className="align-middle me-1 text-default-400" />
+                      <Icon icon="minus" className="align-middle me-1 text-default-500" />
                       Task Management
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="minus" className="align-middle me-1 text-default-400" />
+                      <Icon icon="minus" className="align-middle me-1 text-default-500" />
                       Team Members
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="minus" className="align-middle me-1 text-default-400" />
+                      <Icon icon="minus" className="align-middle me-1 text-default-500" />
                       Assignments
                     </Link>
                   </li>
@@ -87,31 +87,31 @@ const Megamenu = () => {
                 <ul className="list-unstyled megamenu-list">
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       User Profiles
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       Access Control
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       Security Settings
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       User Groups
                     </Link>
                   </li>
                   <li>
                     <Link href="" className="dropdown-item">
-                      <Icon icon="chevron-right" className="align-middle me-1 text-default-400" />
+                      <Icon icon="chevron-right" className="align-middle me-1 text-default-500" />
                       Authentication
                     </Link>
                   </li>

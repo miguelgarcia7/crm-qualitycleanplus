@@ -27,7 +27,7 @@ const barTone: Record<PipelineStage['tone'], string> = {
 }
 
 const labelTone: Record<PipelineStage['tone'], string> = {
-  default: 'text-default-400',
+  default: 'text-default-500',
   warning: 'text-warning',
   danger: 'text-danger',
 }
@@ -42,9 +42,9 @@ const PipelineStrip = ({ pipeline }: { pipeline: Pipeline }) => (
     <div className="card-header flex flex-wrap items-baseline justify-between gap-2 p-5 pb-0">
       <h4 className="card-title">
         {pipeline.title}
-        {pipeline.subtitle && <span className="text-default-400 ms-2 text-sm font-normal">{pipeline.subtitle}</span>}
+        {pipeline.subtitle && <span className="text-default-500 ms-2 text-sm font-normal">{pipeline.subtitle}</span>}
       </h4>
-      {pipeline.note && <span className="text-default-400 text-sm">{pipeline.note}</span>}
+      {pipeline.note && <span className="text-default-500 text-sm">{pipeline.note}</span>}
     </div>
 
     <div className="card-body p-5">
@@ -59,10 +59,10 @@ const PipelineStrip = ({ pipeline }: { pipeline: Pipeline }) => (
 
               <span className={`mt-2 block text-2xl font-semibold ${stage.tone === 'warning' ? 'text-warning' : ''}`}>
                 {stage.value.toLocaleString()}
-                {stage.unit === 'hours' && <span className="text-default-400 ms-1 text-base font-normal">h</span>}
+                {stage.unit === 'hours' && <span className="text-default-500 ms-1 text-base font-normal">h</span>}
               </span>
 
-              <span className="text-default-400 mt-1 block text-sm">{stage.note}</span>
+              <span className="text-default-500 mt-1 block text-sm">{stage.note}</span>
 
               <span
                 className="bg-default-100 mt-3 flex h-1 w-full overflow-hidden rounded"

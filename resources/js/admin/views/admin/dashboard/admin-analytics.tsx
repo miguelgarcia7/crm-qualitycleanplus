@@ -52,7 +52,7 @@ const StatCard = ({ stat }: { stat: Headline }) => (
       <span
         className={cn(
           'mt-0.5 block text-sm',
-          stat.trend === 'up' ? 'text-success' : stat.trend === 'down' ? 'text-danger' : 'text-default-400',
+          stat.trend === 'up' ? 'text-success' : stat.trend === 'down' ? 'text-danger' : 'text-default-500',
         )}>
         {stat.trend === 'up' && '▲ '}
         {stat.trend === 'down' && stat.key !== 'owed' && '▼ '}
@@ -136,7 +136,7 @@ const WhoOwes = ({ owed }: { owed: Analytics['owed'] }) => {
             {owed.buckets.map((b) => (
               <div key={b.key}>
                 <div className="text-default-500">{b.label}</div>
-                <div className={cn('font-semibold tabular-nums', b.amount > 0 ? bucketTone[b.key].text : 'text-default-400')}>{dollars(b.amount)}</div>
+                <div className={cn('font-semibold tabular-nums', b.amount > 0 ? bucketTone[b.key].text : 'text-default-500')}>{dollars(b.amount)}</div>
               </div>
             ))}
           </div>
@@ -152,7 +152,7 @@ const WhoOwes = ({ owed }: { owed: Analytics['owed'] }) => {
                 </div>
               ))}
               {owed.lateCount > owed.late.length && (
-                <div className="text-default-400 pt-1">and {owed.lateCount - owed.late.length} more properties behind</div>
+                <div className="text-default-500 pt-1">and {owed.lateCount - owed.late.length} more properties behind</div>
               )}
             </div>
           )}
@@ -248,7 +248,7 @@ const HoursPerWeek = ({ weeks }: { weeks: Analytics['weeks'] }) => {
             </div>
           ))}
         </div>
-        <div className="text-default-400 mt-1.5 flex justify-between text-xs">
+        <div className="text-default-500 mt-1.5 flex justify-between text-xs">
           <span>{weeks.rows[0]?.label}</span>
           <span>This week</span>
         </div>

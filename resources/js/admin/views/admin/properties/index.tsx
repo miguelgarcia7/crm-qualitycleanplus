@@ -98,7 +98,7 @@ const Page = ({ properties, can }: Props) => {
                 {row.original.time_source === 'import' ? 'Hour import' : 'Clock-in'}
               </span>
             </div>
-            {row.original.pm_name && <div className="text-default-400 text-sm whitespace-nowrap">PM {row.original.pm_name}</div>}
+            {row.original.pm_name && <div className="text-default-500 text-sm whitespace-nowrap">PM {row.original.pm_name}</div>}
           </div>
         ),
       }),
@@ -242,7 +242,7 @@ const Page = ({ properties, can }: Props) => {
                     on ? 'border-primary bg-primary/10 text-default-900 font-semibold' : 'border-default-300 text-default-600 hover:border-default-400',
                   )}
                 >
-                  <Icon icon="alert-triangle" className={cn('size-4', count > 0 ? 'text-warning' : 'text-default-400')} />
+                  <Icon icon="alert-triangle" className={cn('size-4', count > 0 ? 'text-warning' : 'text-default-500')} />
                   {f.label}
                   <span className="font-semibold tabular-nums">{count}</span>
                 </button>

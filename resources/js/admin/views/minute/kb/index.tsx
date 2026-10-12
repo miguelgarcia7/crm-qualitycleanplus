@@ -40,7 +40,7 @@ const Page = ({ q, articles }: Props) => {
       </form>
 
       {q && (
-        <p className="text-default-400 mb-3 text-sm">
+        <p className="text-default-500 mb-3 text-sm">
           {articles.length} result{articles.length === 1 ? '' : 's'} for “{q}” —{' '}
           <Link href="/kb" className="text-primary">
             clear
@@ -52,7 +52,7 @@ const Page = ({ q, articles }: Props) => {
         {articles.length === 0 ? (
           <div className="card">
             <div className="card-body py-10 text-center">
-              <p className="text-default-400">{q ? 'No articles match your search.' : 'Nothing published yet — check back soon.'}</p>
+              <p className="text-default-500">{q ? 'No articles match your search.' : 'Nothing published yet — check back soon.'}</p>
             </div>
           </div>
         ) : (
@@ -63,8 +63,8 @@ const Page = ({ q, articles }: Props) => {
                   {a.is_featured && <Icon icon="star-filled" className="text-warning me-1 inline size-3.5" />}
                   {a.title}
                 </h5>
-                {a.summary && <p className="text-default-400 mt-1 text-sm">{a.summary}</p>}
-                {a.categories.length > 0 && <p className="text-default-400 mt-1.5 text-xs">{a.categories.join(', ')}</p>}
+                {a.summary && <p className="text-default-500 mt-1 text-sm">{a.summary}</p>}
+                {a.categories.length > 0 && <p className="text-default-500 mt-1.5 text-xs">{a.categories.join(', ')}</p>}
               </div>
             </Link>
           ))

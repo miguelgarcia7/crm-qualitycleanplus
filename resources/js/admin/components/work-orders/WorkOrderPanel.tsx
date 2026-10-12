@@ -110,7 +110,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
         <div className="flex flex-wrap items-center gap-2">
           <span className={cn('badge badge-label', statusBadge(w.status))}>{w.status_label}</span>
           {w.is_temporary_assignment && <span className="badge badge-label bg-info/15 text-info">Temporary</span>}
-          <span className="text-default-400">
+          <span className="text-default-500">
             Work order #{w.id} · {w.end_date && w.status === 'closed' ? `${longDate(w.start_date)} – ${longDate(w.end_date)}` : `Started ${longDate(w.start_date)}`}
           </span>
         </div>
@@ -153,7 +153,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
               ['OT bill', w.ot_bill_rate],
             ].map(([label, cents]) => (
               <div key={label}>
-                <dt className="text-default-400 text-xs">{label}</dt>
+                <dt className="text-default-500 text-xs">{label}</dt>
                 <dd className="text-default-900 text-base font-semibold tabular-nums">{money(cents as number)}</dd>
               </div>
             ))}
@@ -161,7 +161,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
           <p className="mt-2 text-sm">
             Margin <span className="text-default-900 font-semibold">{money(margin)}</span> an hour{w.bill_rate ? ` · ${((margin / w.bill_rate) * 100).toFixed(1)}%` : ''}
           </p>
-          {note && <p className={cn('mt-1 text-sm', note.startsWith('Matches') ? 'text-default-400' : 'text-default-700')}>{note}</p>}
+          {note && <p className={cn('mt-1 text-sm', note.startsWith('Matches') ? 'text-default-500' : 'text-default-700')}>{note}</p>}
         </Section>
 
         <Section title="Toward direct hire">
@@ -174,7 +174,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
                   <span className="text-default-900 font-semibold">{Math.round(dh.worked_hours).toLocaleString()}</span> of{' '}
                   {Math.round(dh.threshold_hours).toLocaleString()} h
                 </span>
-                {dh.eligible ? <span className="badge badge-label bg-success/15 text-success">Eligible</span> : <span className="text-default-400">{dh.percent}%</span>}
+                {dh.eligible ? <span className="badge badge-label bg-success/15 text-success">Eligible</span> : <span className="text-default-500">{dh.percent}%</span>}
               </div>
               <div
                 className="bg-default-100 mt-1.5 h-1.5 overflow-hidden rounded"
@@ -185,7 +185,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
                 aria-valuemax={100}>
                 <div className="bg-primary h-1.5" style={{ width: `${Math.max(2, dh.percent)}%` }} />
               </div>
-              {pace && <p className="text-default-400 mt-1.5 text-sm">{pace}</p>}
+              {pace && <p className="text-default-500 mt-1.5 text-sm">{pace}</p>}
             </>
           )}
         </Section>
@@ -198,7 +198,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
             </Link>
           }>
           {w.weeks.length === 0 ? (
-            <p className="text-default-400 text-sm">No hours yet.</p>
+            <p className="text-default-500 text-sm">No hours yet.</p>
           ) : (
             <ul className="divide-default-200 divide-y text-sm">
               {w.weeks.map((k) => (
@@ -208,7 +208,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
                     className="hover:bg-light/60 -mx-2 flex items-center justify-between gap-2 rounded px-2 py-1.5">
                     <span>
                       {monthDay(k.week_start)} – {monthDay(k.week_end)}
-                      {k.week_start === w.this_week_start && <span className="text-default-400 text-xs"> · this week</span>}
+                      {k.week_start === w.this_week_start && <span className="text-default-500 text-xs"> · this week</span>}
                     </span>
                     <span className="flex items-center gap-2">
                       {k.overtime_minutes > 0 && <span className="badge badge-label bg-warning/15 text-warning">{hrs(k.overtime_minutes)} OT</span>}
@@ -243,7 +243,7 @@ const WorkOrderPanel = ({ workOrder: w, onClose, onTransfer, onTemp, onCloseWork
           <ol className="space-y-1.5 text-sm">
             {w.history.map((h, i) => (
               <li key={i} className="flex gap-3">
-                <span className="text-default-400 w-24 shrink-0 tabular-nums">{longDate(h.date)}</span>
+                <span className="text-default-500 w-24 shrink-0 tabular-nums">{longDate(h.date)}</span>
                 <span>
                   {h.text}
                   {h.work_order_id && <> #{h.work_order_id}</>}

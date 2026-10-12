@@ -13,7 +13,7 @@ const NewPassForm = () => {
           <span className="text-danger">*</span>
         </label>
         <div className="input-icon-group">
-          <Icon icon="mail" className="input-icon text-default-400!" />
+          <Icon icon="mail" className="input-icon text-default-500!" />
           <input type="email" className="form-input bg-default-100" id="userEmail" placeholder="you@example.com" disabled />
         </div>
       </div>

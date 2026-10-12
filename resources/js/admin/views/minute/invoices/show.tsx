@@ -85,7 +85,7 @@ const HoursAt = ({ minutes, rate }: { minutes: number; rate: number | null }) =>
       {rate !== null && <span className="text-default-500 block text-xs">× {money(rate)}</span>}
     </>
   ) : (
-    <span className="text-default-400">—</span>
+    <span className="text-default-500">—</span>
   )
 
 const Fact = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -264,7 +264,7 @@ const Page = ({ invoice, previewNotice }: Props) => {
                     {invoice.position_summary.map((row) => (
                       <tr key={row.position} className="border-default-300 border-t tabular-nums">
                         <td className="text-default-900 px-3 py-3 font-semibold">{row.position}</td>
-                        <td className="px-3 py-3">{row.job_code ?? <span className="text-default-400">—</span>}</td>
+                        <td className="px-3 py-3">{row.job_code ?? <span className="text-default-500">—</span>}</td>
                         <td className="px-3 py-3 text-end">
                           {row.bill_rate === null ? <Pill tone="warning">Mixed</Pill> : money(row.bill_rate)}
                         </td>

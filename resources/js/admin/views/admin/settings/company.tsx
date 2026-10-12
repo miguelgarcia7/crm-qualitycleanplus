@@ -94,26 +94,26 @@ const Page = ({ invoicer, missing }: Props) => {
               <h4 className="card-title">How this is used</h4>
             </div>
             <div className="card-body p-5">
-              <p className="text-default-400 text-sm">
+              <p className="text-default-500 text-sm">
                 These details are the &ldquo;From&rdquo; block on every invoice. They are copied onto each invoice when it is generated and never
                 change afterwards, so past invoices keep the details that were correct at the time.
               </p>
-              <p className="text-default-400 mt-3 text-sm">
+              <p className="text-default-500 mt-3 text-sm">
                 That also means a correction here does <strong className="text-default-600">not</strong> reach invoices already issued. Those would
                 need to be voided and reissued.
               </p>
 
               <div className="border-default-100 mt-4 border-t pt-4">
-                <div className="text-default-400 mb-2 text-xs uppercase">Preview</div>
+                <div className="text-default-500 mb-2 text-xs uppercase">Preview</div>
                 <div className="text-sm font-medium">{data.name || '—'}</div>
-                <div className="text-default-400 text-sm">
+                <div className="text-default-500 text-sm">
                   {data.address || <span className="text-warning">No street address</span>}
                 </div>
-                <div className="text-default-400 text-sm">
+                <div className="text-default-500 text-sm">
                   {[data.city, data.state, data.zip].filter(Boolean).join(', ') || <span className="text-warning">No city, state or ZIP</span>}
                 </div>
-                <div className="text-default-400 mt-1 text-sm">{data.phone || <span className="text-warning">No phone</span>}</div>
-                <div className="text-default-400 text-sm">{data.email || <span className="text-warning">No billing email</span>}</div>
+                <div className="text-default-500 mt-1 text-sm">{data.phone || <span className="text-warning">No phone</span>}</div>
+                <div className="text-default-500 text-sm">{data.email || <span className="text-warning">No billing email</span>}</div>
               </div>
             </div>
           </div>

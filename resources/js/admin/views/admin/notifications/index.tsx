@@ -46,7 +46,7 @@ const Page = () => {
         </div>
         <div className="card-body p-0">
           {history.length === 0 ? (
-            <div className="text-default-400 flex flex-col items-center gap-2 py-16 text-sm">
+            <div className="text-default-500 flex flex-col items-center gap-2 py-16 text-sm">
               <Icon icon="bell-off" className="size-8" />
               Nothing here yet — you&apos;ll see workflow, timesheet, and contract updates as they happen.
             </div>
@@ -67,7 +67,7 @@ const Page = () => {
                         <span className={cn('block text-sm', row.read ? 'text-default-500' : 'text-body-color font-medium')}>
                           {row.message}
                         </span>
-                        <span className="text-default-400 text-xs" title={row.date ?? undefined}>
+                        <span className="text-default-500 text-xs" title={row.date ?? undefined}>
                           {row.ago}
                         </span>
                       </span>

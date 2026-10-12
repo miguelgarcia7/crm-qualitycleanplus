@@ -27,7 +27,7 @@ const Page = () => {
                 <div className="p-3 text-center">
                   <img src={maintenanceSvg} alt="Maintenance" className="mx-auto md:size-64" />
                   <h3 className="mb-2 text-xl font-bold uppercase">Site Under Maintenance</h3>
-                  <p className="text-default-400">
+                  <p className="text-default-500">
                     We’re currently performing scheduled maintenance.
                     <br />
                     Please check back soon.
@@ -38,7 +38,7 @@ const Page = () => {
                   </div>
                 </div>
 
-                <p className="text-default-400 mt-18 text-center">
+                <p className="text-default-500 mt-18 text-center">
                   &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                 </p>
               </div>

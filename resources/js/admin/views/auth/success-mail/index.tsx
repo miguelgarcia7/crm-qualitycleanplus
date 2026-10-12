@@ -42,7 +42,7 @@ const Page = () => {
                     </div>
                   </form>
 
-                  <p className="text-default-400 mt-7.5 text-center">
+                  <p className="text-default-500 mt-7.5 text-center">
                     &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                   </p>
                 </div>

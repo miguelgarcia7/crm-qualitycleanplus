@@ -64,7 +64,7 @@ const RecentActivity = () => {
                 })}
               >
                 <h5 className="mb-1.25">{item.title}</h5>
-                <p className="mb-1.25 text-default-400">{item.description}</p>
+                <p className="mb-1.25 text-default-500">{item.description}</p>
                 <span className="text-primary">By {item.author}</span>
               </div>
             </div>

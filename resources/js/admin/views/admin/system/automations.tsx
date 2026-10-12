@@ -75,7 +75,7 @@ const Page = ({ tasks }: Props) => {
 
       <div className="card mb-5">
         <div className="card-body">
-          <div className="text-default-400 mb-3 flex justify-between text-sm">
+          <div className="text-default-500 mb-3 flex justify-between text-sm">
             <span>A weekday, {chicago ? 'Chicago time' : 'UTC'}</span>
             <span>Hover a dot for its task</span>
           </div>
@@ -105,7 +105,7 @@ const Page = ({ tasks }: Props) => {
               )
             })}
           </div>
-          <div className="text-default-400 relative mt-1.5 h-5 text-xs tabular-nums">
+          <div className="text-default-500 relative mt-1.5 h-5 text-xs tabular-nums">
             {TICKS[zone].map((label, i) => (
               <span key={i} className="absolute whitespace-nowrap" style={{ left: pct(i * 6), transform: i === 0 ? 'none' : i === 4 ? 'translateX(-100%)' : 'translateX(-50%)' }}>
                 {label}
@@ -119,13 +119,13 @@ const Page = ({ tasks }: Props) => {
         <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
-              <th scope="col" className="text-default-400 border-default-300 w-56 border-b px-5 py-3 text-start text-xs font-semibold">
+              <th scope="col" className="text-default-500 border-default-300 w-56 border-b px-5 py-3 text-start text-xs font-semibold">
                 Runs
               </th>
-              <th scope="col" className="text-default-400 border-default-300 border-b px-5 py-3 text-start text-xs font-semibold">
+              <th scope="col" className="text-default-500 border-default-300 border-b px-5 py-3 text-start text-xs font-semibold">
                 What it does
               </th>
-              <th scope="col" className="text-default-400 border-default-300 w-56 border-b px-5 py-3 text-start text-xs font-semibold">
+              <th scope="col" className="text-default-500 border-default-300 w-56 border-b px-5 py-3 text-start text-xs font-semibold">
                 Next run
               </th>
             </tr>
@@ -135,11 +135,11 @@ const Page = ({ tasks }: Props) => {
               <tr key={t.name}>
                 <td className="border-default-100 border-b px-5 py-3 align-top">
                   <div className="text-default-900 font-semibold tabular-nums">{chicago ? t.cadence : t.cadence_utc}</div>
-                  <div className="text-default-400 text-xs">Scheduled in {t.schedule_timezone}</div>
+                  <div className="text-default-500 text-xs">Scheduled in {t.schedule_timezone}</div>
                 </td>
                 <td className="border-default-100 border-b px-5 py-3 align-top">
                   <div className="text-default-800 font-medium">{t.name}</div>
-                  <div className="text-default-400 font-mono text-xs">{t.source}</div>
+                  <div className="text-default-500 font-mono text-xs">{t.source}</div>
                 </td>
                 <td className="text-default-600 border-default-100 border-b px-5 py-3 align-top tabular-nums">{chicago ? t.next_run : t.next_run_utc}</td>
               </tr>
@@ -148,7 +148,7 @@ const Page = ({ tasks }: Props) => {
         </table>
       </div>
 
-      <p className="text-default-400 mt-5 text-sm">Read from the app’s schedule. The app doesn’t record when each task last ran, so that isn’t shown.</p>
+      <p className="text-default-500 mt-5 text-sm">Read from the app’s schedule. The app doesn’t record when each task last ran, so that isn’t shown.</p>
     </>
   )
 }

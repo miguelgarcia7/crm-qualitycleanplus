@@ -61,7 +61,7 @@ const Page = ({ status, message, home, signed_in }: Props) => {
                       <div className="from-primary to-danger my-4 bg-linear-to-r bg-clip-text text-7xl font-bold text-transparent">{status}</div>
                     )}
                     <h3 className="mb-2 text-xl font-bold uppercase">{copy.title}</h3>
-                    <p className="text-default-400 mx-auto">{message ?? copy.message}</p>
+                    <p className="text-default-500 mx-auto">{message ?? copy.message}</p>
 
                     <div className="mt-8 flex flex-wrap items-center justify-center gap-1.5">
                       {status === 500 || maintenance ? (
@@ -93,7 +93,7 @@ const Page = ({ status, message, home, signed_in }: Props) => {
                 </div>
               </div>
 
-              <p className="text-default-400 mt-7.5 text-center">
+              <p className="text-default-500 mt-7.5 text-center">
                 &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
               </p>
             </div>

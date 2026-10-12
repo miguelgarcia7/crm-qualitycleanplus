@@ -64,7 +64,7 @@ const Hiring = ({ hiring }: { hiring: Home['hiring'] }) => {
             <span className={cn('mt-1 block text-2xl font-semibold tabular-nums', stage.mine && stage.value > 0 ? 'text-warning' : 'text-default-900')}>
               {stage.value}
             </span>
-            <span className={cn('mt-0.5 block text-sm', stage.mine && stage.value > 0 ? 'text-warning' : 'text-default-400')}>{stage.note}</span>
+            <span className={cn('mt-0.5 block text-sm', stage.mine && stage.value > 0 ? 'text-warning' : 'text-default-500')}>{stage.note}</span>
           </Link>
         ))}
       </div>
@@ -86,7 +86,7 @@ const MissingDocuments = ({ data }: { data: Home['missing'] }) => (
           top
           end={
             <>
-              <span className="text-default-400 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>
+              <span className="text-default-500 hidden text-sm whitespace-nowrap sm:inline">{row.age}</span>
               <Link href={row.href} className="btn btn-sm border-default-300 hover:border-default-400 border">
                 Open
               </Link>
@@ -145,7 +145,7 @@ const ReadyToPromote = ({ data }: { data: Home['ready'] }) => (
             <Link href={row.href} className="text-default-900 hover:text-primary font-medium">
               {row.name}
             </Link>
-            {row.role && <div className="text-default-400 text-sm">{row.role}</div>}
+            {row.role && <div className="text-default-500 text-sm">{row.role}</div>}
           </DashRow>
         ))
       )}
@@ -170,7 +170,7 @@ const Terminations = ({ data }: { data: NonNullable<Home['terminations']> }) => 
             </Link>
           }>
           <div className="text-default-900 font-medium">{row.title}</div>
-          <div className="text-default-400 text-sm">
+          <div className="text-default-500 text-sm">
             {row.detail}
             {row.age && ` · started ${row.age === 'today' ? 'today' : `${row.age} ago`}`}
           </div>
@@ -186,11 +186,11 @@ const Tiers = ({ rows }: { rows: Tier[] }) => (
       <DashEmpty>Nobody changes tier in the next 45 days.</DashEmpty>
     ) : (
       rows.map((row) => (
-        <DashRow key={row.id} end={<span className="text-default-400 text-sm whitespace-nowrap">{plural(row.days, 'day', 'days')}</span>}>
+        <DashRow key={row.id} end={<span className="text-default-500 text-sm whitespace-nowrap">{plural(row.days, 'day', 'days')}</span>}>
           <Link href={row.href} className="text-default-900 hover:text-primary font-medium">
             {row.name}
           </Link>
-          <div className="text-default-400 text-sm">{row.detail}</div>
+          <div className="text-default-500 text-sm">{row.detail}</div>
         </DashRow>
       ))
     )}

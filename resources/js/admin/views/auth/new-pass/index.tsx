@@ -27,12 +27,12 @@ const Page = () => {
                   <div className="mb-7.5 flex flex-col items-center justify-center text-center">
                     <AuthLogo />
                     <h4 className="text-default-900 mt-7.5 mb-2 text-base font-bold">Setup New Password!</h4>
-                    <p className="text-default-400 mx-auto w-full lg:w-3/4">We&apos;ve emailed you a 6-digit verification code. Please enter it below to confirm your Email Address.</p>
+                    <p className="text-default-500 mx-auto w-full lg:w-3/4">We&apos;ve emailed you a 6-digit verification code. Please enter it below to confirm your Email Address.</p>
                   </div>
 
                   <NewPassForm />
 
-                  <p className="text-default-400 mt-7.5 text-center">
+                  <p className="text-default-500 mt-7.5 text-center">
                     Don’t have a code?&nbsp;
                     <Link href="#" className="text-primary font-semibold underline underline-offset-3">
                       Resend&nbsp;
@@ -43,14 +43,14 @@ const Page = () => {
                     </Link>
                   </p>
 
-                  <p className="text-default-400 mt-7.5 text-center">
+                  <p className="text-default-500 mt-7.5 text-center">
                     Return to&nbsp;
                     <Link href="/auth-card-sign-in.html" className="text-primary font-semibold underline underline-offset-4">
                       Sign in
                     </Link>
                   </p>
 
-                  <p className="text-default-400 mt-7.5 text-center">
+                  <p className="text-default-500 mt-7.5 text-center">
                     &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
                   </p>
                 </div>

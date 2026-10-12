@@ -222,14 +222,14 @@ const Page = ({ workOrders, pagination, filters, statuses, counts, panel, catalo
           const w = row.original
           const dh = w.direct_hire
           // A placement that has ended is past the question of direct hire.
-          if (w.status === 'closed') return <span className="text-default-400 whitespace-nowrap">{w.end_date ? `Ended ${shortDate(w.end_date)}` : 'Ended'}</span>
-          if (dh === null) return <span className="text-default-400">—</span>
+          if (w.status === 'closed') return <span className="text-default-500 whitespace-nowrap">{w.end_date ? `Ended ${shortDate(w.end_date)}` : 'Ended'}</span>
+          if (dh === null) return <span className="text-default-500">—</span>
           if (dh.unrestricted) return <span className="badge badge-label bg-light text-default-600">No threshold</span>
           if (dh.eligible) return <span className="badge badge-label bg-success/15 text-success">Eligible</span>
 
           return (
             <div className="min-w-32">
-              <span className="text-default-400 mb-1 block text-xs">
+              <span className="text-default-500 mb-1 block text-xs">
                 {Math.round(dh.worked_hours).toLocaleString()} of {Math.round(dh.threshold_hours).toLocaleString()} hrs
               </span>
               <span
@@ -549,7 +549,7 @@ const TransferModal = ({ wo, catalogs, filling, onClose }: { wo: WorkOrderRow; c
                 <option key={r.id} value={r.id}>{r.label}</option>
               ))}
             </select>
-            <p className="text-default-400 mt-1 text-xs">Counts toward the request, and its property manager is told who is coming.</p>
+            <p className="text-default-500 mt-1 text-xs">Counts toward the request, and its property manager is told who is coming.</p>
             {errors.more_staff_request_id && <p className="text-danger mt-1 text-sm">{errors.more_staff_request_id}</p>}
           </div>
         )}

@@ -174,7 +174,7 @@ const Page = ({ departments, can }: Props) => {
               </div>
             )}
           </div>
-          <p className="text-default-400 mt-3 text-xs">
+          <p className="text-default-500 mt-3 text-xs">
             One canonical name per department, shared by every property — renaming here updates it everywhere. Manager name &amp; phone are
             set per property on each property&apos;s Departments tab. Departments can&apos;t be deleted once referenced; deactivate to retire
             one.

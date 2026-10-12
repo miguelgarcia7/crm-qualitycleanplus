@@ -84,7 +84,7 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
         {stats.map((s) => (
           <div key={s.label} className="card mb-0 min-w-36 px-4 py-3">
             <div className="text-default-900 text-xl font-semibold tabular-nums">{s.n}</div>
-            <div className="text-default-400 text-sm">{s.label}</div>
+            <div className="text-default-500 text-sm">{s.label}</div>
           </div>
         ))}
       </div>
@@ -109,7 +109,7 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
           <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
-                <th scope="col" className="text-default-400 border-default-300 w-64 border-b px-5 py-3 text-start text-xs font-semibold">
+                <th scope="col" className="text-default-500 border-default-300 w-64 border-b px-5 py-3 text-start text-xs font-semibold">
                   Notification
                 </th>
                 {roles.map((r) => (
@@ -149,7 +149,7 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
                         <td className="border-default-100 border-b p-0">
                           <button type="button" onClick={() => setSelectedId(n.id)} aria-pressed={isSelected} className="flex w-full flex-col px-5 py-2.5 text-start">
                             <span className="text-default-800 font-medium">{n.name}</span>
-                            <span className="text-default-400 text-xs">{n.summary}</span>
+                            <span className="text-default-500 text-xs">{n.summary}</span>
                           </button>
                         </td>
                         {roles.map((r) => {
@@ -174,23 +174,23 @@ const Page = ({ roles, notices: notifications, initial }: Props) => {
           <aside aria-label="Notification details" className="card mb-0 xl:sticky xl:top-24">
             <div className="card-body flex flex-col gap-4">
               <div>
-                <div className="text-default-400 text-xs font-semibold tracking-wide uppercase">{selected.group}</div>
+                <div className="text-default-500 text-xs font-semibold tracking-wide uppercase">{selected.group}</div>
                 <h4 className="text-default-900 mt-0.5 text-lg font-semibold">{selected.name}</h4>
               </div>
               <p className="text-default-600">{selected.what}</p>
               <dl className="grid grid-cols-[110px_minmax(0,1fr)] gap-x-3 gap-y-2.5 text-sm">
-                <dt className="text-default-400">Sent when</dt>
+                <dt className="text-default-500">Sent when</dt>
                 <dd className="text-default-800">{selected.when}</dd>
-                <dt className="text-default-400">Goes to</dt>
+                <dt className="text-default-500">Goes to</dt>
                 <dd className="text-default-800">
                   {selected.who}
-                  <div className="text-default-400 mt-0.5 text-xs">{recipients(selected)}</div>
+                  <div className="text-default-500 mt-0.5 text-xs">{recipients(selected)}</div>
                 </dd>
-                <dt className="text-default-400">Delivered</dt>
+                <dt className="text-default-500">Delivered</dt>
                 <dd className="text-default-800">{selected.in_app && selected.email ? 'In-app and email' : selected.email ? 'Email only' : 'In-app only'}</dd>
-                <dt className="text-default-400">Can be muted</dt>
+                <dt className="text-default-500">Can be muted</dt>
                 <dd className="text-default-800">{selected.can_mute ? `Yes, with “${selected.mute_category}” in My Profile → Notifications` : 'No'}</dd>
-                <dt className="text-default-400">In the code</dt>
+                <dt className="text-default-500">In the code</dt>
                 <dd className="text-default-600 font-mono text-xs break-words">{selected.classes.join(' + ')}</dd>
               </dl>
             </div>

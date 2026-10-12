@@ -44,7 +44,7 @@ const DecisionsCard = ({ decisions }: { decisions: Decisions }) => {
         cell: ({ row }) => (
           <>
             <h5>{row.original.label}</h5>
-            {row.original.sublabel && <span className="text-default-400 text-xs">{row.original.sublabel}</span>}
+            {row.original.sublabel && <span className="text-default-500 text-xs">{row.original.sublabel}</span>}
           </>
         ),
       }),

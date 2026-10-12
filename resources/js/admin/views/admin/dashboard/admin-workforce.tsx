@@ -27,7 +27,7 @@ const StatCard = ({ stat }: { stat: Stat }) => (
     <div className="card-body">
       <span className="text-default-500 block text-sm font-medium">{stat.label}</span>
       <span className="text-default-900 mt-1 block text-2xl font-semibold tabular-nums">{stat.value.toLocaleString()}</span>
-      <span className={cn('mt-0.5 block text-sm', stat.warn ? 'text-warning' : 'text-default-400')}>{stat.note}</span>
+      <span className={cn('mt-0.5 block text-sm', stat.warn ? 'text-warning' : 'text-default-500')}>{stat.note}</span>
     </div>
   </Link>
 )
@@ -78,7 +78,7 @@ const Hiring = ({ hiring }: { hiring: Workforce['hiring'] }) => (
       ].map((step) => (
         <Link key={step.label} href={step.href} className="group">
           <span className="text-default-900 group-hover:text-primary block text-2xl font-semibold tabular-nums">{step.value}</span>
-          <span className="text-default-400 block text-sm">{step.label}</span>
+          <span className="text-default-500 block text-sm">{step.label}</span>
         </Link>
       ))}
     </div>
@@ -88,7 +88,7 @@ const Hiring = ({ hiring }: { hiring: Workforce['hiring'] }) => (
       hiring.postings.map((posting) => (
         <DashRow key={posting.id} end={<span className="text-default-500 text-sm whitespace-nowrap">{posting.applied} applied</span>}>
           <div className="text-default-900 font-medium">{posting.title}</div>
-          {posting.where && <div className="text-default-400 text-sm">{posting.where}</div>}
+          {posting.where && <div className="text-default-500 text-sm">{posting.where}</div>}
         </DashRow>
       ))
     )}
@@ -131,7 +131,7 @@ const Recruiters = ({ rows }: { rows: Recruiter[] }) => (
                       {r.openVisits} open
                     </Link>
                   ) : (
-                    <span className="text-default-400">None</span>
+                    <span className="text-default-500">None</span>
                   )}
                 </td>
                 <td className="pe-6 text-end tabular-nums">

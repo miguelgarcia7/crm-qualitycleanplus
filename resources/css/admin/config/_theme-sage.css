@@ -57,14 +57,16 @@ html[data-skin="sage"] {
 
     /* Warm neutral scale. The base theme's blue-slate grays (_root.css) clash
        with the cream canvas, and its text shades sat near 2.4:1 contrast on
-       cards; 400 (captions, the most-used text shade) is ~4:1 here, 500 is
-       secondary text, 900 headings. 300 stays the warm hairline border. */
+       cards. 400 is ~4:1 and no longer used for text (2026-10-12 sweep). 500 is
+       secondary and caption text, dark enough to pass AA on the card (5.3:1),
+       the page background (4.8:1) and light fills (4.5:1). 900 headings, 300
+       the warm hairline border. */
     --color-default-50: #f8f6f0;
     --color-default-100: #f1eee6;
     --color-default-200: #ece9e0;
     --color-default-300: #e6e3d8;
     --color-default-400: #7a7c73;
-    --color-default-500: #6f7268;
+    --color-default-500: #686b61;
     --color-default-600: #5c5f57;
     --color-default-700: #4a4d46;
     --color-default-800: #3a403b;

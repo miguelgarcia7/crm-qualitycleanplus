@@ -46,7 +46,7 @@ const UserDropdown = () => {
       <div className="hs-dropdown-menu min-w-48" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-with-icons">
         <div className="py-2 px-3.5">
           <h6 className="text-xs">Welcome back 👋!</h6>
-          {auth.user?.email && <p className="text-default-400 truncate text-xs">{auth.user.email}</p>}
+          {auth.user?.email && <p className="text-default-500 truncate text-xs">{auth.user.email}</p>}
         </div>
 
         <Link href={onMinute ? '/settings/profile' : '/admin/settings/profile'} className="dropdown-item">

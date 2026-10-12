@@ -28,6 +28,15 @@ The pass, made to match the System Reference mockup:
 Section titles in the sidebar keep their standard top margin (the `mt-0!` override was
 removed from `AppMenu.tsx`).
 
+## Muted text sweep (2026-10-12)
+
+- Every `text-default-400` in the admin/QC Minute bundle became `text-default-500` (531 uses). 400 was
+  4.1:1 on cards and under 4 on the page background, so it failed AA for text.
+- `--color-default-500` went from `#6f7268` to `#686b61`, so secondary text passes on cards (5.3:1),
+  the page background (4.8:1) and light fills such as table headers (4.5:1). Dark mode is unchanged:
+  its 500 is already the lighter, higher-contrast shade.
+- Use 500 for secondary and caption text. 400 is left for icons and other non-text marks.
+
 ## Keep as they are
 
 - **The dark left sidebar** (`data-menu-color="dark"`, background `#2a322e`). It has its own

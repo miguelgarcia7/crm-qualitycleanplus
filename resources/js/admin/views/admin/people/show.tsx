@@ -166,14 +166,14 @@ const Section = ({ title, description, action, children, className }: { title: s
 const Stat = ({ label, value, note, noteClass }: { label: string; value: string; note: ReactNode; noteClass?: string }) => (
   <div className="card mb-0 h-full">
     <div className="card-body">
-      <div className="text-default-400 text-sm">{label}</div>
+      <div className="text-default-500 text-sm">{label}</div>
       <div className="text-default-900 text-lg font-semibold tabular-nums">{value}</div>
       <div className={cn('text-sm', noteClass ?? 'text-default-500')}>{note}</div>
     </div>
   </div>
 )
 
-const Empty = ({ children }: { children: ReactNode }) => <p className="card-body text-default-400 text-sm">{children}</p>
+const Empty = ({ children }: { children: ReactNode }) => <p className="card-body text-default-500 text-sm">{children}</p>
 
 const ProgressBar = ({ percent, label }: { percent: number; label: string }) => (
   <div className="bg-default-100 mt-1.5 h-1.5 overflow-hidden rounded" role="progressbar" aria-label={label} aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
@@ -290,11 +290,11 @@ const FeeCard = ({ charge }: { charge: ChargeRow | null }) => {
           <span>
             Paid <span className="text-default-900 font-semibold">{money(charge.collected_amount)}</span> of {money(charge.total_amount)}
           </span>
-          <span className="text-default-400">{percent}%</span>
+          <span className="text-default-500">{percent}%</span>
         </div>
         <ProgressBar percent={percent} label="Hiring fee collected" />
         {!collecting && (
-          <p className="text-default-400 mt-2 text-sm">{charge.status === 'cancelled' && remaining > 0 ? 'Collection stopped.' : 'Paid in full.'}</p>
+          <p className="text-default-500 mt-2 text-sm">{charge.status === 'cancelled' && remaining > 0 ? 'Collection stopped.' : 'Paid in full.'}</p>
         )}
       </div>
     </Section>
@@ -322,25 +322,25 @@ const PlacementRow = ({ p, canOpen }: { p: Placement; canOpen: boolean }) => {
         <Link href={`/admin/properties/${p.property_id}`} className="text-default-900 hover:text-primary font-semibold">
           {p.property}
         </Link>
-        <div className="text-default-400 text-sm">
+        <div className="text-default-500 text-sm">
           {p.position} · since {p.start_date}
         </div>
       </div>
       {p.pay_rate !== null && (
         <div>
-          <div className="text-default-400 text-xs">Pay</div>
+          <div className="text-default-500 text-xs">Pay</div>
           <div className="text-default-900 font-semibold tabular-nums">{money(p.pay_rate)}</div>
         </div>
       )}
       {p.bill_rate !== null && (
         <div>
-          <div className="text-default-400 text-xs">Bill</div>
+          <div className="text-default-500 text-xs">Bill</div>
           <div className="text-default-900 font-semibold tabular-nums">{money(p.bill_rate)}</div>
         </div>
       )}
       <div className="col-span-2 md:col-span-1">
         {dh.unrestricted ? (
-          <span className="text-default-400 text-sm">No direct-hire threshold</span>
+          <span className="text-default-500 text-sm">No direct-hire threshold</span>
         ) : dh.eligible ? (
           <span className="badge badge-label bg-success/15 text-success">Eligible for direct hire</span>
         ) : (
@@ -350,7 +350,7 @@ const PlacementRow = ({ p, canOpen }: { p: Placement; canOpen: boolean }) => {
                 <span className="text-default-900 font-semibold">{Math.round(dh.worked_hours).toLocaleString()}</span> of{' '}
                 {Math.round(dh.threshold_hours).toLocaleString()} h
               </span>
-              <span className="text-default-400">{dh.percent}%</span>
+              <span className="text-default-500">{dh.percent}%</span>
             </div>
             <ProgressBar percent={dh.percent} label={`Progress toward direct hire at ${p.property}`} />
           </>
@@ -369,7 +369,7 @@ const WeekLine = ({ w }: { w: WeekRow }) => (
   <li>
     <Link href={gridHref(w)} className="hover:bg-light/60 -mx-2 flex items-center justify-between gap-3 rounded px-2 py-2">
       <span>
-        {weekLabel(w.week_start, w.week_end)} <span className="text-default-400">· {w.property}</span>
+        {weekLabel(w.week_start, w.week_end)} <span className="text-default-500">· {w.property}</span>
         {w.is_current && <span className="badge badge-label bg-light text-default-600 ms-2">This week</span>}
       </span>
       <span className="flex items-center gap-2">
@@ -488,12 +488,12 @@ const StaffOverview = ({ pto, canPto }: { pto: PtoPayload | null; canPto: boolea
           <div className="gap-base grid md:grid-cols-3">
             {pto.buckets.map((b) => (
               <div key={b.bucket} className="border-default-200 rounded-lg border p-4">
-                <p className="text-default-400 text-sm">{b.label}</p>
+                <p className="text-default-500 text-sm">{b.label}</p>
                 <p className="text-dark mt-1 text-2xl font-semibold tabular-nums">
                   {b.available}
-                  <span className="text-default-400 text-sm font-normal"> / {b.allotted} h</span>
+                  <span className="text-default-500 text-sm font-normal"> / {b.allotted} h</span>
                 </p>
-                <p className="text-default-400 text-xs">{b.used} used or pending</p>
+                <p className="text-default-500 text-xs">{b.used} used or pending</p>
               </div>
             ))}
           </div>
@@ -655,7 +655,7 @@ const ChargesCard = ({ charges }: { charges: ChargeRow[] }) => {
                   <td className="text-end tabular-nums">{money(row.amount_per_payment)}</td>
                   <td className="text-end tabular-nums">
                     {money(row.collected_amount)}
-                    <span className="text-default-400 block text-xs">
+                    <span className="text-default-500 block text-xs">
                       {row.applied_count} of {row.num_payments} payments
                     </span>
                   </td>
@@ -735,7 +735,7 @@ const EditChargeModal = ({ row, onClose }: { row: ChargeRow; onClose: () => void
                 required
               />
               {errors.amount_per_payment && <p className="text-danger mt-1 text-sm">{errors.amount_per_payment}</p>}
-              <p className="text-default-400 mt-2 text-sm">
+              <p className="text-default-500 mt-2 text-sm">
                 {money(row.total_amount)} total, {money(row.collected_amount)} already collected. Payments already taken are not changed.
               </p>
             </div>
@@ -788,7 +788,7 @@ const AdjustmentsCard = ({ adjustments }: { adjustments: AdjustmentRow[] }) => (
                   {a.type === 'deduction' ? `-${money(a.value)}` : money(a.value)}
                 </td>
                 <td>{a.is_billable ? 'Yes' : 'No'}</td>
-                <td className="text-default-400">{a.notes ?? '—'}</td>
+                <td className="text-default-500">{a.notes ?? '—'}</td>
               </tr>
             ))}
           </tbody>

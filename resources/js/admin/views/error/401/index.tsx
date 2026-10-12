@@ -28,7 +28,7 @@ const Page = () => {
                   <div className="p-3 text-center">
                     <div className="from-primary my-4 bg-linear-to-r to-danger bg-clip-text text-7xl font-bold text-transparent">401</div>
                     <h3 className="mb-2 text-xl font-bold uppercase">Access Restricted</h3>
-                    <p className="text-default-400 mb-4">You are not authorized to access this page.</p>
+                    <p className="text-default-500 mb-4">You are not authorized to access this page.</p>
                     <Link href="/" className="btn bg-primary mt-6 text-white hover:bg-primary-hover">
                       Return Home
                     </Link>
@@ -36,7 +36,7 @@ const Page = () => {
                 </div>
               </div>
 
-              <p className="text-default-400 mt-7.5 text-center">
+              <p className="text-default-500 mt-7.5 text-center">
                 &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
               </p>
             </div>

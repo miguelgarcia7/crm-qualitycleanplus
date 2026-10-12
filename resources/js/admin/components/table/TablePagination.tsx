@@ -35,7 +35,7 @@ const TablePagination = ({ totalItems, start, end, itemsName = 'items', showInfo
         showInfo ? 'sm:justify-between' : 'sm:justify-end',
       )}>
       {showInfo && (
-        <div className="text-default-400">
+        <div className="text-default-500">
           Showing <span className="font-semibold">{start}</span> to <span className="font-semibold">{end}</span> of{' '}
           <span className="font-semibold">{totalItems}</span> {itemsName}
         </div>

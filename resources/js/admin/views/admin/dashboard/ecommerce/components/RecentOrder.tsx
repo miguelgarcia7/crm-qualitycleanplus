@@ -26,7 +26,7 @@ const RecentOrder = () => {
       cell: ({ row }) => (
         <>
           <h5 className="font-semibold">{row.original.customer.name}</h5>
-          <span className="text-default-400 text-xs">{row.original.customer.email}</span>
+          <span className="text-default-500 text-xs">{row.original.customer.email}</span>
         </>
       ),
     }),
@@ -84,7 +84,7 @@ const RecentOrder = () => {
     <div className="card h-full">
       <div className="card-header">
         <h4 className="card-title">
-          Recent Orders <span className="text-default-400 text-sm font-normal ms-1">(186.25k Transactions)</span>
+          Recent Orders <span className="text-default-500 text-sm font-normal ms-1">(186.25k Transactions)</span>
         </h4>
         <div>
           <button className="btn btn-sm border-default-300 hover:border-default-400 font-semibold me-1">

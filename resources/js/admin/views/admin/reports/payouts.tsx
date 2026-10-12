@@ -131,14 +131,14 @@ const Page = ({ filters, weeks, properties, rows, totals }: Props) => {
           ]}
           emptyMessage="No hours recorded for this week."
           footer={
-            <span className="text-default-400 text-sm">
+            <span className="text-default-500 text-sm">
               {rows.length} contractor{rows.length === 1 ? '' : 's'}
               {week ? ` · ${weekLabel(week)}` : ''}
             </span>
           }
         />
       </div>
-      <p className="text-default-400 mt-3 text-xs">
+      <p className="text-default-500 mt-3 text-xs">
         Worked-hour payouts at snapshot rates. Inventory charge deductions and incentives are applied on the property grid, not here.
       </p>
     </>
