@@ -187,6 +187,20 @@ Rationale: simpler state machine, forces clearer communication, avoids partial-a
 
 All views share one underlying Blade component; the affordances differ.
 
+**As built on QC Minute (2026-10-12).** The property manager's pages are their own React pages
+(`minute/timesheets/index` and `show`), laid out like the back-office grid but read-only:
+
+- **Timesheets** (`/timesheets`): every week sent to them (drafts stay the recruiter's), newest
+  first and paginated, with status pills (All, Waiting for you, Declined, Invoiced). A card per
+  week waiting on them sits on top, beside a "This week" card.
+- **A week** (`/timesheets/{id}`) and **this week** (`/timesheets/this-week?property=`): hours per day
+  with a punches toggle, daily totals, overtime and holiday tags, and the amount billed per contractor.
+  It lists the same rows as the back-office grid (`WeekWorkOrders`), so a work order closed mid-week
+  still shows its hours.
+- **Bill side only.** The PM never receives pay, pay rates or bill rates; only each contractor's billed
+  amount and billable adjustments (deductions are payroll's).
+- Approve and Decline return to the week, which then shows who decided and links the invoice.
+
 ## What's on the timesheet display
 
 The timesheet view shows:

@@ -14,8 +14,8 @@ use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Time\Support\GpsPolicy;
+use App\Domain\Time\Support\WeekWorkOrders;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
-use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Http\Requests\Time\StoreTimeEntryRequest;
 use App\Http\Requests\Time\UpdateTimeEntryRequest;
@@ -45,25 +45,7 @@ class TimeEntryController extends Controller
             ->whereDate('week_start', $weekStart->toDateString())
             ->first();
 
-        // Active work orders running during this week, plus any work order with
-        // time, a summary or an adjustment in it (one closed mid-week still has
-        // hours on the invoice). The date bounds keep a pay increase's new work
-        // order out of the weeks before it starts, beside the one it replaced.
-        $workOrders = $property->workOrders()
-            ->where(fn ($q) => $q
-                ->where(fn ($q) => $q
-                    ->where('status', WorkOrderStatus::Active->value)
-                    ->whereDate('start_date', '<=', $weekStart->addDays(6)->toDateString())
-                    ->where(fn ($q) => $q->whereNull('end_date')->orWhereDate('end_date', '>=', $weekStart->toDateString())))
-                ->when($period !== null, fn ($q) => $q
-                    ->orWhereIn('id', TimeEntry::query()->where('payroll_period_id', $period?->id)->select('work_order_id'))
-                    ->orWhereIn('id', TimeSummary::query()->where('payroll_period_id', $period?->id)->select('work_order_id'))
-                    ->orWhereIn('id', TimeEntryAdjustment::query()->where('payroll_period_id', $period?->id)->whereNotNull('work_order_id')->select('work_order_id'))))
-            ->with(['person:id,name', 'position:id,name', 'parent:id,pay_rate', 'replacements:id,parent_wo_id,source,start_date'])
-            ->get()
-            // By contractor, so a new work order doesn't move anyone down the grid.
-            ->sortBy(fn (WorkOrder $wo): array => [mb_strtolower($wo->person->name ?? ''), $wo->start_date->toDateString()])
-            ->values();
+        $workOrders = WeekWorkOrders::for($property, $weekStart, $period, ['parent:id,pay_rate', 'replacements:id,parent_wo_id,source,start_date']);
 
         $entries = $period === null ? collect() : TimeEntry::query()
             ->where('payroll_period_id', $period->id)

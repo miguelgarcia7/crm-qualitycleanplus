@@ -101,4 +101,24 @@ class Timesheet extends Model
     {
         return $this->belongsTo(Person::class, 'sent_for_approval_by');
     }
+
+    /**
+     * The property manager who approved it.
+     *
+     * @return BelongsTo<Person, $this>
+     */
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'approved_by');
+    }
+
+    /**
+     * The property manager who declined it most recently.
+     *
+     * @return BelongsTo<Person, $this>
+     */
+    public function declinedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'declined_by');
+    }
 }
