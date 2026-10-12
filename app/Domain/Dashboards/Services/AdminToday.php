@@ -9,6 +9,7 @@ use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Dashboards\Support\ApprovalQueue;
 use App\Domain\Dashboards\Support\DashboardFormat;
 use App\Domain\Dashboards\Support\RequestQueue;
+use App\Domain\Dashboards\Support\SystemAlerts;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
@@ -42,6 +43,7 @@ class AdminToday
         private readonly PropertyAttention $attention,
         private readonly ApprovalQueue $approvals,
         private readonly RequestQueue $requests,
+        private readonly SystemAlerts $alerts,
     ) {}
 
     /**
@@ -53,7 +55,7 @@ class AdminToday
 
         return [
             'actions' => $this->actions($user),
-            'alerts' => $this->alerts($user),
+            'alerts' => $this->alerts->for($user),
             'pipeline' => $user->can('timesheets.view_history') ? $this->pipeline($now) : null,
             'decisions' => $this->decisions($user, $now),
             'expiring' => $user->can('bible.contracts.view') ? $this->expiring($now) : null,
@@ -96,28 +98,6 @@ class AdminToday
             ->map(fn (array $action): array => collect($action)->except('permission')->all())
             ->values()
             ->all();
-    }
-
-    /**
-     * Only when something is broken.
-     *
-     * @return list<array<string, string>>
-     */
-    private function alerts(Person $user): array
-    {
-        $mailer = (string) config('mail.default');
-
-        if (! in_array($mailer, ['log', 'array'], true) || ! $user->can('invoices.view')) {
-            return [];
-        }
-
-        return [[
-            'key' => 'mail-undelivered',
-            'title' => "Invoice email isn't being delivered",
-            'body' => "The mailer is set to {$mailer}, so invoices marked sent never reach a client.",
-            'actionLabel' => 'View invoices',
-            'actionHref' => '/admin/invoices',
-        ]];
     }
 
     /**

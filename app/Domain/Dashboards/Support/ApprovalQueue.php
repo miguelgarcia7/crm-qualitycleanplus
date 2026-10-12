@@ -2,6 +2,7 @@
 
 namespace App\Domain\Dashboards\Support;
 
+use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
@@ -80,5 +81,27 @@ class ApprovalQueue
                     : "/admin/properties/{$sheet->property_id}",
             ];
         })->all();
+    }
+
+    /**
+     * Finished weeks that logged hours but are still draft or declined,
+     * counted per property.
+     *
+     * @return array<int, int>
+     */
+    public function unsentByProperty(CarbonImmutable $today): array
+    {
+        return Timesheet::query()
+            ->join('payroll_periods', 'payroll_periods.id', '=', 'timesheets.payroll_period_id')
+            ->whereIn('timesheets.status', [TimesheetStatus::Draft->value, TimesheetStatus::Declined->value])
+            ->whereDate('payroll_periods.week_end', '<', $today->toDateString())
+            ->whereExists(fn ($q) => $q->from('time_summaries')
+                ->whereColumn('time_summaries.payroll_period_id', 'timesheets.payroll_period_id')
+                ->whereRaw('regular_minutes + overtime_minutes + holiday_minutes + training_minutes > 0'))
+            ->selectRaw('timesheets.property_id, COUNT(*) as n')
+            ->groupBy('timesheets.property_id')
+            ->pluck('n', 'timesheets.property_id')
+            ->map(fn ($n): int => (int) $n)
+            ->all();
     }
 }

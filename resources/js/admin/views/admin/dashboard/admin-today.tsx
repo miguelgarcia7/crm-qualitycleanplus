@@ -2,6 +2,7 @@ import DashCard, { DashEmpty, DashRow, ViewAll } from '@/components/dashboard/Da
 import DashboardHeader, { DashboardTab } from '@/components/dashboard/DashboardHeader'
 import ExpiringCard, { Expiring } from '@/components/dashboard/ExpiringCard'
 import RequestList, { Requests } from '@/components/dashboard/RequestList'
+import SystemAlerts, { SystemAlert } from '@/components/dashboard/SystemAlerts'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Link } from '@inertiajs/react'
@@ -31,7 +32,7 @@ export type AdminHeader = { greeting: string; date: string; week: string; proper
 
 type Today = {
   actions: Action[]
-  alerts: { key: string; title: string; body: string; actionLabel: string; actionHref: string }[]
+  alerts: SystemAlert[]
   pipeline: { stages: Stage[]; chase: ChaseRow[]; chaseTotal: number } | null
   decisions: Requests
   expiring: Expiring | null
@@ -217,18 +218,7 @@ const Page = ({ today, header, tabs, view }: { today: Today; header: AdminHeader
       />
 
       <div className="flex flex-col gap-6">
-        {today.alerts.map((alert) => (
-          <div key={alert.key} role="alert" className="border-danger/30 bg-danger/5 flex flex-wrap items-start gap-4 rounded-xl border px-5 py-4">
-            <Icon icon="alert-triangle" className="text-danger mt-0.5 size-5 shrink-0" />
-            <div className="min-w-60 flex-1">
-              <div className="text-danger font-semibold">{alert.title}</div>
-              <div className="text-default-600 text-sm">{alert.body}</div>
-            </div>
-            <Link href={alert.actionHref} className="btn btn-sm bg-card border-default-300 border">
-              {alert.actionLabel}
-            </Link>
-          </div>
-        ))}
+        <SystemAlerts alerts={today.alerts} />
 
         {today.pipeline && <Pipeline pipeline={today.pipeline} />}
 

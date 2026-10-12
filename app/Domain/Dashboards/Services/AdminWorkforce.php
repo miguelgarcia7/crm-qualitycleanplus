@@ -2,8 +2,7 @@
 
 namespace App\Domain\Dashboards\Services;
 
-use App\Domain\Billing\Enums\TimesheetStatus;
-use App\Domain\Billing\Models\Timesheet;
+use App\Domain\Dashboards\Support\ApprovalQueue;
 use App\Domain\Dashboards\Support\DashboardFormat;
 use App\Domain\Dashboards\Support\DirectHireSoon;
 use App\Domain\Dashboards\Support\StaffAway;
@@ -45,6 +44,7 @@ class AdminWorkforce
     public function __construct(
         private readonly DirectHireSoon $directHire,
         private readonly StaffAway $staffAway,
+        private readonly ApprovalQueue $approvals,
     ) {}
 
     /**
@@ -221,7 +221,7 @@ class AdminWorkforce
         $openVisits = FieldVisit::query()->open()->whereIn('person_id', $recruiters->pluck('id'))
             ->selectRaw('person_id, COUNT(*) as n')->groupBy('person_id')->pluck('n', 'person_id');
 
-        $notSent = $this->unsentByProperty($today);
+        $notSent = $this->approvals->unsentByProperty($today);
 
         return $recruiters->map(function (Person $recruiter) use ($assignments, $activeWorkOrders, $visits, $openVisits, $notSent): array {
             $propertyIds = $assignments->get($recruiter->id, collect())->pluck('property_id')->unique();
@@ -238,28 +238,6 @@ class AdminWorkforce
         })
             ->sortByDesc('properties')
             ->values()
-            ->all();
-    }
-
-    /**
-     * Finished weeks that logged hours but are still draft or declined,
-     * counted per property.
-     *
-     * @return array<int, int>
-     */
-    private function unsentByProperty(CarbonImmutable $today): array
-    {
-        return Timesheet::query()
-            ->join('payroll_periods', 'payroll_periods.id', '=', 'timesheets.payroll_period_id')
-            ->whereIn('timesheets.status', [TimesheetStatus::Draft->value, TimesheetStatus::Declined->value])
-            ->whereDate('payroll_periods.week_end', '<', $today->toDateString())
-            ->whereExists(fn ($q) => $q->from('time_summaries')
-                ->whereColumn('time_summaries.payroll_period_id', 'timesheets.payroll_period_id')
-                ->whereRaw('regular_minutes + overtime_minutes + holiday_minutes + training_minutes > 0'))
-            ->selectRaw('timesheets.property_id, COUNT(*) as n')
-            ->groupBy('timesheets.property_id')
-            ->pluck('n', 'timesheets.property_id')
-            ->map(fn ($n): int => (int) $n)
             ->all();
     }
 }

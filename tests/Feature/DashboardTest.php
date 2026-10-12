@@ -37,17 +37,10 @@ it('gives a recruiter property-scoped widgets and no office/payroll widgets', fu
 });
 
 it('gives office manager the operations widgets and a revenue chart', function () {
-    $this->actingAs(person('office_manager'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', function ($widgets) {
-                $titles = widgetTitles($widgets);
+    // The office manager lands on their own dashboard now; the widget service still builds these.
+    $titles = widgetTitles(app(DashboardMetrics::class)->forBackOffice(person('office_manager')));
 
-                return $titles->contains('Properties')
-                    && $titles->contains('Recent imports')
-                    && $titles->contains('Low-stock items')
-                    && $titles->contains('Weekly revenue');
-            }),
-        );
+    expect($titles)->toContain('Properties', 'Recent imports', 'Low-stock items', 'Weekly revenue');
 });
 
 it('gives payroll period + invoice widgets', function () {
@@ -82,17 +75,11 @@ it('never shows the same chart twice, whatever roles pile up', function () {
 });
 
 it('includes the live ops widgets for timesheet-live viewers', function () {
-    $this->actingAs(person('office_manager'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', function ($widgets) {
-                $titles = widgetTitles($widgets);
+    $widgets = app(DashboardMetrics::class)->forBackOffice(person('office_manager'));
 
-                return is_array($widgets['onTheClock'])             // live clock-ins (an empty roster is fine)
-                    && is_array($widgets['actions'])
-                    && count($widgets['actions']) > 0
-                    && $titles->contains('Hours this week');
-            }),
-        );
+    expect($widgets['onTheClock'])->toBeArray()   // live clock-ins (an empty roster is fine)
+        ->and($widgets['actions'])->not->toBeEmpty()
+        ->and(widgetTitles($widgets))->toContain('Hours this week');
 });
 
 it('withholds live ops + activity widgets from roles without those permissions', function () {
