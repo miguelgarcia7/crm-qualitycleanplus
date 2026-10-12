@@ -3,7 +3,7 @@ import PageBreadcrumb from '@/components/PageBreadcrumb'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type ChecklistItem = {
   key: string
@@ -222,6 +222,14 @@ const ChecklistRow = ({ item, appId, can }: { item: ChecklistItem; appId: number
 const Page = ({ application: app, person, match, other_applications, checklist, checklist_complete, can }: Props) => {
   const { errors } = usePage().props as { errors: Record<string, string> }
   const [showReject, setShowReject] = useState(false)
+
+  // Dashboards link to #onboarding. The card only exists once React renders,
+  // and Inertia sets the scroll position after that, so jump on the next tick.
+  useEffect(() => {
+    if (window.location.hash !== '#onboarding') return
+    const timer = window.setTimeout(() => document.getElementById('onboarding')?.scrollIntoView({ block: 'start' }), 50)
+    return () => window.clearTimeout(timer)
+  }, [])
   const rejectForm = useForm({ reason: '' })
 
   const startReview = () => router.post(`/admin/applicants/${app.id}/start-review`, {}, { preserveScroll: true })
@@ -451,7 +459,8 @@ const Page = ({ application: app, person, match, other_applications, checklist, 
         </div>
 
         <div className="space-y-6 xl:col-span-2">
-          <div className="card">
+          {/* #onboarding: the dashboards link straight to the checklist. */}
+          <div id="onboarding" className="card scroll-mt-24">
             <div className="card-header">
               <h4 className="card-title">Onboarding Checklist</h4>
               {checklist_complete ? (

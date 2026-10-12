@@ -3,11 +3,11 @@
 namespace App\Domain\Dashboards\Services;
 
 use App\Domain\Dashboards\Support\DashboardFormat;
+use App\Domain\Dashboards\Support\OnboardingQueue;
 use App\Domain\Dashboards\Support\RequestQueue;
 use App\Domain\Dashboards\Support\StaffAway;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
-use App\Domain\People\Support\OnboardingChecklist;
 use App\Domain\Pto\Enums\PtoTier;
 use App\Domain\Pto\Services\PtoTenure;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
@@ -32,20 +32,11 @@ class HrHome
     /** How far ahead a time-off tier change is worth showing. */
     private const TIER_LOOKAHEAD_DAYS = 45;
 
-    /** Short names for the onboarding items, sized for a chip. */
-    private const SHORT = [
-        'id_front' => 'ID (front)',
-        'id_back' => 'ID (back)',
-        'i9' => 'I-9',
-        'w9' => 'W-9',
-        'contractor_agreement' => 'Signed agreement',
-        'background_check' => 'Background check',
-    ];
-
     public function __construct(
         private readonly RequestQueue $requests,
         private readonly StaffAway $staffAway,
         private readonly PtoTenure $tenure,
+        private readonly OnboardingQueue $onboarding,
     ) {}
 
     /**
@@ -56,7 +47,7 @@ class HrHome
         $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
         $today = $now->startOfDay();
 
-        [$missing, $ready] = $this->inReview($now);
+        [$missing, $ready] = $this->onboarding->inReview($now);
 
         return [
             'header' => [
@@ -92,44 +83,6 @@ class HrHome
                 : null,
             'staffAway' => $this->staffAway->upcoming($today, self::STAFF_AWAY_DAYS, self::LIST_LIMIT),
             'tiers' => $this->tiers($today),
-        ];
-    }
-
-    /**
-     * Applicants in review, split into those still missing onboarding items
-     * (longest waiting first) and those with everything in.
-     *
-     * @return array{0: list<array<string, mixed>>, 1: list<array<string, mixed>>}
-     */
-    private function inReview(CarbonImmutable $now): array
-    {
-        $applications = JobApplication::query()
-            ->where('status', JobApplicationStatus::Reviewing->value)
-            ->whereHas('person', fn ($q) => $q->where('status', PersonStatus::Applicant->value))
-            ->with(['person', 'jobPosting.property:id,name'])
-            ->orderBy('reviewed_at')
-            ->orderBy('submitted_at')
-            ->get();
-
-        $rows = $applications->map(function (JobApplication $application) use ($now): array {
-            $missing = OnboardingChecklist::missingItems($application->person);
-            $since = ($application->reviewed_at ?? $application->submitted_at)->toImmutable();
-
-            return [
-                'id' => $application->id,
-                'name' => $application->person->name,
-                'missing' => array_map(fn (string $key): string => self::SHORT[$key] ?? $key, $missing),
-                'role' => $application->job_posting_id !== null
-                    ? collect([$application->jobPosting->title, $application->jobPosting->locationName()])->filter()->implode(' · ').' posting'
-                    : (string) $application->desired_position,
-                'age' => DashboardFormat::age($since, $now),
-                'href' => "/admin/applicants/{$application->id}",
-            ];
-        });
-
-        return [
-            $rows->filter(fn (array $row): bool => $row['missing'] !== [])->values()->all(),
-            $rows->filter(fn (array $row): bool => $row['missing'] === [])->values()->all(),
         ];
     }
 

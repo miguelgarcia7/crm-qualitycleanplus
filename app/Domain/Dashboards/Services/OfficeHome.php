@@ -6,12 +6,10 @@ use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\Dashboards\Support\ApprovalQueue;
 use App\Domain\Dashboards\Support\DashboardFormat;
+use App\Domain\Dashboards\Support\LowStock;
 use App\Domain\Dashboards\Support\SystemAlerts;
 use App\Domain\Imports\Enums\ImportBatchStatus;
 use App\Domain\Imports\Models\ImportBatch;
-use App\Domain\Inventory\Enums\PurchaseOrderStatus;
-use App\Domain\Inventory\Models\ItemVariant;
-use App\Domain\Inventory\Models\PurchaseOrder;
 use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\Marketing\Models\ContactInquiry;
 use App\Domain\People\Models\Person;
@@ -40,6 +38,7 @@ class OfficeHome
     public function __construct(
         private readonly ApprovalQueue $approvals,
         private readonly SystemAlerts $alerts,
+        private readonly LowStock $lowStock,
     ) {}
 
     /**
@@ -65,7 +64,7 @@ class OfficeHome
             'punches' => $this->punches($now),
             'imports' => $user->can('imports.upload') ? $this->imports($today) : null,
             'supplies' => $user->can('workflows.supply_request.fulfill') ? $this->supplies($now) : null,
-            'stock' => $user->can('inventory.items.view') ? $this->stock() : null,
+            'stock' => $user->can('inventory.items.view') ? $this->lowStock->build(self::LIST_LIMIT) : null,
             'inquiries' => $user->can('marketing.inquiries.manage') ? $this->inquiries($now) : null,
         ];
     }
@@ -242,37 +241,6 @@ class OfficeHome
                 ])
                 ->all(),
             'total' => $requests->clone()->count(),
-        ];
-    }
-
-    /**
-     * Stock at or below its reorder level, lowest first, and what is on order.
-     *
-     * @return array<string, mixed>
-     */
-    private function stock(): array
-    {
-        $low = ItemVariant::query()
-            ->where('active', true)
-            ->where('reorder_threshold', '>', 0)
-            ->whereColumn('current_stock', '<=', 'reorder_threshold');
-
-        return [
-            'rows' => $low->clone()
-                ->with('item:id,name')
-                ->orderByRaw('current_stock * 1.0 / reorder_threshold')
-                ->limit(self::LIST_LIMIT)
-                ->get()
-                ->map(fn (ItemVariant $variant): array => [
-                    'id' => $variant->id,
-                    'name' => $variant->item->name.($variant->label() !== 'Default' ? ' · '.$variant->label() : ''),
-                    'detail' => "{$variant->current_stock} left · reorder at {$variant->reorder_threshold}",
-                    // Half the reorder level or less is urgent.
-                    'urgent' => $variant->current_stock * 2 <= $variant->reorder_threshold,
-                ])
-                ->all(),
-            'total' => $low->clone()->count(),
-            'onOrder' => PurchaseOrder::query()->where('status', PurchaseOrderStatus::Ordered->value)->count(),
         ];
     }
 

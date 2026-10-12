@@ -63,7 +63,8 @@ const columnHelper = createColumnHelper<ApplicationRow>()
 
 const Page = ({ applications, filter }: Props) => {
   const [activeTab, setActiveTab] = useState(TABS.some((t) => t.key === filter) ? filter : 'pending')
-  const [globalFilter, setGlobalFilter] = useState('')
+  // ?search= opens the list already filtered (the front desk's search box).
+  const [globalFilter, setGlobalFilter] = useState(() => (typeof window === 'undefined' ? '' : (new URLSearchParams(window.location.search).get('search') ?? '')))
   const [sorting, setSorting] = useState<SortingState>([{ id: 'submitted_at', desc: true }])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
 

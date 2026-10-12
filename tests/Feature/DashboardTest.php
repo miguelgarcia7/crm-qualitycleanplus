@@ -99,17 +99,12 @@ it('only sends recent activity to audit viewers', function () {
 });
 
 it('scopes quick actions to the role permissions', function () {
-    $this->actingAs(person('front_desk'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', function ($widgets) {
-                $labels = collect($widgets['actions'])->pluck('label');
+    $labels = collect(app(DashboardMetrics::class)->forBackOffice(person('front_desk'))['actions'])->pluck('label');
 
-                // Front desk can browse people but cannot create work orders or upload hours.
-                return $labels->contains('People')
-                    && ! $labels->contains('New Work Order')
-                    && ! $labels->contains('Upload Hours');
-            }),
-        );
+    // Front desk can browse people but cannot create work orders or upload hours.
+    expect($labels)->toContain('People')
+        ->not->toContain('New Work Order')
+        ->not->toContain('Upload Hours');
 });
 
 it('gives a property manager the QC Minute PM dashboard', function () {

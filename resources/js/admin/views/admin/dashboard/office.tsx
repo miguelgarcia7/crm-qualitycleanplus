@@ -1,6 +1,7 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import DashCard, { DashEmpty, DashRow, ViewAll } from '@/components/dashboard/DashCard'
 import DashboardHeader from '@/components/dashboard/DashboardHeader'
+import LowStockCard, { LowStock } from '@/components/dashboard/LowStockCard'
 import SystemAlerts, { SystemAlert } from '@/components/dashboard/SystemAlerts'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -23,7 +24,6 @@ type Pipeline = {
 type Punch = { id: number; contractor: string; personId: number; property: string; clockedIn: string | null; recruiter: string | null; href: string }
 type ImportRow = { id: number; name: string; in: boolean; detail: string; action: { label: string; href: string } }
 type Supply = { id: number; title: string; detail: string; age: string | null }
-type Stock = { id: number; name: string; detail: string; urgent: boolean }
 type Inquiry = { key: string; type: 'business' | 'job_seeker'; title: string; detail: string; age: string | null }
 
 type Home = {
@@ -34,7 +34,7 @@ type Home = {
   punches: { rows: Punch[]; total: number; hours: number }
   imports: { rows: ImportRow[]; total: number; in: number } | null
   supplies: { rows: Supply[]; total: number } | null
-  stock: { rows: Stock[]; total: number; onOrder: number } | null
+  stock: LowStock | null
   inquiries: { rows: Inquiry[]; total: number } | null
 }
 
@@ -250,29 +250,6 @@ const Supplies = ({ data }: { data: NonNullable<Home['supplies']> }) => (
   </DashCard>
 )
 
-const LowStock = ({ data }: { data: NonNullable<Home['stock']> }) => (
-  <DashCard
-    title="Low stock"
-    description="At or below the reorder level, lowest first."
-    footer={
-      <div className="flex w-full flex-wrap items-center justify-between gap-2">
-        <ViewAll href="/admin/inventory">Inventory</ViewAll>
-        {data.onOrder > 0 && <span className="text-default-400">{plural(data.onOrder, 'order', 'orders')} on the way</span>}
-      </div>
-    }>
-    {data.rows.length === 0 ? (
-      <DashEmpty>Everything is above its reorder level.</DashEmpty>
-    ) : (
-      data.rows.map((row) => (
-        <DashRow key={row.id} end={<span className={cn('badge badge-label', row.urgent ? 'bg-danger/15 text-danger' : 'bg-warning/15 text-warning')}>Low</span>}>
-          <div className="text-default-900 font-medium">{row.name}</div>
-          <div className="text-default-400 text-sm">{row.detail}</div>
-        </DashRow>
-      ))
-    )}
-  </DashCard>
-)
-
 const Inquiries = ({ data }: { data: NonNullable<Home['inquiries']> }) => (
   <DashCard title="Website inquiries" description="New messages from the contact forms." footer={<ViewAll href="/admin/inquiries">All inquiries</ViewAll>}>
     {data.rows.length === 0 ? (
@@ -302,7 +279,7 @@ const Inquiries = ({ data }: { data: NonNullable<Home['inquiries']> }) => (
 const Page = ({ home }: { home: Home }) => {
   const bottom = [
     home.supplies && <Supplies key="supplies" data={home.supplies} />,
-    home.stock && <LowStock key="stock" data={home.stock} />,
+    home.stock && <LowStockCard key="stock" data={home.stock} />,
     home.inquiries && <Inquiries key="inquiries" data={home.inquiries} />,
   ].filter(Boolean)
 
