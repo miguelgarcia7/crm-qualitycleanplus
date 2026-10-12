@@ -110,9 +110,9 @@ it('scopes quick actions to the role permissions', function () {
 it('gives a property manager the QC Minute PM dashboard', function () {
     $this->actingAs(person('property_manager'))->get(qcminute('/'))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('minute/dashboard/index')
-            ->where('widgets', fn ($widgets) => $widgets !== null
-                && widgetTitles($widgets)->contains('Timesheets to approve')),
+            ->component('minute/dashboard/property-manager')
+            ->has('waiting')
+            ->has('invoices'),
         );
 });
 
@@ -120,6 +120,6 @@ it('falls back to link-cards for a contractor on QC Minute', function () {
     $this->actingAs(person('contractor'))->get(qcminute('/'))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('minute/dashboard/index')
-            ->where('widgets', null),
+            ->missing('waiting'),
         );
 });

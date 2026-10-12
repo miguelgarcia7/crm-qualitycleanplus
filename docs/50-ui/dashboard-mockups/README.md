@@ -6,7 +6,7 @@ https://claude.ai/artifact/KCHeApuTcj6gfLwLT2cbaU. These `.dc.html` files are co
 (open one in a browser to read the markup; it won't render outside the canvas). Sample data in the
 mockups is illustrative, at production scale (~30 properties, ~100 contractors).
 
-Status: every role's dashboard is built on branch `dashboard`. The property manager's view is on hold.
+Status: every role's dashboard is built. The property manager's is on QC Minute (2026-10-12).
 
 | View | Built |
 |---|---|
@@ -17,9 +17,10 @@ Status: every role's dashboard is built on branch `dashboard`. The property mana
 | Payroll | Yes: `PayrollHome` service, `admin/dashboard/payroll` page. The pay run is the week before last (Mon–Sun, Miguel 2026-10-11), taking in each property's pay week that ended in it; `?week=` steps to other weeks. Mark paid from the dashboard (with a confirm) |
 | HR | Yes: `HrHome` service, `admin/dashboard/hr` page. Promote from the dashboard (with a confirm). "Expiring documents" replaced by Terminations in progress until certifications exist |
 | Office manager | Yes: `OfficeHome` service, `admin/dashboard/office` page. Send invoices from the dashboard to the property's billing email (with a confirm); "Add email" when there is none. Imports don't record skipped rows, so that detail is left out |
+| Property manager (QC Minute) | Yes: `PropertyManagerHome` service, `minute/dashboard/property-manager` page. Waiting for your approval (+ what's next with the recruiter), This week (hours so far, on the clock), Invoices (open, overdue, due soonest), Your requests (staffing + pay increases), Closest to direct hire, Hours per week. Bill side only: never pay or pay rates. Mockup: https://claude.ai/artifact/BcuQDJptskVedSjj71HemN |
 | Front desk | Yes: `FrontDeskHome` service, `admin/dashboard/front-desk` page. Every button opens the page where the work is done (fill, receive, mark returned, upload a document): the dashboard points at the work, it doesn't do it (Miguel, 2026-10-11). Search box: Contractors → People, Applicants → the applicants list (`?search=`). "Open checklist" lands on `/admin/applicants/{id}#onboarding` |
 
-Only `w2_employee` still sees the Phase 06 widgets (`DashboardMetrics`); the property manager's back-office view is on hold.
+Only `w2_employee` still sees the Phase 06 widgets (`DashboardMetrics`).
 
 Shared pieces: `Dashboards/Support` (`ApprovalQueue`, `RequestQueue`, `DirectHireSoon`, `StaffAway`, `SystemAlerts`, `OnboardingQueue`, `LowStock`, `DashboardFormat`) and
 `components/dashboard` (`DashCard`, `DashboardHeader`, `RequestList`, `ExpiringCard`, `DirectHireCard`, `StaffAwayCard`, `SystemAlerts`, `LowStockCard`).

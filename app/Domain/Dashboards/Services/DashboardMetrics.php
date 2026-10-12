@@ -29,8 +29,6 @@ use App\Domain\Workflows\Enums\WorkflowStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
-use App\Domain\WorkOrders\Enums\MoreStaffStatus;
-use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -173,57 +171,6 @@ class DashboardMetrics
             'activity' => $user->can('audit.activity_log.view') ? $this->recentActivity() : null,
             ...$this->pulse->build($user, $propertyIds),
         ];
-    }
-
-    /**
-     * @return array{stats: list<array<string, mixed>>, lists: list<array<string, mixed>>, charts: list<array<string, mixed>>}
-     */
-    public function forPropertyManager(Person $user): array
-    {
-        $ids = $this->scopedPropertyIds($user) ?? [];
-
-        $pending = Timesheet::query()->pendingApproval()
-            ->whereIn('property_id', $ids)
-            ->with('property:id,name', 'payrollPeriod:id,week_start,week_end')
-            ->latest('id')->get();
-
-        $stats = [
-            [
-                'title' => 'Timesheets to approve',
-                'value' => $pending->count(),
-                'icon' => 'checklist',
-                'href' => '/timesheets',
-                'tone' => $pending->isNotEmpty() ? 'warning' : 'default',
-            ],
-            [
-                'title' => 'Open staffing requests',
-                'value' => MoreStaffRequest::query()
-                    ->whereIn('property_id', $ids)
-                    ->whereIn('status', [MoreStaffStatus::Submitted->value, MoreStaffStatus::InProgress->value])
-                    ->count(),
-                'icon' => 'user-circle',
-                'href' => '/staffing-requests',
-            ],
-        ];
-
-        $lists = [[
-            'title' => 'Awaiting your approval',
-            'rows' => $pending->map(fn (Timesheet $t): array => [
-                'label' => $t->property->name,
-                'sublabel' => $t->payrollPeriod
-                    ? 'Week of '.$t->payrollPeriod->week_start->toDateString()
-                    : null,
-                'meta' => 'Review',
-                'tone' => 'warning',
-                'href' => "/timesheets/{$t->id}",
-            ])->all(),
-            'viewAllHref' => '/timesheets',
-            'emptyText' => 'No timesheets awaiting approval.',
-        ]];
-
-        $charts = [$this->weeklyHoursChart($ids)];
-
-        return ['stats' => $stats, 'lists' => $lists, 'charts' => $charts];
     }
 
     /**

@@ -1,12 +1,6 @@
 import PageBreadcrumb from '@/components/PageBreadcrumb'
-import StatCard, { Stat } from '@/views/admin/dashboard/widgets/StatCard'
-import ListCard, { ListWidget } from '@/views/admin/dashboard/widgets/ListCard'
-import TrendChart, { Trend } from '@/views/admin/dashboard/widgets/TrendChart'
 import { hasPermission } from '@/layouts/components/useMenuItems'
 import { Head, Link, usePage } from '@inertiajs/react'
-
-type Widgets = { stats: Stat[]; lists: ListWidget[]; charts: Trend[] }
-type Props = { widgets: Widgets | null }
 
 // Shortcut cards, gated like the sidebar (each permission is the one its page
 // enforces) — contractors sign in here too, and shouldn't be offered PM pages.
@@ -20,7 +14,8 @@ const cards = [
   { href: '/kb', title: 'Knowledge Base', desc: 'Guides and answers for day-to-day work.', permission: 'kb.articles.view' },
 ]
 
-const Page = ({ widgets }: Props) => {
+/** QC Minute home for everyone but property managers (who get their own dashboard). */
+const Page = () => {
   const props = usePage().props as { auth?: { user?: { name?: string }; permissions?: string[] } }
   const user = props.auth?.user
   const permissions = props.auth?.permissions ?? []
@@ -33,35 +28,9 @@ const Page = ({ widgets }: Props) => {
       <div className="card rounded-2xl">
         <div className="card-body p-6">
           <h4 className="mb-1 text-base font-bold">Welcome back, {user?.name}</h4>
-          <p className="text-default-400">Approve timesheets and request pay increases for your contractors.</p>
+          <p className="text-default-500">Everything you can do here, in one place.</p>
         </div>
       </div>
-
-      {widgets && (
-        <>
-          {widgets.stats.length > 0 && (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {widgets.stats.map((stat, i) => (
-                <StatCard key={i} stat={stat} />
-              ))}
-            </div>
-          )}
-          {widgets.charts.length > 0 && (
-            <div className="mt-4 grid gap-4">
-              {widgets.charts.map((trend, i) => (
-                <TrendChart key={i} trend={trend} />
-              ))}
-            </div>
-          )}
-          {widgets.lists.length > 0 && (
-            <div className="mt-4 grid gap-4">
-              {widgets.lists.map((widget, i) => (
-                <ListCard key={i} widget={widget} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {cards.filter((card) => hasPermission(card.permission, permissions)).map((card) => (
