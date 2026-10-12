@@ -103,8 +103,9 @@ const Page = ({ greeting, jobs, right_now: now, this_week: week, pay_weeks, char
       <DashboardHeader greeting={greeting} subtitle={subtitle} />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="card mb-0" aria-label="Right now">
-          <div className="card-body flex flex-col gap-1.5 p-5">
+        {/* Same height as This week beside it; the status sits in the middle. */}
+        <section className="card mb-0 h-full" aria-label="Right now">
+          <div className="card-body flex h-full flex-col justify-center gap-1.5 p-5">
             {now.on_the_clock ? (
               <>
                 <span className="self-start">
@@ -130,7 +131,7 @@ const Page = ({ greeting, jobs, right_now: now, this_week: week, pay_weeks, char
           </div>
         </section>
 
-        <Card title="This week" aside={weekRange(week.start, week.end)}>
+        <Card title="This week" aside={weekRange(week.start, week.end)} className="h-full">
           {/* Bars on their own row, so the 8-hour line is measured from the same baseline. */}
           <div className="relative h-20">
             <div
