@@ -1,6 +1,7 @@
 import DashCard, { DashEmpty, DashRow, ViewAll } from '@/components/dashboard/DashCard'
 import DashboardHeader, { DashboardTab } from '@/components/dashboard/DashboardHeader'
 import DirectHireCard, { DirectHire } from '@/components/dashboard/DirectHireCard'
+import StaffAwayCard, { StaffAway } from '@/components/dashboard/StaffAwayCard'
 import { cn } from '@/utils/helpers'
 import { Link } from '@inertiajs/react'
 import type { AdminHeader } from './admin-today'
@@ -9,7 +10,6 @@ type Stat = { key: string; label: string; value: number; note: string; warn: boo
 type PropertyRow = { id: number; name: string; contractors: number; needed: number }
 type Posting = { id: number; title: string; where: string | null; applied: number }
 type Recruiter = { id: number; name: string; properties: number; contractors: number; visits: number; openVisits: number; notSent: number }
-type Away = { id: number; name: string | null; dates: string; kind: string; now: boolean }
 
 type Workforce = {
   headline: Stat[]
@@ -17,7 +17,7 @@ type Workforce = {
   hiring: { applied: number; inReview: number; placed: number; postings: Posting[]; openPostings: number }
   recruiters: Recruiter[]
   directHire: DirectHire
-  staffAway: { rows: Away[]; total: number }
+  staffAway: StaffAway
 }
 
 const plural = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`
@@ -152,26 +152,6 @@ const Recruiters = ({ rows }: { rows: Recruiter[] }) => (
   </DashCard>
 )
 
-const StaffAway = ({ data }: { data: Workforce['staffAway'] }) => (
-  <DashCard
-    title="Staff away"
-    description="Approved time off, next 30 days."
-    footer={data.total > data.rows.length ? <ViewAll href="/admin/pto">All {data.total}</ViewAll> : undefined}>
-    {data.rows.length === 0 ? (
-      <DashEmpty>Nobody is away in the next 30 days.</DashEmpty>
-    ) : (
-      data.rows.map((row) => (
-        <DashRow key={row.id} end={row.now ? <span className="badge badge-label bg-info/15 text-info">Away now</span> : undefined}>
-          <div className="text-default-900 font-medium">{row.name}</div>
-          <div className="text-default-400 text-sm">
-            {row.dates} · {row.kind}
-          </div>
-        </DashRow>
-      ))
-    )}
-  </DashCard>
-)
-
 const Page = ({ workforce, header, tabs, view }: { workforce: Workforce; header: AdminHeader; tabs: DashboardTab[]; view: string }) => (
   <>
     <DashboardHeader greeting={header.greeting} subtitle={`${header.date} · All ${header.properties} properties`} tabs={tabs} current={view} />
@@ -197,7 +177,7 @@ const Page = ({ workforce, header, tabs, view }: { workforce: Workforce; header:
           data={workforce.directHire}
           description={`Contractors a property may soon hire directly, within ${workforce.directHire.withinWeeks} weeks at their recent pace.`}
         />
-        <StaffAway data={workforce.staffAway} />
+        <StaffAwayCard data={workforce.staffAway} description="Approved time off, next 30 days." />
       </div>
     </div>
   </>

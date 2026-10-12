@@ -128,11 +128,14 @@ class RequestQueue
      */
     public function timeOff(): array
     {
-        $rows = PtoRequest::query()->pending()->with('person:id,name')->get()->map(fn (PtoRequest $request): array => [
+        $rows = PtoRequest::query()->pending()->with(['person:id,name', 'allotment'])->get()->map(fn (PtoRequest $request): array => [
             'key' => "pto-{$request->id}",
             'type' => 'Time off',
             'title' => "{$request->person?->name} · ".DashboardFormat::range($request->start_date, $request->end_date),
-            'detail' => rtrim(rtrim((string) $request->hours, '0'), '.').' h '.strtolower($request->bucket->label()),
+            // Hours are set aside when the request is made, so what's available
+            // now is what's left if it's approved.
+            'detail' => self::hours((float) $request->hours).' h '.strtolower($request->bucket->label())
+                .($request->allotment !== null ? ' · '.self::hours($request->allotment->availableFor($request->bucket)).' h left after this' : ''),
             'since' => ($request->submitted_at ?? $request->created_at)?->toImmutable(),
             'action' => ['label' => 'Review', 'href' => '/admin/pto'],
         ]);
@@ -148,7 +151,7 @@ class RequestQueue
         $rows = $this->openWorkflows(WorkflowType::ChangePersonalInfo)->map(fn (Workflow $workflow): array => [
             'key' => "info-{$workflow->id}",
             'type' => 'Info change',
-            'title' => ($workflow->subject instanceof Person ? $workflow->subject->name : 'Someone').' updated their details',
+            'title' => ($workflow->subject instanceof Person ? $workflow->subject->name : 'Someone').' · '.self::changed($workflow),
             'detail' => 'Verify before it replaces what is on file',
             'since' => $workflow->created_at?->toImmutable(),
             'action' => ['label' => 'Verify', 'href' => '/admin/info-changes'],
@@ -285,6 +288,22 @@ class RequestQueue
                 ->values()
                 ->all(),
         ];
+    }
+
+    /** "new phone number", "new email and phone number". */
+    private static function changed(Workflow $workflow): string
+    {
+        $words = ['name' => 'name', 'email' => 'email', 'phone' => 'phone number'];
+        $fields = collect(array_keys((array) ($workflow->data['changes'] ?? [])))
+            ->map(fn (string $field): string => $words[$field] ?? str_replace('_', ' ', $field));
+
+        return $fields->isEmpty() ? 'updated their details' : 'new '.$fields->join(', ', ' and ');
+    }
+
+    /** 40, 7.5 — no trailing zeros. */
+    private static function hours(float $hours): string
+    {
+        return rtrim(rtrim(number_format($hours, 2, '.', ''), '0'), '.');
     }
 
     /**

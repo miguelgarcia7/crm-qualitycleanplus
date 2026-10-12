@@ -15,10 +15,11 @@ Status: build one role at a time, on branch `dashboard`. The property manager's 
 | Admin · Workforce | Yes: `AdminWorkforce` service, `admin/dashboard/admin-workforce` page, `?view=workforce` (needs `people.contractors.view`). Recruiters table is full width; property expenses card left out until expenses are ported |
 | Recruiter | Yes: `RecruiterHome` service, `admin/dashboard/recruiter` page. Submit from the dashboard (with a confirm); "Check in" opens the existing check-in panel |
 | Payroll | Yes: `PayrollHome` service, `admin/dashboard/payroll` page. The pay run is the week before last (Mon–Sun, Miguel 2026-10-11), taking in each property's pay week that ended in it; `?week=` steps to other weeks. Mark paid from the dashboard (with a confirm) |
-| HR, Office manager, Front desk | Not yet. These roles still see the Phase 06 widgets (`DashboardMetrics`) |
+| HR | Yes: `HrHome` service, `admin/dashboard/hr` page. Promote from the dashboard (with a confirm). "Expiring documents" replaced by Terminations in progress until certifications exist |
+| Office manager, Front desk | Not yet. These roles still see the Phase 06 widgets (`DashboardMetrics`) |
 
-Shared pieces: `Dashboards/Support` (`ApprovalQueue`, `RequestQueue`, `DirectHireSoon`, `DashboardFormat`) and
-`components/dashboard` (`DashCard`, `DashboardHeader`, `RequestList`, `ExpiringCard`, `DirectHireCard`).
+Shared pieces: `Dashboards/Support` (`ApprovalQueue`, `RequestQueue`, `DirectHireSoon`, `StaffAway`, `DashboardFormat`) and
+`components/dashboard` (`DashCard`, `DashboardHeader`, `RequestList`, `ExpiringCard`, `DirectHireCard`, `StaffAwayCard`).
 
 ## Rules for every dashboard
 

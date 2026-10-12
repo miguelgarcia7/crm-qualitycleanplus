@@ -6,6 +6,7 @@ use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Dashboards\Support\DashboardFormat;
 use App\Domain\Dashboards\Support\DirectHireSoon;
+use App\Domain\Dashboards\Support\StaffAway;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
@@ -13,8 +14,6 @@ use App\Domain\People\Support\OnboardingChecklist;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
-use App\Domain\Pto\Enums\PtoRequestStatus;
-use App\Domain\Pto\Models\PtoRequest;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Enums\JobPostingStatus;
 use App\Domain\Recruiting\Models\JobApplication;
@@ -43,7 +42,10 @@ class AdminWorkforce
 
     private const STAFF_AWAY_DAYS = 30;
 
-    public function __construct(private readonly DirectHireSoon $directHire) {}
+    public function __construct(
+        private readonly DirectHireSoon $directHire,
+        private readonly StaffAway $staffAway,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -61,7 +63,7 @@ class AdminWorkforce
             'hiring' => $this->hiring($today),
             'recruiters' => $this->recruiters($today, $activeWorkOrders),
             'directHire' => $this->directHire->build($activeWorkOrders, $today, self::LIST_LIMIT),
-            'staffAway' => $this->staffAway($today),
+            'staffAway' => $this->staffAway->upcoming($today, self::STAFF_AWAY_DAYS, self::LIST_LIMIT),
         ];
     }
 
@@ -259,32 +261,5 @@ class AdminWorkforce
             ->pluck('n', 'timesheets.property_id')
             ->map(fn ($n): int => (int) $n)
             ->all();
-    }
-
-    /**
-     * Approved time off for staff in the next 30 days, soonest first.
-     *
-     * @return array<string, mixed>
-     */
-    private function staffAway(CarbonImmutable $today): array
-    {
-        $requests = PtoRequest::query()
-            ->where('status', PtoRequestStatus::Approved->value)
-            ->whereDate('end_date', '>=', $today->toDateString())
-            ->whereDate('start_date', '<=', $today->addDays(self::STAFF_AWAY_DAYS)->toDateString())
-            ->with('person:id,name')
-            ->orderBy('start_date')
-            ->get();
-
-        return [
-            'rows' => $requests->take(self::LIST_LIMIT)->map(fn (PtoRequest $request): array => [
-                'id' => $request->id,
-                'name' => $request->person?->name,
-                'dates' => DashboardFormat::range($request->start_date, $request->end_date),
-                'kind' => strtolower($request->bucket->label()),
-                'now' => $request->start_date->toDateString() <= $today->toDateString(),
-            ])->all(),
-            'total' => $requests->count(),
-        ];
     }
 }

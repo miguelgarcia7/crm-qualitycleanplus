@@ -58,16 +58,10 @@ it('gives payroll period + invoice widgets', function () {
 });
 
 it('gives HR people + workflow widgets', function () {
-    $this->actingAs(person('hr'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', function ($widgets) {
-                $titles = widgetTitles($widgets);
+    // HR lands on its own dashboard now; the widget service still builds these.
+    $titles = widgetTitles(app(DashboardMetrics::class)->forBackOffice(person('hr')));
 
-                return $titles->contains('Pending info changes')
-                    && $titles->contains('Applicants')
-                    && $titles->contains('Terminations in progress');
-            }),
-        );
+    expect($titles)->toContain('Pending info changes', 'Applicants', 'Terminations in progress');
 });
 
 it('gives super admin cross-cutting widgets', function () {
@@ -103,11 +97,10 @@ it('includes the live ops widgets for timesheet-live viewers', function () {
 
 it('withholds live ops + activity widgets from roles without those permissions', function () {
     // HR has neither timesheets.view_live nor audit.activity_log.view.
-    $this->actingAs(person('hr'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets.onTheClock', null)
-            ->where('widgets.activity', null),
-        );
+    $widgets = app(DashboardMetrics::class)->forBackOffice(person('hr'));
+
+    expect($widgets['onTheClock'])->toBeNull()
+        ->and($widgets['activity'])->toBeNull();
 });
 
 it('only sends recent activity to audit viewers', function () {
