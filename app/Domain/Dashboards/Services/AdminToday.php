@@ -57,7 +57,6 @@ class AdminToday
         $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
 
         return [
-            'context' => $this->context($user, $now),
             'actions' => $this->actions($user),
             'alerts' => $this->alerts($user),
             'pipeline' => $user->can('timesheets.view_history') ? $this->pipeline($now) : null,
@@ -69,10 +68,14 @@ class AdminToday
     }
 
     /**
+     * The greeting and scope line every admin view opens with.
+     *
      * @return array<string, mixed>
      */
-    private function context(Person $user, CarbonImmutable $now): array
+    public function header(Person $user): array
     {
+        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+
         $greeting = match (true) {
             $now->hour < 12 => 'Good morning',
             $now->hour < 17 => 'Good afternoon',

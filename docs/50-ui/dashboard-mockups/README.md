@@ -11,7 +11,8 @@ Status: build one role at a time, on branch `dashboard`. The property manager's 
 | View | Built |
 |---|---|
 | Admin · Today | Yes: `AdminToday` service, `admin/dashboard/admin-today` page, shared `components/dashboard/DashCard` |
-| Admin · Analytics, Workforce | Not yet. The Today view has no tabs until these exist |
+| Admin · Analytics | Yes: `AdminAnalytics` service, `admin/dashboard/admin-analytics` page, tabs via `?view=analytics` (needs `reports.financial.view`), period via `?period=mtd|last_month|quarter` |
+| Admin · Workforce | Not yet. Add it as a third tab in `DashboardController` |
 | Recruiter, Payroll, HR, Office manager, Front desk | Not yet. These roles still see the Phase 06 widgets (`DashboardMetrics`) |
 
 ## Rules for every dashboard
@@ -57,8 +58,8 @@ Status: build one role at a time, on branch `dashboard`. The property manager's 
   pipeline).
 - **Not in the app yet:** certifications (no model, new or legacy). Expiry alerts need a new
   feature. Property expenses exist only in the legacy app (`property_expenses`).
-- The revenue chart reads `ReportMonthlyRevenue`, which was stale for October locally while MTD
-  reads invoices. Make them agree.
+- Admin Analytics reads every money figure (headline and monthly chart) straight from frozen invoices,
+  so they agree. `ReportMonthlyRevenue` is no longer used by the dashboard; the Reports pages still read it.
 - Known bug to fix separately: the payouts report omits holiday hours, but its Total Pay includes
   holiday pay (`ReportController::payoutsData`).
 - No approval reminders exist for property managers; don't imply them in copy.

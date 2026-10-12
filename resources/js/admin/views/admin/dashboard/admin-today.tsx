@@ -1,8 +1,8 @@
 import DashCard, { DashEmpty, DashRow, ViewAll } from '@/components/dashboard/DashCard'
-import PageMetaData from '@/components/PageMetaData'
+import DashboardHeader, { DashboardTab } from '@/components/dashboard/DashboardHeader'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
-import { Head, Link } from '@inertiajs/react'
+import { Link } from '@inertiajs/react'
 
 type Action = { label: string; href: string; icon: string; primary: boolean }
 type Target = { label: string; href: string }
@@ -27,8 +27,9 @@ type Expiring = { id: number; title: string; detail: string; days: number; tone:
 type Event = { date: string; day: string; title: string; detail: string; link: Target }
 type Gap = { id: number; name: string; count: number; top: string | null; href: string }
 
+export type AdminHeader = { greeting: string; date: string; week: string; properties: number }
+
 type Today = {
-  context: { greeting: string; date: string; week: string; properties: number }
   actions: Action[]
   alerts: { key: string; title: string; body: string; actionLabel: string; actionHref: string }[]
   pipeline: { stages: Stage[]; chase: ChaseRow[]; chaseTotal: number } | null
@@ -264,38 +265,33 @@ const SetupGaps = ({ gaps }: { gaps: Today['setupGaps'] }) => (
   </DashCard>
 )
 
-const Page = ({ today }: { today: Today }) => {
-  const { context } = today
-
+const Page = ({ today, header, tabs, view }: { today: Today; header: AdminHeader; tabs: DashboardTab[]; view: string }) => {
   return (
     <>
-      <Head title="Dashboard" />
-      <PageMetaData title="Dashboard" />
-
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 pt-4">
-        <div>
-          <h1 className="page-main-title">{context.greeting}</h1>
-          <p className="text-default-500 mt-1">
-            {context.date} · {context.week} · All {context.properties} properties
-          </p>
-        </div>
-        {today.actions.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {today.actions.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className={cn(
-                  'btn',
-                  action.primary ? 'bg-primary hover:bg-primary-hover text-white' : 'border-default-300 hover:border-default-400 border',
-                )}>
-                <Icon icon={action.icon} className="size-4.5" />
-                {action.label}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      <DashboardHeader
+        greeting={header.greeting}
+        subtitle={`${header.date} · ${header.week} · All ${header.properties} properties`}
+        tabs={tabs}
+        current={view}
+        aside={
+          today.actions.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {today.actions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className={cn(
+                    'btn',
+                    action.primary ? 'bg-primary hover:bg-primary-hover text-white' : 'border-default-300 hover:border-default-400 border',
+                  )}>
+                  <Icon icon={action.icon} className="size-4.5" />
+                  {action.label}
+                </Link>
+              ))}
+            </div>
+          )
+        }
+      />
 
       <div className="flex flex-col gap-6">
         {today.alerts.map((alert) => (
