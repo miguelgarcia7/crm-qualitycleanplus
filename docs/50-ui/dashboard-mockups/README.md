@@ -6,8 +6,13 @@ https://claude.ai/artifact/KCHeApuTcj6gfLwLT2cbaU. These `.dc.html` files are co
 (open one in a browser to read the markup; it won't render outside the canvas). Sample data in the
 mockups is illustrative, at production scale (~30 properties, ~100 contractors).
 
-Status: **mockups done, nothing built yet.** Build one role at a time, on branch `dashboard`.
-The property manager's view is on hold.
+Status: build one role at a time, on branch `dashboard`. The property manager's view is on hold.
+
+| View | Built |
+|---|---|
+| Admin · Today | Yes: `AdminToday` service, `admin/dashboard/admin-today` page, shared `components/dashboard/DashCard` |
+| Admin · Analytics, Workforce | Not yet. The Today view has no tabs until these exist |
+| Recruiter, Payroll, HR, Office manager, Front desk | Not yet. These roles still see the Phase 06 widgets (`DashboardMetrics`) |
 
 ## Rules for every dashboard
 
@@ -57,3 +62,5 @@ The property manager's view is on hold.
 - Known bug to fix separately: the payouts report omits holiday hours, but its Total Pay includes
   holiday pay (`ReportController::payoutsData`).
 - No approval reminders exist for property managers; don't imply them in copy.
+- Job postings have no closing date, so "postings closing" was left out of Admin Today's Coming up.
+  Certifications are left out of Expiring until the feature exists.

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Dashboards\Services\DashboardMetrics;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
 use Database\Seeders\RolePermissionSeeder;
@@ -83,31 +84,20 @@ it('gives HR people + workflow widgets', function () {
 });
 
 it('gives super admin cross-cutting widgets', function () {
-    $this->actingAs(person('super_admin'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', function ($widgets) {
-                $titles = widgetTitles($widgets);
+    // Admins land on the Today view now; the widget service still builds these.
+    $titles = widgetTitles(app(DashboardMetrics::class)->forBackOffice(person('super_admin')));
 
-                return $titles->contains('Active work orders')
-                    && $titles->contains('Open workflows')
-                    && $titles->contains('Invoiced this month');
-            }),
-        );
+    expect($titles)->toContain('Active work orders', 'Open workflows', 'Invoiced this month');
 });
 
 it('never shows the same chart twice, whatever roles pile up', function () {
     // Revenue-vs-payouts is added once as the headline chart for anyone with
     // reports.financial.view; super_admin used to also add its own copy, which
     // rendered it at the top and again in the lower grid.
-    $this->actingAs(person('super_admin'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', function ($widgets) {
-                $titles = collect($widgets['charts'])->pluck('title');
+    $titles = collect(app(DashboardMetrics::class)->forBackOffice(person('super_admin'))['charts'])->pluck('title');
 
-                return $titles->contains('Revenue vs payouts (6 months)')
-                    && $titles->duplicates()->isEmpty();
-            }),
-        );
+    expect($titles)->toContain('Revenue vs payouts (6 months)')
+        ->and($titles->duplicates())->toBeEmpty();
 });
 
 it('includes the live ops widgets for timesheet-live viewers', function () {
@@ -136,11 +126,9 @@ it('withholds live ops + activity widgets from roles without those permissions',
 it('only sends recent activity to audit viewers', function () {
     activity('testing')->log('Dashboard activity entry');
 
-    $this->actingAs(person('admin'))->get(main('/admin/dashboard'))
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('widgets', fn ($widgets) => is_array($widgets['activity'])
-                && collect($widgets['activity'])->pluck('description')->contains('Dashboard activity entry')),
-        );
+    $activity = app(DashboardMetrics::class)->forBackOffice(person('admin'))['activity'];
+
+    expect(collect($activity)->pluck('description'))->toContain('Dashboard activity entry');
 });
 
 it('scopes quick actions to the role permissions', function () {
