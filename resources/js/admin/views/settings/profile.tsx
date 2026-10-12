@@ -182,7 +182,7 @@ const CardHeading = ({ title, children }: { title: string; children?: React.Reac
   <div className="card-header">
     <div>
       <h4 className="card-title">{title}</h4>
-      {children && <p className="text-default-400 mt-1 text-sm">{children}</p>}
+      {children && <p className="text-default-500 mt-1 text-sm">{children}</p>}
     </div>
   </div>
 )

@@ -543,7 +543,7 @@ const Modal = ({ title, subtitle, onClose, children }: { title: string; subtitle
       <div className="card-header">
         <div>
           <h4 className="card-title">{title}</h4>
-          {subtitle && <p className="text-default-400 text-sm">{subtitle}</p>}
+          {subtitle && <p className="text-default-500 text-sm">{subtitle}</p>}
         </div>
       </div>
       <div className="card-body max-h-[80vh] overflow-y-auto">{children}</div>

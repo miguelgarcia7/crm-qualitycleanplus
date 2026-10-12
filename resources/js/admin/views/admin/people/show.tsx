@@ -154,7 +154,7 @@ const Section = ({ title, description, action, children, className }: { title: s
     <div className="card-header flex flex-wrap items-start justify-between gap-3">
       <div>
         <h4 className="card-title">{title}</h4>
-        {description && <p className="text-default-400 mt-1 text-sm">{description}</p>}
+        {description && <p className="text-default-500 mt-1 text-sm">{description}</p>}
       </div>
       {action}
     </div>

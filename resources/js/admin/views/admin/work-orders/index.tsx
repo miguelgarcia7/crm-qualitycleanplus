@@ -468,7 +468,7 @@ const Shell = ({ title, subtitle, onClose, children }: { title: string; subtitle
       <div className="card-header">
         <div>
           <h4 className="card-title">{title}</h4>
-          <p className="text-default-400 text-sm">{subtitle}</p>
+          <p className="text-default-500 text-sm">{subtitle}</p>
         </div>
       </div>
       <div className="card-body max-h-[75vh] overflow-y-auto">{children}</div>

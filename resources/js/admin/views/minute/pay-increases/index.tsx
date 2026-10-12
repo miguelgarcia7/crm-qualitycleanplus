@@ -144,7 +144,7 @@ const EditModal = ({ request, onClose }: { request: Req; onClose: () => void }) 
         <div className="card-header">
           <div>
             <h4 className="card-title">Edit request — {request.contractor}</h4>
-            <p className="text-default-400 text-sm">{request.position} · {request.property}</p>
+            <p className="text-default-500 text-sm">{request.position} · {request.property}</p>
           </div>
         </div>
         <div className="card-body p-5">

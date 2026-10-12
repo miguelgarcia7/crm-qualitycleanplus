@@ -58,7 +58,7 @@ const Page = ({ article, attachments, related, my_vote, can_edit }: Props) => {
           <div className="card">
             <div className="card-header block">
               <h4 className="card-title mb-1.25">{article.title}</h4>
-              <p className="text-default-400 text-sm">
+              <p className="text-default-500 text-sm">
                 By {article.author}
                 {article.published_at && ` · ${article.published_at}`} · {article.view_count} views
               </p>

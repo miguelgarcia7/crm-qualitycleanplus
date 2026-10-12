@@ -240,7 +240,7 @@ const CardHeading = ({ title, children, actions }: { title: string; children?: R
   <div className="card-header flex flex-wrap items-center justify-between gap-3">
     <div>
       <h4 className="card-title">{title}</h4>
-      {children && <p className="text-default-400 mt-1 text-sm">{children}</p>}
+      {children && <p className="text-default-500 mt-1 text-sm">{children}</p>}
     </div>
     {actions}
   </div>

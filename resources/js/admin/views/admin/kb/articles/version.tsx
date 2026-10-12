@@ -29,7 +29,7 @@ const Page = ({ article, snapshot }: Props) => (
     <div className="card">
       <div className="card-header block">
         <h4 className="card-title mb-1.25">{snapshot.title}</h4>
-        <p className="text-default-400 text-sm">
+        <p className="text-default-500 text-sm">
           v{snapshot.version} by {snapshot.author}
           {snapshot.created_at && ` · ${snapshot.created_at}`}
           {snapshot.change_summary && ` · “${snapshot.change_summary}”`}

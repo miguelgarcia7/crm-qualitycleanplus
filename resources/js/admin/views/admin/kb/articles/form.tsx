@@ -147,7 +147,7 @@ const Page = ({ article, attachments = [], categoryOptions, tagSuggestions, role
               <div className="card-header">
                 <h4 className="card-title">Content</h4>
                 {article && (
-                  <span className="text-default-400 text-sm">
+                  <span className="text-default-500 text-sm">
                     v{article.version} · {article.status_label}
                   </span>
                 )}

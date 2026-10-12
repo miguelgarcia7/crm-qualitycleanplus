@@ -89,7 +89,7 @@ const Section = ({ title, description, children }: { title: string; description:
     <div className="card-header">
       <div>
         <h4 className="card-title">{title}</h4>
-        <p className="text-default-400 mt-1 text-sm">{description}</p>
+        <p className="text-default-500 mt-1 text-sm">{description}</p>
       </div>
     </div>
     <div className="card-body">{children}</div>

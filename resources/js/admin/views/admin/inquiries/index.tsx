@@ -116,7 +116,7 @@ const InquiryModal = ({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => v
               {inquiry.name}
               {inquiry.company && <span className="text-default-400 font-normal"> · {inquiry.company}</span>}
             </h4>
-            <p className="text-default-400 text-xs">Received {formatDateTime(inquiry.received_at)}</p>
+            <p className="text-default-500 text-xs">Received {formatDateTime(inquiry.received_at)}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close">
             <Icon icon="x" className="size-5" />

@@ -34,7 +34,7 @@ const Page = ({ article, attachments, my_vote }: Props) => {
       <div className="card mb-4">
         <div className="card-header block">
           <h4 className="card-title mb-1.25">{article.title}</h4>
-          <p className="text-default-400 text-sm">
+          <p className="text-default-500 text-sm">
             {article.categories.join(', ')}
             {article.published_at && ` · ${article.published_at}`}
           </p>
