@@ -25,25 +25,57 @@ export const weekRange = (start: string, end: string) =>
 export const byWhom = (who: string | null, verb: string, date: string | null) =>
   who === 'you' ? `You ${verb} ${date ? monthDay(date) : ''}`.trim() : `${verb[0].toUpperCase()}${verb.slice(1)} ${date ? monthDay(date) : ''}${who ? ` by ${who}` : ''}`
 
-const PILLS: Record<string, { label: string; tone: string; dot: string }> = {
-  pending_approval: { label: 'Waiting for you', tone: 'bg-warning/20', dot: 'bg-warning' },
-  declined: { label: 'Declined', tone: 'bg-danger/12', dot: 'bg-danger' },
-  approved: { label: 'Invoiced', tone: 'bg-success/15', dot: 'bg-success' },
-  invoiced: { label: 'Invoiced', tone: 'bg-success/15', dot: 'bg-success' },
-  invoice_sent: { label: 'Invoiced', tone: 'bg-success/15', dot: 'bg-success' },
-  voided: { label: 'Voided', tone: 'bg-light', dot: 'bg-default-400' },
-  draft: { label: 'In progress', tone: 'bg-info/15', dot: 'bg-info' },
+export type Tone = 'warning' | 'danger' | 'success' | 'info' | 'muted'
+
+const TONES: Record<Tone, { tint: string; dot: string }> = {
+  warning: { tint: 'bg-warning/20', dot: 'bg-warning' },
+  danger: { tint: 'bg-danger/12', dot: 'bg-danger' },
+  success: { tint: 'bg-success/15', dot: 'bg-success' },
+  info: { tint: 'bg-info/15', dot: 'bg-info' },
+  muted: { tint: 'bg-light', dot: 'bg-default-400' },
 }
 
-/** Status as the property manager reads it. Dark text on a tint, so it passes contrast. */
+/** A status pill: dark text on a tint, with a colored dot, so it passes contrast. */
+export const Pill = ({ tone, children }: { tone: Tone; children: string }) => (
+  <span className={cn('text-default-900 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap', TONES[tone].tint)}>
+    <span className={cn('size-1.5 rounded-full', TONES[tone].dot)} aria-hidden="true" />
+    {children}
+  </span>
+)
+
+const PILLS: Record<string, { label: string; tone: Tone }> = {
+  pending_approval: { label: 'Waiting for you', tone: 'warning' },
+  declined: { label: 'Declined', tone: 'danger' },
+  approved: { label: 'Invoiced', tone: 'success' },
+  invoiced: { label: 'Invoiced', tone: 'success' },
+  invoice_sent: { label: 'Invoiced', tone: 'success' },
+  voided: { label: 'Voided', tone: 'muted' },
+  draft: { label: 'In progress', tone: 'info' },
+}
+
+/** A timesheet's status as the property manager reads it. */
 export const StatusPill = ({ status, children }: { status: string; children?: string }) => {
   const pill = PILLS[status] ?? PILLS.draft
-  return (
-    <span className={cn('text-default-900 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap', pill.tone)}>
-      <span className={cn('size-1.5 rounded-full', pill.dot)} aria-hidden="true" />
-      {children ?? pill.label}
-    </span>
-  )
+  return <Pill tone={pill.tone}>{children ?? pill.label}</Pill>
+}
+
+/** Where an invoice stands for the client, from its payment fields. */
+export type Payment = {
+  voided: boolean
+  due_date: string
+  paid_at: string | null
+  is_overdue: boolean
+  days_overdue: number | null
+  days_until_due: number | null
+}
+
+const days = (n: number) => (n === 1 ? '1 day' : `${n} days`)
+
+export const paymentStatus = (p: Payment): { tone: Tone; label: string; note: string } => {
+  if (p.voided) return { tone: 'muted', label: 'Voided', note: 'No longer payable' }
+  if (p.paid_at) return { tone: 'success', label: `Paid ${monthDay(p.paid_at)}`, note: `Was due ${monthDay(p.due_date)}` }
+  if (p.is_overdue) return { tone: 'danger', label: `Overdue · ${days(p.days_overdue ?? 0)}`, note: `Was due ${monthDay(p.due_date)}` }
+  return { tone: 'info', label: `Due ${monthDay(p.due_date)}`, note: p.days_until_due ? `In ${days(p.days_until_due)}` : 'Due today' }
 }
 
 export const Chip = ({ tone, children }: { tone: 'secondary' | 'info' | 'success'; children: string }) => (

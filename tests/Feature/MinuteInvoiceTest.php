@@ -87,3 +87,52 @@ it('keeps a contractor out of the invoice surface', function () {
         ->get(qcminute("/invoices/{$invoice->id}"))
         ->assertForbidden();
 });
+
+it('tells the client what is paid, due and overdue, and totals the open balance', function () {
+    $paid = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 100_00, 'due_date' => now()->addDays(5), 'paid_at' => now()->subDays(3)]);
+    $due = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 200_00, 'due_date' => now()->addDays(10)]);
+    $late = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 400_00, 'due_date' => now()->subDays(4)]);
+    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::Voided, 'total' => 800_00, 'due_date' => now()->subDays(4)]);
+
+    $rows = fn ($page) => collect($page->toArray()['props']['invoices'])->keyBy('id');
+
+    $this->actingAs($this->pm)
+        ->get(qcminute('/invoices'))
+        ->assertInertia(function (Assert $page) use ($paid, $due, $late, $rows) {
+            $page->where('counts', ['all' => 4, 'open' => 2, 'overdue' => 1, 'paid' => 1])
+                ->where('summary.open_total', 600_00)
+                ->where('summary.overdue_total', 400_00)
+                ->where('summary.paid_total', 100_00)
+                ->where('summary.next_due', $due->due_date->toDateString());
+
+            $byId = $rows($page);
+            expect($byId[$paid->id]['paid_at'])->toBe($paid->paid_at->toDateString())
+                ->and($byId[$due->id]['days_until_due'])->toBe(10)
+                ->and($byId[$late->id]['is_overdue'])->toBeTrue()
+                ->and($byId[$late->id]['days_overdue'])->toBe(4);
+        });
+
+    $this->actingAs($this->pm)
+        ->get(qcminute('/invoices?status=overdue'))
+        ->assertInertia(fn (Assert $page) => $page->has('invoices', 1)->where('invoices.0.id', $late->id));
+});
+
+it('shows holiday hours and their rate on each line, so a line adds up', function () {
+    $invoice = issuedInvoice($this->property);
+    InvoiceItem::factory()->create([
+        'invoice_id' => $invoice->id,
+        'bill_rate' => 26_00,
+        'regular_minutes' => 30 * 60,
+        'regular_amount_bill' => 780_00,
+        'holiday_minutes' => 8 * 60,
+        'holiday_amount_bill' => 312_00,
+        'total_bill' => 1092_00,
+    ]);
+
+    $this->actingAs($this->pm)
+        ->get(qcminute("/invoices/{$invoice->id}"))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('invoice.items.0.holiday_minutes', 8 * 60)
+            ->where('invoice.items.0.holiday_rate', 39_00)
+            ->where('invoice.items.0.bill_rate', 26_00));
+});
