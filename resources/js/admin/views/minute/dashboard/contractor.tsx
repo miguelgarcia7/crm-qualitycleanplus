@@ -1,5 +1,6 @@
 import DashboardHeader from '@/components/dashboard/DashboardHeader'
 import { hrs, money, monthDay, Pill, weekday, weekRange } from '@/components/timesheet/PmTimesheet'
+import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
 import { Link } from '@inertiajs/react'
 import { ReactNode, useState } from 'react'
@@ -39,6 +40,13 @@ type Props = {
   details: { email: string | null; phone: string | null }
   help: { slug: string; title: string }[]
 }
+
+/** A fixed scale, so an 8-hour day is always the same height from week to week. */
+const SCALE_MINUTES = 12 * 60
+const GUIDE_MINUTES = 8 * 60
+
+/** "9.9", or "—" when there are no hours. One decimal fits seven columns on a phone. */
+const dayHours = (minutes: number) => (minutes > 0 ? (minutes / 60).toFixed(1) : '—')
 
 /** One color per job, so a day's bar and the legend match. */
 const JOB_COLORS = ['bg-primary', 'bg-secondary', 'bg-info', 'bg-purple']
@@ -81,7 +89,6 @@ const Page = ({ greeting, jobs, right_now: now, this_week: week, pay_weeks, char
   const many = jobs.length > 1
   const color = (jobId: number | string) => JOB_COLORS[Math.max(0, jobs.findIndex((j) => String(j.id) === String(jobId))) % JOB_COLORS.length]
   const dayTotals = week.days.map((d) => Object.values(d.by_job).reduce((a, b) => a + b, 0))
-  const peak = Math.max(10 * 60, ...dayTotals)
   const weekTotal = dayTotals.reduce((a, b) => a + b, 0)
   const places = [...new Set(jobs.map((j) => j.property).filter(Boolean))]
 
@@ -124,20 +131,43 @@ const Page = ({ greeting, jobs, right_now: now, this_week: week, pay_weeks, char
         </section>
 
         <Card title="This week" aside={weekRange(week.start, week.end)}>
-          <div className="grid grid-cols-7 gap-1.5">
-            {week.days.map((d, i) => (
-              <div key={d.date} className="flex flex-col items-center gap-1.5">
-                <div
-                  className="bg-default-200 flex h-16 w-full max-w-8 flex-col justify-end overflow-hidden rounded-md"
-                  role="img"
-                  aria-label={`${weekday(d.date)}: ${hrs(dayTotals[i])} hours`}>
-                  {Object.entries(d.by_job).map(([jobId, minutes]) => (
-                    <span key={jobId} className={cn('block w-full', color(jobId), d.date === week.today && 'opacity-60')} style={{ height: `${(minutes / peak) * 100}%` }} />
-                  ))}
+          {/* Bars on their own row, so the 8-hour line is measured from the same baseline. */}
+          <div className="relative h-20">
+            <div
+              className="border-default-300 pointer-events-none absolute inset-x-0 border-t border-dashed"
+              style={{ bottom: `calc(2px + (100% - 2px) * ${GUIDE_MINUTES / SCALE_MINUTES})` }}
+              aria-hidden="true">
+              <span className="text-default-500 bg-card absolute -top-2 right-0 ps-1 text-[11px] leading-none">8 h</span>
+            </div>
+            <div className="relative grid h-full grid-cols-7 gap-1.5">
+              {week.days.map((d, i) => (
+                <div key={d.date} className="flex justify-center">
+                  <div
+                    className="border-default-300 flex h-full w-full max-w-8 flex-col justify-end border-b-2"
+                    role="img"
+                    aria-label={`${weekday(d.date)}: ${dayTotals[i] ? `${hrs(dayTotals[i])} hours` : 'no hours'}`}>
+                    {Object.entries(d.by_job).map(([jobId, minutes], j, all) => (
+                      <span
+                        key={jobId}
+                        className={cn('block w-full', color(jobId), j === all.length - 1 && 'rounded-t')}
+                        style={{ height: `${Math.min(100, (minutes / SCALE_MINUTES) * 100)}%`, order: all.length - j }}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <span className={cn('text-xs', d.date === week.today ? 'text-default-900 font-bold' : 'text-default-500')}>{weekday(d.date)}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+          <div className="mt-1.5 grid grid-cols-7 gap-1.5">
+            {week.days.map((d, i) => {
+              const isToday = d.date === week.today
+              return (
+                <div key={d.date} className="flex flex-col items-center">
+                  <span className={cn('text-sm tabular-nums', dayTotals[i] ? 'text-default-900 font-semibold' : 'text-default-500')}>{dayHours(dayTotals[i])}</span>
+                  <span className={cn('text-xs', isToday ? 'text-default-900 font-bold' : 'text-default-500')}>{isToday ? 'Today' : weekday(d.date)}</span>
+                </div>
+              )
+            })}
           </div>
           {many && (
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
@@ -273,8 +303,9 @@ const Page = ({ greeting, jobs, right_now: now, this_week: week, pay_weeks, char
           <Row label="Email">{details.email ?? '—'}</Row>
           <Row label="Phone">{details.phone ?? '—'}</Row>
           <p className="text-default-500 mt-2 text-sm">Your phone number is how you clock in, so keep it current.</p>
-          <Link href="/my-info" className="btn btn-light mt-3 px-4">
-            Request a change
+          {/* The page's one action, so it gets the main button style. */}
+          <Link href="/my-info" className="btn bg-primary hover:bg-primary-hover mt-3 w-full px-4 font-semibold text-white sm:w-auto">
+            <Icon icon="edit" className="size-4" /> Request a change
           </Link>
         </Card>
 
