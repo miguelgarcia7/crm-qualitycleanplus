@@ -116,10 +116,11 @@ it('gives a property manager the QC Minute PM dashboard', function () {
         );
 });
 
-it('falls back to link-cards for a contractor on QC Minute', function () {
+it('gives a contractor their own QC Minute home', function () {
     $this->actingAs(person('contractor'))->get(qcminute('/'))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('minute/dashboard/index')
+            ->component('minute/dashboard/contractor')
+            ->has('pay_weeks')
             ->missing('waiting'),
         );
 });

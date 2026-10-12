@@ -186,7 +186,15 @@ Adjustment items (incentives, deductions) are *not* time entries — they live i
 
 ## Hourly bucketing
 
-When `RecomputeTimeSummary` runs for a (work_order, week), it executes the bucketing algorithm:
+When `RecomputeTimeSummary` runs for a (work_order, week), it executes the bucketing algorithm.
+
+**Overtime is per work order, by design** (confirmed by the owner, 2026-10-12). Each work order is a
+separate job: a contractor may work 4 days at one hotel and 2 at another, or tend bar at night and
+housekeep in the morning at the same hotel, as long as the shifts don't overlap. The 40-hour line is
+counted within each work order, never across a person's jobs. A pay raise's old and new work orders
+in the same week therefore each count their own hours too.
+
+
 
 ```
 1. Load all time_entries for this (work_order, week), oldest first

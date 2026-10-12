@@ -4,7 +4,6 @@ import { Link } from '@inertiajs/react'
 import AppMenu from './components/AppMenu'
 import OnHoverToggle from './components/OnHoverToggle'
 
-import UserProfileSettings from './components/UserProfileSettings'
 
 const Sidenav = () => {
   return (
@@ -17,8 +16,6 @@ const Sidenav = () => {
 
       <div className="relative min-h-0 grow" id="sidenav-menu">
         <SimpleBar className="size-full">
-          <UserProfileSettings />
-
           <div>
             <AppMenu />
           </div>

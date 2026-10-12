@@ -267,7 +267,7 @@ and a verified sender signature — see `10-architecture/deployment-topology.md`
 
 ### Known gaps — deferred and not yet built
 
-- Contractor self-service on QC Minute, deferred twice and still showing static link cards
+- Contractor self-service beyond the home page: a full hours history, and clocking in from the portal (the home page shipped 2026-10-12; clocking in stays QR-only for now)
 - Field-visit reports, punted from Phase 07 into a report catalog that shipped without them
 - Adjustment catalog has no management screen
 - Two-factor is enabled and wired but has no enrollment panel
