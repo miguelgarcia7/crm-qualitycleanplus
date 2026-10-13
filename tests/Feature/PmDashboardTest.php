@@ -85,10 +85,13 @@ it('shows the week waiting on the manager, and what comes next', function () {
 });
 
 it('totals what the manager owes and lists their open requests', function () {
-    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 300_00, 'due_date' => now()->addDays(9)]);
-    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 500_00, 'due_date' => now()->subDays(2)]);
-    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 900_00, 'due_date' => now()->subDays(20), 'paid_at' => now()->subDays(25)]);
-    Invoice::factory()->create(['total' => 700_00, 'due_date' => now()->subDays(2)]); // someone else's
+    // Due dates are counted in the office's time zone, as the dashboard does,
+    // so the test holds in the evening when UTC is already tomorrow.
+    $today = now('America/Chicago')->startOfDay();
+    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 300_00, 'due_date' => $today->copy()->addDays(9)->toDateString()]);
+    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 500_00, 'due_date' => $today->copy()->subDays(2)->toDateString()]);
+    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 900_00, 'due_date' => $today->copy()->subDays(20)->toDateString(), 'paid_at' => now()->subDays(25)]);
+    Invoice::factory()->create(['total' => 700_00, 'due_date' => $today->copy()->subDays(2)->toDateString()]); // someone else's
     MoreStaffRequest::factory()->create(['property_id' => $this->property->id, 'status' => MoreStaffStatus::Submitted, 'quantity_requested' => 2, 'quantity_fulfilled' => 1]);
     MoreStaffRequest::factory()->create(['property_id' => $this->property->id, 'status' => MoreStaffStatus::Fulfilled]);
 

@@ -89,10 +89,12 @@ it('keeps a contractor out of the invoice surface', function () {
 });
 
 it('tells the client what is paid, due and overdue, and totals the open balance', function () {
-    $paid = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 100_00, 'due_date' => now()->addDays(5), 'paid_at' => now()->subDays(3)]);
-    $due = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 200_00, 'due_date' => now()->addDays(10)]);
-    $late = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 400_00, 'due_date' => now()->subDays(4)]);
-    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::Voided, 'total' => 800_00, 'due_date' => now()->subDays(4)]);
+    // Due dates count from today at the property, as the app does (Invoice::isOverdue).
+    $today = now($this->property->timezone)->startOfDay();
+    $paid = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 100_00, 'due_date' => $today->copy()->addDays(5)->toDateString(), 'paid_at' => now()->subDays(3)]);
+    $due = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 200_00, 'due_date' => $today->copy()->addDays(10)->toDateString()]);
+    $late = Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::InvoiceSent, 'total' => 400_00, 'due_date' => $today->copy()->subDays(4)->toDateString()]);
+    Invoice::factory()->create(['property_id' => $this->property->id, 'status' => InvoiceStatus::Voided, 'total' => 800_00, 'due_date' => $today->copy()->subDays(4)->toDateString()]);
 
     $rows = fn ($page) => collect($page->toArray()['props']['invoices'])->keyBy('id');
 

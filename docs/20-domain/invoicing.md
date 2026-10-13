@@ -207,10 +207,19 @@ On confirm:
 
 ### Overdue is derived, never stored
 
-`paid_at IS NULL`, status is not `voided`, and `due_date` is past. A stored flag
-would need a nightly job to keep true and would be wrong between runs. Surfaced
-as a badge on the invoice detail page and the list, and as a `payment` filter
-(paid / unpaid / overdue) on the list.
+`paid_at IS NULL`, status is not `voided` (or `draft`), and `due_date` is before
+**today at the invoice's property**, in the property's own time zone. An invoice
+due today is still on time. A stored flag would need a nightly job to keep true
+and would be wrong between runs.
+
+One rule, in one place (2026-10-12): `Invoice::isOverdue()`, `daysOverdue()` and
+`daysPastDue()` for a single invoice, and the `overdue()` query scope for lists
+and totals, which compares each property's due dates with that property's today.
+Every screen uses them: the back-office invoice list (badge and `payment`
+filter) and detail page, the admin Analytics and payroll dashboards, and the
+PM's Invoices page and dashboard. Before, the server's UTC clock called invoices
+late from 7 pm Chicago time (earlier for a west-coast hotel), and the screens
+disagreed with each other.
 
 Note after cutover: only the 1,267 invoices that were `paid` in legacy carry a
 `paid_at`, so everything else imported reads as overdue on its old due date.

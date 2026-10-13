@@ -51,7 +51,7 @@ class InvoiceController extends Controller
         $propertyIds = $propertyId === null ? $properties->pluck('id')->all() : [$propertyId];
 
         $page = $this->filtered($this->scoped($propertyIds), $status)
-            ->with('property:id,name', 'payrollPeriod:id,week_start,week_end')
+            ->with('property:id,name,timezone', 'payrollPeriod:id,week_start,week_end')
             ->orderByDesc('issue_date')
             ->orderByDesc('id')
             ->paginate(self::PER_PAGE)
@@ -60,7 +60,8 @@ class InvoiceController extends Controller
         $open = $this->filtered($this->scoped($propertyIds), 'open');
         $overdue = $this->filtered($this->scoped($propertyIds), 'overdue');
         $paidRecently = $this->scoped($propertyIds)->where('paid_at', '>=', now()->subDays(30));
-        $nextDue = (clone $open)->whereDate('due_date', '>=', today()->toDateString())->min('due_date');
+        // The soonest due date among open invoices that aren't late yet.
+        $nextDue = (clone $open)->whereNotIn('invoices.id', (clone $overdue)->select('invoices.id'))->min('due_date');
 
         return Inertia::render('minute/invoices/index', [
             'invoices' => collect($page->items())->map(fn (Invoice $invoice): array => [
@@ -106,7 +107,7 @@ class InvoiceController extends Controller
         $this->authorize('view', $invoice);
         abort_if($invoice->status === InvoiceStatus::Draft, 404);
 
-        $invoice->load('items', 'payrollPeriod:id,week_start,week_end');
+        $invoice->load('items', 'payrollPeriod:id,week_start,week_end', 'property:id,timezone');
 
         return Inertia::render('minute/invoices/show', [
             'invoice' => [
@@ -170,16 +171,16 @@ class InvoiceController extends Controller
     private function payment(Invoice $invoice): array
     {
         $open = $invoice->paid_at === null && $invoice->status !== InvoiceStatus::Voided;
-        // Due today is still on time, as in the Overdue filter.
-        $overdue = $open && $invoice->due_date->lt(today());
+        // Overdue by the property's own date; due today is still on time (Invoice::isOverdue).
+        $overdue = $invoice->isOverdue();
 
         return [
             'voided' => $invoice->status === InvoiceStatus::Voided,
             'due_date' => $invoice->due_date->toDateString(),
             'paid_at' => $invoice->paid_at?->toDateString(),
             'is_overdue' => $overdue,
-            'days_overdue' => $overdue ? (int) $invoice->due_date->diffInDays(today(), absolute: true) : null,
-            'days_until_due' => $open && ! $overdue ? (int) today()->diffInDays($invoice->due_date, absolute: true) : null,
+            'days_overdue' => $invoice->daysOverdue(),
+            'days_until_due' => $open && ! $overdue ? -$invoice->daysPastDue() : null,
         ];
     }
 
@@ -223,7 +224,7 @@ class InvoiceController extends Controller
 
         return match ($status) {
             'open' => $query->where($open),
-            'overdue' => $query->where($open)->whereDate('due_date', '<', today()->toDateString()),
+            'overdue' => $query->overdue(),
             'paid' => $query->whereNotNull('paid_at'),
             default => $query,
         };

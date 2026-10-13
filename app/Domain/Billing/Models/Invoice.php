@@ -6,6 +6,7 @@ use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Support\InvoiceSnapshot;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\PayrollPeriod;
 use Carbon\CarbonImmutable;
 use Database\Factories\InvoiceFactory;
@@ -62,14 +63,63 @@ class Invoice extends Model
     }
 
     /**
-     * Unpaid and past due. Derived rather than stored — a stored flag would
-     * need a nightly job to stay true, and would be wrong between runs.
+     * Unpaid, not voided, and due before today at the property. Derived rather
+     * than stored — a stored flag would need a nightly job to stay true, and
+     * would be wrong between runs. "Today" is the property's own date, so a
+     * west-coast hotel isn't called late by the server's clock in the evening,
+     * and an invoice due today is still on time. Load `property:id,timezone`.
      */
     public function isOverdue(): bool
     {
         return $this->paid_at === null
-            && $this->status !== InvoiceStatus::Voided
-            && $this->due_date->isPast();
+            && ! in_array($this->status, [InvoiceStatus::Voided, InvoiceStatus::Draft], true)
+            && $this->daysPastDue() > 0;
+    }
+
+    /** Whole days past the due date at the property: negative before it, 0 on it. */
+    public function daysPastDue(): int
+    {
+        $due = CarbonImmutable::parse($this->due_date->toDateString());
+        $today = CarbonImmutable::parse($this->localToday()->toDateString());
+
+        return (int) $due->diffInDays($today, false);
+    }
+
+    /** Days late when overdue, otherwise null. */
+    public function daysOverdue(): ?int
+    {
+        return $this->isOverdue() ? $this->daysPastDue() : null;
+    }
+
+    /** Today at the invoice's property, in its time zone (the office's when there is none). */
+    public function localToday(): CarbonImmutable
+    {
+        return CarbonImmutable::now($this->property->timezone ?? AutomationCatalog::DISPLAY_TIMEZONE)->startOfDay();
+    }
+
+    /**
+     * Invoices overdue as {@see isOverdue()} judges them, in SQL: each
+     * property's due dates compared with today in that property's time zone.
+     *
+     * @param  Builder<Invoice>  $query
+     */
+    public function scopeOverdue(Builder $query): void
+    {
+        $query->whereNull('invoices.paid_at')
+            ->whereNotIn('invoices.status', [InvoiceStatus::Voided->value, InvoiceStatus::Draft->value])
+            ->where(function (Builder $late): void {
+                $zones = Property::withTrashed()->distinct()->pluck('timezone');
+
+                foreach ($zones as $zone) {
+                    $late->orWhere(fn (Builder $q) => $q
+                        ->whereIn('invoices.property_id', Property::withTrashed()->where('timezone', $zone)->select('id'))
+                        ->whereDate('invoices.due_date', '<', CarbonImmutable::now($zone ?: AutomationCatalog::DISPLAY_TIMEZONE)->toDateString()));
+                }
+
+                $late->orWhere(fn (Builder $q) => $q
+                    ->whereNull('invoices.property_id')
+                    ->whereDate('invoices.due_date', '<', CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE)->toDateString()));
+            });
     }
 
     protected function casts(): array

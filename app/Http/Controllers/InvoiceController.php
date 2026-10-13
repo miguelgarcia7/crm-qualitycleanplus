@@ -76,7 +76,7 @@ class InvoiceController extends Controller
                 'status_label' => $i->status->label(),
                 'paid_at' => $i->paid_at?->toDateString(),
                 'is_overdue' => $i->isOverdue(),
-                'days_overdue' => $i->isOverdue() ? (int) $i->due_date->diffInDays(today(), absolute: true) : null,
+                'days_overdue' => $i->daysOverdue(),
             ])->all(),
             'pagination' => [
                 'current_page' => $page->currentPage(),
@@ -162,10 +162,8 @@ class InvoiceController extends Controller
             ->when($filters['property_id'] !== null, fn (Builder $q) => $q->where('invoices.property_id', $filters['property_id']))
             ->when($filters['payment'] === 'paid', fn (Builder $q) => $q->whereNotNull('invoices.paid_at'))
             ->when($filters['payment'] === 'unpaid', fn (Builder $q) => $q->whereNull('invoices.paid_at'))
-            ->when($filters['payment'] === 'overdue', fn (Builder $q) => $q
-                ->whereNull('invoices.paid_at')
-                ->where('invoices.status', '!=', InvoiceStatus::Voided->value)
-                ->whereDate('invoices.due_date', '<', now()->toDateString()))
+            // Overdue by each property's own date (Invoice::scopeOverdue).
+            ->when($filters['payment'] === 'overdue', fn (Builder $q) => $q->overdue())
             ->when($filters['search'] !== '', function (Builder $q) use ($filters): void {
                 $like = '%'.$filters['search'].'%';
                 $q->where(fn (Builder $w) => $w
@@ -173,7 +171,7 @@ class InvoiceController extends Controller
                     ->orWhere('properties.name', 'like', $like));
             })
             ->select('invoices.*')
-            ->with(['property:id,name', 'payrollPeriod:id,week_start,week_end'])
+            ->with(['property:id,name,timezone', 'payrollPeriod:id,week_start,week_end'])
             ->orderBy(self::SORTS[$filters['sort']], $filters['direction'])
             // A day's invoices all share an issue date — without a stable
             // tiebreaker one can appear on two pages and another on none.
@@ -204,7 +202,7 @@ class InvoiceController extends Controller
     {
         $this->authorize('view', $invoice);
 
-        $invoice->load(['items', 'payrollPeriod:id,week_start,week_end']);
+        $invoice->load(['items', 'payrollPeriod:id,week_start,week_end', 'property:id,timezone']);
         $user = Auth::user();
 
         return Inertia::render('admin/invoices/show', [
@@ -282,7 +280,7 @@ class InvoiceController extends Controller
             'paid_by' => $invoice->paidBy?->name,
             // Derived, never stored: unpaid and past its due date.
             'is_overdue' => $invoice->isOverdue(),
-            'days_overdue' => $invoice->isOverdue() ? (int) $invoice->due_date->diffInDays(today(), absolute: true) : null,
+            'days_overdue' => $invoice->daysOverdue(),
             'items' => $invoice->items->map(fn (InvoiceItem $it): array => [
                 'contractor_name' => $it->contractor_name,
                 'position_name' => $it->position_name,

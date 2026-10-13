@@ -58,7 +58,7 @@ class PropertyManagerHome
             'waiting' => $this->waiting($ids, $now),
             'next_up' => $this->nextUp($properties),
             'this_week' => $this->thisWeek($properties),
-            'invoices' => $this->invoices($ids, $now),
+            'invoices' => $this->invoices($ids),
             'requests' => $this->requests($user, $ids),
             'direct_hire' => $this->directHire($ids),
             'hours' => $this->hours($properties),
@@ -185,21 +185,22 @@ class PropertyManagerHome
      * @param  list<int>  $ids
      * @return array<string, mixed>
      */
-    private function invoices(array $ids, CarbonImmutable $now): array
+    private function invoices(array $ids): array
     {
         $open = fn () => Invoice::query()
             ->whereIn('property_id', $ids)
             ->whereNull('paid_at')
             ->whereNotIn('status', [InvoiceStatus::Draft->value, InvoiceStatus::Voided->value]);
-        $today = $now->toDateString();
+        // Overdue by each property's own date (Invoice::scopeOverdue).
+        $overdue = fn () => Invoice::query()->whereIn('property_id', $ids)->overdue();
 
         return [
             'open_total' => (int) $open()->sum('total'),
             'open_count' => $open()->count(),
-            'overdue_total' => (int) $open()->whereDate('due_date', '<', $today)->sum('total'),
-            'overdue_count' => $open()->whereDate('due_date', '<', $today)->count(),
+            'overdue_total' => (int) $overdue()->sum('total'),
+            'overdue_count' => $overdue()->count(),
             'rows' => $open()
-                ->with('payrollPeriod:id,week_start,week_end')
+                ->with('payrollPeriod:id,week_start,week_end', 'property:id,timezone')
                 ->orderBy('due_date')
                 ->limit(self::LIST_LIMIT)
                 ->get()
@@ -208,7 +209,7 @@ class PropertyManagerHome
                     'number' => $i->invoice_number,
                     'week' => $i->payrollPeriod === null ? null : DashboardFormat::range($i->payrollPeriod->week_start, $i->payrollPeriod->week_end),
                     'due' => $i->due_date->format('M j'),
-                    'days_overdue' => $i->due_date->toDateString() < $today ? (int) $i->due_date->diffInDays($now->startOfDay(), absolute: true) : null,
+                    'days_overdue' => $i->daysOverdue(),
                     'total' => $i->total,
                 ])->all(),
         ];

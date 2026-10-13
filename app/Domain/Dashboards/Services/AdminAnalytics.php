@@ -130,7 +130,8 @@ class AdminAnalytics
             ->sum('total');
 
         $owed = $this->unpaid();
-        $overdue = $owed->clone()->whereDate('due_date', '<', $today->toDateString());
+        // Overdue by each property's own date (Invoice::scopeOverdue).
+        $overdue = $owed->clone()->overdue();
 
         $margin = $this->margin($current);
         $previousMargin = $this->margin($previous);
@@ -231,7 +232,7 @@ class AdminAnalytics
      */
     private function owed(CarbonImmutable $today): array
     {
-        $unpaid = $this->unpaid()->with('property:id,name')->get(['id', 'property_id', 'due_date', 'total']);
+        $unpaid = $this->unpaid()->with('property:id,name,timezone')->get(['id', 'property_id', 'due_date', 'total', 'paid_at', 'status']);
 
         $buckets = [
             'current' => ['label' => 'Not due yet', 'amount' => 0],
@@ -241,7 +242,8 @@ class AdminAnalytics
         ];
 
         foreach ($unpaid as $invoice) {
-            $late = (int) CarbonImmutable::parse($invoice->due_date->toDateString())->diffInDays($today, false);
+            // Days past due at the property, not by the office's clock.
+            $late = $invoice->daysPastDue();
             $key = match (true) {
                 $late <= 0 => 'current',
                 $late <= 30 => 'late30',
@@ -252,7 +254,7 @@ class AdminAnalytics
         }
 
         $late = $unpaid
-            ->filter(fn (Invoice $invoice): bool => $invoice->due_date->toDateString() < $today->toDateString())
+            ->filter(fn (Invoice $invoice): bool => $invoice->isOverdue())
             ->groupBy('property_id')
             ->map(fn (Collection $group): array => [
                 'id' => (int) $group->first()->property_id,

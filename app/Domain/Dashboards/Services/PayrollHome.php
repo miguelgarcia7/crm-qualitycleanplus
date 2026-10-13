@@ -82,7 +82,7 @@ class PayrollHome
             ],
             'checks' => $this->checks($periods),
             'tasks' => $this->tasks($user, $now),
-            'overdue' => $user->can('invoices.mark_paid') ? $this->overdue($today) : null,
+            'overdue' => $user->can('invoices.mark_paid') ? $this->overdue() : null,
             'timeOff' => $this->timeOff($runStart, $today),
         ];
     }
@@ -348,18 +348,18 @@ class PayrollHome
      *
      * @return array<string, mixed>
      */
-    private function overdue(CarbonImmutable $today): array
+    private function overdue(): array
     {
+        // Overdue by each property's own date (Invoice::scopeOverdue).
         $invoices = Invoice::query()
             ->whereIn('status', ['invoiced', 'invoice_sent'])
-            ->whereNull('paid_at')
-            ->whereDate('due_date', '<', $today->toDateString())
-            ->with('property:id,name')
+            ->overdue()
+            ->with('property:id,name,timezone')
             ->orderBy('due_date');
 
         return [
-            'rows' => $invoices->clone()->limit(self::LIST_LIMIT)->get()->map(function (Invoice $invoice) use ($today): array {
-                $late = (int) CarbonImmutable::parse($invoice->due_date->toDateString())->diffInDays(CarbonImmutable::parse($today->toDateString()), true);
+            'rows' => $invoices->clone()->limit(self::LIST_LIMIT)->get()->map(function (Invoice $invoice): array {
+                $late = (int) $invoice->daysOverdue();
 
                 return [
                     'id' => $invoice->id,
