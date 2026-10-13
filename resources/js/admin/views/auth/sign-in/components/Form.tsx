@@ -61,20 +61,21 @@ const Form = () => {
         {errors.password && <p className="text-danger mt-1 text-sm">{errors.password}</p>}
       </div>
 
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-start gap-2 lg:items-center">
+      {/* Each phrase stays whole; on a narrow phone the link drops under the checkbox. */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-h-11 items-center gap-2">
           <input
-            className="form-checkbox form-checkbox-light mt-1 size-4.25 lg:mt-0"
+            className="form-checkbox form-checkbox-light size-4.25"
             type="checkbox"
             id="rememberMe"
             checked={data.remember}
             onChange={(e) => setData('remember', e.target.checked)}
           />
-          <label className="form-check-label" htmlFor="rememberMe">
+          <label className="form-check-label whitespace-nowrap" htmlFor="rememberMe">
             Keep me signed in
           </label>
         </div>
-        <Link href="/forgot-password" className="text-default-500 underline underline-offset-4">
+        <Link href="/forgot-password" className="text-default-500 inline-flex min-h-11 items-center whitespace-nowrap underline underline-offset-4">
           Forgot Password?
         </Link>
       </div>
