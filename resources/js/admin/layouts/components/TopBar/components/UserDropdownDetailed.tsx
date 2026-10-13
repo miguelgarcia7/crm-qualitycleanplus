@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/react'
 
 type Auth = {
   user?: { name?: string; email?: string }
+  permissions?: string[]
   avatar?: string | null
   roles?: string[]
 }
@@ -24,6 +25,8 @@ const UserDropdown = () => {
   const name = auth.user?.name ?? 'Account'
   const role = prettyRole(auth.roles?.[0])
   const onMinute = surface === 'qcminute'
+  // Staff on the back office request changes too; each surface has its own form.
+  const canRequestChange = (auth.permissions ?? []).includes('people.own_profile.request_change')
 
   return (
     <div className="topbar-item hs-dropdown before:bg-default-700/35 relative inline-flex before:h-4.5 before:w-px before:content-['']">
@@ -56,8 +59,8 @@ const UserDropdown = () => {
 
         {/* Self-service info changes go through an approval workflow, so they
             stay separate from the settings a person edits directly. */}
-        {onMinute && (
-          <Link href="/my-info" className="dropdown-item">
+        {(onMinute || canRequestChange) && (
+          <Link href={onMinute ? '/my-info' : '/admin/info-changes'} className="dropdown-item">
             <Icon icon="id-badge-2" className="me-1 fs-lg align-middle" />
             <span className="align-middle">My Info</span>
           </Link>

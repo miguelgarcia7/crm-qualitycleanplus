@@ -33,6 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Tablet kiosk clock APIs authenticate by Sanctum device token, not a
         // session — exclude them from CSRF (Phase 07c).
         $middleware->validateCsrfTokens(except: ['device/*']);
+
+        // Someone already signed in who opens /login goes to their own home,
+        // not the marketing homepage, where it looked like nothing happened.
+        $middleware->redirectUsersTo(fn (Request $request): string => $request->getHost() === config('domains.qcminute') ? '/' : '/admin/dashboard');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Branded error pages: the public marketing site's own (SiteErrorPage),

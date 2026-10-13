@@ -45,12 +45,30 @@ type Access = {
   reference_url: string | null
 }
 
+type TimeOff = {
+  balances: { label: string; available: number; pending: number; allotted: number }[]
+  upcoming: { id: number; bucket: string; start: string; end: string; hours: number; status: string }[]
+  next_tier: { on: string; label: string; hours: number; top: boolean } | null
+  can_request: boolean
+}
+
+type SelfService = {
+  time_off: TimeOff | null
+  requests: { kind: string; title: string; asked: string | null; status: string }[]
+}
+
 type Props = {
   person: PersonInfo
   roles: string[]
   notificationSettings: NotificationSettings
   access: Access
+  self: SelfService
+  can: { request_change: boolean }
 }
+
+const shortDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+const dateRange = (a: string, b: string) => (a === b ? shortDate(a) : `${shortDate(a)} – ${shortDate(b)}`)
+const hoursLabel = (h: number) => `${Number.isInteger(h) ? h : h.toFixed(1)} h`
 
 // --- Avatar (photo or initials, with self-serve upload) ----------------------
 
@@ -116,7 +134,7 @@ const Avatar = ({ person }: { person: PersonInfo }) => {
 
 // --- Identity card (left column) ----------------------------------------------
 
-const ProfileIdentityCard = ({ person, roles }: { person: PersonInfo; roles: string[] }) => (
+const ProfileIdentityCard = ({ person, roles, changeHref }: { person: PersonInfo; roles: string[]; changeHref: string | null }) => (
   <IdentityCard
     avatar={<Avatar person={person} />}
     name={person.name}
@@ -131,7 +149,16 @@ const ProfileIdentityCard = ({ person, roles }: { person: PersonInfo; roles: str
         ))}
       </>
     }
-    footer="Phone, address, and other personal details are managed by HR — submit an info change request to update them.">
+    footer={
+      <>
+        Phone, address, and other personal details are managed by HR. To update them, send HR a change request.
+        {changeHref && (
+          <Link href={changeHref} className="btn bg-primary hover:bg-primary-hover mt-3 w-full px-4 font-semibold text-white">
+            <Icon icon="edit" className="size-4" /> Request a change
+          </Link>
+        )}
+      </>
+    }>
     <FactRow icon="mail" label="Email">
       {person.email}
     </FactRow>
@@ -187,8 +214,11 @@ const CardHeading = ({ title, children }: { title: string; children?: React.Reac
   </div>
 )
 
-const ProfileTab = ({ person, roles }: { person: PersonInfo; roles: string[] }) => {
+const ProfileTab = ({ person, roles, self, canRequestChange }: { person: PersonInfo; roles: string[]; self: SelfService; canRequestChange: boolean }) => {
   const base = useSettingsBase()
+  const { surface } = usePage().props as { surface?: string }
+  // Each surface has its own change-request form.
+  const changeHref = canRequestChange ? (surface === 'qcminute' ? '/my-info' : '/admin/info-changes') : null
   const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
     name: person.name,
     email: person.email,
@@ -200,10 +230,11 @@ const ProfileTab = ({ person, roles }: { person: PersonInfo; roles: string[] }) 
   }
 
   return (
-    <div className="gap-base grid grid-cols-1 xl:grid-cols-3">
-      <ProfileIdentityCard person={person} roles={roles} />
+    <div className="gap-base grid grid-cols-1 items-start xl:grid-cols-3">
+      <ProfileIdentityCard person={person} roles={roles} changeHref={changeHref} />
 
-      <form onSubmit={submit} className="card mb-0 xl:col-span-2">
+      <div className="gap-base flex flex-col xl:col-span-2">
+      <form onSubmit={submit} className="card mb-0">
         <CardHeading title="Your details">Your name and the email address you sign in with.</CardHeading>
         <div className="card-body grid gap-5 md:grid-cols-2">
           <div>
@@ -224,9 +255,107 @@ const ProfileTab = ({ person, roles }: { person: PersonInfo; roles: string[] }) 
         </div>
         <FormFooter label="Save Changes" processing={processing} saved={recentlySuccessful} />
       </form>
+
+      {self.time_off && <TimeOffCard timeOff={self.time_off} />}
+      {(self.requests.length > 0 || changeHref) && <RequestsCard requests={self.requests} />}
+      </div>
     </div>
   )
 }
+
+/** Time off at a glance: what's left in each bucket, days off coming up, and the next tier. */
+const TimeOffCard = ({ timeOff }: { timeOff: TimeOff }) => (
+  <section className="card mb-0">
+    <div className="card-header flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h4 className="card-title">Time off</h4>
+        <p className="text-default-500 mt-1 text-sm">Hours left this year, and what you’ve asked for.</p>
+      </div>
+      {timeOff.can_request && (
+        <Link href="/admin/pto" className="btn bg-primary hover:bg-primary-hover px-4 font-semibold text-white">
+          Request time off
+        </Link>
+      )}
+    </div>
+    <div className="card-body">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {timeOff.balances.map((b) => (
+          <div key={b.label} className="bg-default-50 rounded-lg px-4 py-3">
+            <div className="text-default-500 text-[11px] font-medium tracking-wider uppercase">{b.label}</div>
+            <div className="text-default-900 text-xl font-semibold tabular-nums">{hoursLabel(b.available)}</div>
+            <div className="text-default-500 text-xs">
+              of {hoursLabel(b.allotted)}
+              {b.pending > 0 && ` · ${hoursLabel(b.pending)} pending`}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4">
+        {timeOff.upcoming.length ? (
+          timeOff.upcoming.map((r) => (
+            <div key={r.id} className="border-default-200 flex items-center justify-between gap-3 border-t border-dashed py-2.5 first:border-0">
+              <span>
+                <span className="text-default-900 font-medium">{dateRange(r.start, r.end)}</span>
+                <span className="text-default-500 text-sm">
+                  {' '}
+                  · {r.bucket} · {hoursLabel(r.hours)}
+                </span>
+              </span>
+              <span className={cn('badge badge-label text-default-900', r.status === 'approved' ? 'bg-success/15' : 'bg-warning/20')}>
+                {r.status === 'approved' ? 'Approved' : 'Waiting for approval'}
+              </span>
+            </div>
+          ))
+        ) : (
+          <p className="text-default-500 text-sm">No time off coming up.</p>
+        )}
+      </div>
+
+      {timeOff.next_tier && (
+        <p className="bg-info/10 text-default-900 mt-4 rounded-lg px-4 py-3 text-sm">
+          At {timeOff.next_tier.label} ({shortDate(timeOff.next_tier.on)}) you move up to <strong>{timeOff.next_tier.hours} h</strong> in each bucket
+          {timeOff.next_tier.top ? ', the most there is.' : '.'}
+        </p>
+      )}
+    </div>
+    <div className="card-footer border-default-300 border-t px-6 py-3 text-sm">
+      <Link href="/admin/pto" className="text-primary font-medium">
+        All your time off →
+      </Link>
+    </div>
+  </section>
+)
+
+/** Requests this person is waiting on: a change to their details, supplies. */
+const RequestsCard = ({ requests }: { requests: SelfService['requests'] }) => (
+  <section className="card mb-0">
+    <div className="card-header">
+      <div>
+        <h4 className="card-title">Your requests</h4>
+        <p className="text-default-500 mt-1 text-sm">What you’re waiting on.</p>
+      </div>
+    </div>
+    <div className="card-body py-2">
+      {requests.length ? (
+        requests.map((r, i) => (
+          <div key={i} className="border-default-200 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-dashed py-3 first:border-0">
+            <span className="min-w-0">
+              <span className="text-default-900 block font-medium">{r.title}</span>
+              <span className="text-default-500 text-xs">
+                {r.kind === 'supply' ? 'Supplies' : 'Your details'}
+                {r.asked && ` · asked ${shortDate(r.asked)}`}
+              </span>
+            </span>
+            <span className="badge badge-label bg-warning/20 text-default-900">{r.status}</span>
+          </div>
+        ))
+      ) : (
+        <p className="text-default-500 py-3 text-sm">Nothing waiting. Changes you ask HR for, and supplies you request, show here.</p>
+      )}
+    </div>
+  </section>
+)
 
 // --- Security tab ----------------------------------------------------------------
 
@@ -503,7 +632,7 @@ const TABS: { key: string; label: string; isNew?: boolean }[] = [
 ]
 
 const Page = () => {
-  const { person, roles, notificationSettings, access } = usePage().props as unknown as Props
+  const { person, roles, notificationSettings, access, self, can } = usePage().props as unknown as Props
 
   // Active tab lives in the URL hash (#profile / #security) so tabs are
   // deep-linkable and survive refresh. Invalid/missing hash → first tab.
@@ -549,7 +678,7 @@ const Page = () => {
         ))}
       </nav>
 
-      {active === 'profile' && <ProfileTab person={person} roles={roles} />}
+      {active === 'profile' && <ProfileTab person={person} roles={roles} self={self} canRequestChange={can.request_change} />}
       {active === 'security' && <SecurityTab email={person.email} />}
       {active === 'notifications' && <NotificationsTab settings={notificationSettings} />}
       {active === 'access' && <AccessTab access={access} onOpenNotifications={() => selectTab('notifications')} />}

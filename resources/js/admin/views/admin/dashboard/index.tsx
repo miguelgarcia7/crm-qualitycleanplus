@@ -67,16 +67,21 @@ const Page = ({ widgets }: Props) => {
       <PageBreadcrumb title="Dashboard" subtitle="Back Office" />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-default-500 flex flex-wrap items-center gap-2 text-sm">
-          <span className="border-default-200 bg-card inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
-            <Icon icon="calendar" className="size-4" />
-            {context.week_label}
-          </span>
-          <span className="border-default-200 bg-card inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
-            <Icon icon="building" className="size-4" />
-            {context.scoped ? `My ${context.property_count} properties` : `All ${context.property_count} properties`}
-          </span>
-        </div>
+        {/* The week and property chips mean nothing to someone with no properties (a plain W-2 employee). */}
+        {context.scoped && context.property_count === 0 ? (
+          <span />
+        ) : (
+          <div className="text-default-500 flex flex-wrap items-center gap-2 text-sm">
+            <span className="border-default-200 bg-card inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
+              <Icon icon="calendar" className="size-4" />
+              {context.week_label}
+            </span>
+            <span className="border-default-200 bg-card inline-flex items-center gap-2 rounded-md border px-3 py-1.5">
+              <Icon icon="building" className="size-4" />
+              {context.scoped ? `My ${context.property_count} properties` : `All ${context.property_count} properties`}
+            </span>
+          </div>
+        )}
 
         {widgets.actions.length > 0 && <QuickActions actions={widgets.actions} />}
       </div>

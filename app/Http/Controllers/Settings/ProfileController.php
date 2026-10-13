@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Domain\People\Actions\UpdatePersonAvatar;
 use App\Domain\People\Models\Person;
+use App\Domain\People\Support\StaffSelfService;
 use App\Domain\SystemReference\Support\AccessSummary;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
@@ -21,7 +22,7 @@ class ProfileController extends Controller
     /**
      * Show the user's profile settings page.
      */
-    public function edit(Request $request, AccessSummary $access): Response
+    public function edit(Request $request, AccessSummary $access, StaffSelfService $self): Response
     {
         /** @var Person $person */
         $person = $request->user();
@@ -52,6 +53,11 @@ class ProfileController extends Controller
             ],
             // The "My access" tab: what this person can do and hears about.
             'access' => fn (): array => $access->for($person),
+            // Time off and open requests, on the Profile tab.
+            'self' => $self->for($person),
+            'can' => [
+                'request_change' => $person->can('people.own_profile.request_change'),
+            ],
         ]);
     }
 

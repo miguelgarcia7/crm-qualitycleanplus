@@ -41,7 +41,7 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 | **Payroll** | `payroll@example.com` | Handles money: rates, contracts, hour imports, marking invoices paid or void, payroll and financial reports. |
 | **Recruiter** | `recruiter@example.com` | Rita. Owns **Acme Hotel** day to day: its contractors and work orders, fixing punches, submitting each week's timesheet to the hotel, sending invoices, property visits, job postings and applicants. |
 | **Recruiter** | `recruiter2@example.com` | Ray. Same job for **QCP Property** and **MAG Solutions**. Compare the two to see that a recruiter only sees their own companies. |
-| **W-2 Employee** | `w2@example.com` | A regular office employee: their own profile, PTO requests, supply requests, the knowledge base. |
+| **W-2 Employee** | `w2@example.com` | Wendy. Staff with no office duties. **My Profile** shows her time off (balances, days off coming up, her next tier) and the requests she's waiting on. She also requests time off and supplies and reads the knowledge base. Every staff role gets the same profile cards. |
 
 ### QC Minute — the companies' side
 
@@ -50,7 +50,7 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 | **Property Manager** | `pm@example.com` | Pat, Acme Hotel's manager. |
 | **Property Manager** | `pm.qcp@example.com` | Quinn, QCP Property's manager. |
 | **Property Manager** | `pm.mag@example.com` | Megan, MAG Solutions' manager. |
-| **Contractor** | see below | A worker placed at a company. Sees their own profile, work orders and hours, plus knowledge-base articles. |
+| **Contractor** | see below | A worker placed at a company. Their home shows whether they're on the clock, this week's hours, pay by week per job, uniform charges, their jobs and details, plus knowledge-base articles. |
 
 Each property manager sees only their own company: who's working and their hours,
 **approving or declining weekly timesheets**, invoices, and asking for more staff or
