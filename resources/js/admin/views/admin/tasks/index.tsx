@@ -12,6 +12,10 @@ type Task = {
   summary: string | null
   /** Decided on its own page (it needs a form) — link there, no buttons. */
   review_url: string | null
+  /** A page to look at before deciding, beside the buttons. */
+  context: { label: string; url: string } | null
+  /** Complete asks for an optional note under this label. */
+  note_label: string | null
   step_type: string
   initiator: string | null
   created_at: string | null
@@ -33,7 +37,16 @@ const Page = ({ tasks }: Props) => {
     onFinish: () => setBusy(null),
   })
 
-  const complete = (task: Task) => router.post(`/admin/workflow-steps/${task.id}/complete`, {}, options(task))
+  const complete = (task: Task) =>
+    task.note_label
+      ? confirmAction({
+          title: 'Complete task',
+          message: <>Complete <strong>{task.name}</strong>{task.initiator ? <> from {task.initiator}</> : null}?</>,
+          input: { label: task.note_label },
+          confirmLabel: 'Complete',
+          onConfirm: (notes) => router.post(`/admin/workflow-steps/${task.id}/complete`, { notes }, options(task)),
+        })
+      : router.post(`/admin/workflow-steps/${task.id}/complete`, {}, options(task))
 
   const reject = (task: Task) =>
     confirmAction({
@@ -88,7 +101,12 @@ const Page = ({ tasks }: Props) => {
                           Review
                         </Link>
                       ) : t.can_act ? (
-                        <div className="flex justify-end gap-1.5">
+                        <div className="flex flex-wrap justify-end gap-1.5">
+                          {t.context && (
+                            <Link href={t.context.url} className="btn bg-light text-default-900 hover:bg-default-200">
+                              {t.context.label}
+                            </Link>
+                          )}
                           <button className="btn bg-success/15 text-success hover:bg-success hover:text-white" disabled={busy === t.id} onClick={() => complete(t)}>
                             Complete
                           </button>

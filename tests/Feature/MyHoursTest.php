@@ -148,6 +148,9 @@ it('sends a reported week to the contractor’s recruiter, and tells the contrac
         ->get(main('/admin/tasks'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('tasks.0.workflow_type', 'Hours Problem')
+            // Straight to that week's timesheet, where the punches are fixed.
+            ->where('tasks.0.context.url', "/admin/properties/{$wo->property_id}/grid?week={$week}")
+            ->where('tasks.0.note_label', fn (string $label) => str_contains($label, 'optional'))
             ->where('tasks.0.summary', fn (string $s) => str_contains($s, $this->contractor->name) && str_contains($s, 'Acme Hotel') && str_contains($s, '5:30 on Tuesday')));
 
     // A second report while the first is open is turned away.
@@ -179,4 +182,19 @@ it('sends a report to the office managers when the contractor has no recruiter',
     expect(WorkflowStep::query()->sole())
         ->assigned_to->toBeNull()
         ->assigned_role->toBe('office_manager');
+});
+
+it('links a report that names no job to the hotel worked most that week', function () {
+    $big = Property::factory()->create(['timezone' => 'America/Chicago']);
+    $small = Property::factory()->create(['timezone' => 'America/Chicago']);
+    [, $week] = myHoursJob($this->contractor, 'Houseman', 1, 4, TimesheetStatus::PendingApproval, $big);
+    myHoursJob($this->contractor, 'Bartender', 1, 1, TimesheetStatus::PendingApproval, $small, '18:00', '23:00');
+
+    $this->actingAs($this->contractor)
+        ->post(qcminute("/my-hours/{$week}/report"), ['message' => 'Not sure which job is off.'])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($this->recruiter)
+        ->get(main('/admin/tasks'))
+        ->assertInertia(fn (Assert $page) => $page->where('tasks.0.context.url', "/admin/properties/{$big->id}/grid?week={$week}"));
 });

@@ -46,6 +46,23 @@ abstract class WorkflowDefinition
     }
 
     /**
+     * A page to look at before deciding, shown beside Complete and Reject
+     * (unlike reviewUrl, which replaces them).
+     *
+     * @return array{label: string, url: string}|null
+     */
+    public function contextLink(Workflow $workflow, WorkflowStep $step): ?array
+    {
+        return null;
+    }
+
+    /** When set, Complete asks for an optional note under this label. */
+    public function completionNoteLabel(Workflow $workflow, WorkflowStep $step): ?string
+    {
+        return null;
+    }
+
+    /**
      * Where a step is decided, when that needs more than Complete/Reject (a
      * form). My Tasks then links there instead of offering the buttons.
      */

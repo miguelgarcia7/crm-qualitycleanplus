@@ -41,6 +41,8 @@ class WorkflowTaskController extends Controller
                 'name' => $step->name,
                 'summary' => $registry->for($step->workflow->workflowType())->taskSummary($step->workflow),
                 'review_url' => $registry->for($step->workflow->workflowType())->reviewUrl($step->workflow, $step),
+                'context' => $registry->for($step->workflow->workflowType())->contextLink($step->workflow, $step),
+                'note_label' => $registry->for($step->workflow->workflowType())->completionNoteLabel($step->workflow, $step),
                 'step_type' => $step->step_type->label(),
                 'initiator' => $step->workflow->initiator?->name,
                 'created_at' => CompanyTime::of($step->created_at)?->toDateTimeString(),

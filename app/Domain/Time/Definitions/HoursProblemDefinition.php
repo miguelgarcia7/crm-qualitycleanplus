@@ -4,6 +4,7 @@ namespace App\Domain\Time\Definitions;
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Workflows\Definitions\StepBlueprint;
 use App\Domain\Workflows\Definitions\WorkflowDefinition;
 use App\Domain\Workflows\Enums\WorkflowType;
@@ -11,6 +12,7 @@ use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
 use App\Notifications\WorkflowNotice;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 
 /**
  * Hours problem: a contractor reports that a week on My hours looks wrong.
@@ -81,6 +83,29 @@ class HoursProblemDefinition extends WorkflowDefinition
             $property !== null ? " at {$property}" : '',
             $workflow->data['message'] ?? '',
         );
+    }
+
+    /** That week on the property's timesheet grid, where the punches are fixed. */
+    public function contextLink(Workflow $workflow, WorkflowStep $step): ?array
+    {
+        // The job they picked; otherwise the property they worked most that week.
+        $propertyId = $workflow->data['property_id'] ?? TimeEntry::query()
+            ->where('time_entries.person_id', (int) $workflow->subject_id)
+            ->join('payroll_periods', 'payroll_periods.id', '=', 'time_entries.payroll_period_id')
+            ->whereDate('payroll_periods.week_start', $workflow->data['week_start'] ?? '')
+            ->groupBy('time_entries.property_id')
+            ->orderByRaw('SUM(time_entries.duration_minutes) DESC')
+            ->value('time_entries.property_id');
+
+        return $propertyId === null ? null : [
+            'label' => 'Open the timesheet',
+            'url' => "/admin/properties/{$propertyId}/grid?week=".($workflow->data['week_start'] ?? ''),
+        ];
+    }
+
+    public function completionNoteLabel(Workflow $workflow, WorkflowStep $step): ?string
+    {
+        return 'What you changed, for '.(Str::before((string) $this->contractor($workflow)?->name, ' ') ?: 'the contractor').' (optional)';
     }
 
     /** "Oct 5 – 11", as the contractor saw it on My hours. */
