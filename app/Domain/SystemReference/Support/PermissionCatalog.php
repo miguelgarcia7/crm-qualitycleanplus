@@ -152,6 +152,7 @@ class PermissionCatalog
         'people.applicants.onboarding_checklist.edit' => 'Edit the onboarding checklist',
         'people.applicants.promote' => 'Promote applicants to contractors',
         'people.contractors.set_external_id' => 'Set contractors’ payroll ID',
+        'time_entries.view_own' => 'See own hours and pay (My hours)',
         'time_entries.create_manual' => 'Add punches by hand',
         'time_entries.add_adjustment' => 'Add adjustments to punches',
         'field_visits.view_by_property' => 'View field visits by property',

@@ -16,6 +16,7 @@ enum WorkflowType: string
     case Termination = 'termination';
     case MoreStaff = 'more_staff';
     case ChangePersonalInfo = 'change_personal_info';
+    case HoursProblem = 'hours_problem';
 
     public function label(): string
     {
@@ -27,6 +28,7 @@ enum WorkflowType: string
             self::Termination => 'Termination',
             self::MoreStaff => 'More Staff Request',
             self::ChangePersonalInfo => 'Change Personal Info',
+            self::HoursProblem => 'Hours Problem',
         };
     }
 }

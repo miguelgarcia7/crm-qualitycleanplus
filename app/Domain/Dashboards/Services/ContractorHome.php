@@ -5,14 +5,11 @@ namespace App\Domain\Dashboards\Services;
 use App\Domain\Adjustments\Enums\ChargeEntryStatus;
 use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
 use App\Domain\Adjustments\Models\ContractorChargeSchedule;
-use App\Domain\Adjustments\Models\TimeEntryAdjustment;
-use App\Domain\Billing\Enums\TimesheetStatus;
-use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Dashboards\Support\DashboardFormat;
 use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\People\Models\Person;
 use App\Domain\Time\Models\TimeEntry;
-use App\Domain\Time\Models\TimeSummary;
+use App\Domain\Time\Support\MyHours;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
@@ -32,8 +29,7 @@ class ContractorHome
 {
     private const PAY_WEEKS = 6;
 
-    /** Once the hotel approves a week, its hours and pay are final. */
-    private const FINAL = [TimesheetStatus::Approved, TimesheetStatus::Invoiced, TimesheetStatus::InvoiceSent];
+    public function __construct(private readonly MyHours $hours) {}
 
     /** @return array<string, mixed> */
     public function build(Person $person): array
@@ -51,7 +47,8 @@ class ContractorHome
             'jobs' => $this->jobs($person, $jobs),
             'right_now' => $this->rightNow($person),
             'this_week' => $this->thisWeek($person, $jobs),
-            'pay_weeks' => $this->payWeeks($person),
+            // The last few finished weeks; My hours has them all.
+            'pay_weeks' => $this->hours->weeks($person, limit: self::PAY_WEEKS, withCurrent: false),
             'charges' => $this->charges($person),
             'recruiter' => $person->primaryRecruiter?->name,
             'details' => ['email' => $person->email, 'phone' => $person->phone],
@@ -65,7 +62,7 @@ class ContractorHome
     /** A job's label: position, and the hotel when it tells two jobs apart. */
     private function label(WorkOrder $wo): string
     {
-        return trim(($wo->position->name ?? 'Job').' · '.($wo->property->name ?? ''), ' ·');
+        return MyHours::label($wo);
     }
 
     /**
@@ -173,85 +170,6 @@ class ContractorHome
             ])->all(),
             'total_by_job' => $entries->groupBy('work_order_id')->map(fn (Collection $list): int => $list->sum($minutes))->all(),
         ];
-    }
-
-    /**
-     * Gross pay for the last few weeks, per job, with any incentives and
-     * deductions. Weeks the hotel hasn't approved yet are marked as able to change.
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function payWeeks(Person $person): array
-    {
-        $summaries = TimeSummary::query()
-            ->where('time_summaries.person_id', $person->id)
-            ->join('payroll_periods', 'payroll_periods.id', '=', 'time_summaries.payroll_period_id')
-            ->whereDate('payroll_periods.week_end', '<', CompanyTime::now()->toDateString())
-            ->orderByDesc('payroll_periods.week_start')
-            ->select('time_summaries.*', 'payroll_periods.week_start as period_start', 'payroll_periods.week_end as period_end')
-            ->with('workOrder.position:id,name', 'workOrder.property:id,name')
-            ->get();
-
-        $weeks = $summaries->groupBy(fn (TimeSummary $s): string => substr((string) $s->getAttribute('period_start'), 0, 10))->take(self::PAY_WEEKS);
-        $periodIds = $weeks->flatten()->pluck('payroll_period_id')->unique()->values();
-
-        $final = Timesheet::query()
-            ->whereIn('payroll_period_id', $periodIds)
-            ->whereIn('status', array_map(fn (TimesheetStatus $s): string => $s->value, self::FINAL))
-            ->pluck('payroll_period_id')
-            ->flip();
-
-        $adjustments = TimeEntryAdjustment::query()
-            ->where('person_id', $person->id)
-            ->whereIn('payroll_period_id', $periodIds)
-            ->with('adjustmentItem:id,name', 'payrollPeriod:id,week_start')
-            ->get()
-            ->groupBy(fn (TimeEntryAdjustment $a): string => $a->payrollPeriod?->week_start->toDateString() ?? '');
-
-        return $weeks->map(function (Collection $week, string $start) use ($final, $adjustments): array {
-            $jobs = $week->map(fn (TimeSummary $s): array => [
-                'label' => $s->workOrder === null ? 'Job' : $this->label($s->workOrder),
-                'lines' => array_values(array_filter([
-                    $this->line('Regular', $s->regular_minutes, $s->workOrder?->pay_rate, $s->regular_amount_pay),
-                    $this->line('Overtime', $s->overtime_minutes, $s->workOrder?->ot_pay_rate, $s->overtime_amount_pay),
-                    $this->line('Holiday', $s->holiday_minutes, null, $s->holiday_amount_pay),
-                    $this->line('Training', $s->training_minutes, $s->workOrder?->pay_rate, $s->training_amount_pay),
-                ])),
-                'total' => $s->total_pay,
-            ])->values();
-
-            $adjust = ($adjustments[$start] ?? collect())->map(fn (TimeEntryAdjustment $a): array => [
-                'label' => $a->adjustmentItem->name ?? $a->notes ?? ($a->type->value === 'deduction' ? 'Deduction' : 'Incentive'),
-                'amount' => $a->signedValue(),
-            ])->values();
-
-            $gross = (int) $week->sum('total_pay');
-
-            return [
-                'start' => $start,
-                'end' => substr((string) $week->first()->getAttribute('period_end'), 0, 10),
-                'minutes' => (int) $week->sum(fn (TimeSummary $s): int => $s->regular_minutes + $s->overtime_minutes + $s->holiday_minutes + $s->training_minutes),
-                'gross' => $gross,
-                'jobs' => $jobs->all(),
-                'adjustments' => $adjust->all(),
-                'after_adjustments' => $gross + (int) $adjust->sum('amount'),
-                // Any job's week not yet approved by its hotel can still change.
-                'may_change' => $week->contains(fn (TimeSummary $s): bool => ! $final->has($s->payroll_period_id)),
-            ];
-        })->values()->all();
-    }
-
-    /** @return array<string, mixed>|null */
-    private function line(string $label, int $minutes, ?int $rate, int $amount): ?array
-    {
-        if ($minutes <= 0) {
-            return null;
-        }
-
-        // Holiday's rate isn't stored; read it back from the frozen amount.
-        $rate ??= (int) round($amount / ($minutes / 60));
-
-        return ['label' => $label, 'minutes' => $minutes, 'rate' => $rate, 'amount' => $amount];
     }
 
     /**

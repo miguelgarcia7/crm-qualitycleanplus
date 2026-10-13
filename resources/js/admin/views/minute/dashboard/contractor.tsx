@@ -260,6 +260,10 @@ const Page = ({ greeting, jobs, right_now: now, this_week: week, pay_weeks, char
           ) : (
             <p className="text-default-500 py-3">Your pay shows here after your first full week.</p>
           )}
+          <Link href="/my-hours" className="border-default-200 text-primary flex min-h-11 items-center justify-between border-t pt-3 font-semibold">
+            See all weeks and day-by-day hours
+            <Icon icon="chevron-right" />
+          </Link>
         </Card>
 
         <div className="flex flex-col gap-4">

@@ -89,6 +89,7 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | Permission | super_admin | admin | office_manager | front_desk | hr | payroll | recruiter | w2_employee | property_manager | contractor |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
 | `time_entries.view` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ✅ | ✅ (own) | ⚪ | ✅ (own) | ✅ (self) |
+| `time_entries.view_own` (My hours: own weeks, punches, pay; report a problem with a week) | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ✅ (self) |
 | `time_entries.create_manual` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own) | ⚪ | ⚪ | ⚪ |
 | `time_entries.edit` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own, period open) | ⚪ | ⚪ | ⚪ |
 | `time_entries.delete` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own, period open) | ⚪ | ⚪ | ⚪ |

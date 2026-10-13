@@ -50,7 +50,7 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 | **Property Manager** | `pm@example.com` | Pat, Acme Hotel's manager. |
 | **Property Manager** | `pm.qcp@example.com` | Quinn, QCP Property's manager. |
 | **Property Manager** | `pm.mag@example.com` | Megan, MAG Solutions' manager. |
-| **Contractor** | see below | A worker placed at a company. Their home shows whether they're on the clock, this week's hours, pay by week per job, uniform charges, their jobs and details, plus knowledge-base articles. |
+| **Contractor** | see below | A worker placed at a company. Their home shows whether they're on the clock, this week's hours, pay by week per job, uniform charges, their jobs and details, plus knowledge-base articles. **My hours** has every week, each one day by day, and **Report a problem** sends a week that looks wrong to their recruiter's My Tasks. |
 
 Each property manager sees only their own company: who's working and their hours,
 **approving or declining weekly timesheets**, invoices, and asking for more staff or
@@ -145,7 +145,7 @@ sees his six-month time-off tier change coming up.
 | Dashboard → **On the clock** | During work hours, everyone currently clocked in. Before lunch, after lunch, and after 4:00 (only James) all look different. |
 | Timesheets | At each company, **this week** is still filling up and **last week** is waiting for its property manager to approve it. |
 | Invoices | Older weeks are invoiced and emailed; the oldest are marked **paid**, except MAG Solutions', which run late and go **overdue**. |
-| James's hours | Overtime every week. |
+| James's hours | Overtime every week. Sign in as James → **My hours** to see his weeks; open last week and **Report a problem**, then sign in as Rita to find it in **My Tasks**. |
 | Carlos, Linda, Andre or Grace → Work Orders | The old work order (closed) and the pay-increase one that replaced it. |
 | Applicants, Job Postings | Three of each, at different stages. |
 | The Labor Day week | Holiday pay (1.5×) on Monday, September 7. |

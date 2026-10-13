@@ -148,7 +148,10 @@ export const minuteMenuItems: MenuItemType[] = [
     slug: 'minute-main',
     label: 'Main',
     isTitle: true,
-    children: [{ url: '/', slug: 'minute-dashboard', label: 'Dashboard', icon: 'dashboard' }],
+    children: [
+      { url: '/', slug: 'minute-dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { url: '/my-hours', slug: 'minute-my-hours', label: 'My hours', icon: 'clock-hour-4', permission: 'time_entries.view_own' },
+    ],
   },
   {
     icon: 'building',

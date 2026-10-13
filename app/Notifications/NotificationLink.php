@@ -24,6 +24,7 @@ class NotificationLink
                 $type === 'workflow_pay_increase' => '/pay-increases',
                 $type === 'workflow_more_staff' => '/staffing-requests',
                 $type === 'workflow_change_personal_info' => '/my-info',
+                $type === 'workflow_hours_problem' && isset($data['week_start']) => "/my-hours/{$data['week_start']}",
                 default => null,
             };
         }
@@ -33,6 +34,7 @@ class NotificationLink
             $type === 'workflow_pay_increase' => '/admin/pay-increases',
             $type === 'workflow_more_staff' => '/admin/staffing-requests',
             $type === 'workflow_change_personal_info' => '/admin/info-changes',
+            $type === 'workflow_hours_problem' => '/admin/tasks',
             $type === 'workflow_transfer', $type === 'workflow_temporary_assignment' => '/admin/work-orders',
             $type === 'contract_expiring' && isset($data['property_id']) => "/admin/properties/{$data['property_id']}",
             $type === 'application_received' && isset($data['application_id']) => "/admin/applicants/{$data['application_id']}",

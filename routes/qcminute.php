@@ -6,6 +6,7 @@ use App\Http\Controllers\Minute\DashboardController;
 use App\Http\Controllers\Minute\InvoiceController;
 use App\Http\Controllers\Minute\KbController;
 use App\Http\Controllers\Minute\MoreStaffController;
+use App\Http\Controllers\Minute\MyHoursController;
 use App\Http\Controllers\Minute\PayIncreaseController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
 use App\Http\Controllers\NotificationController;
@@ -53,6 +54,11 @@ Route::post('pay-increases/{workflow}/cancel', [PayIncreaseController::class, 'c
 Route::get('staffing-requests', [MoreStaffController::class, 'index'])->name('qcminute.more-staff.index');
 Route::post('staffing-requests', [MoreStaffController::class, 'store'])->name('qcminute.more-staff.store');
 Route::post('staffing-requests/{moreStaffRequest}/cancel', [MoreStaffController::class, 'cancel'])->name('qcminute.more-staff.cancel');
+
+// A contractor's own weeks, hours and pay; report a week that looks wrong
+Route::get('my-hours', [MyHoursController::class, 'index'])->middleware('can:time_entries.view_own')->name('qcminute.my-hours.index');
+Route::get('my-hours/{week}', [MyHoursController::class, 'show'])->middleware('can:time_entries.view_own')->where('week', '\d{4}-\d{2}-\d{2}')->name('qcminute.my-hours.show');
+Route::post('my-hours/{week}/report', [MyHoursController::class, 'report'])->middleware('can:time_entries.view_own')->where('week', '\d{4}-\d{2}-\d{2}')->name('qcminute.my-hours.report');
 
 // Self-service personal-info change requests (Phase 04b-iii)
 Route::get('my-info', [ChangePersonalInfoController::class, 'index'])->name('qcminute.info-changes.index');

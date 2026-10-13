@@ -77,6 +77,7 @@ class RolePermissionSeeder extends Seeder
 
             // Time tracking
             'time_entries.view' => ['admin', 'office_manager', 'payroll', 'recruiter', 'property_manager', 'contractor'],
+            'time_entries.view_own' => ['contractor'], // My hours (QC Minute)
             'time_entries.create_manual' => ['admin', 'office_manager', 'recruiter'],
             'time_entries.edit' => ['admin', 'office_manager', 'recruiter'],
             'time_entries.delete' => ['admin', 'office_manager', 'recruiter'],

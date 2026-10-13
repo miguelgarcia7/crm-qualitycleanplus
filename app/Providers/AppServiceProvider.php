@@ -29,6 +29,7 @@ use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
 use App\Domain\Recruiting\Policies\JobApplicationPolicy;
 use App\Domain\Recruiting\Policies\JobPostingPolicy;
+use App\Domain\Time\Definitions\HoursProblemDefinition;
 use App\Domain\Workflows\Definitions\WorkflowRegistry;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
@@ -153,6 +154,7 @@ class AppServiceProvider extends ServiceProvider
         $registry->register(WorkflowType::Termination, TerminationDefinition::class);
         $registry->register(WorkflowType::MoreStaff, MoreStaffDefinition::class);
         $registry->register(WorkflowType::ChangePersonalInfo, ChangePersonalInfoDefinition::class);
+        $registry->register(WorkflowType::HoursProblem, HoursProblemDefinition::class);
     }
 
     /**
