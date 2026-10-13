@@ -94,7 +94,7 @@ const Page = ({ status, message, home, signed_in }: Props) => {
               </div>
 
               <p className="text-default-500 mt-7.5 text-center">
-                &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
+                &copy; {currentYear} {META_DATA.name} by <span>{META_DATA.author}</span>
               </p>
             </div>
           </div>

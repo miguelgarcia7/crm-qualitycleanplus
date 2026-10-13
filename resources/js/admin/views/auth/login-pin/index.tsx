@@ -69,7 +69,7 @@ const Page = () => {
                     </p>
 
                     <p className="text-default-500 mt-7.5 text-center">
-                      &copy; {currentYear} {META_DATA.name} - by <span>{META_DATA.author}</span>
+                      &copy; {currentYear} {META_DATA.name} by <span>{META_DATA.author}</span>
                     </p>
                   </div>
                   <div className="relative hidden h-full overflow-hidden rounded-e-2xl bg-cover bg-center object-cover lg:block" style={{ backgroundImage: `url(${authImg})` }}>
