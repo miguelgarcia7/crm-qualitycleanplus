@@ -1,5 +1,6 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import BalanceCard from '@/components/pto/BalanceCard'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
 import Icon from '@/components/wrappers/Icon'
@@ -49,12 +50,6 @@ const statusBadge = (status: string) =>
         ? 'bg-danger/15 text-danger'
         : 'bg-secondary/15 text-secondary'
 
-const bucketIcon: Record<string, string> = {
-  vacation: 'calendar',
-  scheduled: 'calendar-plus',
-  unscheduled: 'clock',
-}
-
 /** Person cell with the leaves-table icon circle. */
 const PersonCell = ({ name }: { name: string }) => (
   <div className="flex items-center gap-3">
@@ -100,25 +95,7 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
       {myBalances && (
         <div className="gap-base mb-6 grid grid-cols-1 sm:grid-cols-3">
           {myBalances.map((b) => (
-            <div key={b.bucket} className="card">
-              <div className="card-body">
-                <div className="gap-base flex items-start">
-                  <div className="bg-light flex size-11 shrink-0 items-center justify-center rounded-full">
-                    <Icon icon={bucketIcon[b.bucket] ?? 'calendar'} className="text-default-800 text-xl" />
-                  </div>
-                  <div className="grow">
-                    <h5 className="text-default-800 text-lg">
-                      {b.available}
-                      <small className="text-2xs">h available</small>
-                    </h5>
-                    <p className="text-default-500">{b.label}</p>
-                    <p className="text-default-500 text-xs">
-                      {b.pending}h pending · {b.allotted}h allotted
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <BalanceCard key={b.bucket} balance={b} />
           ))}
         </div>
       )}

@@ -54,6 +54,7 @@ class StaffSelfService
 
         return [
             'balances' => collect(PtoBucket::cases())->map(fn (PtoBucket $b): array => [
+                'bucket' => $b->value,
                 'label' => $b->label(),
                 'available' => $allotment->availableFor($b),
                 'pending' => $allotment->pendingFor($b),

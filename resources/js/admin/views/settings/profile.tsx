@@ -1,5 +1,6 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
+import BalanceCard, { PtoBalance } from '@/components/pto/BalanceCard'
 import IdentityCard, { FactRow, PersonAvatar } from '@/components/people/IdentityCard'
 import Icon from '@/components/wrappers/Icon'
 import { cn } from '@/utils/helpers'
@@ -46,7 +47,7 @@ type Access = {
 }
 
 type TimeOff = {
-  balances: { label: string; available: number; pending: number; allotted: number }[]
+  balances: PtoBalance[]
   upcoming: { id: number; bucket: string; start: string; end: string; hours: number; status: string }[]
   next_tier: { on: string; label: string; hours: number; top: boolean } | null
   can_request: boolean
@@ -280,14 +281,7 @@ const TimeOffCard = ({ timeOff }: { timeOff: TimeOff }) => (
     <div className="card-body">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {timeOff.balances.map((b) => (
-          <div key={b.label} className="bg-default-50 rounded-lg px-4 py-3">
-            <div className="text-default-500 text-[11px] font-medium tracking-wider uppercase">{b.label}</div>
-            <div className="text-default-900 text-xl font-semibold tabular-nums">{hoursLabel(b.available)}</div>
-            <div className="text-default-500 text-xs">
-              of {hoursLabel(b.allotted)}
-              {b.pending > 0 && ` · ${hoursLabel(b.pending)} pending`}
-            </div>
-          </div>
+          <BalanceCard key={b.bucket} balance={b} framed={false} />
         ))}
       </div>
 
