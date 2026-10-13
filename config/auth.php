@@ -106,6 +106,16 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // Invitations: the same table, but a new person has 3 days to set a
+        // password (InviteUser). The reset form uses it for anyone who hasn't
+        // set one yet; a forgotten password keeps the 60 minutes above.
+        'invites' => [
+            'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60 * 24 * 3,
+            'throttle' => 60,
+        ],
     ],
 
     /*

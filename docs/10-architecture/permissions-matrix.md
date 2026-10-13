@@ -48,6 +48,7 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | `people.contractors.edit` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ✅ (own) | ⚪ | ⚪ | ⚪ |
 | `people.contractors.terminate` | ✅ | ✅ | ⚪ | ⚪ | ✅ | ⚪ | ✅ (own) | ⚪ | ⚪ | ⚪ |
 | `people.contractors.transfer` | ✅ | ✅ | ⚪ | ⚪ | ✅ | ⚪ | ✅ (own) | ⚪ | ⚪ | ⚪ |
+| `people.contractors.reassign` (move contractors to another recruiter) | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ✅ (own) | ⚪ | ⚪ | ⚪ |
 | `people.contractors.set_external_id` | ✅ | ✅ | ✅ | ⚪ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `people.staff.view` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `people.staff.edit` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |

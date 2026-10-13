@@ -10,9 +10,15 @@ use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Policies\PersonPolicy;
 use App\Domain\People\Support\PersonOverview;
+use App\Domain\People\Support\StaffRoles;
+use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
+use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Pto\Enums\PtoAllotmentStatus;
 use App\Domain\Pto\Enums\PtoBucket;
 use App\Domain\Pto\Models\PtoYearAllotment;
+use App\Domain\Workflows\Enums\StepStatus;
+use App\Domain\Workflows\Enums\WorkflowType;
+use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Support\CompanyTime;
@@ -356,6 +362,12 @@ class PeopleController extends Controller
             'charges' => $canAdjustments ? $this->chargeRows($person) : null,
             'pto' => $canPto ? $this->ptoPayload($person) : null,
             'history' => $canHistory ? $this->historyRows($person) : null,
+            'access' => $isStaff ? $this->accessPayload($user, $person) : null,
+            'book' => $person->hasRole('recruiter') ? $this->bookPayload($user, $person) : null,
+            // Changing one contractor's recruiter, from their own page.
+            'recruiterChange' => ! $isStaff && $person->status->isContractor() && PersonAccessController::canMoveContractor($user, $person)
+                ? $this->recruiterOptions()
+                : null,
             'can' => [
                 // The work order panel lives on the Work Orders list.
                 'openWorkOrders' => $user->can('work_orders.view'),
@@ -478,6 +490,74 @@ class PeopleController extends Controller
     /**
      * @return list<array<string, mixed>>
      */
+    /**
+     * Sign-in and access: roles, whether they've set a password, their properties.
+     *
+     * @return array<string, mixed>
+     */
+    private function accessPayload(Person $user, Person $person): array
+    {
+        $roles = $person->getRoleNames()->all();
+        $canChange = PersonAccessController::canChangeRoles($user, $person);
+
+        return [
+            'roles' => array_values($roles),
+            'role_labels' => array_map(fn (string $r): string => StaffRoles::LABELS[$r] ?? Str::headline($r), array_values($roles)),
+            'surface' => in_array('property_manager', $roles, true) ? 'QC Minute' : 'Back office',
+            'all_properties' => $person->hasAnyRole(PropertyPolicy::GLOBAL_ROLES),
+            'properties' => $person->assignedProperties()->orderBy('name')->pluck('name')->unique()->values()->all(),
+            'has_password' => $person->password !== null,
+            'invited_at' => CompanyTime::of($person->created_at)?->format('M j, Y \a\t g:i A'),
+            'can_change_roles' => $canChange,
+            'can_resend' => $user->can('admin.users.create') && $user->id !== $person->id && $person->password === null && $person->status === PersonStatus::StaffActive,
+            'options' => $canChange
+                ? collect(StaffRoles::LABELS)->map(fn (string $label, string $key): array => ['key' => $key, 'label' => $label, 'does' => StaffRoles::DOES[$key]])->values()->all()
+                : [],
+        ];
+    }
+
+    /**
+     * A recruiter's book: the contractors they're primary recruiter for, their
+     * properties, and who else could take them.
+     *
+     * @return array<string, mixed>
+     */
+    private function bookPayload(Person $user, Person $person): array
+    {
+        $contractors = Person::query()
+            ->where('primary_recruiter_id', $person->id)
+            ->with(['workOrders' => fn ($q) => $q->where('status', WorkOrderStatus::Active->value)->with('position:id,name', 'property:id,name')])
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Person $c): array => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'job' => $c->workOrders->map(fn (WorkOrder $wo): string => trim(($wo->position->name ?? '').', '.($wo->property->name ?? ''), ', '))->join(' · ') ?: null,
+            ]);
+
+        $openTasks = WorkflowStep::query()
+            ->where('assigned_to', $person->id)
+            ->where('status', StepStatus::Pending)
+            ->whereHas('workflow', fn ($w) => $w->where('type', WorkflowType::HoursProblem->value)->whereIn('subject_id', $contractors->pluck('id')))
+            ->count();
+
+        return [
+            'contractors' => $contractors->values()->all(),
+            'properties' => $person->propertyAssignments()->where('role', PropertyAssignmentRole::Recruiter->value)->with('property:id,name')->get()
+                ->map(fn ($a): string => $a->property->name ?? '')->filter()->values()->all(),
+            'open_tasks' => $openTasks,
+            'can_move' => PersonAccessController::canMoveFrom($user, $person),
+            'recruiters' => collect($this->recruiterOptions())->reject(fn (array $r): bool => $r['id'] === $person->id)->values()->all(),
+        ];
+    }
+
+    /** @return list<array{id: int, name: string}> */
+    private function recruiterOptions(): array
+    {
+        return Person::query()->whereIn('id', PersonAccessController::recruiterIds())->orderBy('name')->get(['id', 'name'])
+            ->map(fn (Person $p): array => ['id' => $p->id, 'name' => $p->name])->values()->all();
+    }
+
     private function historyRows(Person $person): array
     {
         return Activity::query()

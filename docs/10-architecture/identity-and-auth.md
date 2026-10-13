@@ -100,6 +100,8 @@ Spatie roles, seeded on first deploy:
 
 A person can hold multiple roles (an admin who's also a recruiter, for instance). Multi-role users get the union of capabilities.
 
+Office roles are set on the person's page (People → a person → **Sign-in and access → Change roles**, gated `admin.users.create`): any mix of office manager, front desk, HR, payroll, recruiter and W-2 (`StaffRoles`). Never your own roles, never admin tier (set up outside the app), and never property manager, which belongs to the hotel and doesn't combine with office roles. Recruiter can't be taken away while the person still has contractors or recruiter properties: those move first (**Move to another recruiter**, `people.contractors.reassign`; recruiters move only their own). Changes are logged on the person's History. Someone with two or more dashboard roles gets a switch on the dashboard (`?as=`), remembered for the session.
+
 > **Naming convention in docs and conversation:** When David says "Admin," he means the `admin` role. "Super Admin" means the `super_admin` role. Both retain full access in v1; permissions diverge in v2+ per ADR-0013.
 
 ## Permission model
@@ -138,7 +140,7 @@ Roles get assigned permissions during seeding. See `10-architecture/permissions-
 - Audit log records all login attempts (success + failure)
 - Repeated failed logins trigger temporary lockout (Laravel default rate limiter)
 - Password requirements: 12 chars minimum, complexity rules per Laravel default
-- Forgotten-password tokens expire in 1 hour
+- Forgotten-password tokens expire in 1 hour; invitation tokens (the `invites` broker) in 3 days. The set-password form uses the invitation window for anyone who has never set a password
 
 ## Account creation paths
 
@@ -147,7 +149,7 @@ Roles get assigned permissions during seeding. See `10-architecture/permissions-
 | Public job application | `applicant` | Public site form submission |
 | Manual entry by HR | varies | Back-office form |
 | Promoted from applicant | `contractor_active` | Recruiter action (workflow) |
-| Invited user | `staff_active` + chosen role | `/admin/people/invite` (gated `admin.users.create`): role picker (PM, recruiter, office manager, front desk, HR, payroll, W-2 — never admin tier), creates the person with no password, emails a set-your-password link (reset-token flow) pointing at the surface they sign in on (QC Minute for PMs, back office for staff). PMs require ≥1 property assignment; recruiters may get a starting book; staff get a hire date (PTO accrual) |
+| Invited user | `staff_active` + chosen role | `/admin/people/invite` (gated `admin.users.create`): role picker (PM, recruiter, office manager, front desk, HR, payroll, W-2 — never admin tier), creates the person with no password, emails a set-your-password link (reset-token flow, valid 3 days; **Send a new invitation** on their page resends it) pointing at the surface they sign in on (QC Minute for PMs, back office for staff). PMs require ≥1 property assignment; recruiters may get a starting book; staff get a hire date (PTO accrual) |
 | Self-registered | (not allowed) | — |
 
 No public registration. All accounts are created either by application or by an authorized internal user.

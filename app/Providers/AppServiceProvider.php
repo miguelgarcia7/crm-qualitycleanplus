@@ -40,6 +40,7 @@ use App\Domain\WorkOrders\Definitions\TemporaryAssignmentDefinition;
 use App\Domain\WorkOrders\Definitions\TransferDefinition;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Policies\WorkOrderPolicy;
+use App\Http\Controllers\Auth\InviteAwareNewPasswordController;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -54,6 +55,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Fortify\Http\Controllers\NewPasswordController;
 use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
@@ -63,6 +65,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Invitations last 3 days; a forgotten-password link keeps Fortify's 60 minutes.
+        $this->app->bind(NewPasswordController::class, InviteAwareNewPasswordController::class);
+
         // Models live under app/Domain, so the default factory guesser (which
         // expects App\Models) can't find them. Map a model to its factory by
         // basename: App\Domain\…\Models\Property → Database\Factories\PropertyFactory.

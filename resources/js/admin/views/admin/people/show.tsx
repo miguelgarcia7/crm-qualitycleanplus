@@ -1,6 +1,7 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import IdentityCard, { FactRow, PersonAvatar } from '@/components/people/IdentityCard'
+import { AccessCard, BookCard, RecruiterChange, type AccessPayload, type BookPayload, type RecruiterOption } from '@/components/people/PersonAccess'
 import Icon from '@/components/wrappers/Icon'
 import { cn, toPascalCase } from '@/utils/helpers'
 import { Head, Link, router, useForm } from '@inertiajs/react'
@@ -111,6 +112,9 @@ type Props = {
   charges: ChargeRow[] | null
   pto: PtoPayload | null
   history: HistoryRow[] | null
+  access: AccessPayload | null
+  book: BookPayload | null
+  recruiterChange: RecruiterOption[] | null
   can: { openWorkOrders: boolean; infoChanges: boolean; pto: boolean }
 }
 
@@ -183,7 +187,7 @@ const ProgressBar = ({ percent, label }: { percent: number; label: string }) => 
 
 // --- Overview ----------------------------------------------------------------------
 
-const PersonIdentityCard = ({ person, canInfoChanges }: { person: PersonInfo; canInfoChanges: boolean }) => (
+const PersonIdentityCard = ({ person, canInfoChanges, recruiterChange }: { person: PersonInfo; canInfoChanges: boolean; recruiterChange: RecruiterOption[] | null }) => (
   <IdentityCard
     avatar={<PersonAvatar name={person.name} avatar={person.avatar} />}
     name={person.name}
@@ -231,9 +235,12 @@ const PersonIdentityCard = ({ person, canInfoChanges }: { person: PersonInfo; ca
         {person.city_state}
       </FactRow>
     )}
-    {person.recruiter && (
+    {(person.recruiter || recruiterChange) && (
       <FactRow icon="user-circle" label="Recruiter">
-        {person.recruiter}
+        <span className="inline-flex flex-wrap items-baseline gap-x-3">
+          {person.recruiter ?? 'None'}
+          {recruiterChange && <RecruiterChange personId={person.id} name={person.name} current={person.recruiter} options={recruiterChange} />}
+        </span>
       </FactRow>
     )}
     {person.hire_date && (
@@ -832,7 +839,7 @@ const HistoryTab = ({ history, name }: { history: HistoryRow[]; name: string }) 
 /** Old tab links still land somewhere sensible. */
 const HASH_ALIASES: Record<string, string> = { charges: 'pay', adjustments: 'pay', pto: 'overview' }
 
-const Page = ({ person, workOrders, placements, recentWeeks, lastFullWeek, hours, adjustments, charges, pto, history, can }: Props) => {
+const Page = ({ person, workOrders, placements, recentWeeks, lastFullWeek, hours, adjustments, charges, pto, history, access, book, recruiterChange, can }: Props) => {
   const firstName = person.name.split(' ')[0]
   // A cancelled or fully-paid fee still shows, so "no fee card" means "no fee".
   const hiringFee = charges?.find((c) => c.reason === 'hiring_fee') ?? null
@@ -895,12 +902,16 @@ const Page = ({ person, workOrders, placements, recentWeeks, lastFullWeek, hours
       {active === 'overview' && (
         <div className="gap-base grid items-start xl:grid-cols-3">
           <div className="flex flex-col gap-6">
-            <PersonIdentityCard person={person} canInfoChanges={can.infoChanges} />
+            <PersonIdentityCard person={person} canInfoChanges={can.infoChanges} recruiterChange={recruiterChange} />
             {!person.is_staff && charges !== null && <FeeCard charge={hiringFee} />}
           </div>
           <div className="xl:col-span-2">
             {person.is_staff ? (
-              <StaffOverview pto={pto} canPto={can.pto} />
+              <div className="flex flex-col gap-6">
+                {access && <AccessCard personId={person.id} name={person.name} access={access} />}
+                {book && <BookCard personId={person.id} name={person.name} book={book} />}
+                <StaffOverview pto={pto} canPto={can.pto} />
+              </div>
             ) : (
               <ContractorOverview
                 placements={placements ?? []}

@@ -145,6 +145,7 @@ sees his six-month time-off tier change coming up.
 | Dashboard → **On the clock** | During work hours, everyone currently clocked in. Before lunch, after lunch, and after 4:00 (only James) all look different. |
 | Timesheets | At each company, **this week** is still filling up and **last week** is waiting for its property manager to approve it. |
 | Invoices | Older weeks are invoiced and emailed; the oldest are marked **paid**, except MAG Solutions', which run late and go **overdue**. |
+| People → Rita Recruiter | **Sign-in and access** and **Rita's contractors**. Give Ray a second role (HR) with **Change roles** and sign in as Ray to see the dashboard switch; **Move to another recruiter** hands Rita's contractors (and Acme Hotel) to Ray. |
 | James's hours | Overtime every week. Sign in as James → **My hours** to see his weeks; open last week and **Report a problem**, then sign in as Rita to find it in **My Tasks**. |
 | Carlos, Linda, Andre or Grace → Work Orders | The old work order (closed) and the pay-increase one that replaced it. |
 | Applicants, Job Postings | Three of each, at different stages. |

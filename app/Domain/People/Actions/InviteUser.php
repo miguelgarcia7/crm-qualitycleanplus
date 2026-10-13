@@ -58,7 +58,7 @@ class InviteUser
         });
 
         $person->notify(new UserInvitation(
-            Password::broker()->createToken($person),
+            Password::broker('invites')->createToken($person),
             $isPropertyManager ? 'qcminute' : 'backoffice',
         ));
 

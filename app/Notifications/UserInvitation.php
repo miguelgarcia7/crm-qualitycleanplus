@@ -61,6 +61,6 @@ class UserInvitation extends Notification implements ShouldQueue
             ->line($intro)
             ->action('Set your password', "{$scheme}://{$host}{$path}")
             ->line("Once your password is set, sign in at {$signIn} using this email address.")
-            ->line('For security this link expires after 60 minutes — if it has expired, use "Forgot password" on the sign-in page to request a fresh one.');
+            ->line('The link works for 3 days. If it has expired, use "Forgot password" on the sign-in page, or ask whoever invited you to send a new one.');
     }
 }

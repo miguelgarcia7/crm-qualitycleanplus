@@ -27,6 +27,7 @@ use App\Http\Controllers\MoreStaffController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayIncreaseController;
 use App\Http\Controllers\PeopleController;
+use App\Http\Controllers\PersonAccessController;
 use App\Http\Controllers\PersonAvatarController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\PropertyAssignmentController;
@@ -355,6 +356,12 @@ Route::get('people/invite', [UserInviteController::class, 'create'])->middleware
 Route::post('people/invite', [UserInviteController::class, 'store'])->middleware('can:admin.users.create')->name('people.invite.store');
 
 Route::get('people/{person}', [PeopleController::class, 'show'])->whereNumber('person')->name('backoffice.people.show');
+
+// Setting a person up after the invite: roles, a fresh invitation, whose contractors are whose
+Route::put('people/{person}/roles', [PersonAccessController::class, 'updateRoles'])->whereNumber('person')->middleware('can:admin.users.create')->name('people.roles.update');
+Route::post('people/{person}/invitation', [PersonAccessController::class, 'resendInvitation'])->whereNumber('person')->middleware('can:admin.users.create')->name('people.invitation.resend');
+Route::post('people/{person}/contractors/move', [PersonAccessController::class, 'moveContractors'])->whereNumber('person')->middleware('can:people.contractors.reassign')->name('people.contractors.move');
+Route::put('people/{person}/recruiter', [PersonAccessController::class, 'changeRecruiter'])->whereNumber('person')->middleware('can:people.contractors.reassign')->name('people.recruiter.update');
 
 // Profile photos (any authenticated back-office user; streamed from the private disk)
 Route::get('people/{person}/avatar', PersonAvatarController::class)->name('people.avatar');

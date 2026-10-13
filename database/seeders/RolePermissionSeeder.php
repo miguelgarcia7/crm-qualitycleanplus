@@ -63,6 +63,7 @@ class RolePermissionSeeder extends Seeder
             'people.contractors.edit' => ['admin', 'office_manager', 'hr', 'recruiter'],
             'people.contractors.terminate' => ['admin', 'hr', 'recruiter'],
             'people.contractors.transfer' => ['admin', 'hr', 'recruiter'],
+            'people.contractors.reassign' => ['admin', 'office_manager', 'hr', 'recruiter'], // recruiters: only their own
             'people.contractors.set_external_id' => ['admin', 'office_manager', 'hr', 'payroll'],
             'people.staff.view' => ['admin', 'office_manager', 'hr'],
             'people.staff.edit' => ['admin', 'office_manager', 'hr'],
