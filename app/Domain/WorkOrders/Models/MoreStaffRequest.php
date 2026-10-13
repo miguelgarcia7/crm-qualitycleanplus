@@ -8,6 +8,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Workflows\Models\Workflow;
 use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Enums\MoreStaffUrgency;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Database\Factories\MoreStaffRequestFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -127,7 +128,8 @@ class MoreStaffRequest extends Model
     /** Past its by-date and still open. */
     public function isOverdue(): bool
     {
-        return $this->status->isOpen() && $this->by_date->isPast();
+        // Past its date on the company calendar, not the UTC one (ADR-0030).
+        return $this->status->isOpen() && $this->by_date->toDateString() < CompanyTime::now()->toDateString();
     }
 
     /** Placements still needed to fully satisfy the request. */

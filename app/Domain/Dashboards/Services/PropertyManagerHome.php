@@ -11,7 +11,6 @@ use App\Domain\Dashboards\Support\DashboardFormat;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
@@ -23,6 +22,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Support\DirectHireProgress;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -44,7 +44,7 @@ class PropertyManagerHome
     /** @return array<string, mixed> */
     public function build(Person $user): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
         $properties = Property::query()->assignedTo($user)->orderBy('name')->get();
         $ids = $properties->pluck('id')->all();
 
@@ -89,7 +89,7 @@ class PropertyManagerHome
                 'id' => $t->id,
                 'property' => $t->property?->name,
                 'week' => DashboardFormat::range($t->payrollPeriod->week_start, $t->payrollPeriod->week_end),
-                'sent_at' => $t->sent_for_approval_at?->format('M j'),
+                'sent_at' => CompanyTime::of($t->sent_for_approval_at)?->format('M j'),
                 'sent_by' => $t->sentForApprovalBy?->name,
                 'waiting' => $t->sent_for_approval_at === null ? null : DashboardFormat::age($t->sent_for_approval_at->toImmutable(), $now),
                 'people' => $sum['people'] ?? 0,
@@ -172,7 +172,7 @@ class PropertyManagerHome
                 ->map(fn (TimeEntry $e): array => [
                     'name' => $e->workOrder?->person?->name,
                     'property' => $e->workOrder?->property?->name,
-                    'since' => $e->start_at_utc?->copy()->setTimezone($tz[$e->workOrder?->property_id] ?? AutomationCatalog::DISPLAY_TIMEZONE)->format('g:i a'),
+                    'since' => $e->start_at_utc?->copy()->setTimezone($tz[$e->workOrder?->property_id] ?? CompanyTime::zone())->format('g:i a'),
                 ])
                 ->values()->all(),
             'href' => $properties->count() === 1 ? "/timesheets/this-week?property={$properties->first()->id}" : '/timesheets',
@@ -234,7 +234,7 @@ class PropertyManagerHome
                 'title' => "{$r->quantity_requested} × {$r->position?->name}",
                 'property' => $r->property?->name,
                 'needed_by' => $r->by_date->format('M j'),
-                'asked' => $r->created_at?->format('M j'),
+                'asked' => CompanyTime::of($r->created_at)?->format('M j'),
                 'progress' => "{$r->quantity_fulfilled} of {$r->quantity_requested} placed",
                 'overdue' => $r->isOverdue(),
                 'with' => $r->assignedRecruiter?->name,
@@ -261,7 +261,7 @@ class PropertyManagerHome
                 'title' => ($wo->person->name ?? 'A contractor').' · +$'.number_format($cents / 100, 2).'/h',
                 'property' => $wo?->property?->name,
                 'needed_by' => null,
-                'asked' => $w->created_at?->format('M j'),
+                'asked' => CompanyTime::of($w->created_at)?->format('M j'),
                 'progress' => 'With your recruiter',
                 'overdue' => false,
                 'with' => null,

@@ -30,6 +30,7 @@ use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -198,7 +199,7 @@ class DashboardMetrics
         $stats[] = [
             'title' => 'My visits this week',
             'value' => FieldVisit::query()->where('person_id', $user->id)
-                ->where('check_in_at', '>=', CarbonImmutable::now()->startOfWeek(CarbonImmutable::MONDAY))->count(),
+                ->where('check_in_at', '>=', CompanyTime::now()->startOfWeek(CarbonImmutable::MONDAY)->utc())->count(),
             'icon' => 'map-pin',
             'href' => '/admin/field-visits',
         ];
@@ -334,7 +335,7 @@ class DashboardMetrics
      */
     private function superAdminWidgets(array &$stats, array &$charts): void
     {
-        $monthStart = CarbonImmutable::now()->startOfMonth();
+        $monthStart = CompanyTime::now()->startOfMonth();
         $invoicedSince = fn (CarbonImmutable $from, CarbonImmutable $until): int => (int) Invoice::query()
             ->where('status', '!=', InvoiceStatus::Voided->value)
             ->whereDate('issue_date', '>=', $from->toDateString())
@@ -456,7 +457,7 @@ class DashboardMetrics
      */
     private function weekBuckets(): array
     {
-        $start = CarbonImmutable::now()->startOfWeek(CarbonImmutable::MONDAY)->subWeeks(7);
+        $start = CompanyTime::now()->startOfWeek(CarbonImmutable::MONDAY)->subWeeks(7);
         $weeks = [];
         $labels = [];
         for ($i = 0; $i < 8; $i++) {
@@ -488,7 +489,7 @@ class DashboardMetrics
             return (int) round(((int) $minutes) / 60);
         };
 
-        $today = CarbonImmutable::now();
+        $today = CompanyTime::now();
 
         return [$sumFor($today), $sumFor($today->subWeek())];
     }
@@ -552,7 +553,7 @@ class DashboardMetrics
      */
     private function revenueVsPayoutsChart(): array
     {
-        $start = CarbonImmutable::now()->startOfMonth()->subMonths(5);
+        $start = CompanyTime::now()->startOfMonth()->subMonths(5);
         $months = [];
         $labels = [];
         for ($i = 0; $i < 6; $i++) {

@@ -11,6 +11,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\Shared\Enums\FeedbackType;
 use App\Domain\Shared\Models\File;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -53,8 +54,8 @@ class KbArticleController extends Controller
                 'categories' => $a->categories->pluck('name')->all(),
                 'tags' => $a->tags->pluck('name')->all(),
                 'feedback_count' => $a->feedback_count,
-                'published_at' => $a->published_at?->toDateString(),
-                'updated_at' => $a->updated_at?->toDateString(),
+                'published_at' => CompanyTime::of($a->published_at)?->toDateString(),
+                'updated_at' => CompanyTime::of($a->updated_at)?->toDateString(),
             ]);
 
         return Inertia::render('admin/kb/articles/index', [
@@ -132,9 +133,9 @@ class KbArticleController extends Controller
                 'categories' => $article->categories->map->only(['id', 'name', 'slug']),
                 'tags' => $article->tags->map->only(['id', 'name', 'slug']),
                 'roles' => $article->roles->pluck('name'),
-                'published_at' => $article->published_at?->format('M j, Y g:i A'),
-                'created_at' => $article->created_at?->format('M j, Y g:i A'),
-                'updated_at' => $article->updated_at?->format('M j, Y g:i A'),
+                'published_at' => CompanyTime::of($article->published_at)?->format('M j, Y g:i A'),
+                'created_at' => CompanyTime::of($article->created_at)?->format('M j, Y g:i A'),
+                'updated_at' => CompanyTime::of($article->updated_at)?->format('M j, Y g:i A'),
             ],
             'attachments' => $this->attachmentPayload($article),
             'versions' => $article->versions->map(fn (KbArticleVersion $v): array => [
@@ -142,7 +143,7 @@ class KbArticleController extends Controller
                 'title' => $v->title,
                 'author' => $v->author->name,
                 'change_summary' => $v->change_summary,
-                'created_at' => $v->created_at?->format('M j, Y g:i A'),
+                'created_at' => CompanyTime::of($v->created_at)?->format('M j, Y g:i A'),
             ]),
             'feedback_stats' => [
                 'helpful' => $votes->get(FeedbackType::Helpful->value)?->count() ?? 0,
@@ -270,7 +271,7 @@ class KbArticleController extends Controller
                 'content' => $snapshot->content,
                 'author' => $snapshot->author->name,
                 'change_summary' => $snapshot->change_summary,
-                'created_at' => $snapshot->created_at?->format('M j, Y g:i A'),
+                'created_at' => CompanyTime::of($snapshot->created_at)?->format('M j, Y g:i A'),
             ],
         ]);
     }

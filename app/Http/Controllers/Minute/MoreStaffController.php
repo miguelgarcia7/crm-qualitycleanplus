@@ -12,6 +12,7 @@ use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Enums\MoreStaffUrgency;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -61,9 +62,9 @@ class MoreStaffController extends Controller
                 'urgency' => $r->urgency->value,
                 'urgency_label' => $r->urgency->label(),
                 'recruiter' => $r->assignedRecruiter?->name,
-                'created_at' => $r->created_at?->toDateString(),
+                'created_at' => CompanyTime::of($r->created_at)?->toDateString(),
                 // When it left the open list: filled, declined or cancelled.
-                'closed_at' => ($r->fulfilled_at ?? $r->declined_at ?? $r->cancelled_at)?->toDateString(),
+                'closed_at' => CompanyTime::of($r->fulfilled_at ?? $r->declined_at ?? $r->cancelled_at)?->toDateString(),
                 'status' => $r->status->value,
                 'status_label' => $r->status->label(),
                 'is_overdue' => $r->isOverdue(),

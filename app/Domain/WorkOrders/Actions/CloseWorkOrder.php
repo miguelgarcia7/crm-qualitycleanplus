@@ -14,7 +14,7 @@ class CloseWorkOrder
     public function handle(WorkOrder $workOrder, ?string $endDate = null): WorkOrder
     {
         $workOrder->status = WorkOrderStatus::Closed;
-        $workOrder->end_date = $endDate !== null ? CarbonImmutable::parse($endDate) : CarbonImmutable::now();
+        $workOrder->end_date = $endDate !== null ? CarbonImmutable::parse($endDate) : $workOrder->property->localDate();
         $workOrder->save();
 
         $this->logProperty(

@@ -11,6 +11,7 @@ use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyDepartment;
 use App\Domain\PropertyBible\Models\PropertyPositionRate;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -53,7 +54,7 @@ class PropertyAttention
                     'title' => 'Week of '.$weekStart->format('M j').($declined ? ' was declined' : ' is waiting on approval'),
                     'detail' => $declined
                         ? ($timesheet->decline_reason ?: 'Fix the hours and send it again.')
-                        : 'Sent '.($timesheet->sent_for_approval_at?->format('M j') ?? '—').', '.$timesheet->sent_for_approval_at?->diffForHumans().'.',
+                        : 'Sent '.(CompanyTime::of($timesheet->sent_for_approval_at)?->format('M j') ?? '—').', '.$timesheet->sent_for_approval_at?->diffForHumans().'.',
                     'action' => ['label' => 'Open week', 'href' => "/admin/properties/{$timesheet->property_id}/grid?week={$weekStart->toDateString()}"],
                 ];
             });

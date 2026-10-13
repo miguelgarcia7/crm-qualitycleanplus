@@ -47,9 +47,18 @@ type Props = {
 
 const TYPE_LABEL: Record<Inquiry['type'], string> = { job_seeker: 'Job seeker', business: 'Business' }
 
-// Times are stored in UTC; show them in the viewer's own time zone.
+// Times are stored in UTC; show them on the company's clock (Central), wherever the office browses from.
 const formatDateTime = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
+  iso
+    ? new Date(iso).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : '—'
 
 const TypeBadge = ({ inquiry }: { inquiry: Inquiry }) => (
   <span className="flex flex-wrap gap-1">

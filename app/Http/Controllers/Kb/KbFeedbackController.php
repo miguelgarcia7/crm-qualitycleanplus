@@ -6,6 +6,7 @@ use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\People\Models\Person;
 use App\Domain\Shared\Models\Feedback;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -38,9 +39,9 @@ class KbFeedbackController extends Controller
                     'article_slug' => $article?->slug,
                     'is_resolved' => $f->is_resolved,
                     'resolved_by' => $f->resolver?->name,
-                    'resolved_at' => $f->resolved_at?->format('M j, Y'),
+                    'resolved_at' => CompanyTime::of($f->resolved_at)?->format('M j, Y'),
                     'admin_notes' => $f->admin_notes,
-                    'created_at' => $f->created_at?->format('M j, Y g:i A'),
+                    'created_at' => CompanyTime::of($f->created_at)?->format('M j, Y g:i A'),
                 ];
             });
 

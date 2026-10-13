@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\People\Models\Person;
 use App\Notifications\NotificationLink;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,7 +30,7 @@ class NotificationController extends Controller
             'url' => NotificationLink::resolve($n->data, $onMinute),
             'read' => $n->read_at !== null,
             'ago' => $n->created_at?->diffForHumans(),
-            'date' => $n->created_at?->toDayDateTimeString(),
+            'date' => CompanyTime::of($n->created_at)?->toDayDateTimeString(),
         ])->all();
 
         // NB: keyed `history`, not `notifications` — the middleware shares a

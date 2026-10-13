@@ -6,6 +6,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\Pto\Enums\PtoBucket;
 use App\Domain\Pto\Enums\PtoGrantType;
 use App\Domain\Pto\Models\PtoGrant;
+use App\Support\CompanyTime;
 
 /**
  * Manual PTO balance adjustment by admin (ADR-0016) — applies a per-bucket delta to
@@ -42,7 +43,7 @@ class AdjustPtoBalance
             'scheduled_hours' => $scheduled,
             'unscheduled_hours' => $unscheduled,
             'reason' => $data['reason'],
-            'effective_date' => now()->toDateString(),
+            'effective_date' => CompanyTime::now()->toDateString(),
             'created_by' => $actor->id,
         ]);
     }

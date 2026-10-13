@@ -14,7 +14,7 @@ use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Enums\JobPostingStatus;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
-use App\Domain\SystemReference\Support\AutomationCatalog;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -44,7 +44,7 @@ class HrHome
      */
     public function build(Person $user): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
         $today = $now->startOfDay();
 
         [$missing, $ready] = $this->onboarding->inReview($now);

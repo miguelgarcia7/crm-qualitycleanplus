@@ -127,7 +127,12 @@ Both must stay in sync. Adding a value requires a migration.
 ## Timestamps and timezones
 
 - **All `_at` columns are stored as UTC.** Laravel default; do not deviate.
-- **Display in the request user's timezone** at the view layer.
+- **Display in company time (Central) or property time** at the view layer, never raw UTC (ADR-0030):
+  work at a property (punches, the work day, payroll weeks, invoice due dates) uses the property's
+  `timezone`; everything else, including the office's requests, approvals and audit trail, uses
+  `App\Support\CompanyTime`.
+- **"Today" is never the UTC date.** Use `CompanyTime::now()`/`::date()` or `Property::localDate()`.
+  When a Central boundary is bound against a UTC column, pass `->utc()`.
 - **Property-locked timestamps** (e.g. `time_entries.start_at`) are stored as `DATETIMETZ` with the `timezone` column carrying the IANA name. This is for display fidelity; reports group by `start_at_utc`.
 
 ## JSON columns

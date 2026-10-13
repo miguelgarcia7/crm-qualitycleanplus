@@ -16,6 +16,7 @@ use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -68,7 +69,7 @@ class BackOfficePulse
      */
     private function context(?array $propertyIds): array
     {
-        $now = CarbonImmutable::now();
+        $now = CompanyTime::now();
         $start = $now->startOfWeek(CarbonImmutable::MONDAY);
 
         return [
@@ -144,7 +145,7 @@ class BackOfficePulse
                 'icon' => 'cash',
                 'tone' => 'success',
                 'change' => $lastMonth > 0 ? round((($thisMonth - $lastMonth) / $lastMonth) * 100, 1) : null,
-                'changeLabel' => 'vs '.CarbonImmutable::now()->subMonth()->format('M'),
+                'changeLabel' => 'vs '.CompanyTime::now()->subMonth()->format('M'),
                 'href' => '/admin/reports/revenue',
             ];
         }
@@ -191,8 +192,8 @@ class BackOfficePulse
      */
     private function pipeline(Person $user, ?array $propertyIds): array
     {
-        $now = CarbonImmutable::now();
-        $weekStart = $now->startOfWeek(CarbonImmutable::MONDAY);
+        $now = CompanyTime::now();
+        $weekStart = $now->startOfWeek(CarbonImmutable::MONDAY)->utc();
 
         $clockedMinutes = (int) TimeSummary::query()
             ->whereDate('week_start', '<=', $now->toDateString())
@@ -221,7 +222,7 @@ class BackOfficePulse
 
         $pending = $this->pendingApprovalQuery($propertyIds)->count();
         $overdue = $this->pendingApprovalQuery($propertyIds)
-            ->where('sent_for_approval_at', '<', $now->subDays(self::APPROVAL_SLA_DAYS))
+            ->where('sent_for_approval_at', '<', CarbonImmutable::now()->subDays(self::APPROVAL_SLA_DAYS))
             ->count();
         $declined = Timesheet::query()
             ->where('status', TimesheetStatus::Declined->value)
@@ -494,7 +495,7 @@ class BackOfficePulse
         $peak = max(1, $byProperty->max() ?? 1);
 
         $flagged = TimeEntry::query()
-            ->whereDate('start_at_utc', CarbonImmutable::now()->toDateString())
+            ->where('start_at_utc', '>=', CompanyTime::today()->utc())
             ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
             ->where(fn (Builder $q) => $q->whereNotNull('clock_in_gps_flag_reason')->orWhereNotNull('clock_out_gps_flag_reason'))
             ->count();
@@ -636,7 +637,7 @@ class BackOfficePulse
      */
     private function weekHours(?array $propertyIds): array
     {
-        $now = CarbonImmutable::now();
+        $now = CompanyTime::now();
         $weekStart = $now->startOfWeek(CarbonImmutable::MONDAY);
         $elapsed = (int) $weekStart->diffInSeconds($now);
 
@@ -644,7 +645,7 @@ class BackOfficePulse
             $minutes = TimeEntry::query()
                 ->where('entry_type', 'work')
                 ->whereNotNull('start_at_utc')
-                ->whereBetween('start_at_utc', [$from, $to])
+                ->whereBetween('start_at_utc', [$from->utc(), $to->utc()])
                 ->when($propertyIds !== null, fn (Builder $q) => $q->whereIn('property_id', $propertyIds))
                 ->sum('duration_minutes');
 
@@ -670,7 +671,7 @@ class BackOfficePulse
             ->whereDate('issue_date', '<=', $month->endOfMonth()->toDateString())
             ->sum('total');
 
-        $now = CarbonImmutable::now();
+        $now = CompanyTime::now();
 
         return [$sumFor($now), $sumFor($now->subMonth())];
     }

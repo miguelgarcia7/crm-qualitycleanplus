@@ -5,6 +5,7 @@ namespace App\Domain\PropertyBible\Models;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\ContractType;
 use App\Domain\Shared\Models\File;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Database\Factories\ContractFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,8 +66,8 @@ class Contract extends Model
     {
         $query->where('is_active', true)
             ->whereNotNull('expiration_date')
-            ->whereDate('expiration_date', '>=', now()->toDateString())
-            ->whereDate('expiration_date', '<=', now()->addDays($days)->toDateString());
+            ->whereDate('expiration_date', '>=', CompanyTime::now()->toDateString())
+            ->whereDate('expiration_date', '<=', CompanyTime::now()->addDays($days)->toDateString());
     }
 
     /**

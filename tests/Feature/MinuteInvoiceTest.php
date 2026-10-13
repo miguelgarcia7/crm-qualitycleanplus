@@ -5,6 +5,7 @@ use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\InvoiceItem;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
+use App\Support\CompanyTime;
 use Database\Seeders\RolePermissionSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -108,7 +109,7 @@ it('tells the client what is paid, due and overdue, and totals the open balance'
                 ->where('summary.next_due', $due->due_date->toDateString());
 
             $byId = $rows($page);
-            expect($byId[$paid->id]['paid_at'])->toBe($paid->paid_at->toDateString())
+            expect($byId[$paid->id]['paid_at'])->toBe(CompanyTime::of($paid->paid_at)?->toDateString())
                 ->and($byId[$due->id]['days_until_due'])->toBe(10)
                 ->and($byId[$late->id]['is_overdue'])->toBeTrue()
                 ->and($byId[$late->id]['days_overdue'])->toBe(4);

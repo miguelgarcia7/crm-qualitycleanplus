@@ -9,6 +9,7 @@ use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Support\CompanyTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -121,8 +122,8 @@ class FieldVisitController extends Controller
                 'recruiter' => $v->person?->name,
                 'property' => $v->property?->name,
                 'status' => $v->status->value,
-                'check_in_at' => $v->check_in_at->toDayDateTimeString(),
-                'check_out_at' => $v->check_out_at?->toDayDateTimeString(),
+                'check_in_at' => CompanyTime::of($v->check_in_at)->toDayDateTimeString(),
+                'check_out_at' => CompanyTime::of($v->check_out_at)?->toDayDateTimeString(),
                 'duration' => $v->durationMinutes(),
                 'inside_geofence' => $v->was_inside_geofence,
                 'late_close' => $v->was_late_close,

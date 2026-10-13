@@ -11,6 +11,7 @@ use App\Domain\Billing\Support\InvoicePositionSummary;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Support\CompanyTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Builder;
@@ -74,7 +75,7 @@ class InvoiceController extends Controller
                 'total' => $i->total,
                 'status' => $i->status->value,
                 'status_label' => $i->status->label(),
-                'paid_at' => $i->paid_at?->toDateString(),
+                'paid_at' => CompanyTime::of($i->paid_at)?->toDateString(),
                 'is_overdue' => $i->isOverdue(),
                 'days_overdue' => $i->daysOverdue(),
             ])->all(),
@@ -271,12 +272,12 @@ class InvoiceController extends Controller
             'tax_amount' => $invoice->tax_amount,
             'total' => $invoice->total,
             'notification_recipient' => $invoice->notification_recipient,
-            'notification_sent_at' => $invoice->notification_sent_at?->toDateString(),
+            'notification_sent_at' => CompanyTime::of($invoice->notification_sent_at)?->toDateString(),
             'property_id' => $invoice->property_id,
             // The timesheet week this invoice bills, so the page can lead back to it.
             'week_start' => $invoice->payrollPeriod?->week_start->toDateString(),
             'week_end' => $invoice->payrollPeriod?->week_end->toDateString(),
-            'paid_at' => $invoice->paid_at?->toDateString(),
+            'paid_at' => CompanyTime::of($invoice->paid_at)?->toDateString(),
             'paid_by' => $invoice->paidBy?->name,
             // Derived, never stored: unpaid and past its due date.
             'is_overdue' => $invoice->isOverdue(),

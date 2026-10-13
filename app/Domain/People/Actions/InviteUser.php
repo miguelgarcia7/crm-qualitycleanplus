@@ -7,6 +7,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
 use App\Notifications\UserInvitation;
+use App\Support\CompanyTime;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 
@@ -37,7 +38,7 @@ class InviteUser
                 'status' => PersonStatus::StaffActive,
                 // Staff hire date drives PTO tiers/anniversaries; PMs are hotel
                 // employees, not QCP staff, so they don't get one.
-                'hire_date' => $isPropertyManager ? null : ($data['hire_date'] ?? now()->toDateString()),
+                'hire_date' => $isPropertyManager ? null : ($data['hire_date'] ?? CompanyTime::now()->toDateString()),
                 // The invite link only works from their inbox, which is the
                 // same proof email verification would provide.
                 'email_verified_at' => now(),

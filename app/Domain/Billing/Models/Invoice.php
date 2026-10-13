@@ -6,8 +6,8 @@ use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Support\InvoiceSnapshot;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\PayrollPeriod;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Database\Factories\InvoiceFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -94,7 +94,7 @@ class Invoice extends Model
     /** Today at the invoice's property, in its time zone (the office's when there is none). */
     public function localToday(): CarbonImmutable
     {
-        return CarbonImmutable::now($this->property->timezone ?? AutomationCatalog::DISPLAY_TIMEZONE)->startOfDay();
+        return CarbonImmutable::now($this->property->timezone ?? CompanyTime::zone())->startOfDay();
     }
 
     /**
@@ -113,12 +113,12 @@ class Invoice extends Model
                 foreach ($zones as $zone) {
                     $late->orWhere(fn (Builder $q) => $q
                         ->whereIn('invoices.property_id', Property::withTrashed()->where('timezone', $zone)->select('id'))
-                        ->whereDate('invoices.due_date', '<', CarbonImmutable::now($zone ?: AutomationCatalog::DISPLAY_TIMEZONE)->toDateString()));
+                        ->whereDate('invoices.due_date', '<', CarbonImmutable::now($zone ?: CompanyTime::zone())->toDateString()));
                 }
 
                 $late->orWhere(fn (Builder $q) => $q
                     ->whereNull('invoices.property_id')
-                    ->whereDate('invoices.due_date', '<', CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE)->toDateString()));
+                    ->whereDate('invoices.due_date', '<', CompanyTime::now()->toDateString()));
             });
     }
 

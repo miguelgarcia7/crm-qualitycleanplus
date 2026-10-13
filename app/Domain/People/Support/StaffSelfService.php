@@ -11,10 +11,10 @@ use App\Domain\Pto\Enums\PtoRequestStatus;
 use App\Domain\Pto\Enums\PtoTier;
 use App\Domain\Pto\Models\PtoRequest;
 use App\Domain\Pto\Services\PtoTenure;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Workflows\Enums\WorkflowStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\Workflow;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -49,7 +49,7 @@ class StaffSelfService
             return null;
         }
 
-        $today = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE)->startOfDay();
+        $today = CompanyTime::today();
         $allotment = $this->ensureYear->handle($person);
 
         return [
@@ -121,7 +121,7 @@ class StaffSelfService
                 return [
                     'kind' => 'info_change',
                     'title' => 'Change to your '.($fields->isEmpty() ? 'details' : $fields->join(', ', ' and ')),
-                    'asked' => $w->created_at?->toDateString(),
+                    'asked' => CompanyTime::of($w->created_at)?->toDateString(),
                     'status' => 'With HR',
                 ];
             });
@@ -135,7 +135,7 @@ class StaffSelfService
             ->map(fn (SupplyRequest $r): array => [
                 'kind' => 'supply',
                 'title' => trim($r->quantity.' × '.($r->itemVariant->item->name ?? $r->proposed_item_name ?? 'Supplies').($r->itemVariant !== null && $r->itemVariant->label() !== 'Default' ? ' ('.$r->itemVariant->label().')' : '')),
-                'asked' => $r->created_at?->toDateString(),
+                'asked' => CompanyTime::of($r->created_at)?->toDateString(),
                 'status' => $r->status === SupplyRequestStatus::Approved ? 'Approved, waiting to be handed over' : 'Waiting for approval',
             ]);
 

@@ -11,6 +11,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\Shared\Enums\FeedbackType;
 use App\Domain\Shared\Models\File;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -127,7 +128,7 @@ class KbReaderController extends Controller
                 'summary' => $article->summary,
                 'content' => $article->content,
                 'author' => $article->author->name,
-                'published_at' => $article->published_at?->format('M j, Y'),
+                'published_at' => CompanyTime::of($article->published_at)?->format('M j, Y'),
                 'view_count' => $article->view_count,
                 'categories' => $article->categories->map->only(['name', 'slug']),
                 'tags' => $article->tags->map->only(['name', 'slug']),
@@ -226,7 +227,7 @@ class KbReaderController extends Controller
                 'title' => $a->title,
                 'summary' => $a->summary,
                 'view_count' => $a->view_count,
-                'published_at' => $a->published_at?->format('M j, Y'),
+                'published_at' => CompanyTime::of($a->published_at)?->format('M j, Y'),
                 'categories' => $a->categories->map->only(['name', 'slug'])->all(),
             ])
             ->all();

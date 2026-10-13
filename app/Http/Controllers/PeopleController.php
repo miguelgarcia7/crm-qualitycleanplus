@@ -15,6 +15,7 @@ use App\Domain\Pto\Enums\PtoBucket;
 use App\Domain\Pto\Models\PtoYearAllotment;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -340,8 +341,8 @@ class PeopleController extends Controller
                 'avatar' => $person->avatarUrl(),
                 'city_state' => implode(', ', array_filter([$person->city, $person->state])),
                 'hire_date' => $person->hire_date?->format('M j, Y'),
-                'contractor_since' => $person->converted_to_contractor_at?->format('M j, Y'),
-                'terminated_at' => $person->terminated_at?->format('M j, Y'),
+                'contractor_since' => CompanyTime::of($person->converted_to_contractor_at)?->format('M j, Y'),
+                'terminated_at' => CompanyTime::of($person->terminated_at)?->format('M j, Y'),
                 'recruiter' => $person->primaryRecruiter?->name,
                 'roles' => $person->getRoleNames()->map(fn (string $r): string => Str::headline($r))->values()->all(),
             ],
@@ -438,7 +439,7 @@ class PeopleController extends Controller
                 'value' => $a->value,
                 'is_billable' => (bool) $a->is_billable,
                 'notes' => $a->notes,
-                'created_at' => $a->created_at?->format('M j, Y'),
+                'created_at' => CompanyTime::of($a->created_at)?->format('M j, Y'),
             ])
             ->all();
     }
@@ -490,7 +491,7 @@ class PeopleController extends Controller
                 'description' => $a->description,
                 'event' => $a->event,
                 'causer' => $a->causer instanceof Person ? $a->causer->name : null,
-                'created_at' => $a->created_at?->toDayDateTimeString(),
+                'created_at' => CompanyTime::of($a->created_at)?->toDayDateTimeString(),
             ])
             ->all();
     }

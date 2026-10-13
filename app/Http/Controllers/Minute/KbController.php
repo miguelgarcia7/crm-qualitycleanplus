@@ -9,6 +9,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\Shared\Enums\FeedbackType;
 use App\Domain\Shared\Models\File;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -74,7 +75,7 @@ class KbController extends Controller
                 'title' => $article->title,
                 'summary' => $article->summary,
                 'content' => $article->content,
-                'published_at' => $article->published_at?->format('M j, Y'),
+                'published_at' => CompanyTime::of($article->published_at)?->format('M j, Y'),
                 'categories' => $article->categories->pluck('name')->all(),
             ],
             'attachments' => $article->files->map(fn (File $f): array => [

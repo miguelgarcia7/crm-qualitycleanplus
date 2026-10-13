@@ -116,6 +116,7 @@ Dated artifacts in `reviews/` are point-in-time client-facing summaries. They ca
 | 0027 | Preline in a React/Inertia app — hybrid component policy | 2026-06-07 |
 | 0028 | Report rollups | 2026-06-11 |
 | 0029 | List pagination — server-side for ledgers, client-side for config | 2026-09-05 |
+| 0030 | Company time and property time | 2026-10-12 |
 
 ## Current status (snapshot)
 

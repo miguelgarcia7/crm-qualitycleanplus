@@ -7,6 +7,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -75,7 +76,7 @@ class SubmitApplication
             'phone' => $phone,
             'normalized_phone' => $phone === null ? null : preg_replace('/\D/', '', $phone),
             'status' => PersonStatus::Applicant,
-            'application_date' => CarbonImmutable::now()->toDateString(),
+            'application_date' => CompanyTime::now()->toDateString(),
             'dob' => $data['dob'] ?? null,
             'address' => $data['address'] ?? null,
             'apartment_number' => $data['apartment_number'] ?? null,

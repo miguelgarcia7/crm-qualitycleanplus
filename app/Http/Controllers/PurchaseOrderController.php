@@ -7,6 +7,7 @@ use App\Domain\Inventory\Actions\ReceivePurchaseOrder;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\PurchaseOrder;
 use App\Domain\Inventory\Models\PurchaseOrderItem;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,7 +40,7 @@ class PurchaseOrderController extends Controller
                 'status' => $po->status->value,
                 'status_label' => $po->status->label(),
                 'notes' => $po->notes,
-                'received_at' => $po->received_at?->toDateString(),
+                'received_at' => CompanyTime::of($po->received_at)?->toDateString(),
                 'items' => $po->items->map(fn (PurchaseOrderItem $line): array => [
                     'id' => $line->id,
                     'variant' => $line->itemVariant->item->name.' — '.$line->itemVariant->label(),

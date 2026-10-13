@@ -11,12 +11,12 @@ use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Dashboards\Support\DashboardFormat;
 use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\People\Models\Person;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -38,7 +38,7 @@ class ContractorHome
     /** @return array<string, mixed> */
     public function build(Person $person): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
         $jobs = WorkOrder::query()
             ->where('person_id', $person->id)
             ->where('status', WorkOrderStatus::Active->value)
@@ -108,7 +108,7 @@ class ContractorHome
             ->first();
 
         if ($open !== null) {
-            $tz = $open->workOrder->property->timezone ?? AutomationCatalog::DISPLAY_TIMEZONE;
+            $tz = $open->workOrder->property->timezone ?? CompanyTime::zone();
 
             return [
                 'on_the_clock' => true,
@@ -125,7 +125,7 @@ class ContractorHome
             ->with('workOrder.property:id,name,timezone')
             ->latest('end_at_utc')
             ->first();
-        $tz = $last->workOrder->property->timezone ?? AutomationCatalog::DISPLAY_TIMEZONE;
+        $tz = $last->workOrder->property->timezone ?? CompanyTime::zone();
 
         return [
             'on_the_clock' => false,
@@ -145,7 +145,7 @@ class ContractorHome
     private function thisWeek(Person $person, Collection $jobs): array
     {
         $anchor = $jobs->first()?->property;
-        $tz = $anchor->timezone ?? AutomationCatalog::DISPLAY_TIMEZONE;
+        $tz = $anchor->timezone ?? CompanyTime::zone();
         $start = $anchor?->weekStartFor(CarbonImmutable::now($tz)) ?? CarbonImmutable::now($tz)->startOfWeek();
         $days = collect(range(0, 6))->map(fn (int $i): string => $start->addDays($i)->toDateString());
 
@@ -186,7 +186,7 @@ class ContractorHome
         $summaries = TimeSummary::query()
             ->where('time_summaries.person_id', $person->id)
             ->join('payroll_periods', 'payroll_periods.id', '=', 'time_summaries.payroll_period_id')
-            ->whereDate('payroll_periods.week_end', '<', now()->toDateString())
+            ->whereDate('payroll_periods.week_end', '<', CompanyTime::now()->toDateString())
             ->orderByDesc('payroll_periods.week_start')
             ->select('time_summaries.*', 'payroll_periods.week_start as period_start', 'payroll_periods.week_end as period_end')
             ->with('workOrder.position:id,name', 'workOrder.property:id,name')

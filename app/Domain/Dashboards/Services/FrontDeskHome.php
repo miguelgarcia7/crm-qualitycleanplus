@@ -10,9 +10,9 @@ use App\Domain\Inventory\Models\EquipmentAssignment;
 use App\Domain\Inventory\Models\PurchaseOrder;
 use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\People\Models\Person;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -38,7 +38,7 @@ class FrontDeskHome
      */
     public function build(Person $user): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
         [$missing] = $this->onboarding->inReview($now);
         $toCollect = $this->collectable($missing);
 
@@ -165,7 +165,7 @@ class FrontDeskHome
                                 : null,
                             DashboardFormat::plural($units, 'unit', 'units'),
                             ($order->ordered_at ?? $order->created_at) !== null
-                                ? 'ordered '.($order->ordered_at ?? $order->created_at)->setTimezone(AutomationCatalog::DISPLAY_TIMEZONE)->format('M j')
+                                ? 'ordered '.($order->ordered_at ?? $order->created_at)->setTimezone(CompanyTime::zone())->format('M j')
                                 : null,
                         ])->filter()->implode(' · '),
                     ];

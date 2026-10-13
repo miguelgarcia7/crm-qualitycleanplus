@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Reports\Actions\RefreshMonthlyRevenue;
 use App\Domain\Reports\Actions\RefreshWeeklyRollup;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 
@@ -24,8 +25,8 @@ class RefreshReportRollups extends Command
 
     public function handle(RefreshWeeklyRollup $weekly, RefreshMonthlyRevenue $monthly): int
     {
-        $from = CarbonImmutable::parse($this->option('from') ?? now()->subDays(90)->toDateString());
-        $to = CarbonImmutable::parse($this->option('to') ?? now()->toDateString());
+        $from = CarbonImmutable::parse($this->option('from') ?? CompanyTime::now()->subDays(90)->toDateString());
+        $to = CarbonImmutable::parse($this->option('to') ?? CompanyTime::now()->toDateString());
 
         if ($from->greaterThan($to)) {
             $this->error('--from must be on or before --to.');

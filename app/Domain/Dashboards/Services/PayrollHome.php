@@ -12,12 +12,12 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Pto\Enums\PtoRequestStatus;
 use App\Domain\Pto\Models\PtoRequest;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +49,7 @@ class PayrollHome
      */
     public function build(Person $user, ?string $week): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
         $today = $now->startOfDay();
 
         $default = $today->startOfWeek(CarbonImmutable::MONDAY)->subWeeks(2);
@@ -241,7 +241,7 @@ class PayrollHome
 
             $long = $group->firstWhere(fn (TimeEntry $e): bool => (int) $e->duration_minutes > self::LONG_SHIFT_MINUTES);
             if ($long !== null) {
-                $day = $long->start_at_utc?->setTimezone($long->timezone ?? AutomationCatalog::DISPLAY_TIMEZONE)->format('M j');
+                $day = $long->start_at_utc?->setTimezone($long->timezone ?? CompanyTime::zone())->format('M j');
                 $rows->push($this->check($summary, 2, 'long', round(((int) $long->duration_minutes) / 60, 1).' h shift'.($day ? " on {$day}" : ''), 'warning'));
             }
 

@@ -9,6 +9,7 @@ use App\Domain\SystemReference\Support\AccessSummary;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use App\Notifications\NotificationCategory;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -35,7 +36,7 @@ class ProfileController extends Controller
                 'status' => Str::headline($person->status->value),
                 'is_active' => $person->status->isActive(),
                 'hire_date' => $person->hire_date?->format('M j, Y'),
-                'joined' => $person->created_at?->format('M j, Y'),
+                'joined' => CompanyTime::of($person->created_at)?->format('M j, Y'),
                 'avatar' => $person->avatarUrl(),
             ],
             'roles' => $person->getRoleNames()

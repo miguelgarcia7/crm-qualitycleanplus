@@ -13,12 +13,12 @@ use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -49,7 +49,7 @@ class RecruiterHome
      */
     public function build(Person $user): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
         $today = $now->startOfDay();
 
         $propertyIds = PropertyAssignment::query()

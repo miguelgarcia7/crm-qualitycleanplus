@@ -69,6 +69,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Company Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Everything is stored in UTC (above). The company's own clock — the
+    | office's requests, approvals and audit trail, what "today" means on the
+    | dashboards, and when the nightly jobs run — is Central time. Work at a
+    | property (punches, the work day, invoice due dates) keeps that
+    | property's own timezone instead. See ADR-0030 and App\Support\CompanyTime.
+    |
+    */
+
+    'company_timezone' => env('COMPANY_TIMEZONE', 'America/Chicago'),
+
+    'schedule_timezone' => env('COMPANY_TIMEZONE', 'America/Chicago'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

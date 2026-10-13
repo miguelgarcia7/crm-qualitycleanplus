@@ -9,6 +9,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Reports\Exports\ArrayReportExport;
+use App\Support\CompanyTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -104,7 +105,7 @@ class TimesheetController extends Controller
                 round($row['total_minutes'] / 60, 2), $row['total_bill'] / 100,
                 $row['submitted_at'] ?? '', $row['approved_at'] ?? '', $row['invoice_number'] ?? '',
             ])->all(),
-        ), 'timesheets-'.now()->toDateString().'.xlsx');
+        ), 'timesheets-'.CompanyTime::now()->toDateString().'.xlsx');
     }
 
     /**
@@ -175,7 +176,7 @@ class TimesheetController extends Controller
             ->leftJoinSub($sums, 'sums', 'sums.payroll_period_id', '=', 'timesheets.payroll_period_id')
             // This is the timesheet *history* — hide future ahead-periods (kept
             // ready for manual entry, but they have no hours yet).
-            ->whereDate('payroll_periods.week_start', '<=', now())
+            ->whereDate('payroll_periods.week_start', '<=', CompanyTime::today()->toDateString())
             ->when(
                 ! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES),
                 fn (Builder $q) => $q->whereIn('timesheets.property_id', $user->assignedProperties()->pluck('properties.id')->all()),
@@ -275,8 +276,8 @@ class TimesheetController extends Controller
             'status_label' => $timesheet->status->label(),
             'total_minutes' => (int) ($timesheet->getAttribute('total_minutes') ?? 0),
             'total_bill' => (int) ($timesheet->getAttribute('total_bill') ?? 0),
-            'submitted_at' => $timesheet->sent_for_approval_at?->format('M j, Y'),
-            'approved_at' => $timesheet->approved_at?->format('M j, Y'),
+            'submitted_at' => CompanyTime::of($timesheet->sent_for_approval_at)?->format('M j, Y'),
+            'approved_at' => CompanyTime::of($timesheet->approved_at)?->format('M j, Y'),
             // Whole days a pending sheet has waited on the property manager.
             'waiting_days' => $timesheet->status === TimesheetStatus::PendingApproval && $timesheet->sent_for_approval_at !== null
                 ? (int) $timesheet->sent_for_approval_at->diffInDays(now(), absolute: true)

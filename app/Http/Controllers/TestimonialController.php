@@ -6,6 +6,7 @@ use App\Domain\Marketing\Actions\UpdateTestimonialPhoto;
 use App\Domain\Marketing\Enums\TestimonialSource;
 use App\Domain\Marketing\Models\Testimonial;
 use App\Domain\Shared\Models\File;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +41,7 @@ class TestimonialController extends Controller
                 'is_active' => $t->is_active,
                 'photo_url' => $t->photo_file_id === null ? null : "/admin/testimonials/{$t->id}/photo?v={$t->photo_file_id}",
                 'created_at' => $t->created_at?->toIso8601String(),
-                'created_at_display' => $t->created_at?->toFormattedDateString(),
+                'created_at_display' => CompanyTime::of($t->created_at)?->toFormattedDateString(),
             ]);
 
         return Inertia::render('admin/testimonials/index', [

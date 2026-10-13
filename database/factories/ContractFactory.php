@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Domain\PropertyBible\Enums\ContractType;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
+use App\Support\CompanyTime;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -36,7 +37,7 @@ class ContractFactory extends Factory
     public function expiringInDays(int $days): static
     {
         return $this->state(fn (array $attributes) => [
-            'expiration_date' => now()->addDays($days)->toDateString(),
+            'expiration_date' => CompanyTime::now()->addDays($days)->toDateString(),
         ]);
     }
 }

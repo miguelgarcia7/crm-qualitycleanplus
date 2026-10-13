@@ -7,6 +7,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -117,8 +118,8 @@ class PropertyOverview
                 ...$this->totalsPayload($totals->get($t->payroll_period_id)),
                 'invoice_id' => $t->invoice_id,
                 'invoice_number' => $t->invoice?->invoice_number,
-                'sent_for_approval_at' => $t->sent_for_approval_at?->toDateString(),
-                'approved_at' => $t->approved_at?->toDateString(),
+                'sent_for_approval_at' => CompanyTime::of($t->sent_for_approval_at)?->toDateString(),
+                'approved_at' => CompanyTime::of($t->approved_at)?->toDateString(),
                 'decline_reason' => $t->decline_reason,
             ];
         })->values()->all();

@@ -2,6 +2,7 @@
 
 namespace App\Domain\SystemReference\Support;
 
+use App\Support\CompanyTime;
 use Carbon\CarbonInterface;
 use Closure;
 use DateTimeZone;
@@ -25,8 +26,6 @@ use Throwable;
  */
 class AutomationCatalog
 {
-    public const DISPLAY_TIMEZONE = 'America/Chicago';
-
     /**
      * @return list<array{name: string, source: string, schedule_timezone: string,
      *     cadence: string, cadence_utc: string, next_run: string, next_run_utc: string,
@@ -50,14 +49,14 @@ class AutomationCatalog
     {
         $zone = $this->zone($event);
         $next = $event->nextRunDate()->setTimezone($zone);
-        $chicago = $next->copy()->setTimezone(self::DISPLAY_TIMEZONE);
+        $chicago = $next->copy()->setTimezone(CompanyTime::zone());
         $utc = $next->copy()->setTimezone('UTC');
 
         return [
             'name' => (string) ($event->description ?? $event->command ?? 'Unnamed task'),
             'source' => $this->source($event),
             'schedule_timezone' => $zone === 'UTC' ? 'UTC' : 'Chicago time',
-            'cadence' => $this->cadence($event, $next, self::DISPLAY_TIMEZONE),
+            'cadence' => $this->cadence($event, $next, CompanyTime::zone()),
             'cadence_utc' => $this->cadence($event, $next, 'UTC'),
             'next_run' => $chicago->format('D, M j \a\t g:i A'),
             'next_run_utc' => $utc->format('D, M j \a\t H:i'),
@@ -133,7 +132,7 @@ class AutomationCatalog
 
         if ($this->isDaily($event)) {
             return [
-                'chicago' => ['start' => $hours($next, self::DISPLAY_TIMEZONE), 'end' => null],
+                'chicago' => ['start' => $hours($next, CompanyTime::zone()), 'end' => null],
                 'utc' => ['start' => $hours($next, 'UTC'), 'end' => null],
             ];
         }
@@ -142,7 +141,7 @@ class AutomationCatalog
             [$every, $from, $to] = $band;
             $span = fn (string $zone): array => ['start' => $hours($from, $zone), 'end' => round($hours($to, $zone) + $every / 60, 3)];
 
-            return ['chicago' => $span(self::DISPLAY_TIMEZONE), 'utc' => $span('UTC')];
+            return ['chicago' => $span(CompanyTime::zone()), 'utc' => $span('UTC')];
         }
 
         return null;

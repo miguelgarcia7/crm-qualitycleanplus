@@ -11,6 +11,7 @@ use App\Domain\Workflows\Enums\WorkflowStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -53,7 +54,7 @@ class ChangePersonalInfoController extends Controller
                 'id' => $wf->id,
                 'status' => $wf->status->label(),
                 'changes' => $wf->data['changes'] ?? [],
-                'created_at' => $wf->created_at?->toDateString(),
+                'created_at' => CompanyTime::of($wf->created_at)?->toDateString(),
             ]);
 
         return Inertia::render('admin/info-changes/index', [

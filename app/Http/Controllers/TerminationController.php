@@ -21,6 +21,7 @@ use App\Domain\Workflows\Enums\StepStatus;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -143,10 +144,10 @@ class TerminationController extends Controller
                 'reason' => $record->reason_category->label(),
                 'notes' => $record->notes,
                 'rehireable' => $record->rehireable,
-                'terminated_at' => $record->terminated_at?->toDateTimeString(),
+                'terminated_at' => CompanyTime::of($record->terminated_at)?->toDateTimeString(),
                 'final_paycheck_consolidated_cents' => $record->final_paycheck_consolidated_cents,
                 'final_paycheck_remainder_cents' => $record->final_paycheck_remainder_cents,
-                'final_paycheck_processed_at' => $record->final_paycheck_processed_at?->toDateTimeString(),
+                'final_paycheck_processed_at' => CompanyTime::of($record->final_paycheck_processed_at)?->toDateTimeString(),
                 'cancellation_reason' => $record->cancellation_reason,
             ],
             'steps' => $workflow->steps->map(fn (WorkflowStep $s): array => [
@@ -155,7 +156,7 @@ class TerminationController extends Controller
                 'name' => $s->name,
                 'actor' => $s->actor->value,
                 'status' => $s->status->value,
-                'completed_at' => $s->completed_at?->toDateTimeString(),
+                'completed_at' => CompanyTime::of($s->completed_at)?->toDateTimeString(),
             ]),
             'context' => [
                 'equipment' => $equipment,

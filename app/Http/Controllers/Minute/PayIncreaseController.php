@@ -12,6 +12,7 @@ use App\Domain\Workflows\Models\Workflow;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -154,8 +155,8 @@ class PayIncreaseController extends Controller
             'effective' => $effective?->format('M j, Y'),
             'decision_note' => $workflow->status === WorkflowStatus::Rejected ? $workflow->cancel_reason : null,
             'reason' => $data['reason'] ?? null,
-            'created_at' => $workflow->created_at?->format('M j'),
-            'decided_at' => $workflow->status === WorkflowStatus::InProgress ? null : $workflow->updated_at?->format('M j'),
+            'created_at' => CompanyTime::of($workflow->created_at)?->format('M j'),
+            'decided_at' => $workflow->status === WorkflowStatus::InProgress ? null : CompanyTime::of($workflow->updated_at)?->format('M j'),
             'can_change' => $workflow->status === WorkflowStatus::InProgress,
         ];
     }

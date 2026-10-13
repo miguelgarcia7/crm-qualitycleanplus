@@ -10,6 +10,7 @@ use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Support\HolidayDateResolver;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\PropertyFactory;
@@ -199,6 +200,12 @@ class Property extends Model
         }
 
         return $dates;
+    }
+
+    /** Today's date at this property ("Y-m-d"), in its own timezone (ADR-0030). */
+    public function localDate(): string
+    {
+        return CarbonImmutable::now($this->timezone ?: CompanyTime::zone())->toDateString();
     }
 
     /**

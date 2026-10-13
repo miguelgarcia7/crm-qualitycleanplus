@@ -17,9 +17,9 @@ use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Models\PropertyAssignment;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -46,7 +46,7 @@ class OfficeHome
      */
     public function build(Person $user): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
         $today = $now->startOfDay();
 
         return [
@@ -79,7 +79,7 @@ class OfficeHome
     {
         $unsent = $this->approvals->unsentByProperty($now->startOfDay());
         $pending = $this->approvals->query(null);
-        $overdue = $pending->clone()->where('sent_for_approval_at', '<', $now->subDays(ApprovalQueue::SLA_DAYS))->count();
+        $overdue = $pending->clone()->where('sent_for_approval_at', '<', $now->utc()->subDays(ApprovalQueue::SLA_DAYS))->count();
 
         $ready = Invoice::query()->awaitingSend()->whereNull('notification_sent_at');
         $readyCount = $ready->clone()->count();
@@ -194,7 +194,7 @@ class OfficeHome
                 'in' => $batch !== null && $batch->status === ImportBatchStatus::Applied,
                 'detail' => match (true) {
                     $batch === null => "No file for {$week} yet",
-                    $batch->status === ImportBatchStatus::Applied => 'Imported '.$batch->applied_at?->setTimezone(AutomationCatalog::DISPLAY_TIMEZONE)->format('D, M j'),
+                    $batch->status === ImportBatchStatus::Applied => 'Imported '.$batch->applied_at?->setTimezone(CompanyTime::zone())->format('D, M j'),
                     default => "Uploaded, not committed yet ({$week})",
                 },
                 'action' => $batch === null

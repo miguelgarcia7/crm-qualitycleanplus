@@ -12,6 +12,7 @@ use App\Domain\Recruiting\Actions\LinkApplicationToMatchedPerson;
 use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Shared\Models\File;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -53,7 +54,7 @@ class ApplicantController extends Controller
                 'status' => $a->status->value,
                 'status_label' => $a->status->label(),
                 'submitted_at' => $a->submitted_at->toIso8601String(),
-                'submitted_at_display' => $a->submitted_at->toDayDateTimeString(),
+                'submitted_at_display' => CompanyTime::of($a->submitted_at)->toDayDateTimeString(),
             ]);
 
         return Inertia::render('admin/applicants/index', [
@@ -77,7 +78,7 @@ class ApplicantController extends Controller
                 'id' => $application->id,
                 'status' => $application->status->value,
                 'status_label' => $application->status->label(),
-                'submitted_at' => $application->submitted_at->toDayDateTimeString(),
+                'submitted_at' => CompanyTime::of($application->submitted_at)->toDayDateTimeString(),
                 'posting' => $application->jobPosting?->title,
                 'desired_position' => $application->desired_position,
                 'desired_salary' => $application->desired_salary,
@@ -91,9 +92,9 @@ class ApplicantController extends Controller
                 'felony_conviction' => $application->felony_conviction,
                 'acknowledgement' => $application->acknowledgement,
                 'reviewed_by' => $application->reviewedBy?->name,
-                'reviewed_at' => $application->reviewed_at?->toDayDateTimeString(),
+                'reviewed_at' => CompanyTime::of($application->reviewed_at)?->toDayDateTimeString(),
                 'rejected_reason' => $application->rejected_reason,
-                'promoted_at' => $application->promoted_at?->toDayDateTimeString(),
+                'promoted_at' => CompanyTime::of($application->promoted_at)?->toDayDateTimeString(),
             ],
             'person' => [
                 'id' => $person->id,
@@ -126,7 +127,7 @@ class ApplicantController extends Controller
                     'id' => $a->id,
                     'status_label' => $a->status->label(),
                     'desired_position' => $a->desired_position,
-                    'submitted_at' => $a->submitted_at->toFormattedDateString(),
+                    'submitted_at' => CompanyTime::of($a->submitted_at)->toFormattedDateString(),
                 ]),
             'checklist' => OnboardingChecklist::status($person),
             'checklist_complete' => OnboardingChecklist::isComplete($person),

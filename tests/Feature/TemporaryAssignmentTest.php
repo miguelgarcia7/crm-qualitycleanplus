@@ -9,6 +9,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderSource;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Jobs\ProcessTemporaryAssignmentEnds;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use Carbon\CarbonImmutable;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 
@@ -53,13 +54,37 @@ it('auto-closes temporary assignments past their end date', function () {
         'is_temporary_assignment' => true,
         'source' => WorkOrderSource::TemporaryAssignment,
         'status' => WorkOrderStatus::Active,
-        'end_date' => Carbon::now()->subDay()->toDateString(),
+        'end_date' => Carbon::now()->subDays(2)->toDateString(), // over everywhere, whatever the hour
     ]);
 
     (new ProcessTemporaryAssignmentEnds)->handle(app(CloseWorkOrder::class));
 
     expect($temp->fresh()->status)->toBe(WorkOrderStatus::Closed)
         ->and($homeWo->fresh()->status)->toBe(WorkOrderStatus::Active);
+});
+
+it('keeps a temporary assignment open through its last day at the property', function () {
+    // 8 PM in Chicago: already Oct 13 in UTC, still Oct 12 at the hotel.
+    $this->travelTo(CarbonImmutable::parse('2026-10-12 20:00', 'America/Chicago'));
+
+    $contractor = Person::factory()->create(['status' => PersonStatus::ContractorActive]);
+    $chicago = Property::factory()->create(['timezone' => 'America/Chicago']);
+    $temp = fn (string $end) => WorkOrder::factory()->create([
+        'person_id' => $contractor->id,
+        'property_id' => $chicago->id,
+        'is_temporary_assignment' => true,
+        'source' => WorkOrderSource::TemporaryAssignment,
+        'status' => WorkOrderStatus::Active,
+        'end_date' => $end,
+    ]);
+    $endsToday = $temp('2026-10-12');
+    $endedYesterday = $temp('2026-10-11');
+
+    (new ProcessTemporaryAssignmentEnds)->handle(app(CloseWorkOrder::class));
+
+    expect($endsToday->fresh()->status)->toBe(WorkOrderStatus::Active)
+        ->and($endedYesterday->fresh()->status)->toBe(WorkOrderStatus::Closed)
+        ->and($endedYesterday->fresh()->end_date->toDateString())->toBe('2026-10-11');
 });
 
 it('rejects a temp assignment to the same property', function () {

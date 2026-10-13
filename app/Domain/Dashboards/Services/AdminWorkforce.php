@@ -17,12 +17,12 @@ use App\Domain\Recruiting\Enums\JobApplicationStatus;
 use App\Domain\Recruiting\Enums\JobPostingStatus;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
@@ -52,7 +52,7 @@ class AdminWorkforce
      */
     public function build(): array
     {
-        $today = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE)->startOfDay();
+        $today = CompanyTime::now()->startOfDay();
         $activeWorkOrders = WorkOrder::query()
             ->where('status', WorkOrderStatus::Active->value)
             ->get(['id', 'person_id', 'property_id', 'direct_hire_threshold_minutes']);

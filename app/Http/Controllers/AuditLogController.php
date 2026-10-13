@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Support\CompanyTime;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -55,7 +56,7 @@ class AuditLogController extends Controller
                 'subject_url' => $this->subjectUrl($a),
                 'causer' => $a->causer instanceof Person ? $a->causer->name : null,
                 'causer_url' => $a->causer instanceof Person ? "/admin/people/{$a->causer->id}" : null,
-                'created_at' => $a->created_at?->toDayDateTimeString(),
+                'created_at' => CompanyTime::of($a->created_at)?->toDayDateTimeString(),
             ])->all(),
             'pagination' => [
                 'page' => $page->currentPage(),

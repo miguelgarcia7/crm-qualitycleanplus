@@ -8,6 +8,7 @@ use App\Domain\Pto\Enums\PtoGrantType;
 use App\Domain\Pto\Models\PtoGrant;
 use App\Domain\Pto\Models\PtoYearAllotment;
 use App\Domain\Pto\Services\PtoTenure;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -21,7 +22,7 @@ class EnsurePtoYear
 
     public function handle(Person $person, ?CarbonImmutable $asOf = null): PtoYearAllotment
     {
-        $asOf ??= CarbonImmutable::now()->startOfDay();
+        $asOf ??= CompanyTime::date();
         $start = $this->tenure->anniversaryStart($person, $asOf);
 
         $existing = PtoYearAllotment::query()

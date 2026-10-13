@@ -12,6 +12,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Notifications\WorkflowNotice;
+use App\Support\CompanyTime;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -174,7 +175,7 @@ it('shows the recruiter the request in full: reason, the PM\'s notes, and who is
     $s = moreStaffScenario();
     test()->actingAs($s['pm'])->post(qcminute('/staffing-requests'), [
         'property_id' => $s['property']->id, 'position_id' => $s['position']->id, 'quantity' => 2,
-        'by_date' => Carbon::now()->addDays(10)->toDateString(), 'urgency' => 'high',
+        'by_date' => CompanyTime::today()->addDays(10)->toDateString(), 'urgency' => 'high',
         'reason' => 'Banquet season', 'notes' => 'Weekend availability',
     ]);
     $request = MoreStaffRequest::query()->latest('id')->firstOrFail();

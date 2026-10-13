@@ -24,6 +24,7 @@ use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Domain\WorkOrders\Support\DirectHireProgress;
 use App\Http\Requests\Property\StorePropertyRequest;
 use App\Http\Requests\Property\UpdatePropertyRequest;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -273,7 +274,7 @@ class PropertyController extends Controller
     private function holidaysPayload(Property $property): Collection
     {
         $enabled = $property->holidays->pluck('id')->all();
-        $year = (int) now()->format('Y');
+        $year = CompanyTime::now()->year;
 
         return Holiday::query()
             ->orderByRaw("case when type = 'legal' then 0 else 1 end")
@@ -389,7 +390,7 @@ class PropertyController extends Controller
                 'description' => $a->description,
                 'event' => $a->event,
                 'causer' => $a->causer instanceof Person ? $a->causer->name : null,
-                'created_at' => $a->created_at?->toDayDateTimeString(),
+                'created_at' => CompanyTime::of($a->created_at)?->toDayDateTimeString(),
             ])->all(),
             'current_page' => $page->currentPage(),
             'last_page' => $page->lastPage(),

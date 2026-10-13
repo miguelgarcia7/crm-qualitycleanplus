@@ -8,6 +8,7 @@ use App\Domain\Workflows\Concerns\LogsWorkflowActivity;
 use App\Domain\Workflows\Definitions\WorkflowRegistry;
 use App\Domain\Workflows\Enums\WorkflowType;
 use App\Domain\Workflows\Models\WorkflowStep;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -42,7 +43,7 @@ class WorkflowTaskController extends Controller
                 'review_url' => $registry->for($step->workflow->workflowType())->reviewUrl($step->workflow, $step),
                 'step_type' => $step->step_type->label(),
                 'initiator' => $step->workflow->initiator?->name,
-                'created_at' => $step->created_at?->toDateTimeString(),
+                'created_at' => CompanyTime::of($step->created_at)?->toDateTimeString(),
                 'can_act' => $request->user()->can('act', $step),
             ])->values(),
         ]);

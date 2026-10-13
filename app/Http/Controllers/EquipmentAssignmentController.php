@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Inventory\Actions\ReturnEquipment;
 use App\Domain\Inventory\Enums\EquipmentAssignmentStatus;
 use App\Domain\Inventory\Models\EquipmentAssignment;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -30,7 +31,7 @@ class EquipmentAssignmentController extends Controller
                 'person' => $a->assignedTo->name,
                 'item' => $a->itemVariant->item->name.' — '.$a->itemVariant->label(),
                 'quantity' => $a->quantity,
-                'assigned_at' => $a->assigned_at?->toDateString(),
+                'assigned_at' => CompanyTime::of($a->assigned_at)?->toDateString(),
             ]),
             'can' => [
                 'return' => $request->user()->can('inventory.equipment.return'),

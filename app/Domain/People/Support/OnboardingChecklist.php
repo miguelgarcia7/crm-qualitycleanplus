@@ -3,6 +3,7 @@
 namespace App\Domain\People\Support;
 
 use App\Domain\People\Models\Person;
+use App\Support\CompanyTime;
 use Carbon\CarbonInterface;
 
 /**
@@ -61,7 +62,7 @@ class OnboardingChecklist
             'label' => 'Background check',
             'complete' => $background !== null && $background->satisfiesGate(),
             'waived' => in_array('background_check', $waived, true),
-            'completed_at' => $person->background_check_completed_at?->toDateTimeString(),
+            'completed_at' => CompanyTime::of($person->background_check_completed_at)?->toDateTimeString(),
             'file_id' => null,
             'needs_verification' => false,
             'verified' => false,

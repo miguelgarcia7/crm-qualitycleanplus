@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Notifications\ContractExpiringNotification;
+use App\Support\CompanyTime;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
 
@@ -34,7 +35,7 @@ class ContractExpirationCheck extends Command
         $sent = 0;
 
         foreach (self::THRESHOLDS as $days) {
-            $target = now()->addDays($days)->toDateString();
+            $target = CompanyTime::now()->addDays($days)->toDateString();
 
             $contracts = Contract::query()
                 ->where('is_active', true)

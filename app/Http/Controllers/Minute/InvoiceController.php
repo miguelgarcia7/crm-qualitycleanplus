@@ -10,6 +10,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -72,7 +73,7 @@ class InvoiceController extends Controller
                 'week_end' => $invoice->payrollPeriod?->week_end->toDateString(),
                 'timesheet_id' => $invoice->timesheet_id,
                 'issue_date' => $invoice->issue_date->toDateString(),
-                'sent_at' => $invoice->notification_sent_at?->toDateString(),
+                'sent_at' => CompanyTime::of($invoice->notification_sent_at)?->toDateString(),
                 'total_minutes' => $invoice->total_regular_minutes + $invoice->total_overtime_minutes + $invoice->total_holiday_minutes + $invoice->total_training_minutes,
                 'total' => $invoice->total,
                 ...$this->payment($invoice),
@@ -114,7 +115,7 @@ class InvoiceController extends Controller
                 'id' => $invoice->id,
                 'invoice_number' => $invoice->invoice_number,
                 'issue_date' => $invoice->issue_date->toDateString(),
-                'sent_at' => $invoice->notification_sent_at?->toDateString(),
+                'sent_at' => CompanyTime::of($invoice->notification_sent_at)?->toDateString(),
                 'sent_to' => $invoice->notification_recipient,
                 'week_start' => $invoice->payrollPeriod?->week_start->toDateString(),
                 'week_end' => $invoice->payrollPeriod?->week_end->toDateString(),
@@ -177,7 +178,7 @@ class InvoiceController extends Controller
         return [
             'voided' => $invoice->status === InvoiceStatus::Voided,
             'due_date' => $invoice->due_date->toDateString(),
-            'paid_at' => $invoice->paid_at?->toDateString(),
+            'paid_at' => CompanyTime::of($invoice->paid_at)?->toDateString(),
             'is_overdue' => $overdue,
             'days_overdue' => $invoice->daysOverdue(),
             'days_until_due' => $open && ! $overdue ? -$invoice->daysPastDue() : null,

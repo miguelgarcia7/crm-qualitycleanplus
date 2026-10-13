@@ -15,6 +15,7 @@ use App\Domain\Workflows\Models\Workflow;
 use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -229,7 +230,7 @@ class PayIncreaseController extends Controller
                     'position' => $wo->position?->name,
                     'property' => $wo->property?->name,
                     'requested_by' => $wf->initiator?->name,
-                    'requested_at' => $wf->created_at?->format('M j, Y'),
+                    'requested_at' => CompanyTime::of($wf->created_at)?->format('M j, Y'),
                     'pm_requested_increase' => (int) ($data['pm_requested_increase_cents'] ?? 0),
                     // The work order a request was made against keeps its
                     // rates once superseded, so it is always the "before".
@@ -238,7 +239,7 @@ class PayIncreaseController extends Controller
                     'effective' => $effective !== null ? CarbonImmutable::parse($effective)->format('M j, Y') : null,
                     'outcome' => $outcome,
                     'decided_by' => $deciderId !== null ? $names->get($deciderId) ?? $wf->initiator?->name : null,
-                    'decided_at' => $wf->completed_at?->format('M j, Y'),
+                    'decided_at' => CompanyTime::of($wf->completed_at)?->format('M j, Y'),
                     'reason' => $data['reason'] ?? null,
                     'note' => $outcome === 'declined' || $outcome === 'cancelled' ? $wf->cancel_reason : null,
                 ];

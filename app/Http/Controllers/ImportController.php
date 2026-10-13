@@ -23,6 +23,7 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,7 +64,7 @@ class ImportController extends Controller
                 'status' => $b->status->value,
                 'status_label' => $b->status->label(),
                 'uploaded_by' => $b->uploadedBy?->name,
-                'created_at' => $b->created_at?->toDayDateTimeString(),
+                'created_at' => CompanyTime::of($b->created_at)?->toDayDateTimeString(),
                 'invoice' => $b->invoice === null ? null : ['id' => $b->invoice->id, 'number' => $b->invoice->invoice_number],
                 'stats' => $b->stats,
             ]),

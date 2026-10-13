@@ -65,7 +65,8 @@ const Page = ({ myBalances, noticePeriod, myRequests, queue, others, can }: Prop
   const [adjustFor, setAdjustFor] = useState<Other | null>(null)
   // Allow backdating the start up to 10 days (e.g. logging sick time after the
   // fact). End ≥ start always (mirrors the backend's after_or_equal rule).
-  const minStart = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  // Counted on the company's calendar (Central), not UTC, so it holds in the evening.
+  const minStart = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(Date.now() - 10 * 24 * 60 * 60 * 1000)
 
   const submit = (e: FormEvent) => {
     e.preventDefault()

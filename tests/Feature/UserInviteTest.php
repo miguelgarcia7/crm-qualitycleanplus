@@ -5,6 +5,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
 use App\Notifications\UserInvitation;
+use App\Support\CompanyTime;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -81,7 +82,7 @@ it('creates office staff without properties, defaulting the hire date to today',
 
     $person = Person::firstWhere('email', 'fran@qcp.example.com');
     expect($person->hasRole('front_desk'))->toBeTrue()
-        ->and($person->hire_date->toDateString())->toBe(now()->toDateString())
+        ->and($person->hire_date->toDateString())->toBe(CompanyTime::now()->toDateString())
         ->and($person->assignedProperties()->count())->toBe(0);
 });
 

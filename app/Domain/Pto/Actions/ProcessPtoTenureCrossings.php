@@ -10,6 +10,7 @@ use App\Domain\Pto\Enums\PtoGrantType;
 use App\Domain\Pto\Models\PtoGrant;
 use App\Domain\Pto\Models\PtoYearAllotment;
 use App\Domain\Pto\Services\PtoTenure;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 
 /**
@@ -32,7 +33,7 @@ class ProcessPtoTenureCrossings
      */
     public function handle(?CarbonImmutable $date = null): array
     {
-        $date ??= CarbonImmutable::now()->startOfDay();
+        $date ??= CompanyTime::date();
         $anniversaries = 0;
         $crossings = 0;
 

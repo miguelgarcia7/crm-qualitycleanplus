@@ -10,6 +10,7 @@ use App\Domain\Workflows\Models\WorkflowStep;
 use App\Domain\WorkOrders\Enums\MoreStaffStatus;
 use App\Domain\WorkOrders\Models\MoreStaffRequest;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -98,7 +99,8 @@ class MoreStaffController extends Controller
      */
     private function row(MoreStaffRequest $r): array
     {
-        $today = now()->startOfDay();
+        // by_date is a plain calendar date, so count from the company's date.
+        $today = CompanyTime::date();
 
         return [
             'id' => $r->id,
@@ -115,7 +117,7 @@ class MoreStaffController extends Controller
             'reason' => $r->reason,
             'notes' => $r->notes,
             'requested_by' => $r->initiatedBy?->name,
-            'requested_at' => $r->created_at?->format('M j'),
+            'requested_at' => CompanyTime::of($r->created_at)?->format('M j'),
             'is_overdue' => $r->isOverdue(),
             'placed' => $r->workOrders->sortBy('id')->map(fn ($wo) => $wo->person?->name)->filter()->values()->all(),
         ];
@@ -134,17 +136,17 @@ class MoreStaffController extends Controller
             // closed it out.
             MoreStaffStatus::Fulfilled => [
                 'decided_by' => $r->workOrders->sortBy('id')->last()?->createdBy?->name,
-                'decided_at' => $r->fulfilled_at?->format('M j, Y'),
+                'decided_at' => CompanyTime::of($r->fulfilled_at)?->format('M j, Y'),
                 'note' => null,
             ],
             MoreStaffStatus::Declined => [
                 'decided_by' => $deciders->get($r->declined_by),
-                'decided_at' => $r->declined_at?->format('M j, Y'),
+                'decided_at' => CompanyTime::of($r->declined_at)?->format('M j, Y'),
                 'note' => $r->decline_reason,
             ],
             default => [
                 'decided_by' => $deciders->get($r->cancelled_by),
-                'decided_at' => $r->cancelled_at?->format('M j, Y'),
+                'decided_at' => CompanyTime::of($r->cancelled_at)?->format('M j, Y'),
                 'note' => $r->cancel_reason,
             ],
         };

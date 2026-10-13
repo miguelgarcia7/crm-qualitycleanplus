@@ -13,6 +13,7 @@ use App\Domain\Reports\Actions\RefreshMonthlyRevenue;
 use App\Domain\Settings\Support\CompanySettings;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\TimeSummary;
+use App\Support\CompanyTime;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -48,8 +49,8 @@ class GenerateInvoice
                 'payroll_period_id' => $period->id,
                 'timesheet_id' => $locked->id,
                 'invoice_number' => $this->nextNumber(),
-                'issue_date' => now()->toDateString(),
-                'due_date' => now()->addDays((int) config('qcp.invoice.payment_terms_days', 30))->toDateString(),
+                'issue_date' => CompanyTime::now()->toDateString(),
+                'due_date' => CompanyTime::now()->addDays((int) config('qcp.invoice.payment_terms_days', 30))->toDateString(),
                 'property_snapshot' => $this->propertySnapshot($property),
                 'invoicer_snapshot' => $this->company->invoicer(),
                 'tax_rate' => $property->tax_rate,
@@ -133,7 +134,7 @@ class GenerateInvoice
 
     private function nextNumber(): string
     {
-        $year = (int) now()->year;
+        $year = CompanyTime::now()->year;
         $seq = Invoice::query()->where('invoice_number', 'like', "INV-{$year}-%")->lockForUpdate()->count() + 1;
 
         return sprintf('INV-%d-%06d', $year, $seq);

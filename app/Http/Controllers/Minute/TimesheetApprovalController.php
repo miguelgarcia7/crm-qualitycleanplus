@@ -17,6 +17,7 @@ use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Time\Support\WeekWorkOrders;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use App\Http\Controllers\Controller;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -225,12 +226,12 @@ class TimesheetApprovalController extends Controller
             'week_start' => $period->week_start->toDateString(),
             'week_end' => $period->week_end->toDateString(),
             'status' => $timesheet->status->value,
-            'sent_at' => $timesheet->sent_for_approval_at?->toDateString(),
+            'sent_at' => CompanyTime::of($timesheet->sent_for_approval_at)?->toDateString(),
             'sent_by' => $timesheet->sentForApprovalBy?->name,
             'waiting_days' => $waiting ? (int) $timesheet->sent_for_approval_at->diffInDays(now(), absolute: true) : null,
-            'approved_at' => $timesheet->approved_at?->toDateString(),
+            'approved_at' => CompanyTime::of($timesheet->approved_at)?->toDateString(),
             'approved_by' => $this->who($timesheet->approvedBy, $user),
-            'declined_at' => $timesheet->status === TimesheetStatus::Declined ? $timesheet->declined_at?->toDateString() : null,
+            'declined_at' => $timesheet->status === TimesheetStatus::Declined ? CompanyTime::of($timesheet->declined_at)?->toDateString() : null,
             'declined_by' => $timesheet->status === TimesheetStatus::Declined ? $this->who($timesheet->declinedBy, $user) : null,
             'decline_reason' => $timesheet->status === TimesheetStatus::Declined ? $timesheet->decline_reason : null,
             'people' => $totals['people'] ?? 0,
@@ -282,11 +283,11 @@ class TimesheetApprovalController extends Controller
             'timesheet' => $timesheet === null ? null : [
                 'id' => $timesheet->id,
                 'status' => $timesheet->status->value,
-                'sent_at' => $timesheet->sent_for_approval_at?->toDateString(),
+                'sent_at' => CompanyTime::of($timesheet->sent_for_approval_at)?->toDateString(),
                 'sent_by' => $timesheet->sentForApprovalBy?->name,
-                'approved_at' => $timesheet->approved_at?->toDateString(),
+                'approved_at' => CompanyTime::of($timesheet->approved_at)?->toDateString(),
                 'approved_by' => $this->who($timesheet->approvedBy, $user),
-                'declined_at' => $timesheet->declined_at?->toDateString(),
+                'declined_at' => CompanyTime::of($timesheet->declined_at)?->toDateString(),
                 'declined_by' => $this->who($timesheet->declinedBy, $user),
                 'decline_reason' => $timesheet->decline_reason,
                 'decline_category' => $timesheet->decline_category,

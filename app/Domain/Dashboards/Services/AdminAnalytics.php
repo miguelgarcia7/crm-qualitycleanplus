@@ -5,8 +5,8 @@ namespace App\Domain\Dashboards\Services;
 use App\Domain\Billing\Enums\InvoiceStatus;
 use App\Domain\Billing\Models\Invoice;
 use App\Domain\PropertyBible\Models\Property;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\TimeSummary;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -39,7 +39,7 @@ class AdminAnalytics
      */
     public function build(string $period): array
     {
-        $today = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE)->startOfDay();
+        $today = CompanyTime::now()->startOfDay();
         $window = $this->window(in_array($period, self::PERIODS, true) ? $period : 'mtd', $today);
 
         $current = $this->work($window['from'], $window['to']);

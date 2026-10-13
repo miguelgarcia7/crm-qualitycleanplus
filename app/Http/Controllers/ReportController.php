@@ -6,6 +6,7 @@ use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Reports\Exports\ArrayReportExport;
 use App\Domain\Reports\Models\ReportMonthlyRevenue;
+use App\Support\CompanyTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -163,7 +164,7 @@ class ReportController extends Controller
             'week' => $data['filters']['week'],
             'rows' => $data['rows'],
             'totals' => $data['totals'],
-            'generatedAt' => now(),
+            'generatedAt' => CompanyTime::now(),
         ])->download('payouts-'.($data['filters']['week'] ?? 'none').'.pdf');
     }
 
@@ -178,8 +179,8 @@ class ReportController extends Controller
             'property_id' => ['nullable', 'integer', 'exists:properties,id'],
         ]);
 
-        $from = CarbonImmutable::parse(($validated['from'] ?? now()->subMonths(11)->format('Y-m')).'-01');
-        $to = CarbonImmutable::parse(($validated['to'] ?? now()->format('Y-m')).'-01')->endOfMonth();
+        $from = CarbonImmutable::parse(($validated['from'] ?? CompanyTime::now()->subMonths(11)->format('Y-m')).'-01');
+        $to = CarbonImmutable::parse(($validated['to'] ?? CompanyTime::now()->format('Y-m')).'-01')->endOfMonth();
 
         $cells = ReportMonthlyRevenue::query()
             ->with('property:id,name')
@@ -390,8 +391,8 @@ class ReportController extends Controller
 
         // Rollup rows carry property-anchored week_starts (closing day, ADR-0009),
         // so the range filters on raw dates rather than normalizing to a weekday.
-        $from = CarbonImmutable::parse($validated['from'] ?? now()->subWeeks(12)->toDateString())->startOfDay();
-        $to = CarbonImmutable::parse($validated['to'] ?? now()->toDateString());
+        $from = CarbonImmutable::parse($validated['from'] ?? CompanyTime::now()->subWeeks(12)->toDateString())->startOfDay();
+        $to = CarbonImmutable::parse($validated['to'] ?? CompanyTime::now()->toDateString());
 
         return [$from, $to, isset($validated['property_id']) ? (int) $validated['property_id'] : null];
     }

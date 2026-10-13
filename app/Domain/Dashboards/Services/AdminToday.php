@@ -15,11 +15,11 @@ use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Pto\Enums\PtoRequestStatus;
 use App\Domain\Pto\Models\PtoRequest;
-use App\Domain\SystemReference\Support\AutomationCatalog;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
+use App\Support\CompanyTime;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -51,7 +51,7 @@ class AdminToday
      */
     public function build(Person $user): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
 
         return [
             'actions' => $this->actions($user),
@@ -71,7 +71,7 @@ class AdminToday
      */
     public function header(Person $user): array
     {
-        $now = CarbonImmutable::now(AutomationCatalog::DISPLAY_TIMEZONE);
+        $now = CompanyTime::now();
 
         $weekStart = $now->startOfWeek(CarbonImmutable::MONDAY);
 
@@ -144,7 +144,7 @@ class AdminToday
 
         $pending = $this->approvals->query(null);
         $pendingCount = $pending->clone()->count();
-        $overdue = $pending->clone()->where('sent_for_approval_at', '<', $now->subDays(ApprovalQueue::SLA_DAYS))->count();
+        $overdue = $pending->clone()->where('sent_for_approval_at', '<', $now->utc()->subDays(ApprovalQueue::SLA_DAYS))->count();
 
         $ready = Invoice::query()->awaitingSend()->whereNull('notification_sent_at');
         $readyCount = $ready->clone()->count();

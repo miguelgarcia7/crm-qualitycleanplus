@@ -6,6 +6,7 @@ use App\Domain\PropertyBible\Enums\HolidayType;
 use App\Domain\PropertyBible\Models\Holiday;
 use App\Domain\PropertyBible\Support\HolidayDateResolver;
 use App\Domain\Time\Actions\RecomputeOpenPeriods;
+use App\Support\CompanyTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -25,7 +26,7 @@ class HolidayController extends Controller
 {
     public function index(Request $request): Response
     {
-        $year = (int) now()->format('Y');
+        $year = CompanyTime::now()->year;
 
         return Inertia::render('admin/holidays/index', [
             'holidays' => Holiday::query()
@@ -38,7 +39,7 @@ class HolidayController extends Controller
                     'name' => $h->name,
                     'type' => $h->type->value,
                     'type_label' => $h->type->label(),
-                    'this_year' => HolidayDateResolver::resolve($h, $year, config('app.timezone'))->format('M j'),
+                    'this_year' => HolidayDateResolver::resolve($h, $year, CompanyTime::zone())->format('M j'),
                     'properties_count' => $h->properties_count,
                 ]),
             'can' => ['edit' => $request->user()?->can('bible.holidays.edit') ?? false],

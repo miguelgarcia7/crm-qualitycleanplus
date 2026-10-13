@@ -62,7 +62,7 @@ it('lists the scheduled tasks in Chicago time', function () {
         ->get(main('/admin/system'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('automations.0.name', 'Alert Admin and Payroll about contracts ending in 30 or 14 days')
-            ->where('automations.0.cadence', fn (string $cadence): bool => in_array($cadence, ['Daily at 1:00 AM', 'Daily at 2:00 AM'], true))
+            ->where('automations.0.cadence', 'Daily at 7:00 AM')
             ->where('automations.1.name', 'Create the upcoming pay weeks')
         );
 });
@@ -206,22 +206,30 @@ it('shows every scheduled task with its times in Chicago and UTC', function () {
             ->has('tasks', count(app(Schedule::class)->events()))
             ->where('tasks.0.name', 'Alert Admin and Payroll about contracts ending in 30 or 14 days')
             ->where('tasks.0.source', 'php artisan contracts:expiration-check')
-            ->where('tasks.0.cadence_utc', 'Daily at 07:00')
-            ->where('tasks.0.schedule_timezone', 'UTC')
+            ->where('tasks.0.cadence', 'Daily at 7:00 AM')
+            ->where('tasks.0.schedule_timezone', 'Chicago time')
             ->where('tasks.2.source', 'ApplyScheduledContractorCharges (queued job)')
         );
 });
 
-it('flags nightly tasks that land in a Chicago evening because they are written in UTC', function () {
+it('runs the nightly tasks after midnight company time, not the evening before', function () {
     $tasks = collect((new AutomationCatalog)->all())->keyBy('name');
 
-    // 00:15 UTC is 7:15 or 6:15 PM in Chicago, depending on daylight time.
     expect($tasks['Create the upcoming pay weeks'])
-        ->evening_in_chicago->toBeTrue()
-        ->cadence->toBeIn(['Daily at 6:15 PM', 'Daily at 7:15 PM'])
+        ->cadence->toBe('Daily at 12:15 AM')
+        ->schedule_timezone->toBe('Chicago time')
         ->timeline->toHaveKeys(['chicago', 'utc'])
-        // 07:00 UTC is 1 or 2 AM in Chicago: not an evening.
-        ->and($tasks['Alert Admin and Payroll about contracts ending in 30 or 14 days']['evening_in_chicago'])->toBeFalse();
+        ->and($tasks->where('evening_in_chicago', true))->toBeEmpty();
+});
+
+it('flags a nightly task written in UTC, which lands in a Chicago evening', function () {
+    app(Kernel::class)->bootstrap();
+    app(Schedule::class)->command('inspire')->dailyAt('00:15')->timezone('UTC')->description('A task written in UTC');
+
+    // 00:15 UTC is 7:15 or 6:15 PM in Chicago, depending on daylight time.
+    expect(collect((new AutomationCatalog)->all())->keyBy('name')['A task written in UTC'])
+        ->evening_in_chicago->toBeTrue()
+        ->cadence->toBeIn(['Daily at 6:15 PM', 'Daily at 7:15 PM']);
 });
 
 it('keeps everyone else out of the automations page', function (string $role) {
