@@ -27,7 +27,7 @@ class PurgeFieldVisitLocations extends Command
                 ->orWhereNotNull('check_in_gps_lat')
                 ->orWhereNotNull('check_out_gps_lat'))
             ->whereDoesntHave('person', fn ($q) => $q->where('legal_hold', true))
-            ->with('checkInSelfie')
+            ->with(['checkInSelfie' => fn ($q) => $q->withTrashed()])
             ->chunkById(200, function ($visits) use (&$purged): void {
                 foreach ($visits as $visit) {
                     $file = $visit->checkInSelfie;
@@ -44,7 +44,7 @@ class PurgeFieldVisitLocations extends Command
 
                     if ($file !== null) {
                         Storage::disk($file->disk)->delete($file->path);
-                        $file->delete();
+                        $file->forceDelete();
                     }
 
                     $purged++;

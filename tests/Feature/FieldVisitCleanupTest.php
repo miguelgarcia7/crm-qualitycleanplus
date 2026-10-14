@@ -63,7 +63,7 @@ it('deletes selfies and GPS a year on, keeps the visit, and skips legal holds', 
         ->and($old->check_in_gps_lat)->toBeNull()
         ->and($old->check_out_gps_lng)->toBeNull()
         ->and($old->check_in_gps_accuracy_meters)->toBeNull()
-        ->and(File::find($oldFile->id))->toBeNull()
+        ->and(File::withTrashed()->find($oldFile->id))->toBeNull()
         ->and(Storage::disk('local')->exists($oldFile->path))->toBeFalse()
         ->and($recent->fresh()->check_in_gps_lat)->not->toBeNull()
         ->and($held->fresh()->check_in_selfie_file_id)->not->toBeNull();

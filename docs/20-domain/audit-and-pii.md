@@ -181,7 +181,7 @@ When a `field_visit` is purged past its 1-year retention:
 
 Same balance as time_entries — historical fact preserved, sensitive verification data purged.
 
-Built as `field-visits:purge` (daily at 02:00, `PurgeFieldVisitLocations`); visits of a person on legal hold are skipped. The time_entries GPS/selfie purge is not built yet.
+Built as `field-visits:purge` (daily at 02:00 Central, `PurgeFieldVisitLocations`) and `time-entries:purge` (daily at 02:15 Central, `PurgeTimeEntryLocations`: clock-in and clock-out selfies and GPS, deleted punches included). Records of a person on legal hold are skipped. The selfie file and its `files` row are removed for good; the GPS flag reason ("outside the geofence") stays, since it names no location.
 
 ### Anonymization (for "right to be forgotten" requests)
 
