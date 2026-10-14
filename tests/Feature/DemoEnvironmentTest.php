@@ -175,8 +175,12 @@ it('imports Lakeside Suites’ weekly hours instead of punches, leaving last wee
         ->and(TimeEntry::query()->where('property_id', $lakeside->id)->whereNotNull('start_at_utc')->count())->toBe(0)
         ->and($lastWeek->status)->toBe(PayrollPeriodStatus::Open)
         ->and(ImportBatch::query()->where('payroll_period_id', $lastWeek->id)->exists())->toBeFalse()
-        // Labor Day week: weekly totals are never holiday pay.
-        ->and(TimeSummary::query()->where('property_id', $lakeside->id)->sum('holiday_minutes'))->toBe(0);
+        // Daily files: every imported day has its date, and Labor Day's hours
+        // (and only those) are paid as holiday.
+        ->and(TimeEntry::query()->where('property_id', $lakeside->id)->whereNull('work_date')->count())->toBe(0)
+        ->and((int) TimeSummary::query()->where('property_id', $lakeside->id)->sum('holiday_minutes'))
+        ->toBeGreaterThan(0)
+        ->toBe((int) TimeEntry::query()->where('property_id', $lakeside->id)->whereDate('work_date', '2026-09-07')->sum('duration_minutes'));
 
     // A week later the simulator imports 9/21 itself, and only once.
     config(['demo.enabled' => true]);

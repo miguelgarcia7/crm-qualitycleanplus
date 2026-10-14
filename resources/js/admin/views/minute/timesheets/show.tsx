@@ -378,7 +378,8 @@ const StatusSteps = ({ status, isCurrent }: { status: string; isCurrent: boolean
 const DayCell = ({ list, mode }: { list: Entry[]; mode: 'hours' | 'punches' }) => {
   if (!list.length) return <span className="text-default-500">—</span>
 
-  const open = list.find((e) => e.end_time === null)
+  // Imported days (a hotel's file) have no clock times and are never open.
+  const open = list.find((e) => e.start_time !== null && e.end_time === null)
   const minutes = minutesOf(list)
 
   if (mode === 'punches') {
@@ -386,7 +387,7 @@ const DayCell = ({ list, mode }: { list: Entry[]; mode: 'hours' | 'punches' }) =
       <span className="text-default-700 block text-xs leading-relaxed whitespace-nowrap">
         {list.map((e) => (
           <span key={e.id} className="block">
-            {shortClock(e.start_time)}–{e.end_time ? shortClock(e.end_time) : 'now'}
+            {e.start_time === null ? 'From file' : <>{shortClock(e.start_time)}–{e.end_time ? shortClock(e.end_time) : 'now'}</>}
           </span>
         ))}
       </span>

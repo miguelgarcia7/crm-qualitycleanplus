@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property TimeEntryType $entry_type
  * @property CarbonImmutable|null $start_at_utc
  * @property CarbonImmutable|null $end_at_utc
+ * @property CarbonImmutable|null $work_date the day of an imported day's hours (no clock times)
  */
 class TimeEntry extends Model
 {
@@ -41,6 +42,7 @@ class TimeEntry extends Model
         'entry_type',
         'start_at_utc',
         'end_at_utc',
+        'work_date',
         'duration_minutes',
         'timezone',
         'pay_rate_snapshot',
@@ -72,6 +74,7 @@ class TimeEntry extends Model
             'entry_type' => TimeEntryType::class,
             'start_at_utc' => 'datetime',
             'end_at_utc' => 'datetime',
+            'work_date' => 'date',
             'duration_minutes' => 'integer',
             'pay_rate_snapshot' => 'integer',
             'bill_rate_snapshot' => 'integer',

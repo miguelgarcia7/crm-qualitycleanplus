@@ -86,7 +86,9 @@ trait ResolvesImportRates
         $positionId = $this->resolvePositionId($raw, $property);
         $contractRate = $positionId !== null ? $property->currentRateFor($positionId) : null;
 
-        $pay = (int) $raw['pay_rate_cents'];
+        // A blank file rate (a new person on our daily file) takes the hotel's
+        // contract rate for the position; none at all can't be committed.
+        $pay = (int) ($raw['pay_rate_cents'] ?? $contractRate?->pay_rate ?? 0);
         $bill = $raw['bill_rate_cents'] ?? $contractRate?->bill_rate;
 
         $contractOtPay = $contractRate?->ot_pay_rate;

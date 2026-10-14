@@ -27,6 +27,40 @@ The import is a **wizard-driven flow** in the back office, ending with: time ent
 
 ## Expected file shape
 
+Two layouts are accepted. The header row is the first row naming the columns; a title
+or notes above it are fine.
+
+### Daily — the file we hand out (2026-10-14)
+
+**Billing → Hour Imports → New import → Download** gives the week's file for a hotel
+(`HourImportTemplate`, `GET /admin/imports/template`). It's already filled in with
+everyone who has a work order there that week: name, hotel ID, position and pay rate
+(gray). The office types hours per day (yellow; a 0–24 number check in Excel). Holidays
+the hotel observes are orange and say "Holiday". A Total column adds the days. A
+second tab, "How to fill this in", explains every column, overtime, holidays and new
+people.
+
+| Header | Meaning |
+|---|---|
+| Name | For human verification |
+| Hotel ID (or any ID variant below) | The external ID for matching |
+| Position | Optional; used when a work order is created |
+| Pay Rate | Optional here: blank keeps the work order's rate (a new person takes the hotel's contract rate) |
+| Mon 10/5 … Sun 10/11 | Hours that day. The days are dated from the week picked on upload; a dated header for another week is refused |
+
+A row with an ID and no hours is kept as **skipped ("No hours this week")**. A line
+with neither (the empty yellow rows, the note under the table) is ignored. Hours with
+no ID, or a value that isn't a number from 0 to 24, refuse the file and name the row
+and day.
+
+On commit each day worked becomes its own imported entry with that day's `work_date`
+(no clock times), so a holiday is paid as holiday and the timesheet grid shows the
+hours on their day ("From file"; changed by re-importing, not edited in the grid). The
+review shows each person's days and the regular / overtime / holiday split, computed
+by the same `WeeklySplit` payroll uses.
+
+### Weekly totals — a hotel's own payroll export
+
 Excel file (.xlsx). Columns (order may vary; headers detected):
 
 | Header (variations accepted) | Meaning |

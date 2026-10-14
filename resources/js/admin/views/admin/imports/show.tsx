@@ -3,6 +3,7 @@ import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import TablePagination from '@/components/table/TablePagination'
 import Icon from '@/components/wrappers/Icon'
+import { cn } from '@/utils/helpers'
 import { Head, Link, router } from '@inertiajs/react'
 import {
   createColumnHelper,
@@ -24,6 +25,11 @@ type Row = {
   name: string | null
   external_id: string | null
   hours: number | null
+  /** Hours per day of the week (our daily file), or null (a weekly total). */
+  days: (number | null)[] | null
+  regular_hours: number
+  overtime_hours: number
+  holiday_hours: number
   pay_rate_cents: number | null
   bill_rate_cents: number | null
   position: string | null
@@ -73,6 +79,7 @@ type Props = {
     stats: Record<string, number> | null
   }
   rows: Row[]
+  week: { label: string; holiday: string | null }[]
   summary: Summary
   positions: { id: number; name: string }[]
   adjustmentItems: AdjustmentItem[]
@@ -229,10 +236,13 @@ const RowActions = ({ batchId, row, positions, people }: { batchId: number; row:
   )
 }
 
-const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustments, people, can }: Props) => {
+const Page = ({ batch, rows, week, summary, positions, adjustmentItems, pendingAdjustments, people, can }: Props) => {
   const [step, setStep] = useState<'review' | 'adjustments' | 'final'>('review')
   const [adjustments, setAdjustments] = useState<PendingAdjustment[]>(pendingAdjustments)
   const readOnly = batch.status !== 'preview'
+
+  const hasDays = rows.some((r) => r.days !== null)
+  const holidays = week.filter((d) => d.holiday !== null)
 
   const committableRows = useMemo(() => rows.filter((r) => r.status !== 'skipped' && r.status !== 'unmatched'), [rows])
 
@@ -265,7 +275,33 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
           </div>
         ),
       }),
-      columnHelper.accessor('hours', { header: 'Hours', cell: ({ row }) => row.original.hours }),
+      // A daily file shows each day; either kind shows how the hours split.
+      ...(hasDays
+        ? week.map((d, i) =>
+            columnHelper.display({
+              id: `day-${i}`,
+              header: () => <span className={d.holiday ? 'text-warning' : undefined}>{d.label}</span>,
+              cell: ({ row }) => {
+                const h = row.original.days?.[i] ?? null
+                return <span className={cn('tabular-nums', d.holiday && h !== null && 'text-warning font-semibold', h === null && 'text-default-500')}>{h ?? '–'}</span>
+              },
+            }),
+          )
+        : []),
+      columnHelper.accessor('hours', { header: hasDays ? 'Total' : 'Hours', cell: ({ row }) => <span className="font-semibold tabular-nums">{row.original.hours}</span> }),
+      columnHelper.display({
+        id: 'split',
+        header: 'Regular · Overtime · Holiday',
+        cell: ({ row }) =>
+          row.original.status === 'skipped' ? (
+            <span className="text-default-500">—</span>
+          ) : (
+            <span className="whitespace-nowrap tabular-nums">
+              {row.original.regular_hours} · <span className={row.original.overtime_hours > 0 ? 'text-default-900 font-semibold' : undefined}>{row.original.overtime_hours}</span> ·{' '}
+              <span className={row.original.holiday_hours > 0 ? 'text-warning font-semibold' : undefined}>{row.original.holiday_hours}</span>
+            </span>
+          ),
+      }),
       columnHelper.accessor('pay_rate_cents', { header: 'Pay', cell: ({ row }) => `${money(row.original.pay_rate_cents)}/hr` }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -285,7 +321,7 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
         : []),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [readOnly, positions, people, batch.id],
+    [readOnly, positions, people, batch.id, hasDays, week],
   )
 
   const table = useReactTable({
@@ -352,6 +388,15 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
             <div className="text-default-500 text-sm">
               {batch.period} · {batch.file_name} · <StatusBadge status={batch.status} label={batch.status_label} />
             </div>
+            {holidays.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {holidays.map((d) => (
+                  <span key={d.label} className="badge badge-label bg-warning/15 text-warning">
+                    {d.holiday}, {d.label}: holiday rate
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {batch.invoice && (
@@ -447,6 +492,9 @@ const Page = ({ batch, rows, summary, positions, adjustmentItems, pendingAdjustm
           </div>
 
           <DataTable table={table} emptyMessage="No rows match this filter." />
+          <p className="text-default-500 px-5 pt-3 text-sm">
+            Overtime is anything over 40 hours in the week on one work order. Holiday hours count toward the 40 but are never overtime.
+          </p>
 
           {table.getRowModel().rows.length > 0 && (
             <div className="card-footer">

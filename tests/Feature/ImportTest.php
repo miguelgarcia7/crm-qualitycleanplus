@@ -9,6 +9,7 @@ use App\Domain\Imports\Actions\CreateImportBatch;
 use App\Domain\Imports\Enums\ImportBatchStatus;
 use App\Domain\Imports\Enums\ImportRowStatus;
 use App\Domain\Imports\Models\ImportBatch;
+use App\Domain\Imports\Support\HourImportTemplate;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Models\PersonExternalId;
@@ -24,7 +25,10 @@ use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -84,6 +88,11 @@ function linkedContractor(Property $property, Position $position, string $extern
     ]);
 
     return $person;
+}
+
+function makeBatchFrom(array $s, string $path, ?Person $user = null): ImportBatch
+{
+    return app(CreateImportBatch::class)->handle($s['property'], $s['period'], $path, $user ?? person('office_manager'));
 }
 
 function makeBatch(array $s, array $rows, ?Person $user = null): ImportBatch
@@ -331,4 +340,78 @@ it('keeps the file download to the user’s own import hotels', function () {
     $this->actingAs(person('office_manager'))
         ->get(main("/admin/imports/template?property_id={$clockIn->id}&payroll_period_id={$period->id}"))
         ->assertStatus(422);
+});
+
+/** The week's downloaded file, with hours typed in per hotel ID (Mon first). */
+function filledTemplate(array $s, array $hoursById, ?PayrollPeriod $period = null): string
+{
+    $book = app(HourImportTemplate::class)->build($s['property'], $period ?? $s['period']);
+    $sheet = $book->getSheetByName('Hours');
+    for ($row = HourImportTemplate::HEADER_ROW + 1; $row <= $sheet->getHighestRow(); $row++) {
+        foreach ($hoursById[(string) $sheet->getCell("B{$row}")->getValue()] ?? [] as $i => $hours) {
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex(5 + $i).$row, $hours);
+        }
+    }
+    $path = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';
+    (new Xlsx($book))->save($path);
+
+    return $path;
+}
+
+it('imports our downloaded file day by day: holiday on its day, overtime past 40', function () {
+    $s = importScenario(); // week of Mon 2026-06-01
+    $holiday = Holiday::create(['name' => 'Founders Day', 'slug' => 'founders-day', 'type' => HolidayType::Custom, 'month' => 6, 'day' => 4]);
+    $s['property']->holidays()->attach($holiday->id);
+    $jane = tap(linkedContractor($s['property'], $s['position'], 'LS-1001'))->update(['name' => 'Alice Able']);
+    $idle = tap(linkedContractor($s['property'], $s['position'], 'LS-1002'))->update(['name' => 'Zed Zee']);
+    WorkOrder::query()->update(['start_date' => '2026-05-01']);
+
+    // Mon–Wed 10 h, Thu (holiday) 8 h, Fri 6 h = 44 h; the second person didn't work.
+    $path = filledTemplate($s, ['LS-1001' => [10, 10, 10, 8, 6]]);
+    $manager = person('office_manager');
+    $this->actingAs($manager)->post(main('/admin/imports'), [
+        'property_id' => $s['property']->id, 'payroll_period_id' => $s['period']->id,
+        'file' => new UploadedFile($path, 'Lakeside.xlsx', null, null, true),
+    ])->assertSessionHasNoErrors();
+    $batch = ImportBatch::query()->latest('id')->firstOrFail();
+
+    $this->actingAs($manager)->get(main("/admin/imports/{$batch->id}"))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('week.3', ['label' => 'Thu 6/4', 'holiday' => 'Founders Day'])
+            ->where('rows.0.days', [10, 10, 10, 8, 6, null, null])
+            ->where('rows.0.status', 'matched')
+            ->where('rows.0.regular_hours', 32)
+            ->where('rows.0.overtime_hours', 4)
+            ->where('rows.0.holiday_hours', 8)
+            ->where('rows.1.status', 'skipped')
+            ->where('rows.1.status_label', 'No hours this week'));
+
+    $this->actingAs($manager)->post(main("/admin/imports/{$batch->id}/commit"))->assertSessionHasNoErrors();
+
+    $entries = TimeEntry::query()->where('person_id', $jane->id)->orderBy('work_date')->get();
+    $summary = TimeSummary::query()->where('person_id', $jane->id)->firstOrFail();
+    expect($entries->map(fn (TimeEntry $e) => [$e->work_date?->toDateString(), $e->duration_minutes])->all())
+        ->toBe([['2026-06-01', 600], ['2026-06-02', 600], ['2026-06-03', 600], ['2026-06-04', 480], ['2026-06-05', 360]])
+        ->and($entries->every(fn (TimeEntry $e) => $e->start_at_utc === null && $e->end_at_utc === null))->toBeTrue()
+        ->and([$summary->regular_minutes, $summary->overtime_minutes, $summary->holiday_minutes])->toBe([1920, 240, 480])
+        ->and(TimeEntry::query()->where('person_id', $idle->id)->exists())->toBeFalse();
+});
+
+it('refuses our file for a different week than the one picked', function () {
+    $s = importScenario();
+    linkedContractor($s['property'], $s['position'], 'LS-1001');
+    WorkOrder::query()->update(['start_date' => '2026-05-01']);
+    $other = PayrollPeriod::factory()->create(['property_id' => $s['property']->id, 'week_start' => '2026-06-08', 'week_end' => '2026-06-14']);
+
+    expect(fn () => app(CreateImportBatch::class)->handle($s['property'], $other, filledTemplate($s, ['LS-1001' => [8]]), person('office_manager')))
+        ->toThrow(ValidationException::class, 'it has 6/1');
+});
+
+it('says which day has hours it can’t read', function () {
+    $s = importScenario();
+    linkedContractor($s['property'], $s['position'], 'LS-1001');
+    WorkOrder::query()->update(['start_date' => '2026-05-01']);
+
+    expect(fn () => makeBatchFrom($s, filledTemplate($s, ['LS-1001' => [8, '9-5']])))
+        ->toThrow(ValidationException::class, 'Row 5, Tue: type the hours worked as a number');
 });

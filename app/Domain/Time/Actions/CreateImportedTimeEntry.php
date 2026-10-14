@@ -12,12 +12,12 @@ use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Records an imported weekly-total time entry (Phase 05, 40-flows/import-hours.md).
- * Unlike a clock punch there are no start/end timestamps — only a duration in
- * minutes. Rates are snapshotted from the work order (ADR-0005) and the week's
+ * Records imported hours (Phase 05, 40-flows/import-hours.md): one day from a
+ * daily file (with its work_date), or a weekly total (no day). Unlike a clock
+ * punch there are no start/end timestamps — only a duration in minutes. Rates are snapshotted from the work order (ADR-0005) and the week's
  * summary is recomputed. The period must be open.
  *
- * @phpstan-type ImportedEntryData array{duration_minutes:int, payroll_period_id:int, source_metadata?:array<string, mixed>}
+ * @phpstan-type ImportedEntryData array{duration_minutes:int, payroll_period_id:int, work_date?:string|null, source_metadata?:array<string, mixed>}
  */
 class CreateImportedTimeEntry
 {
@@ -44,6 +44,8 @@ class CreateImportedTimeEntry
             'entry_type' => TimeEntryType::Work,
             'start_at_utc' => null,
             'end_at_utc' => null,
+            // One day from a daily file; none for a weekly total.
+            'work_date' => $data['work_date'] ?? null,
             'duration_minutes' => $data['duration_minutes'],
             'timezone' => $workOrder->property->timezone,
             'pay_rate_snapshot' => $workOrder->pay_rate,

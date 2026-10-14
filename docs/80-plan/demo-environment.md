@@ -82,9 +82,9 @@ demo commands refuse in production). Each run:
    | Invoice emailed | that Tuesday 10:00 |
    | Marked paid (by payroll) | ~3 weeks after close |
 
-3. **Hour imports** (Lakeside Suites) — `ImportDemoHours` writes the weekly file the
-   hotel would send (each contractor's shift plan summed to a weekly total, at their
-   work order's pay rate) and runs it through the real `CreateImportBatch` +
+3. **Hour imports** (Lakeside Suites) — `ImportDemoHours` downloads the week's file
+   (`HourImportTemplate`), types each contractor's shift plan in per day (to the
+   quarter hour), and runs it through the real `CreateImportBatch` +
    `CommitImport`, by the recruiter, the Monday after the *following* week closes.
    Last week is therefore always waiting to be uploaded by hand in a demo; a week
    someone already imported is skipped. Import-only companies get no punches.

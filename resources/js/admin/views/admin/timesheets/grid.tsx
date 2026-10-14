@@ -33,6 +33,8 @@ type Entry = {
   duration_minutes: number | null
   entry_type: string
   gps_flags: string[]
+  /** Hours from the hotel's file (an import-only hotel): no clock times, not edited here. */
+  imported: boolean
 }
 type Summary = { regular_minutes: number; overtime_minutes: number; holiday_minutes: number; training_minutes: number; total_pay: number; total_bill: number }
 
@@ -104,7 +106,7 @@ const timezoneName = (tz: string) =>
   new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'long' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value ?? tz
 
 const minutesOf = (list: Entry[]) => list.reduce((sum, e) => sum + (e.duration_minutes ?? 0), 0)
-const isOpen = (e: Entry) => e.end_time === null
+const isOpen = (e: Entry) => e.start_time !== null && e.end_time === null
 /** An open punch from an earlier day: the contractor never clocked out. Today's is just a shift in progress. */
 const isMissingOut = (e: Entry, today: string) => isOpen(e) && e.date !== null && e.date < today
 const needsLook = (e: Entry, today: string) => e.gps_flags.length > 0 || isMissingOut(e, today)
@@ -657,7 +659,13 @@ const DayCell = ({
       <>
         {list.map((e) => (
           <span key={e.id} className="text-default-600 text-[11.5px] leading-snug whitespace-nowrap tabular-nums">
-            {shortClock(e.start_time)}–{e.end_time ? shortClock(e.end_time) : <span className="text-warning font-semibold">?</span>}
+            {e.imported ? (
+              'From file'
+            ) : (
+              <>
+                {shortClock(e.start_time)}–{e.end_time ? shortClock(e.end_time) : <span className="text-warning font-semibold">?</span>}
+              </>
+            )}
           </span>
         ))}
         <span className="text-default-500 text-[11px] tabular-nums">{hrs(minutes)} h</span>
@@ -667,7 +675,9 @@ const DayCell = ({
     const main = open && minutes === 0 ? (missingOut ? 'No clock-out' : 'On the clock') : hrs(minutes)
     const sub = open
       ? `${missingOut ? 'In' : 'In since'} ${shortClock(open.start_time)}${missingOut ? ', no out' : ''}`
-      : `${shortClock(list[0].start_time)} – ${shortClock(last.end_time)}`
+      : list.every((e) => e.imported)
+        ? 'From file'
+        : `${shortClock(list[0].start_time)} – ${shortClock(last.end_time)}`
     body = (
       <>
         <span
@@ -778,7 +788,7 @@ const DayPanel = ({
               <div className="border-default-300 rounded-xl border px-4 py-3">
                 <div className="flex items-baseline justify-between gap-3">
                   <span className="text-default-900 text-[15px] font-semibold tabular-nums">
-                    {formatClockTime(e.start_time)} → {e.end_time ? formatClockTime(e.end_time) : '…'}
+                    {e.imported ? "From the hotel's file" : `${formatClockTime(e.start_time)} → ${e.end_time ? formatClockTime(e.end_time) : '…'}`}
                   </span>
                   <span className="text-default-900 font-medium tabular-nums">{isOpen(e) ? '—' : `${hrs(e.duration_minutes)} h`}</span>
                 </div>
@@ -792,7 +802,8 @@ const DayPanel = ({
                     </Chip>
                   ))}
                 </div>
-                {(can.correct || can.remove) && (
+                {e.imported && <p className="text-default-500 mt-2 text-xs">To change these hours, fix the file and re-import it under Hour Imports.</p>}
+                {!e.imported && (can.correct || can.remove) && (
                   <div className="mt-2 flex justify-end gap-1">
                     {can.correct && (
                       <button className="btn btn-sm text-primary hover:bg-primary/10" onClick={() => setEditing(e.id)}>

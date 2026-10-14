@@ -10,6 +10,7 @@ use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Time\Actions\CreateManualTimeEntry;
 use App\Domain\Time\Actions\DeleteTimeEntry;
 use App\Domain\Time\Actions\UpdateTimeEntry;
+use App\Domain\Time\Enums\TimeEntrySource;
 use App\Domain\Time\Events\TimeEntrySaved;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
@@ -54,11 +55,13 @@ class TimeEntryController extends Controller
             ->map(fn (TimeEntry $e): array => [
                 'id' => $e->id,
                 'work_order_id' => $e->work_order_id,
-                'date' => $e->start_at_utc?->copy()->setTimezone($tz)->toDateString(),
+                // An imported day has no clock times, only its work_date.
+                'date' => $e->start_at_utc?->copy()->setTimezone($tz)->toDateString() ?? $e->work_date?->toDateString(),
                 'start_time' => $e->start_at_utc?->copy()->setTimezone($tz)->format('H:i'),
                 'end_time' => $e->end_at_utc?->copy()->setTimezone($tz)->format('H:i'),
                 'duration_minutes' => $e->duration_minutes,
                 'entry_type' => $e->entry_type->value,
+                'imported' => $e->source === TimeEntrySource::Imported,
                 // GpsPolicy flags: punches recorded without verified GPS.
                 'gps_flags' => array_values(array_filter([
                     $e->clock_in_gps_flag_reason === null ? null : 'in: '.GpsPolicy::reasonLabel($e->clock_in_gps_flag_reason),

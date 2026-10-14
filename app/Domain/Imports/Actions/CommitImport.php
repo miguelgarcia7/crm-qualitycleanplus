@@ -71,16 +71,28 @@ class CommitImport
                 $workOrder = $this->resolveWorkOrder($row, $property, $period, $user);
                 $rowWorkOrders[$row->id] = $workOrder;
 
-                $entry = $this->createTimeEntry->handle($workOrder, [
-                    'duration_minutes' => (int) round(((float) $row->raw_data['hours']) * 60),
-                    'payroll_period_id' => $period->id,
-                    'source_metadata' => [
-                        'import_batch_id' => $batch->id,
-                        'row_number' => $row->row_number,
-                        'original_external_id' => $row->raw_data['external_id'] ?? null,
-                        'original_file_data' => $row->raw_data,
-                    ],
-                ], $user);
+                // A daily file: one entry per day worked, on its day (so a
+                // holiday is paid as one). A weekly total: one entry, no day.
+                $days = $row->raw_data['days'] ?? null;
+                $parts = is_array($days) && $days !== []
+                    ? array_map(fn ($hours, $date) => [(string) $date, (float) $hours], $days, array_keys($days))
+                    : [[null, (float) $row->raw_data['hours']]];
+
+                $entry = null;
+                foreach ($parts as [$date, $hours]) {
+                    $created = $this->createTimeEntry->handle($workOrder, [
+                        'duration_minutes' => (int) round($hours * 60),
+                        'payroll_period_id' => $period->id,
+                        'work_date' => $date,
+                        'source_metadata' => [
+                            'import_batch_id' => $batch->id,
+                            'row_number' => $row->row_number,
+                            'original_external_id' => $row->raw_data['external_id'] ?? null,
+                            'original_file_data' => $row->raw_data,
+                        ],
+                    ], $user);
+                    $entry ??= $created;
+                }
 
                 $row->update([
                     'status' => ImportRowStatus::Applied,
@@ -220,6 +232,13 @@ class CommitImport
             if ($unresolved || $needsPosition) {
                 throw ValidationException::withMessages([
                     'import' => "Row {$row->row_number} still needs to be resolved before committing.",
+                ]);
+            }
+
+            if ($this->willCreateWorkOrder($row)
+                && $this->effectiveRates($row->raw_data, $property, null, $this->effectiveResolution($row))['pay'] <= 0) {
+                throw ValidationException::withMessages([
+                    'import' => "Row {$row->row_number} needs a pay rate: type it in the file, or set the position's rate on the hotel's Rates tab.",
                 ]);
             }
         }

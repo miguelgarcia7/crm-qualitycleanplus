@@ -24,9 +24,12 @@ use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
+use App\Domain\Time\Support\WeeklySplit;
 use App\Support\CompanyTime;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -43,6 +46,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ImportController extends Controller
 {
     use ResolvesImportRates;
+
+    /** @var array<int, array<string, string>> batch id => holiday dates */
+    private array $holidayCache = [];
 
     public function index(Request $request): Response
     {
@@ -153,7 +159,8 @@ class ImportController extends Controller
 
         return Inertia::render('admin/imports/show', [
             'batch' => $this->batchPayload($importBatch),
-            'rows' => $importBatch->rows->map(fn (ImportBatchRow $r): array => $this->rowPayload($importBatch, $r))->values(),
+            'rows' => $importBatch->rows->map(fn (ImportBatchRow $r): array => $this->rowPayload($importBatch, $r, $this->holidayDatesFor($importBatch)))->values(),
+            'week' => $this->weekPayload($importBatch),
             'summary' => $this->summary($importBatch),
             'positions' => Position::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'adjustmentItems' => AdjustmentItem::query()->where('active', true)->orderBy('name')->get()
@@ -335,7 +342,7 @@ class ImportController extends Controller
     private function applyMatch(ImportBatch $batch, ImportBatchRow $row, Person $person, ImportRowMatcher $matcher, string $resolution): void
     {
         $raw = $row->raw_data;
-        $classification = $matcher->classify($person, $batch->property_id, (int) $raw['pay_rate_cents'], $raw['bill_rate_cents'] ?? null);
+        $classification = $matcher->classify($person, $batch->property_id, $raw['pay_rate_cents'] ?? null, $raw['bill_rate_cents'] ?? null);
         $existing = $classification['existing'];
 
         $raw['existing_wo'] = $existing === null ? null : [
@@ -377,11 +384,13 @@ class ImportController extends Controller
     }
 
     /**
+     * @param  array<string, string>  $holidayDates
      * @return array<string, mixed>
      */
-    private function rowPayload(ImportBatch $batch, ImportBatchRow $row): array
+    private function rowPayload(ImportBatch $batch, ImportBatchRow $row, array $holidayDates): array
     {
         $raw = $row->raw_data;
+        $split = $this->split($raw, $holidayDates);
         $willCreateWo = $this->willCreateWorkOrder($row);
         $needsResolution = $row->status === ImportRowStatus::Unmatched
             || ($row->status === ImportRowStatus::RateConflict && $row->resolution === null);
@@ -393,12 +402,17 @@ class ImportController extends Controller
             'name' => $raw['name'] ?? null,
             'external_id' => $raw['external_id'] ?? null,
             'hours' => $raw['hours'] ?? null,
+            // Hours per day of the week (a daily file), or null (a weekly total).
+            'days' => is_array($raw['days'] ?? null) ? $this->weekDates($batch)->map(fn (string $date): ?float => isset($raw['days'][$date]) ? (float) $raw['days'][$date] : null)->values()->all() : null,
+            'regular_hours' => round($split['regular'] / 60, 2),
+            'overtime_hours' => round($split['overtime'] / 60, 2),
+            'holiday_hours' => round($split['holiday'] / 60, 2),
             'pay_rate_cents' => $raw['pay_rate_cents'] ?? null,
             'bill_rate_cents' => $raw['bill_rate_cents'] ?? null,
             'position' => $raw['position'] ?? null,
             'position_id' => $raw['position_id'] ?? null,
             'status' => $row->status->value,
-            'status_label' => $row->status->label(),
+            'status_label' => $row->resolution === 'no_hours' ? 'No hours this week' : $row->status->label(),
             'resolution' => $row->resolution,
             'matched_person' => $row->matchedPerson === null ? null : ['id' => $row->matchedPerson->id, 'name' => $row->matchedPerson->name],
             'existing_wo' => $raw['existing_wo'] ?? null,
@@ -446,10 +460,14 @@ class ImportController extends Controller
                 $newWorkOrders++;
             }
 
+            // The same regular / overtime / holiday split payroll will record.
             $rates = $this->effectiveRates($row->raw_data, $batch->property, $row->existingWorkOrder, $this->effectiveResolution($row));
-            $hours = (float) ($row->raw_data['hours'] ?? 0);
-            $payout += (int) round($hours * $rates['pay']);
-            $bill += (int) round($hours * ($rates['bill'] ?? 0));
+            $split = $this->split($row->raw_data, $this->holidayDatesFor($batch));
+            $multiplier = (float) config('qcp.time.holiday_multiplier', 1.5);
+            $payout += $this->money($split['regular'], $rates['pay']) + $this->money($split['overtime'], $rates['ot_pay'])
+                + $this->money($split['holiday'], (int) round($rates['pay'] * $multiplier));
+            $bill += $this->money($split['regular'], $rates['bill'] ?? 0) + $this->money($split['overtime'], $rates['ot_bill'] ?? 0)
+                + $this->money($split['holiday'], (int) round(($rates['bill'] ?? 0) * $multiplier));
         }
 
         return [
@@ -502,6 +520,69 @@ class ImportController extends Controller
                 ])
                 ->all(),
         ])->all();
+    }
+
+    /**
+     * A row's minutes split into regular, overtime and holiday (WeeklySplit):
+     * a daily file by its days, a weekly total as undated minutes.
+     *
+     * @param  array<string, mixed>  $raw
+     * @param  array<string, string>  $holidayDates
+     * @return array{regular: int, overtime: int, holiday: int}
+     */
+    private function split(array $raw, array $holidayDates): array
+    {
+        $days = $raw['days'] ?? null;
+        if (is_array($days)) {
+            $minutes = array_map(fn ($hours): int => (int) round((float) $hours * 60), $days);
+
+            return WeeklySplit::split($minutes, $holidayDates);
+        }
+
+        return WeeklySplit::split([], $holidayDates, (int) round((float) ($raw['hours'] ?? 0) * 60));
+    }
+
+    /** Cents for minutes at an hourly rate in cents. */
+    private function money(int $minutes, int $rateCents): int
+    {
+        return (int) round($minutes / 60 * $rateCents);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function holidayDatesFor(ImportBatch $batch): array
+    {
+        $period = $batch->payrollPeriod;
+
+        return $this->holidayCache[$batch->id] ??= $period === null ? [] : $batch->property->holidayDates(array_values(array_unique([$period->week_start->year, $period->week_end->year])));
+    }
+
+    /**
+     * The batch week's seven dates, first day first.
+     *
+     * @return Collection<int, string>
+     */
+    private function weekDates(ImportBatch $batch): Collection
+    {
+        $start = CarbonImmutable::parse($batch->payrollPeriod->week_start->toDateString());
+
+        return collect(range(0, 6))->map(fn (int $i): string => $start->addDays($i)->toDateString());
+    }
+
+    /**
+     * The week's day headers for the review table, holidays marked.
+     *
+     * @return list<array{label: string, holiday: string|null}>
+     */
+    private function weekPayload(ImportBatch $batch): array
+    {
+        $holidays = $this->holidayDatesFor($batch);
+
+        return $this->weekDates($batch)->map(fn (string $date): array => [
+            'label' => CarbonImmutable::parse($date)->format('D n/j'),
+            'holiday' => $holidays[$date] ?? null,
+        ])->values()->all();
     }
 
     /**

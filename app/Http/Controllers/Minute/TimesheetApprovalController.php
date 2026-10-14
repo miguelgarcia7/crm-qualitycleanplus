@@ -312,7 +312,8 @@ class TimesheetApprovalController extends Controller
                 ->map(fn (TimeEntry $e): array => [
                     'id' => $e->id,
                     'work_order_id' => $e->work_order_id,
-                    'date' => $e->start_at_utc?->copy()->setTimezone($tz)->toDateString(),
+                    // An imported day has no clock times, only its work_date.
+                    'date' => $e->start_at_utc?->copy()->setTimezone($tz)->toDateString() ?? $e->work_date?->toDateString(),
                     'start_time' => $e->start_at_utc?->copy()->setTimezone($tz)->format('H:i'),
                     'end_time' => $e->end_at_utc?->copy()->setTimezone($tz)->format('H:i'),
                     'duration_minutes' => $e->duration_minutes,

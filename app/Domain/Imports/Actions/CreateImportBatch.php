@@ -3,6 +3,7 @@
 namespace App\Domain\Imports\Actions;
 
 use App\Domain\Imports\Enums\ImportBatchStatus;
+use App\Domain\Imports\Enums\ImportRowStatus;
 use App\Domain\Imports\Models\ImportBatch;
 use App\Domain\Imports\Models\ImportBatchRow;
 use App\Domain\Imports\Services\HourImportParser;
@@ -10,6 +11,7 @@ use App\Domain\Imports\Support\ImportRowMatcher;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Models\PayrollPeriod;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,7 +45,7 @@ class CreateImportBatch
             ]);
         }
 
-        $rows = $this->parser->parse($file);
+        $rows = $this->parser->parse($file, CarbonImmutable::parse($period->week_start->toDateString()));
 
         $this->assertCoversPeriodWeek($rows, $period, $property->timezone);
 
@@ -73,7 +75,8 @@ class CreateImportBatch
     private function createRow(int $batchId, Property $property, array $row): void
     {
         $person = $this->matcher->matchPerson($property->id, (string) $row['external_id']);
-        $payCents = (int) round(((float) $row['pay_rate']) * 100);
+        // Blank on our daily file: the work order's rate stands.
+        $payCents = $row['pay_rate'] === null ? null : (int) round(((float) $row['pay_rate']) * 100);
         $billCents = $row['bill_rate'] === null ? null : (int) round(((float) $row['bill_rate']) * 100);
 
         $classification = $this->matcher->classify($person, $property->id, $payCents, $billCents);
@@ -98,7 +101,9 @@ class CreateImportBatch
             'raw_data' => $rawData,
             'matched_person_id' => $person?->id,
             'existing_wo_id' => $existingWo?->id,
-            'status' => $classification['status'],
+            // Nobody to pay this week (a listed person who didn't work).
+            'status' => (float) $row['hours'] > 0 ? $classification['status'] : ImportRowStatus::Skipped,
+            'resolution' => (float) $row['hours'] > 0 ? null : 'no_hours',
         ]);
     }
 
@@ -110,6 +115,10 @@ class CreateImportBatch
         $periodWeek = $period->week_start->toDateString();
 
         foreach ($rows as $row) {
+            // A daily file is dated from the picked week by the parser.
+            if ($row['days'] !== null) {
+                continue;
+            }
             $rowWeek = $period->property->weekStartFor((string) $row['start_date'])->toDateString();
 
             if ($rowWeek !== $periodWeek) {

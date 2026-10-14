@@ -7,6 +7,7 @@ use App\Domain\Time\Enums\TimeEntryType;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
+use App\Domain\Time\Support\WeeklySplit;
 use App\Domain\WorkOrders\Actions\NotifyDirectHireEligible;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Bus\Queueable;
@@ -24,8 +25,8 @@ use Illuminate\Queue\SerializesModels;
  * qcp.time.holiday_multiplier) and is never overtime — but it still advances
  * the weekly 40h counter, so holiday hours push later days into OT. Attribution
  * is by start date only (an overnight shift starting on the holiday is all
- * holiday). An imported weekly total has no start date, so it is never holiday
- * time. Training is paid at the WO's pay rate and is not billed; amounts
+ * holiday); an imported day counts on its work_date, and an imported weekly
+ * total, with no day at all, is never holiday time (WeeklySplit). Training is paid at the WO's pay rate and is not billed; amounts
  * use the WO's rates (entries on a WO share the same snapshot).
  */
 class RecomputeTimeSummary implements ShouldQueue
@@ -51,7 +52,6 @@ class RecomputeTimeSummary implements ShouldQueue
             ->where('payroll_period_id', $this->payrollPeriodId)
             ->get();
 
-        $threshold = (int) config('qcp.time.overtime_weekly_threshold_minutes', 2400);
         $property = $workOrder->property;
         $tz = $property->timezone;
 
@@ -61,7 +61,9 @@ class RecomputeTimeSummary implements ShouldQueue
             $period->week_end->year,
         ]);
 
-        // Split training out; group work minutes by local day.
+        // Split training out; group work minutes by local day: a punch's
+        // start date, or an imported day's work_date. An imported weekly
+        // total has neither, so it's never on a holiday (WeeklySplit).
         $trainingMinutes = 0;
         $workByDay = [];
         $undated = 0;
@@ -72,41 +74,16 @@ class RecomputeTimeSummary implements ShouldQueue
 
                 continue;
             }
-            // An imported weekly total has no day: it can't be on a holiday,
-            // so it's counted after the dated days, as regular then overtime.
-            if ($entry->start_at_utc === null) {
+            $day = $entry->start_at_utc?->copy()->setTimezone($tz)->toDateString() ?? $entry->work_date?->toDateString();
+            if ($day === null) {
                 $undated += $minutes;
 
                 continue;
             }
-            $day = $entry->start_at_utc->copy()->setTimezone($tz)->toDateString();
             $workByDay[$day] = ($workByDay[$day] ?? 0) + $minutes;
         }
-        ksort($workByDay);
-        if ($undated > 0) {
-            $workByDay['undated'] = $undated;
-        }
 
-        // Weekly 40h split: holiday days go entirely to the holiday bucket
-        // (never OT) but advance the counter; other days fill regular up to
-        // the threshold, remainder is OT.
-        $regular = 0;
-        $overtime = 0;
-        $holiday = 0;
-        $running = 0;
-        foreach ($workByDay as $day => $minutes) {
-            if (isset($holidayDates[$day])) {
-                $holiday += $minutes;
-                $running += $minutes;
-
-                continue;
-            }
-            $room = max(0, $threshold - $running);
-            $reg = min($minutes, $room);
-            $regular += $reg;
-            $overtime += $minutes - $reg;
-            $running += $minutes;
-        }
+        ['regular' => $regular, 'overtime' => $overtime, 'holiday' => $holiday] = WeeklySplit::split($workByDay, $holidayDates, $undated);
 
         $multiplier = (float) config('qcp.time.holiday_multiplier', 1.5);
         $holidayPayRate = (int) round($workOrder->pay_rate * $multiplier);

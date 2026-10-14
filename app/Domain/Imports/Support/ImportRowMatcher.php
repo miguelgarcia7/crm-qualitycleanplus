@@ -36,7 +36,7 @@ class ImportRowMatcher
     /**
      * @return array{status: ImportRowStatus, existing: ?WorkOrder, delta_warning: bool}
      */
-    public function classify(?Person $person, int $propertyId, int $payCents, ?int $billCents): array
+    public function classify(?Person $person, int $propertyId, ?int $payCents, ?int $billCents): array
     {
         if ($person === null) {
             return ['status' => ImportRowStatus::Unmatched, 'existing' => null, 'delta_warning' => false];
@@ -55,13 +55,14 @@ class ImportRowMatcher
         return [
             'status' => $status,
             'existing' => $existing,
-            'delta_warning' => $this->largeDelta($existing->pay_rate, $payCents),
+            'delta_warning' => $payCents !== null && $this->largeDelta($existing->pay_rate, $payCents),
         ];
     }
 
-    private function ratesMatch(WorkOrder $wo, int $payCents, ?int $billCents): bool
+    /** A blank file rate (our daily file, a new row) means "the work order's rate". */
+    private function ratesMatch(WorkOrder $wo, ?int $payCents, ?int $billCents): bool
     {
-        if ($wo->pay_rate !== $payCents) {
+        if ($payCents !== null && $wo->pay_rate !== $payCents) {
             return false;
         }
 

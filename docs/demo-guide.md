@@ -69,7 +69,8 @@ a pay increase.
 **Lakeside Suites doesn't clock in.** It's set to **Import** (Property Bible → Time
 Source): each week the hotel sends a file with everyone's hours, and the office uploads
 it under **Billing → Hour Imports**. Its earlier weeks are already imported, invoiced
-and paid. **Last week is waiting to be uploaded**, which is the one to try. The demo
+and paid. **Last week is waiting to be uploaded**, which is the one to try: on New import, download
+its file (already filled in with everyone), type some hours per day, and upload it. The demo
 uploads it by itself the Monday after this week ends, if nobody has.
 
 QCP Property and MAG Solutions each have a **rate history**: their Bible rates went
