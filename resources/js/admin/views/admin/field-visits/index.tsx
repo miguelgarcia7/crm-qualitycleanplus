@@ -204,9 +204,16 @@ const Page = ({ visits, pagination, filters, counts, flags, ranges, recruiters, 
               value={filters.flag}
               onChange={(flag) => visit({ flag })}
             />
-            <a href={`/admin/field-visits/export${exportQuery ? `?${exportQuery}` : ''}`} className="btn border-default-300 hover:border-default-400 border text-nowrap">
-              <Icon icon="download" className="size-4" /> Export Excel
-            </a>
+            <div className="flex flex-wrap gap-2">
+              {can.viewAll && (
+                <Link href="/admin/reports/recruiter-activity" className="btn border-default-300 hover:border-default-400 border text-nowrap">
+                  <Icon icon="chart-bar" className="size-4" /> Recruiter activity
+                </Link>
+              )}
+              <a href={`/admin/field-visits/export${exportQuery ? `?${exportQuery}` : ''}`} className="btn border-default-300 hover:border-default-400 border text-nowrap">
+                <Icon icon="download" className="size-4" /> Export Excel
+              </a>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

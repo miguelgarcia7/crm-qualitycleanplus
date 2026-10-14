@@ -95,7 +95,7 @@ export const menuItems: MenuItemType[] = [
         slug: 'reports',
         label: 'Reports',
         icon: 'chart-bar',
-        permission: ['reports.operational.view', 'reports.financial.view', 'reports.payroll.view'],
+        permission: ['reports.operational.view', 'reports.financial.view', 'reports.payroll.view', 'field_visits.view_all'],
       },
     ],
   },

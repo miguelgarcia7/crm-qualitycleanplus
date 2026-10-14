@@ -278,6 +278,8 @@ Route::get('reports/revenue/export', [ReportController::class, 'revenueExport'])
 Route::get('reports/income-vs-payouts/export', [ReportController::class, 'incomeVsPayoutsExport'])->middleware('can:reports.financial.view')->name('reports.income-vs-payouts.export');
 Route::get('reports/hours-by-position/export', [ReportController::class, 'hoursByPositionExport'])->middleware('can:reports.operational.view')->name('reports.hours-by-position.export');
 Route::get('reports/payouts/export', [ReportController::class, 'payoutsExport'])->middleware('can:reports.payroll.view')->name('reports.payouts.export');
+Route::get('reports/recruiter-activity', [ReportController::class, 'recruiterActivity'])->middleware('can:field_visits.view_all')->name('reports.recruiter-activity');
+Route::get('reports/recruiter-activity/export', [ReportController::class, 'recruiterActivityExport'])->middleware('can:field_visits.view_all')->name('reports.recruiter-activity.export');
 Route::get('reports/payouts/pdf', [ReportController::class, 'payoutsPdf'])->middleware('can:reports.payroll.view')->name('reports.payouts.pdf');
 
 // Invoices (Phase 03)

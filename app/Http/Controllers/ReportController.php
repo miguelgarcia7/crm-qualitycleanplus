@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\FieldVisits\Support\RecruiterActivity;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Reports\Exports\ArrayReportExport;
@@ -33,7 +34,7 @@ class ReportController extends Controller
         $user = $request->user();
 
         abort_unless($user->canAny([
-            'reports.financial.view', 'reports.operational.view', 'reports.payroll.view',
+            'reports.financial.view', 'reports.operational.view', 'reports.payroll.view', 'field_visits.view_all',
         ]), 403);
 
         $catalog = [
@@ -59,6 +60,13 @@ class ReportController extends Controller
                     ['href' => '/admin/reports/payouts', 'icon' => 'cash', 'title' => 'Payouts by contractor', 'description' => 'Hours and pay per contractor for a payroll week.'],
                 ],
             ],
+            [
+                'group' => 'Field visits',
+                'permission' => 'field_visits.view_all',
+                'reports' => [
+                    ['href' => '/admin/reports/recruiter-activity', 'icon' => 'map-pin', 'title' => 'Recruiter activity', 'description' => 'Visits per recruiter by week or month, and hotels nobody has visited lately.'],
+                ],
+            ],
         ];
 
         return Inertia::render('admin/reports/index', [
@@ -68,6 +76,25 @@ class ReportController extends Controller
                 ->values()
                 ->all(),
         ]);
+    }
+
+    /** Recruiter visits by week or month, and hotels not visited lately (field_visits.view_all). */
+    public function recruiterActivity(Request $request, RecruiterActivity $report): Response
+    {
+        return Inertia::render('admin/reports/recruiter-activity', $report->build($request));
+    }
+
+    public function recruiterActivityExport(Request $request, RecruiterActivity $report): BinaryFileResponse
+    {
+        $data = $report->build($request);
+
+        return Excel::download(new ArrayReportExport(
+            ['Recruiter', 'Visits', 'Hotels visited', 'Hotels assigned', "Not visited {$data['staleDays']}+ days", 'Avg minutes on site', 'Off-site', 'Closed late', 'Covering', 'Open now', ...$data['weeks']],
+            collect($data['rows'])->map(fn (array $r): array => [
+                $r['name'], $r['visits'], $r['hotels_visited'], $r['hotels_assigned'], $r['not_visited'],
+                $r['avg_minutes'], $r['off_site'], $r['late'], $r['covering'], $r['open_now'], ...$r['by_week'],
+            ])->all(),
+        ), 'recruiter-activity-'.$data['range']['from'].'.xlsx');
     }
 
     /** Revenue by property by month — billed truth from report_monthly_revenue. */

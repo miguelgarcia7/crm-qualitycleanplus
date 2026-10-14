@@ -191,7 +191,7 @@ Recruiters cannot edit visits after the fact — only super_admin can correct mi
 
 - **"My Visits"** page (recruiter) — list of own visit history with filters
 - **"Property Visit History"** — the Visits tab on the property page (managers + admins see everyone, a recruiter only their own)
-- **"Recruiter Activity"** report — visits by recruiter over time
+- **"Recruiter Activity"** report (Reports → Field visits, `field_visits.view_all`) — visits per recruiter by week or month, week by week, and hotels not visited in 14+ days. The other three report ideas (stale open, off-geofence, late-closed) are filter pills on the Field Visits list instead of separate reports
 
 ## Edge cases
 
