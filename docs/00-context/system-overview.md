@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Living document — regenerate when modules change |
-| Last updated | 2026-08-30 (repo at `ab07e53`) |
+| Last updated | 2026-10-13 (repo at `5905e43`) |
 | Owner | Engineering |
 | Companion | `vision.md` (why), `10-architecture/` (how), `80-plan/roadmap.md` (when) |
 
@@ -16,8 +16,8 @@ It replaces two legacy applications, **QC Minute** and the **QCP CRM**, which he
 separate databases. A property, a contractor, and a person's identity now exist
 exactly once.
 
-**At a glance:** 18 domain contexts · 58 tables · 52 models · 64 actions ·
-10 roles · 7 workflows · 4 surfaces · 379 passing tests (1,669 assertions).
+**At a glance:** 22 domain contexts · 69 tables · 54 models · 80 actions ·
+10 roles · 8 workflows · 4 surfaces · 960 passing tests (7,430 assertions).
 
 ---
 
@@ -217,7 +217,8 @@ Each is defined in code as a sequence of steps, so one engine handles routing,
 assignment, notification, and the audit trail for all of them.
 
 Supply request · Termination · Transfer · Temporary assignment · Pay increase ·
-More staff · Change personal information
+More staff · Change personal information · Hours problem (a contractor reports a
+problem with a week)
 
 ---
 
@@ -256,24 +257,46 @@ invoice.
 - Reports with rollups, people directory, audit log, notifications
 - Pre-cutover hardening: indexes, foreign key rules, migration consolidation
 
-### Blocking launch
+### Complete since — September and October 2026
 
-- **Phase 10 cutover** and data migration has no plan document yet.
+- Legacy cutover tooling: `legacy:import` and `legacy:verify`, rehearsed green end to
+  end (`80-plan/phase-final-cutover.md`)
+- Company time vs property time (ADR-0030): office dates and nightly jobs in Central,
+  punches in the property's own time zone
+- Back-office redesigns on the Sage theme: dashboards for every role, property page,
+  and the properties, work orders, timesheets, invoices and people lists
+- QC Minute redesigns: property manager dashboard, timesheets, invoices and requests;
+  a contractor home page and My hours (weeks, day by day, report a problem)
+- My Profile self-service for staff; user setup with a roles editor and invites
+- Admin → System Reference: permissions, notifications and automations read from the
+  live code
+- Field visits: phone check-in and check-out, a hotel's Visits tab, the Field Visits
+  list, the visit panel (office closes a forgotten visit, super admin fixes times),
+  Reports → Recruiter activity, and the yearly selfie and GPS purge
+- Billing → Adjustment Items: the list recruiters pick incentives and deductions from
+- Yearly purge of clock-in selfies and GPS (`time-entries:purge`)
+- The Acme Hotel demo (`demo:reset`, `demo:simulate`; `demo-guide.md`) on the Cloud
+  staging environment
 
-Mail delivery now works: invoices are emailed through Postmark with a link to
-the invoice on QC Minute, and an invoice is marked sent only once delivery
-succeeds. Production still needs `POSTMARK_API_KEY`, `MAIL_MAILER=postmark`,
-and a verified sender signature — see `10-architecture/deployment-topology.md`.
+### Before launch
+
+- **Cutover:** the importer and the verify gate are built and rehearsed; the final run
+  follows `80-plan/phase-final-cutover.md`.
+- **Email:** invoices are emailed through Postmark with a link to the invoice on QC
+  Minute, and an invoice is marked sent only once delivery succeeds. Staging still
+  logs mail instead of sending it; production needs `POSTMARK_API_KEY`,
+  `MAIL_MAILER=postmark` and a verified sender signature
+  (`10-architecture/deployment-topology.md`).
 
 ### Known gaps — deferred and not yet built
 
-- Contractor self-service beyond the home page: a full hours history, and clocking in from the portal (the home page shipped 2026-10-12; clocking in stays QR-only for now)
-- Field-visit reports, punted from Phase 07 into a report catalog that shipped without them
-- Adjustment catalog has no management screen
-- Two-factor is enabled and wired but has no enrollment panel
-- Gas and mileage deductions remain undesigned
+- Clocking in from the contractor portal (clocking in stays QR and tablet only for now)
+- Gas and mileage: not designed yet. It may only need items on Adjustment Items
+- Two-factor sign-in is wired but has no enrollment screen; parked until last
+- Knowledge base import from the legacy app: built, waiting on the attachment files
+- Help articles, and a permissions editor (what each role can do still comes from the seeder)
 
 ---
 
 *Figures drawn from the domain contexts, migrations, seeded role matrix, workflow
-definitions, and the passing test suite at commit `ab07e53`.*
+definitions, and the passing test suite at commit `5905e43`.*
