@@ -197,7 +197,7 @@ Recruiters cannot edit visits after the fact — only super_admin can correct mi
 
 | Case | Handling |
 |---|---|
-| Recruiter forgets to check out for days | Open visit remains until they explicitly close it (or admin manually closes). Surface as "Stale Open Visits" on admin dashboard. |
+| Recruiter forgets to check out for days | Open visit remains until they explicitly close it, or the office closes it from the visit's side panel (`field_visits.close_any`: admin, office manager, HR) at the time they left — marked closed late, with who closed it. Surface as "Stale Open Visits" on admin dashboard and the "Open over 24 h" filter. Super admin can fix a visit's times (`field_visits.manual_edit`), always with a reason kept on the visit's History. |
 | GPS reports impossible coordinates (e.g. coords in middle of ocean) | Accuracy field captures the inaccuracy; admin can flag for review |
 | Two recruiters at the same property at the same time | Both create their own visits; no conflict |
 | Recruiter checks in at property they're NOT assigned to | Allowed (might be covering for another recruiter); stored as `was_covering = true` and shown as a "Covering" flag in visit history |

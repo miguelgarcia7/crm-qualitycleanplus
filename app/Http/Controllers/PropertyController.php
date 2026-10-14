@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Dashboards\Services\PropertyListSummary;
 use App\Domain\Dashboards\Services\PropertyOverview;
 use App\Domain\Devices\Models\Device;
+use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\FieldVisits\Support\PropertyVisits;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Actions\CreateProperty;
@@ -118,6 +119,10 @@ class PropertyController extends Controller
             'overview' => $user instanceof Person ? $overview->build($property, $user) : null,
             'workOrders' => $user instanceof Person && $user->can('work_orders.view') ? $this->workOrdersPayload($property, $directHire) : null,
             'visits' => $user instanceof Person ? $visits->build($property, $user, $request) : null,
+            // A visit opened from the Visits tab (?panel=<id>), only if it's this hotel's.
+            'visitPanel' => fn (): ?array => $user instanceof Person && FieldVisit::query()->whereKey($request->integer('panel'))->where('property_id', $property->id)->exists()
+                ? FieldVisitController::panelFor($request->integer('panel'), $user)
+                : null,
             // Pairing codes are for whoever sets the tablets up.
             'devices' => $user instanceof Person && $user->can('devices.manage')
                 ? Device::query()->where('property_id', $property->id)->orderBy('name')->get()->map(fn (Device $d): array => [

@@ -30,6 +30,9 @@ class CheckOutRecruiter
             'notes' => ($data['notes'] ?? null) ?: $visit->notes,
         ]);
 
+        activity()->performedOn($visit)->causedBy($visit->person)->event($late ? 'closed_late' : 'checked_out')
+            ->log($late ? 'Closed late: checked in at another hotel without checking out here' : 'Checked out');
+
         return $visit;
     }
 }

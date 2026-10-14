@@ -233,6 +233,9 @@ Route::get('field-visits', [FieldVisitController::class, 'index'])->name('backof
 Route::get('field-visits/export', [FieldVisitController::class, 'export'])->name('backoffice.field-visits.export');
 Route::get('field-visits/context', [FieldVisitController::class, 'context'])->name('backoffice.field-visits.context');
 Route::post('field-visits', [FieldVisitController::class, 'store'])->middleware('can:field_visits.create')->name('backoffice.field-visits.store');
+Route::get('field-visits/{visit}/selfie', [FieldVisitController::class, 'selfie'])->whereNumber('visit')->name('backoffice.field-visits.selfie');
+Route::post('field-visits/{visit}/close', [FieldVisitController::class, 'close'])->whereNumber('visit')->name('backoffice.field-visits.close');
+Route::put('field-visits/{visit}/times', [FieldVisitController::class, 'fixTimes'])->whereNumber('visit')->name('backoffice.field-visits.times');
 Route::post('field-visits/check-out', [FieldVisitController::class, 'checkOut'])->middleware('can:field_visits.close_own')->name('backoffice.field-visits.check-out');
 
 // Hour imports — Excel import wizard for import-only properties (Phase 05)

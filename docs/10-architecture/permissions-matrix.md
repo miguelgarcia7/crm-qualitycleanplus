@@ -106,6 +106,7 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | `field_visits.view_own` | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ |
 | `field_visits.view_all` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `field_visits.view_by_property` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own property) | ⚪ |
+| `field_visits.close_any` | ✅ | ✅ | ✅ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `field_visits.manual_edit` | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ |
 
 ## Devices (tablet kiosk management — ADR-0017)

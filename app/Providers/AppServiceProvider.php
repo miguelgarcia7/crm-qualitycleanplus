@@ -6,6 +6,8 @@ use App\Domain\Billing\Models\Invoice;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Billing\Policies\InvoicePolicy;
 use App\Domain\Billing\Policies\TimesheetPolicy;
+use App\Domain\FieldVisits\Models\FieldVisit;
+use App\Domain\FieldVisits\Policies\FieldVisitPolicy;
 use App\Domain\Inventory\Definitions\SupplyRequestDefinition;
 use App\Domain\KnowledgeBase\Models\KbArticle;
 use App\Domain\KnowledgeBase\Policies\KbArticlePolicy;
@@ -91,6 +93,7 @@ class AppServiceProvider extends ServiceProvider
         // Policies live under app/Domain (Beyond CRUD layout) so they're
         // registered explicitly rather than via Laravel's App\Models guesser.
         Gate::policy(Property::class, PropertyPolicy::class);
+        Gate::policy(FieldVisit::class, FieldVisitPolicy::class);
         Gate::policy(Contract::class, ContractPolicy::class);
         Gate::policy(WorkOrder::class, WorkOrderPolicy::class);
         Gate::policy(Timesheet::class, TimesheetPolicy::class);

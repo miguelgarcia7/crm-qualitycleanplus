@@ -33,7 +33,7 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 
 | Role | Email | What they do |
 |---|---|---|
-| **Super Admin** | `super-admin@example.com` | Can do everything, including the super-admin-only tools: tablet kiosks, editing recruiter visits, and cancelling workflows. Also signs in to QC Minute. |
+| **Super Admin** | `super-admin@example.com` | Can do everything, including the super-admin-only tools: tablet kiosks, fixing recruiter visit times (with a reason), and cancelling workflows. Also signs in to QC Minute. |
 | **Admin** | `admin@example.com` | The business owner. Sees and runs everything: rates, contracts, invoices (paid/void), PTO approvals, company settings, roles. Also signs in to QC Minute. |
 | **Office Manager** | `office-manager@example.com` | Runs the office: properties and rates, work orders, time entries, sending timesheets to the hotel, sending invoices, inventory, the knowledge base, the audit log and reports. |
 | **Front Desk** | `front-desk@example.com` | Handles supplies and walk-ins: inventory, purchase orders, filling supply requests, the new-hire onboarding checklist, returning equipment. |

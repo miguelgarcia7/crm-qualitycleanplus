@@ -50,6 +50,7 @@ class FieldVisit extends Model
         'check_out_gps_accuracy_meters',
         'check_out_gps_status',
         'was_late_close',
+        'closed_by_person_id',
         'notes',
     ];
 
@@ -88,6 +89,16 @@ class FieldVisit extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * Who closed the visit for the recruiter, when the office did.
+     *
+     * @return BelongsTo<Person, $this>
+     */
+    public function closedBy(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'closed_by_person_id');
     }
 
     /**

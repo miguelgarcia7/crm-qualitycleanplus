@@ -1,5 +1,6 @@
 import { confirmAction } from '@/components/ConfirmHost'
 import GeofenceMapCard from '@/components/GeofenceMapCard'
+import VisitPanel, { VisitPanelData } from '@/components/field-visits/VisitPanel'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import SidePanel from '@/components/SidePanel'
 import StatusFilter from '@/components/table/StatusFilter'
@@ -176,6 +177,8 @@ type Props = {
   workOrders: WorkOrders | null
   /** Null when the viewer can't see field visits. */
   visits: Visits | null
+  /** The visit open in the side panel (?panel=<id>), or null. */
+  visitPanel: VisitPanelData | null
   departments: Dept[]
   rates: Rate[]
   assignments: Assignment[]
@@ -1610,9 +1613,9 @@ const VisitFlags = ({ v }: { v: VisitRow }) =>
   )
 
 /** Recruiter visits to this hotel: how often, by whom, and each visit. Only this tab reloads as filters change. */
-const VisitsTab = ({ property, visits }: { property: Property; visits: Visits }) => {
+const VisitsTab = ({ property, visits, panel }: { property: Property; visits: Visits; panel: VisitPanelData | null }) => {
   const { stats, filters } = visits
-  const reload = (changes: Partial<{ visits_range: string; visits_flag: string; visits_recruiter: number | null; visits_page: number }>) => {
+  const reload = (changes: Partial<{ visits_range: string; visits_flag: string; visits_recruiter: number | null; visits_page: number; panel: number }>) => {
     const params = {
       visits_range: filters.range,
       visits_flag: filters.flag,
@@ -1623,9 +1626,11 @@ const VisitsTab = ({ property, visits }: { property: Property; visits: Visits })
     router.get(
       `/admin/properties/${property.id}#visits`,
       Object.fromEntries(Object.entries(params).filter(([k, v]) => v !== null && v !== '' && !(k === 'visits_range' && v === '90') && !(k === 'visits_page' && v === 1))),
-      { only: ['visits'], preserveState: true, preserveScroll: true, replace: true },
+      { only: ['visits', 'visitPanel'], preserveState: true, preserveScroll: true, replace: true },
     )
   }
+  /** Opening or closing a visit keeps the list where it is. */
+  const showPanel = (id: number | null) => reload({ visits_page: visits.current_page, ...(id === null ? {} : { panel: id }) })
   const flagged = stats.flagged30.off_site + stats.flagged30.late + stats.flagged30.covering
   const flaggedNote = [
     stats.flagged30.off_site && `${stats.flagged30.off_site} off-site`,
@@ -1731,6 +1736,9 @@ const VisitsTab = ({ property, visits }: { property: Property; visits: Visits })
                 <th>Checked out</th>
                 <th>Time on site</th>
                 <th>Flags</th>
+                <th>
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -1745,11 +1753,16 @@ const VisitsTab = ({ property, visits }: { property: Property; visits: Visits })
                     <td>
                       <VisitFlags v={v} />
                     </td>
+                    <td className="text-end">
+                      <button type="button" className="btn border-default-300 hover:border-default-400 btn-sm border" onClick={() => showPanel(v.id)}>
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={own ? 5 : 6} className="text-default-500 py-6 text-center">
+                  <td colSpan={own ? 6 : 7} className="text-default-500 py-6 text-center">
                     No visits match.
                   </td>
                 </tr>
@@ -1776,6 +1789,8 @@ const VisitsTab = ({ property, visits }: { property: Property; visits: Visits })
           </div>
         )}
       </div>
+
+      {panel && <VisitPanel key={panel.id} visit={panel} onClose={() => showPanel(null)} />}
     </div>
   )
 }
@@ -2367,6 +2382,7 @@ const Page = ({
   overview,
   workOrders,
   visits,
+  visitPanel,
   departments,
   rates,
   assignments,
@@ -2461,7 +2477,7 @@ const Page = ({
 
       {tab === 'rates' && <RatesTab property={property} rates={rates} jobCodes={jobCodes} catalogs={catalogs} can={can} />}
 
-      {tab === 'visits' && visits && <VisitsTab property={property} visits={visits} />}
+      {tab === 'visits' && visits && <VisitsTab property={property} visits={visits} panel={visitPanel} />}
 
       {tab === 'settings' && (
         <SettingsTab

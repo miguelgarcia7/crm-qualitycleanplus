@@ -54,6 +54,15 @@ class CheckInRecruiter
 
         $visit->update(['check_in_selfie_file_id' => StoreSelfie::for($data['selfie'], $visit, $recruiter->id)->id]);
 
+        $distance = $lat !== null && $lng !== null ? Geofence::distanceToProperty($property, $lat, $lng) : null;
+        $where = match (true) {
+            $distance === null => 'no GPS',
+            $inside => 'inside the hotel’s area',
+            default => number_format($distance).' m from the hotel',
+        };
+        activity()->performedOn($visit)->causedBy($recruiter)->event('checked_in')
+            ->log("Checked in at {$property->name} ({$where})".($visit->was_covering ? ', covering' : ''));
+
         return $visit;
     }
 }

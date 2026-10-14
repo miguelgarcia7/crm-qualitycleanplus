@@ -1,3 +1,4 @@
+import VisitPanel, { VisitPanelData } from '@/components/field-visits/VisitPanel'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import DataTable from '@/components/table/DataTable'
 import ServerPagination, { PaginationMeta } from '@/components/table/ServerPagination'
@@ -47,6 +48,8 @@ type Props = {
   recruiters: Option[]
   properties: Option[]
   can: { viewAll: boolean }
+  /** The visit open in the side panel (?panel=<id>), or null. */
+  panel: VisitPanelData | null
 }
 
 const fmtMinutes = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`)
@@ -68,7 +71,7 @@ const queryFrom = (f: Filters, page: number): Record<string, string> => {
 
 const columnHelper = createColumnHelper<Visit>()
 
-const Page = ({ visits, pagination, filters, counts, flags, ranges, recruiters, properties, can }: Props) => {
+const Page = ({ visits, pagination, filters, counts, flags, ranges, recruiters, properties, can, panel }: Props) => {
   const [search, setSearch] = useState(filters.search)
   // "Pick dates…" shows the two date boxes before anything is sent.
   const [picking, setPicking] = useState(filters.range === 'custom')
@@ -78,7 +81,16 @@ const Page = ({ visits, pagination, filters, counts, flags, ranges, recruiters, 
       preserveState: true,
       preserveScroll: true,
       replace,
-      only: ['visits', 'pagination', 'filters', 'counts'],
+      // A filter or page change closes the panel: its row may not be on screen any more.
+      only: ['visits', 'pagination', 'filters', 'counts', 'panel'],
+    })
+
+  /** The panel lives in the URL, so an open visit is a link and Back closes it. */
+  const showPanel = (id: number | null) =>
+    router.get('/admin/field-visits', { ...queryFrom(filters, pagination.current_page), ...(id === null ? {} : { panel: String(id) }) }, {
+      preserveState: true,
+      preserveScroll: true,
+      only: ['panel'],
     })
 
   // Debounced so typing doesn't fire a request per keystroke.
@@ -152,8 +164,19 @@ const Page = ({ visits, pagination, filters, counts, flags, ranges, recruiters, 
           )
         },
       },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }: { row: TableRow<Visit> }) => (
+          <button type="button" className="btn border-default-300 hover:border-default-400 btn-sm border" onClick={() => showPanel(row.original.id)}>
+            View
+          </button>
+        ),
+      },
     ],
-    [can.viewAll],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [can.viewAll, filters, pagination.current_page],
   )
 
   const table = useReactTable({
@@ -289,6 +312,8 @@ const Page = ({ visits, pagination, filters, counts, flags, ranges, recruiters, 
         )}
       </div>
       <p className="text-default-500 mt-3 text-sm">Times are each hotel&apos;s own.{can.viewAll ? '' : ' You see your own visits.'}</p>
+
+      {panel && <VisitPanel key={panel.id} visit={panel} onClose={() => showPanel(null)} />}
     </>
   )
 }

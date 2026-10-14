@@ -90,6 +90,7 @@ class RolePermissionSeeder extends Seeder
             'field_visits.view_own' => ['admin', 'recruiter'],
             'field_visits.view_all' => ['admin', 'office_manager', 'hr'],
             'field_visits.view_by_property' => ['admin', 'office_manager', 'hr', 'property_manager'],
+            'field_visits.close_any' => ['admin', 'office_manager', 'hr'], // close a visit someone forgot
             'field_visits.manual_edit' => [], // super_admin only
 
             // Tablet/device kiosk management (Phase 07c, ADR-0017) — super_admin only

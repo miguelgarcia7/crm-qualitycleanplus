@@ -4,24 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Domain\FieldVisits\Actions\CheckInRecruiter;
 use App\Domain\FieldVisits\Actions\CheckOutRecruiter;
+use App\Domain\FieldVisits\Actions\CloseVisitForRecruiter;
+use App\Domain\FieldVisits\Actions\FixVisitTimes;
 use App\Domain\FieldVisits\Enums\GpsStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\FieldVisits\Support\VisitList;
+use App\Domain\FieldVisits\Support\VisitPanel;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Reports\Exports\ArrayReportExport;
 use App\Support\CompanyTime;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Recruiter field-visit check-in/out (Phase 07b, ADR-0017). The check-in panel pulls
@@ -139,7 +145,82 @@ class FieldVisitController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'can' => ['viewAll' => $everyone],
+            // The visit in the side panel, from ?panel=<id>. A closure, so a
+            // partial reload of just the panel skips the list's queries.
+            'panel' => fn (): ?array => self::panelFor($request->integer('panel'), $user),
         ]);
+    }
+
+    /**
+     * One visit for the side panel, or null when there's none to show — a stale
+     * or foreign id closes the panel rather than failing the page.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function panelFor(int $id, Person $user): ?array
+    {
+        $visit = $id > 0 ? FieldVisit::query()->find($id) : null;
+
+        return $visit !== null && $user->can('view', $visit) ? app(VisitPanel::class)->build($visit, $user) : null;
+    }
+
+    /** The office closes a visit the recruiter forgot to check out of. */
+    public function close(Request $request, FieldVisit $visit, CloseVisitForRecruiter $action): RedirectResponse
+    {
+        $this->authorize('close', $visit);
+
+        $validated = $request->validate([
+            'left_at' => ['required', 'date_format:Y-m-d\\TH:i'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $leftAt = $this->hotelTime($visit, $validated['left_at']);
+        if ($leftAt->lt($visit->check_in_at) || $leftAt->gt(now())) {
+            throw ValidationException::withMessages(['left_at' => 'Pick a time after they checked in and not in the future.']);
+        }
+
+        $action->handle($visit, $leftAt, $validated['note'] ?? null, $request->user());
+
+        return back()->with('success', 'Visit closed.');
+    }
+
+    /** Super admin corrects a visit's times, with a reason. */
+    public function fixTimes(Request $request, FieldVisit $visit, FixVisitTimes $action): RedirectResponse
+    {
+        $this->authorize('fixTimes', $visit);
+
+        $validated = $request->validate([
+            'check_in_at' => ['required', 'date_format:Y-m-d\\TH:i'],
+            'check_out_at' => ['nullable', 'date_format:Y-m-d\\TH:i'],
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        $in = $this->hotelTime($visit, $validated['check_in_at']);
+        $out = isset($validated['check_out_at']) ? $this->hotelTime($visit, $validated['check_out_at']) : null;
+        if ($in->gt(now()) || ($out !== null && ($out->lte($in) || $out->gt(now())))) {
+            throw ValidationException::withMessages(['check_out_at' => 'Check-out has to come after check-in, and neither can be in the future.']);
+        }
+
+        $action->handle($visit, $in, $out, $validated['reason'], $request->user());
+
+        return back()->with('success', 'Visit times fixed.');
+    }
+
+    /** The check-in selfie, shown in the panel to whoever may see the visit. */
+    public function selfie(FieldVisit $visit): StreamedResponse
+    {
+        $this->authorize('view', $visit);
+
+        $file = $visit->checkInSelfie;
+        abort_unless($file !== null && Storage::disk($file->disk)->exists($file->path), 404);
+
+        return Storage::disk($file->disk)->response($file->path, null, ['Cache-Control' => 'private, max-age=3600']);
+    }
+
+    /** A datetime-local value typed in the hotel's time, as a UTC instant. */
+    private function hotelTime(FieldVisit $visit, string $value): CarbonImmutable
+    {
+        return CarbonImmutable::createFromFormat('Y-m-d\\TH:i', $value, $visit->property?->timezone ?: CompanyTime::zone())->utc();
     }
 
     /** The list as an Excel file: the same filters, every page. */
