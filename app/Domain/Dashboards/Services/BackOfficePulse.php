@@ -582,7 +582,7 @@ class BackOfficePulse
                     'tone' => 'warning',
                     'label' => $open.' field '.($open === 1 ? 'visit' : 'visits').' left open',
                     'sublabel' => 'Recruiters never checked out',
-                    'href' => '/admin/field-visits',
+                    'href' => '/admin/field-visits?flag=open',
                 ];
             }
         }

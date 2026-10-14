@@ -6,10 +6,12 @@ use App\Domain\FieldVisits\Actions\CheckInRecruiter;
 use App\Domain\FieldVisits\Actions\CheckOutRecruiter;
 use App\Domain\FieldVisits\Enums\GpsStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
+use App\Domain\FieldVisits\Support\VisitList;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
+use App\Domain\Reports\Exports\ArrayReportExport;
 use App\Support\CompanyTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,11 +20,13 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Recruiter field-visit check-in/out (Phase 07b, ADR-0017). The check-in panel pulls
  * `context` (open visit + active hotels), posts `store`/`checkOut`; `index`
- * is the visit-history surface (own vs all by permission).
+ * and `export` are the visit list (own vs all by permission), built by VisitList.
  */
 class FieldVisitController extends Controller
 {
@@ -100,53 +104,79 @@ class FieldVisitController extends Controller
         return back()->with('success', 'Checked out.');
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request, VisitList $list): Response
+    {
+        [$user, $everyone] = $this->viewer($request);
+        $filters = $list->filters($request, $everyone);
+
+        $page = $list->query($filters, $user, $everyone)
+            ->with(['person:id,name', 'property:id,name,timezone'])
+            ->latest('check_in_at')
+            // Check-ins can tie; without a tiebreaker a row can show on two pages.
+            ->orderByDesc('id')
+            ->paginate($filters['per_page'])
+            ->withQueryString();
+
+        return Inertia::render('admin/field-visits/index', [
+            'visits' => collect($page->items())->map($list->row(...))->all(),
+            'pagination' => [
+                'current_page' => $page->currentPage(),
+                'last_page' => $page->lastPage(),
+                'per_page' => $page->perPage(),
+                'total' => $page->total(),
+                'from' => $page->firstItem(),
+                'to' => $page->lastItem(),
+            ],
+            'filters' => $filters,
+            'counts' => $list->counts($filters, $user, $everyone),
+            'flags' => collect(VisitList::FLAGS)->map(fn (string $label, string $key): array => ['key' => $key, 'label' => $label])->values()->all(),
+            'ranges' => collect(VisitList::RANGES)->map(fn (string $label, int|string $key): array => ['value' => (string) $key, 'label' => $label])->values()->all(),
+            'recruiters' => $everyone
+                ? Person::query()->whereIn('id', FieldVisit::query()->select('person_id'))->orderBy('name')->get(['id', 'name'])
+                : [],
+            'properties' => Property::query()
+                ->whereIn('id', FieldVisit::query()->when(! $everyone, fn ($q) => $q->where('person_id', $user->id))->select('property_id'))
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'can' => ['viewAll' => $everyone],
+        ]);
+    }
+
+    /** The list as an Excel file: the same filters, every page. */
+    public function export(Request $request, VisitList $list): BinaryFileResponse
+    {
+        [$user, $everyone] = $this->viewer($request);
+        $filters = $list->filters($request, $everyone);
+
+        $rows = $list->query($filters, $user, $everyone)
+            ->with(['person:id,name', 'property:id,name,timezone'])
+            ->latest('check_in_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map($list->row(...))
+            ->map(fn (array $r): array => [
+                $r['recruiter'], $r['property'], $r['date'], $r['in'], $r['out'] ?? 'Still open',
+                $r['minutes'],
+                implode(', ', array_keys(array_filter([
+                    'Off-site' => $r['off_site'], 'Closed late' => $r['late'], 'Covering' => $r['covering'],
+                ]))),
+            ]);
+
+        return Excel::download(
+            new ArrayReportExport(['Recruiter', 'Hotel', 'Date', 'Checked in', 'Checked out', 'Minutes on site', 'Flags'], $rows->all()),
+            'field-visits-'.CompanyTime::now()->toDateString().'.xlsx',
+        );
+    }
+
+    /**
+     * @return array{0: Person, 1: bool} the viewer, and whether they see everyone's visits
+     */
+    private function viewer(Request $request): array
     {
         $user = $request->user();
         abort_unless($user instanceof Person && $user->canAny(['field_visits.view_own', 'field_visits.view_all']), 403);
 
-        $viewAll = $user->can('field_visits.view_all');
-        $filter = (string) $request->query('filter', '');
-
-        $query = FieldVisit::query()->with(['person:id,name', 'property:id,name'])->latest('check_in_at');
-        if (! $viewAll) {
-            $query->where('person_id', $user->id);
-        }
-
-        // How many each filter would show, so the switch says where to look.
-        $counts = [
-            '' => (clone $query)->count(),
-            'open' => (clone $query)->open()->count(),
-            'off_geofence' => (clone $query)->where('was_inside_geofence', false)->count(),
-            'late' => (clone $query)->where('was_late_close', true)->count(),
-            'covering' => (clone $query)->where('was_covering', true)->count(),
-        ];
-
-        match ($filter) {
-            'off_geofence' => $query->where('was_inside_geofence', false),
-            'late' => $query->where('was_late_close', true),
-            'covering' => $query->where('was_covering', true),
-            'open' => $query->open(),
-            default => null,
-        };
-
-        return Inertia::render('admin/field-visits/index', [
-            'visits' => $query->limit(200)->get()->map(fn (FieldVisit $v): array => [
-                'id' => $v->id,
-                'recruiter' => $v->person?->name,
-                'property' => $v->property?->name,
-                'status' => $v->status->value,
-                'check_in_at' => CompanyTime::of($v->check_in_at)->toDayDateTimeString(),
-                'check_out_at' => CompanyTime::of($v->check_out_at)?->toDayDateTimeString(),
-                'duration' => $v->durationMinutes(),
-                'inside_geofence' => $v->was_inside_geofence,
-                'late_close' => $v->was_late_close,
-                'covering' => $v->was_covering,
-            ]),
-            'filter' => $filter,
-            'counts' => $counts,
-            'can' => ['viewAll' => $viewAll],
-        ]);
+        return [$user, $user->can('field_visits.view_all')];
     }
 
     /**

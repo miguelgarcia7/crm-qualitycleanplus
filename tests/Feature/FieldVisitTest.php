@@ -127,17 +127,17 @@ it('filters the history to off-geofence visits', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page->where('visits', fn ($v) => collect($v)->count() === 1));
 });
 
-it('counts what each filter would show', function () {
+it('counts what each flag would show', function () {
     $admin = person('admin');
     FieldVisit::factory()->create(); // open, inside the geofence
     FieldVisit::factory()->closed()->create(['was_inside_geofence' => false]);
     FieldVisit::factory()->closed()->create(['was_late_close' => true]);
 
-    $this->actingAs($admin)->get(main('/admin/field-visits?filter=open'))
+    $this->actingAs($admin)->get(main('/admin/field-visits?flag=open'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('visits', 1)
-            ->where('counts', ['' => 3, 'open' => 1, 'off_geofence' => 1, 'late' => 1, 'covering' => 0]),
+            ->where('counts', ['' => 3, 'open' => 1, 'stale' => 0, 'off_site' => 1, 'late' => 1, 'covering' => 0]),
         );
 });
 
@@ -153,7 +153,7 @@ it('lets a recruiter cover a hotel they aren’t assigned to, flagged Covering',
     expect(FieldVisit::query()->where('property_id', $other->id)->value('was_covering'))->toBeTrue()
         ->and(FieldVisit::query()->where('property_id', $mine->id)->value('was_covering'))->toBeFalse();
 
-    $this->actingAs(person('admin'))->get(main('/admin/field-visits?filter=covering'))
+    $this->actingAs(person('admin'))->get(main('/admin/field-visits?flag=covering'))
         ->assertInertia(fn (AssertableInertia $page) => $page->has('visits', 1)->where('visits.0.covering', true));
 });
 
@@ -188,4 +188,62 @@ it('gives the check-in panel every active hotel, the recruiter’s own marked', 
     expect($properties)->toHaveCount(2)
         ->and($properties->firstWhere('id', $mine->id)['mine'])->toBeTrue()
         ->and($properties->firstWhere('id', $other->id)['mine'])->toBeFalse();
+});
+
+it('finds visits by recruiter, hotel, search and dates, paged on the server', function () {
+    $this->travelTo('2026-10-13 15:00:00');
+    $rita = tap(person('recruiter'))->update(['name' => 'Rita Recruiter']);
+    $ray = tap(person('recruiter'))->update(['name' => 'Ray Recruiter']);
+    $acme = Property::factory()->create(['name' => 'Acme Hotel', 'timezone' => 'America/Chicago']);
+    $mag = Property::factory()->create(['name' => 'MAG Solutions']);
+    FieldVisit::factory()->closed()->create(['person_id' => $rita->id, 'property_id' => $acme->id, 'check_in_at' => '2026-10-09 14:05:00', 'check_out_at' => '2026-10-09 14:52:00']);
+    FieldVisit::factory()->closed()->create(['person_id' => $ray->id, 'property_id' => $mag->id, 'check_in_at' => '2026-10-05 16:00:00', 'check_out_at' => '2026-10-05 16:44:00']);
+    FieldVisit::factory()->closed()->create(['person_id' => $rita->id, 'property_id' => $mag->id, 'check_in_at' => '2026-07-01 15:00:00', 'check_out_at' => '2026-07-01 15:30:00']);
+
+    $admin = person('admin');
+    $total = fn (string $query) => $this->actingAs($admin)->get(main('/admin/field-visits'.$query))->viewData('page')['props']['pagination']['total'];
+
+    expect($total(''))->toBe(2) // last 30 days by default
+        ->and($total('?range=all'))->toBe(3)
+        ->and($total("?range=all&recruiter_id={$rita->id}"))->toBe(2)
+        ->and($total("?range=all&property_id={$mag->id}"))->toBe(2)
+        ->and($total('?range=all&search=acme'))->toBe(1)
+        ->and($total('?range=all&search=ray'))->toBe(1)
+        ->and($total('?range=custom&from=2026-07-01&to=2026-07-31'))->toBe(1)
+        ->and($total('?range=last_month'))->toBe(0);
+
+    $this->actingAs($admin)->get(main('/admin/field-visits'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('visits.0.property', 'Acme Hotel')
+            ->where('visits.0.in', '9:05 AM')
+            ->where('visits.0.minutes', 47));
+
+    FieldVisit::factory()->count(12)->closed()->create(['person_id' => $ray->id, 'property_id' => $mag->id, 'check_in_at' => '2026-10-10 12:00:00']);
+    $this->actingAs($admin)->get(main('/admin/field-visits?per_page=10&page=2'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('visits', 4)->where('pagination.total', 14));
+});
+
+it('shows open visits whatever their date, and those open over a day', function () {
+    $this->travelTo('2026-10-13 15:00:00');
+    FieldVisit::factory()->create(['check_in_at' => '2026-08-01 15:00:00']); // forgotten for weeks
+    FieldVisit::factory()->create(['check_in_at' => '2026-10-13 13:00:00']); // checked in 2 h ago
+
+    $this->actingAs(person('admin'))->get(main('/admin/field-visits?flag=open'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('visits', 2)->where('counts.stale', 1)->where('counts.open', 2));
+
+    // The old dashboard link (filter=open) still lands on open visits.
+    $this->actingAs(person('admin'))->get(main('/admin/field-visits?filter=open'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('filters.flag', 'open'));
+});
+
+it('exports what the list shows to Excel', function () {
+    $recruiter = person('recruiter');
+    $property = assignedProperty($recruiter);
+    FieldVisit::factory()->closed()->create(['person_id' => $recruiter->id, 'property_id' => $property->id, 'was_covering' => true]);
+
+    $this->actingAs(person('office_manager'))->get(main('/admin/field-visits/export?flag=covering'))
+        ->assertOk()
+        ->assertDownload();
+
+    $this->actingAs(person('payroll'))->get(main('/admin/field-visits/export'))->assertForbidden();
 });

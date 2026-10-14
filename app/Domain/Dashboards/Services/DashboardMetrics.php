@@ -254,7 +254,7 @@ class DashboardMetrics
             'value' => FieldVisit::query()->open()
                 ->where('check_in_at', '<', CarbonImmutable::now()->subDay())->count(),
             'icon' => 'map-pin',
-            'href' => '/admin/field-visits?filter=open',
+            'href' => '/admin/field-visits?flag=stale',
             'tone' => 'warning',
         ];
 

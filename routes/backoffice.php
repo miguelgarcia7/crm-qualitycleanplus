@@ -230,6 +230,7 @@ Route::delete('devices/{device}', [DeviceController::class, 'destroy'])->middlew
 
 // Recruiter field visits — check-in/out + history (Phase 07b, ADR-0017)
 Route::get('field-visits', [FieldVisitController::class, 'index'])->name('backoffice.field-visits.index');
+Route::get('field-visits/export', [FieldVisitController::class, 'export'])->name('backoffice.field-visits.export');
 Route::get('field-visits/context', [FieldVisitController::class, 'context'])->name('backoffice.field-visits.context');
 Route::post('field-visits', [FieldVisitController::class, 'store'])->middleware('can:field_visits.create')->name('backoffice.field-visits.store');
 Route::post('field-visits/check-out', [FieldVisitController::class, 'checkOut'])->middleware('can:field_visits.close_own')->name('backoffice.field-visits.check-out');
