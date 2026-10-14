@@ -35,14 +35,27 @@ const Page = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
+  // No unpair button at the desk, where one stray tap would need a new code
+  // from Super Admin. Unpairing happens from Devices (Regenerate or Revoke):
+  // the tablet checks its token on load and goes back to the pairing screen.
   useEffect(() => {
     const t = localStorage.getItem(TOKEN_KEY)
     const p = localStorage.getItem(PROP_KEY)
-    if (t) {
-      setToken(t)
-      setProperty(p)
-      setPhase('phone')
-    }
+    if (!t) return
+    setToken(t)
+    setProperty(p)
+    setPhase('phone')
+    fetch('/device/context', { headers: { Accept: 'application/json', Authorization: `Bearer ${t}` } })
+      .then(async (res) => {
+        if (res.status === 401) return unpair()
+        const data = res.ok ? await res.json().catch(() => null) : null
+        if (data?.property?.name) {
+          setProperty(data.property.name)
+          localStorage.setItem(PROP_KEY, data.property.name)
+        }
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -215,9 +228,6 @@ const Page = () => {
                 Continue
               </button>
             </form>
-            <button className="text-default-500 mt-4 w-full text-center text-xs" onClick={unpair}>
-              Unpair tablet
-            </button>
           </Card>
         )}
 

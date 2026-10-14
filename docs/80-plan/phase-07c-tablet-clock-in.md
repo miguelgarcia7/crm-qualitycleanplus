@@ -20,9 +20,10 @@
   `context`/`lookup`/`clockIn`/`clockOut` (`auth:device`). `routes/device.php` on the qcminute
   domain, throttled. Phone re-verified against the WO/entry owner each event.
 - **Front-end:** `views/device/index.tsx` (bare-layout kiosk: pair via code → phone → WO/selfie
-  → clock in/out via Bearer-token `fetch`; "Unpair"). Back-office `views/admin/devices/index.tsx`
+  → clock in/out via Bearer-token `fetch`). No unpair button at the desk (2026-10-14): the kiosk
+  checks its token with `context` on load and returns to pairing after Regenerate or Revoke). Back-office `views/admin/devices/index.tsx`
   (create → shows activation code, regenerate, revoke) + sidebar "Devices".
-- **Tests:** `tests/Feature/TabletClockInTest.php` (8). **Seed:** one un-paired tablet
+- **Tests:** `tests/Feature/TabletClockInTest.php` (10). **Seed:** one un-paired tablet
   (code `QCP123`) on the Sample Marriott.
 
 > `HandleInertiaRequests` now shares `auth` only for `Person` users — a tablet `Device` on the

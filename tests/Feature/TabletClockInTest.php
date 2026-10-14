@@ -134,3 +134,21 @@ it('lets a super admin create a device but forbids everyone else', function () {
 
     expect(Device::query()->where('name', 'Front Desk')->exists())->toBeTrue();
 });
+
+it('unpairs a tablet from Devices: after Regenerate or Revoke its token stops working', function (string $how) {
+    $this->seed(RolePermissionSeeder::class);
+    $s = tabletScenario();
+    $headers = ['Authorization' => "Bearer {$s['token']}", 'Accept' => 'application/json'];
+
+    // What the kiosk calls on load to check it is still paired.
+    $this->withHeaders($headers)->getJson(qcminute('/device/context'))
+        ->assertOk()->assertJsonPath('property.name', $s['property']->name);
+
+    $admin = person('super_admin');
+    $how === 'regenerate'
+        ? $this->actingAs($admin)->post(main("/admin/devices/{$s['device']->id}/regenerate"))->assertRedirect()
+        : $this->actingAs($admin)->delete(main("/admin/devices/{$s['device']->id}"))->assertRedirect();
+
+    app('auth')->forgetGuards();
+    $this->withHeaders($headers)->getJson(qcminute('/device/context'))->assertUnauthorized();
+})->with(['regenerate', 'revoke']);
