@@ -26,6 +26,7 @@ type Visit = {
   duration: number | null
   inside_geofence: boolean
   late_close: boolean
+  covering: boolean
 }
 
 type Props = {
@@ -40,6 +41,7 @@ const FILTERS = [
   { key: 'open', label: 'Still open' },
   { key: 'off_geofence', label: 'Off-geofence' },
   { key: 'late', label: 'Late close' },
+  { key: 'covering', label: 'Covering' },
 ]
 
 const fmtDuration = (m: number | null) => (m === null ? '—' : m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`)
@@ -87,6 +89,7 @@ const Page = ({ visits, filter, counts, can }: Props) => {
           <div className="space-x-1">
             {!row.original.inside_geofence && <span className="badge badge-label bg-danger/15 text-danger">Off-geofence</span>}
             {row.original.late_close && <span className="badge badge-label bg-warning/15 text-warning">Late close</span>}
+            {row.original.covering && <span className="badge badge-label bg-info/15 text-info">Covering</span>}
           </div>
         ),
       },

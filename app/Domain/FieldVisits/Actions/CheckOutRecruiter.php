@@ -7,10 +7,10 @@ use App\Domain\FieldVisits\Models\FieldVisit;
 
 /**
  * Closes a recruiter field visit (Phase 07b, ADR-0017). Captures check-out GPS (no
- * selfie). `$late = true` flags the forgot-to-check-out path (closed from a different
- * property than where the recruiter actually was).
+ * selfie), plus an optional note for the office. `$late = true` flags the forgot-to-
+ * check-out path (closed from a different property than where the recruiter actually was).
  *
- * @phpstan-type CheckOutData array{lat?: float|null, lng?: float|null, accuracy?: int|null, gps_status: string}
+ * @phpstan-type CheckOutData array{lat?: float|null, lng?: float|null, accuracy?: int|null, gps_status: string, notes?: string|null}
  */
 class CheckOutRecruiter
 {
@@ -27,6 +27,7 @@ class CheckOutRecruiter
             'check_out_gps_accuracy_meters' => $data['accuracy'] ?? null,
             'check_out_gps_status' => $data['gps_status'],
             'was_late_close' => $late,
+            'notes' => ($data['notes'] ?? null) ?: $visit->notes,
         ]);
 
         return $visit;

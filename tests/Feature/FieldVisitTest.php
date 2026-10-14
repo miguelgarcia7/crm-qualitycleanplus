@@ -3,6 +3,7 @@
 use App\Domain\FieldVisits\Enums\FieldVisitStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
+use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Models\Property;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Http\UploadedFile;
@@ -136,6 +137,55 @@ it('counts what each filter would show', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('visits', 1)
-            ->where('counts', ['' => 3, 'open' => 1, 'off_geofence' => 1, 'late' => 1]),
+            ->where('counts', ['' => 3, 'open' => 1, 'off_geofence' => 1, 'late' => 1, 'covering' => 0]),
         );
+});
+
+it('lets a recruiter cover a hotel they aren’t assigned to, flagged Covering', function () {
+    $recruiter = person('recruiter');
+    $mine = assignedProperty($recruiter);
+    $other = Property::factory()->create(['latitude' => 33.4484, 'longitude' => -112.0740, 'geofence_radius_meters' => 300]);
+
+    $this->actingAs($recruiter)->post(main('/admin/field-visits'), checkInPayload($other))->assertSessionHasNoErrors();
+    $this->actingAs($recruiter)->post(main('/admin/field-visits/check-out'), ['gps_status' => 'ok', 'lat' => 33.4484, 'lng' => -112.0740]);
+    $this->actingAs($recruiter)->post(main('/admin/field-visits'), checkInPayload($mine))->assertSessionHasNoErrors();
+
+    expect(FieldVisit::query()->where('property_id', $other->id)->value('was_covering'))->toBeTrue()
+        ->and(FieldVisit::query()->where('property_id', $mine->id)->value('was_covering'))->toBeFalse();
+
+    $this->actingAs(person('admin'))->get(main('/admin/field-visits?filter=covering'))
+        ->assertInertia(fn (AssertableInertia $page) => $page->has('visits', 1)->where('visits.0.covering', true));
+});
+
+it('won’t check in at an inactive hotel', function () {
+    $recruiter = person('recruiter');
+    $closed = assignedProperty($recruiter);
+    $closed->update(['status' => PropertyStatus::Inactive]);
+
+    $this->actingAs($recruiter)->post(main('/admin/field-visits'), checkInPayload($closed))->assertSessionHasErrors('property_id');
+});
+
+it('keeps the recruiter’s note from check-out', function () {
+    $recruiter = person('recruiter');
+    $property = assignedProperty($recruiter);
+    $this->actingAs($recruiter)->post(main('/admin/field-visits'), checkInPayload($property));
+
+    $this->actingAs($recruiter)
+        ->post(main('/admin/field-visits/check-out'), ['gps_status' => 'denied', 'notes' => 'Met with the housekeeping manager'])
+        ->assertSessionHasNoErrors();
+
+    expect(FieldVisit::query()->value('notes'))->toBe('Met with the housekeeping manager');
+});
+
+it('gives the check-in panel every active hotel, the recruiter’s own marked', function () {
+    $recruiter = person('recruiter');
+    $mine = assignedProperty($recruiter);
+    $other = Property::factory()->create();
+    Property::factory()->create(['status' => PropertyStatus::Inactive]);
+
+    $properties = collect($this->actingAs($recruiter)->getJson(main('/admin/field-visits/context'))->assertOk()->json('properties'));
+
+    expect($properties)->toHaveCount(2)
+        ->and($properties->firstWhere('id', $mine->id)['mine'])->toBeTrue()
+        ->and($properties->firstWhere('id', $other->id)['mine'])->toBeFalse();
 });

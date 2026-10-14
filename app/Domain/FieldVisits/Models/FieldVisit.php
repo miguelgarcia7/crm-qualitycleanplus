@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable $check_in_at
  * @property CarbonImmutable|null $check_out_at
  * @property bool $was_inside_geofence
+ * @property bool $was_covering
  * @property bool $was_late_close
  */
 class FieldVisit extends Model
@@ -42,6 +43,7 @@ class FieldVisit extends Model
         'check_in_gps_status',
         'check_in_selfie_file_id',
         'was_inside_geofence',
+        'was_covering',
         'check_out_at',
         'check_out_gps_lat',
         'check_out_gps_lng',
@@ -67,6 +69,7 @@ class FieldVisit extends Model
             'check_out_gps_lng' => 'decimal:7',
             'check_out_gps_accuracy_meters' => 'integer',
             'was_inside_geofence' => 'boolean',
+            'was_covering' => 'boolean',
             'was_late_close' => 'boolean',
         ];
     }

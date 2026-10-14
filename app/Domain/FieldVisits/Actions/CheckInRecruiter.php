@@ -6,6 +6,7 @@ use App\Domain\FieldVisits\Enums\FieldVisitStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Domain\Shared\Support\Geofence;
 use App\Domain\Time\Support\StoreSelfie;
 use Illuminate\Http\UploadedFile;
@@ -14,7 +15,9 @@ use Illuminate\Validation\ValidationException;
 /**
  * Opens a recruiter field visit (Phase 07b, ADR-0017). Captures check-in GPS +
  * selfie; the geofence is informational (records `was_inside_geofence` rather than
- * blocking). A recruiter may only have one open visit at a time — the forgot-to-
+ * blocking), and so is the assignment: checking in at a hotel the recruiter isn't
+ * assigned to is covering, allowed and flagged (`was_covering`). A recruiter may
+ * only have one open visit at a time — the forgot-to-
  * check-out path closes the prior visit first.
  *
  * @phpstan-type CheckInData array{lat?: float|null, lng?: float|null, accuracy?: int|null, gps_status: string, selfie: UploadedFile}
@@ -46,6 +49,7 @@ class CheckInRecruiter
             'check_in_gps_accuracy_meters' => $data['accuracy'] ?? null,
             'check_in_gps_status' => $data['gps_status'],
             'was_inside_geofence' => $inside,
+            'was_covering' => ! $recruiter->hasAnyRole(PropertyPolicy::GLOBAL_ROLES) && ! $recruiter->isAssignedTo($property),
         ]);
 
         $visit->update(['check_in_selfie_file_id' => StoreSelfie::for($data['selfie'], $visit, $recruiter->id)->id]);

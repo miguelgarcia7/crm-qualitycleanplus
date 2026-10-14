@@ -40,6 +40,7 @@ field_visits
   - check_in_gps_status: enum (ok | unavailable | denied)
   - check_in_selfie_file_id (FK to files)
   - was_inside_geofence (bool, computed at check-in)
+  - was_covering (bool, computed at check-in — recruiter not assigned to this property; never set for global roles)
   
   -- Check-out (nullable until closed)
   - check_out_at (datetime, UTC, nullable)
@@ -48,7 +49,7 @@ field_visits
   - check_out_gps_status (enum, nullable)
   - was_late_close (bool — true when closed via "I'm at next property" flow)
   
-  - notes (text, nullable — recruiter can annotate)
+  - notes (text, nullable — optional note the recruiter adds at check-out)
   - created_at, updated_at
 ```
 
@@ -64,8 +65,10 @@ Modal context-aware:
   │
   ▼
 [Check In path]
-  System captures: GPS coordinates + selfie
-  Property selection: auto-matched via GPS geofence (or manual pick if no match / multiple matches)
+  System captures: GPS coordinates + selfie (location is requested the moment the panel opens)
+  Property selection: auto-matched via GPS geofence (or manual pick if no match / multiple matches);
+  the pick list holds every active property, the recruiter's own first. Built to fit a phone
+  screen without scrolling: pin → selfie → check in (3 taps); check-out is 1 tap
   
   field_visit created (status=open):
     - person_id, property_id
@@ -197,7 +200,7 @@ Recruiters cannot edit visits after the fact — only super_admin can correct mi
 | Recruiter forgets to check out for days | Open visit remains until they explicitly close it (or admin manually closes). Surface as "Stale Open Visits" on admin dashboard. |
 | GPS reports impossible coordinates (e.g. coords in middle of ocean) | Accuracy field captures the inaccuracy; admin can flag for review |
 | Two recruiters at the same property at the same time | Both create their own visits; no conflict |
-| Recruiter checks in at property they're NOT assigned to | Allowed (might be covering for another recruiter); flagged for review if pattern emerges |
+| Recruiter checks in at property they're NOT assigned to | Allowed (might be covering for another recruiter); stored as `was_covering = true` and shown as a "Covering" flag in visit history |
 | Person without `recruiter` role tries to check in | Blocked at permission check |
 | Selfie file deletion request (privacy) | Standard PII anonymization — file deleted, selfie_file_id nulled, visit row retained |
 

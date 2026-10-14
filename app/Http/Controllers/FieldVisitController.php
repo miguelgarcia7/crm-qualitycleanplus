@@ -7,26 +7,29 @@ use App\Domain\FieldVisits\Actions\CheckOutRecruiter;
 use App\Domain\FieldVisits\Enums\GpsStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
 use App\Domain\People\Models\Person;
+use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\PropertyBible\Policies\PropertyPolicy;
 use App\Support\CompanyTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Recruiter field-visit check-in/out (Phase 07b, ADR-0017). The check-in FAB pulls
- * `context` (open visit + assignable properties), posts `store`/`checkOut`; `index`
+ * Recruiter field-visit check-in/out (Phase 07b, ADR-0017). The check-in panel pulls
+ * `context` (open visit + active hotels), posts `store`/`checkOut`; `index`
  * is the visit-history surface (own vs all by permission).
  */
 class FieldVisitController extends Controller
 {
-    /** Open visit (if any) + the user's assignable properties — feeds the check-in FAB. */
+    /**
+     * Open visit (if any) + every active hotel, the user's own marked `mine` —
+     * feeds the check-in panel. Recruiters may check in anywhere (covering).
+     */
     public function context(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -34,13 +37,20 @@ class FieldVisitController extends Controller
 
         $open = FieldVisit::query()->where('person_id', $user->id)->open()->with('property:id,name')->first();
 
-        $properties = $this->assignableProperties($user)
+        $global = $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES);
+        $mine = $global ? [] : Property::query()->assignedTo($user)->pluck('id')->all();
+
+        $properties = Property::query()
+            ->where('status', PropertyStatus::Active->value)
+            ->orderBy('name')
+            ->get()
             ->map(fn (Property $p): array => [
                 'id' => $p->id,
                 'name' => $p->name,
                 'latitude' => $p->latitude !== null ? (float) $p->latitude : null,
                 'longitude' => $p->longitude !== null ? (float) $p->longitude : null,
                 'radius' => $p->geofence_radius_meters,
+                'mine' => $global || in_array($p->id, $mine, true),
             ])->values();
 
         return response()->json([
@@ -59,12 +69,11 @@ class FieldVisitController extends Controller
         abort_unless($user instanceof Person && $user->can('field_visits.create'), 403);
 
         $validated = $request->validate($this->gpsRules() + [
-            'property_id' => ['required', 'integer', 'exists:properties,id'],
+            'property_id' => ['required', 'integer', Rule::exists('properties', 'id')->where('status', PropertyStatus::Active->value)],
             'selfie' => ['required', 'image', 'max:5120'],
         ]);
 
         $property = Property::findOrFail($validated['property_id']);
-        $this->authorizeProperty($user, $property);
 
         $action->handle($user, $property, $this->gpsData($validated) + ['selfie' => $request->file('selfie')]);
 
@@ -76,14 +85,17 @@ class FieldVisitController extends Controller
         $user = $request->user();
         abort_unless($user instanceof Person && $user->can('field_visits.close_own'), 403);
 
-        $validated = $request->validate($this->gpsRules() + ['late' => ['nullable', 'boolean']]);
+        $validated = $request->validate($this->gpsRules() + [
+            'late' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
 
         $visit = FieldVisit::query()->where('person_id', $user->id)->open()->latest('id')->first();
         if ($visit === null) {
             throw ValidationException::withMessages(['visit' => 'You have no open visit to check out of.']);
         }
 
-        $action->handle($visit, $this->gpsData($validated), (bool) ($validated['late'] ?? false));
+        $action->handle($visit, $this->gpsData($validated) + ['notes' => $validated['notes'] ?? null], (bool) ($validated['late'] ?? false));
 
         return back()->with('success', 'Checked out.');
     }
@@ -107,11 +119,13 @@ class FieldVisitController extends Controller
             'open' => (clone $query)->open()->count(),
             'off_geofence' => (clone $query)->where('was_inside_geofence', false)->count(),
             'late' => (clone $query)->where('was_late_close', true)->count(),
+            'covering' => (clone $query)->where('was_covering', true)->count(),
         ];
 
         match ($filter) {
             'off_geofence' => $query->where('was_inside_geofence', false),
             'late' => $query->where('was_late_close', true),
+            'covering' => $query->where('was_covering', true),
             'open' => $query->open(),
             default => null,
         };
@@ -127,33 +141,12 @@ class FieldVisitController extends Controller
                 'duration' => $v->durationMinutes(),
                 'inside_geofence' => $v->was_inside_geofence,
                 'late_close' => $v->was_late_close,
+                'covering' => $v->was_covering,
             ]),
             'filter' => $filter,
             'counts' => $counts,
             'can' => ['viewAll' => $viewAll],
         ]);
-    }
-
-    /**
-     * @return Collection<int, Property>
-     */
-    private function assignableProperties(Person $user): Collection
-    {
-        $query = Property::query()->orderBy('name');
-        if (! $user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES)) {
-            $query->assignedTo($user);
-        }
-
-        return $query->get();
-    }
-
-    private function authorizeProperty(Person $user, Property $property): void
-    {
-        if ($user->hasAnyRole(PropertyPolicy::GLOBAL_ROLES)) {
-            return;
-        }
-
-        abort_unless($user->isAssignedTo($property), 403);
     }
 
     /**
