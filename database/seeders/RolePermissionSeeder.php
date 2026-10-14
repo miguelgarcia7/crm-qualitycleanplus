@@ -84,6 +84,9 @@ class RolePermissionSeeder extends Seeder
             'time_entries.delete' => ['admin', 'office_manager', 'recruiter'],
             'time_entries.add_adjustment' => ['admin', 'office_manager', 'recruiter'],
 
+            // Adjustment items: the list recruiters pick incentives and deductions from
+            'adjustments.items.manage' => ['admin', 'office_manager', 'payroll'],
+
             // Field visits (ADR-0017)
             'field_visits.create' => ['admin', 'recruiter'],
             'field_visits.close_own' => ['admin', 'recruiter'],

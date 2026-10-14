@@ -54,6 +54,7 @@ export const menuItems: MenuItemType[] = [
     children: [
       { url: '/admin/imports', slug: 'imports', label: 'Hour Imports', icon: 'cloud-upload', permission: 'imports.upload' },
       { url: '/admin/invoices', slug: 'invoices', label: 'Invoices', icon: 'file-invoice', permission: 'invoices.view' },
+      { url: '/admin/adjustment-items', slug: 'adjustment-items', label: 'Adjustment Items', icon: 'receipt-2', permission: 'adjustments.items.manage' },
     ],
   },
   {

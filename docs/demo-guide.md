@@ -257,6 +257,10 @@ Rebuilds the local database from the legacy `minute` copy, replacing the demo. R
   it will turn you away if your phone says you're somewhere else.
 - **Approve a timesheet.** Sign in as `pm@example.com` (or `pm.qcp@`, `pm.mag@`) in
   QC Minute and approve last week. An invoice appears right away.
+- **Add a bonus or deduction.** As a recruiter, open a hotel's **Weekly Timesheet**,
+  click a contractor, then **+ Add adjustment** and pick from the list. The list
+  itself is **Billing → Adjustment Items** (Admin, Office Manager, Payroll): the demo
+  starts with Attendance Bonus, Perfect Attendance, Holiday Bonus and Advance Recovery.
 
 A contractor who is already clocked in can't clock in again. Clock them out first,
 or try it outside work hours.

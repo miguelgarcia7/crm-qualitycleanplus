@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Domain\Adjustments\Actions\AllocateChargeScheduleEntries;
 use App\Domain\Adjustments\Actions\CreateManualAdjustment;
 use App\Domain\Adjustments\Actions\ScheduleHiringFee;
-use App\Domain\Adjustments\Enums\AdjustmentType;
 use App\Domain\Adjustments\Enums\ChargeEntryStatus;
 use App\Domain\Adjustments\Enums\ChargeScheduleStatus;
 use App\Domain\Adjustments\Jobs\ApplyScheduledContractorCharges;
@@ -1499,13 +1498,13 @@ class SampleDataSeeder extends Seeder
             ]);
         }
 
-        // A reusable adjustment catalog (Phase 04 Inc 2).
-        AdjustmentItem::create(['name' => 'Attendance Bonus', 'default_value' => 2500, 'type' => AdjustmentType::Incentive, 'is_billable' => false, 'active' => true]);
-        AdjustmentItem::create(['name' => 'Mileage Reimbursement', 'default_value' => 1500, 'type' => AdjustmentType::Incentive, 'is_billable' => false, 'active' => true]);
-        $uniformFee = AdjustmentItem::create(['name' => 'Uniform Replacement Fee', 'default_value' => 2000, 'type' => AdjustmentType::Deduction, 'is_billable' => false, 'active' => true]);
+        // The adjustment list recruiters pick from (Billing → Adjustment Items).
+        $this->call(AdjustmentItemSeeder::class);
+        $attendance = AdjustmentItem::query()->where('name', 'Attendance Bonus')->firstOrFail();
+        $advance = AdjustmentItem::query()->where('name', 'Advance Recovery')->firstOrFail();
 
         // Manual adjustments on the current open period → show on the grid:
-        // a free-form incentive and a catalog-backed deduction.
+        // an incentive and a deduction, both picked from the list.
         $openPeriod = PayrollPeriod::query()
             ->where('property_id', $property->id)
             ->where('status', 'open')
@@ -1515,15 +1514,16 @@ class SampleDataSeeder extends Seeder
             app(CreateManualAdjustment::class)->handle($openPeriod, [
                 'person_id' => $contractors[0]->id,
                 'work_order_id' => $workOrders[0]->id,
+                'adjustment_item_id' => $attendance->id,
                 'value' => 2500, 'type' => 'incentive', 'is_billable' => false,
-                'notes' => 'Perfect attendance bonus',
+                'notes' => 'No callouts this week',
             ], $recruiter);
             app(CreateManualAdjustment::class)->handle($openPeriod, [
                 'person_id' => $contractors[1]->id,
                 'work_order_id' => $workOrders[1]->id,
-                'adjustment_item_id' => $uniformFee->id,
-                'value' => 2000, 'type' => 'deduction',
-                'notes' => 'Lost polo replacement',
+                'adjustment_item_id' => $advance->id,
+                'value' => 4000, 'type' => 'deduction',
+                'notes' => 'Cash advance, 1 of 2',
             ], $recruiter);
         }
     }

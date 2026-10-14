@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Domain\Demo\DemoRoster;
 use App\Domain\Settings\Models\Setting;
+use Database\Seeders\AdjustmentItemSeeder;
 use Database\Seeders\CompanySettingsSeeder;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\DepartmentSeeder;
@@ -34,6 +35,7 @@ class DemoReset extends Command
         HolidaySeeder::class,
         InventorySeeder::class,
         CompanySettingsSeeder::class,
+        AdjustmentItemSeeder::class,
         DemoSeeder::class,
     ];
 

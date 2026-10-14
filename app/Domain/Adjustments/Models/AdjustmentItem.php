@@ -6,6 +6,7 @@ use App\Domain\Adjustments\Enums\AdjustmentType;
 use Database\Factories\AdjustmentItemFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -40,5 +41,23 @@ class AdjustmentItem extends Model
             'is_billable' => 'boolean',
             'active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Invariant: deductions can never be billed to the hotel (20-domain/adjustments.md).
+        static::saving(function (AdjustmentItem $item): void {
+            if ($item->type === AdjustmentType::Deduction) {
+                $item->is_billable = false;
+            }
+        });
+    }
+
+    /**
+     * @return HasMany<TimeEntryAdjustment, $this>
+     */
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(TimeEntryAdjustment::class);
     }
 }

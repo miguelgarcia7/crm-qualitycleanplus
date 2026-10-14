@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdjustmentController;
+use App\Http\Controllers\AdjustmentItemController;
 use App\Http\Controllers\ApplicantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\ChangePersonalInfoController;
@@ -262,6 +263,11 @@ Route::delete('contractor-charges/{schedule}', [ContractorChargeController::clas
 // Payroll adjustments — manual incentives/deductions (Phase 04)
 Route::post('payroll-periods/{period}/adjustments', [AdjustmentController::class, 'store'])->name('adjustments.store');
 Route::delete('adjustments/{adjustment}', [AdjustmentController::class, 'destroy'])->name('adjustments.destroy');
+
+// Adjustment items — the list recruiters pick incentives and deductions from
+Route::get('adjustment-items', [AdjustmentItemController::class, 'index'])->middleware('can:adjustments.items.manage')->name('adjustment-items.index');
+Route::post('adjustment-items', [AdjustmentItemController::class, 'store'])->middleware('can:adjustments.items.manage')->name('adjustment-items.store');
+Route::put('adjustment-items/{adjustmentItem}', [AdjustmentItemController::class, 'update'])->middleware('can:adjustments.items.manage')->whereNumber('adjustmentItem')->name('adjustment-items.update');
 
 // Timesheets — history list + export (Phase 09) and recruiter submit (Phase 03)
 Route::get('timesheets', [TimesheetController::class, 'index'])->middleware('can:timesheets.view_history')->name('timesheets.index');

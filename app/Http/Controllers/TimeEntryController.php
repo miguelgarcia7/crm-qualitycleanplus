@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Adjustments\Models\AdjustmentItem;
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Models\Property;
@@ -80,7 +81,7 @@ class TimeEntryController extends Controller
             ]);
 
         $adjustments = $period === null ? collect() : $period->adjustments()
-            ->with('person:id,name')
+            ->with('person:id,name', 'adjustmentItem:id,name')
             ->get()
             ->map(fn (TimeEntryAdjustment $a): array => [
                 'id' => $a->id,
@@ -90,6 +91,7 @@ class TimeEntryController extends Controller
                 'type' => $a->type->value,
                 'value' => $a->value,
                 'is_billable' => $a->is_billable,
+                'item' => $a->adjustmentItem?->name,
                 'notes' => $a->notes,
                 'source_type' => $a->source_type->value,
             ]);
@@ -129,6 +131,16 @@ class TimeEntryController extends Controller
             'entries' => $entries->values(),
             'summaries' => $summaries,
             'adjustments' => $adjustments->values(),
+            // The list Add adjustment picks from (Billing → Adjustment Items).
+            'adjustmentItems' => AdjustmentItem::query()->where('active', true)->orderBy('type')->orderBy('name')
+                ->get(['id', 'name', 'type', 'default_value', 'is_billable'])
+                ->map(fn (AdjustmentItem $i): array => [
+                    'id' => $i->id,
+                    'name' => $i->name,
+                    'type' => $i->type->value,
+                    'default_value' => $i->default_value,
+                    'is_billable' => $i->is_billable,
+                ]),
             'can' => [
                 'edit' => $user instanceof Person && $user->can('time_entries.create_manual')
                     && ($period?->status->isEditable() ?? false),

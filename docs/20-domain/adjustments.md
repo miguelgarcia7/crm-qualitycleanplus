@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Accepted |
-| Last updated | 2026-05-21 |
+| Last updated | 2026-10-13 |
 | Owner | Product + Engineering |
 
 Adjustments are **per-contractor, per-week modifications** to billable or payable amounts that exist alongside (not as) time entries. Examples: perfect-attendance bonus (incentive), equipment damage charge (deduction).
@@ -12,7 +12,7 @@ Adjustments are **per-contractor, per-week modifications** to billable or payabl
 
 ### `adjustment_items` (templates)
 
-A catalog of reusable adjustment templates managed by office managers / payroll.
+A catalog of reusable adjustment templates, kept on **Billing → Adjustment Items** (`/admin/adjustment-items`) by admin, office managers and payroll. Items are never deleted: making one inactive takes it out of the dropdowns, and adjustments already added keep their own type, amount and billing. Each change is written to the item's History.
 
 ```
 adjustment_items
@@ -89,7 +89,8 @@ Four sources, all producing rows in the same table:
 
 1. **Manual — recruiter adds during the week (clock-in path):**
    - Opens the time entries grid for a contractor at a property
-   - Clicks "Add Adjustment" → modal with item dropdown (from `adjustment_items` catalog), value, notes
+   - Clicks "Add adjustment" in the contractor's week panel → item dropdown (active `adjustment_items`), amount (pre-filled from the item's default, editable), optional note
+   - The item sets the type and whether the hotel is billed; there is no free-form entry. A missing item is added to the list by the office
    - Submits → adjustment created with `source_type=manual`, `adjustment_item_id=selected template`
    - Visible on the upcoming timesheet
 
@@ -134,7 +135,7 @@ Adjustments can be added/edited/deleted while the payroll period is `open`. Once
 
 | Action | Roles |
 |---|---|
-| Manage adjustment_items catalog | super_admin, office_manager, payroll |
+| Manage adjustment_items catalog (`adjustments.items.manage`) | super_admin, admin, office_manager, payroll |
 | Create adjustment on own property | recruiter (period open), super_admin |
 | Edit adjustment on own property | recruiter (period open), super_admin |
 | Delete adjustment on own property | recruiter (period open), super_admin |

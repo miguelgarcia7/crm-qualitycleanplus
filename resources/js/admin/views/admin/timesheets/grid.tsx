@@ -45,9 +45,12 @@ type Adjustment = {
   type: string
   value: number
   is_billable: boolean
+  item: string | null
   notes: string | null
   source_type: string
 }
+/** One entry on Billing → Adjustment Items; it sets the type and billing. */
+type AdjustmentItem = { id: number; name: string; type: string; default_value: number | null; is_billable: boolean }
 type Can = { edit: boolean; correct: boolean; remove: boolean; submit: boolean; adjust: boolean }
 
 type Props = {
@@ -59,6 +62,7 @@ type Props = {
   entries: Entry[]
   summaries: Record<number, Summary>
   adjustments: Adjustment[]
+  adjustmentItems: AdjustmentItem[]
   can: Can
 }
 
@@ -122,7 +126,7 @@ type PanelState = { kind: 'day'; workOrderId: number; date: string; adding: bool
 // Every mutation here keeps the page state, so an open panel survives the reload.
 const keep = { preserveScroll: true, preserveState: true }
 
-const Page = ({ property, week, period, timesheet, rows, entries, summaries, adjustments, can }: Props) => {
+const Page = ({ property, week, period, timesheet, rows, entries, summaries, adjustments, adjustmentItems, can }: Props) => {
   const [mode, setMode] = useState<'hours' | 'punches'>('hours')
   const [panel, setPanel] = useState<PanelState | null>(null)
   const [confirming, setConfirming] = useState<ConfirmState | null>(null)
@@ -207,7 +211,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
         <>
           Remove the{' '}
           <strong className="text-default-900">
-            {money(adjustment.value)} {adjustment.type}
+            {money(adjustment.value)} {adjustment.item ?? adjustment.type}
           </strong>{' '}
           for <strong className="text-default-900">{adjustment.person}</strong>?
           <span className="text-default-500 mt-2 block">
@@ -525,6 +529,7 @@ const Page = ({ property, week, period, timesheet, rows, entries, summaries, adj
           summary={weekOf(panelRow)}
           minutesByDay={week.days.map((d) => minutesOf(cellEntries(panel.workOrderId, d)))}
           adjustments={adjustmentsFor(panelRow, adjustments)}
+          items={adjustmentItems}
           canAdjust={can.adjust}
           onOpenDay={(date) => setPanel({ kind: 'day', workOrderId: panel.workOrderId, date, adding: false })}
           onRemoveAdjustment={confirmAdjustmentRemoval}
@@ -888,6 +893,7 @@ const PersonPanel = ({
   summary,
   minutesByDay,
   adjustments,
+  items,
   canAdjust,
   onOpenDay,
   onRemoveAdjustment,
@@ -900,6 +906,7 @@ const PersonPanel = ({
   summary: { regular: number; overtime: number; holiday: number; training: number; total: number; pay: number; bill: number }
   minutesByDay: number[]
   adjustments: Adjustment[]
+  items: AdjustmentItem[]
   canAdjust: boolean
   onOpenDay: (date: string) => void
   onRemoveAdjustment: (a: Adjustment) => void
@@ -992,7 +999,9 @@ const PersonPanel = ({
         <div key={a.id} className="border-default-300 flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm">
           <Chip tone={a.type === 'deduction' ? 'danger' : 'success'}>{a.type === 'deduction' ? 'Deduction' : 'Incentive'}</Chip>
           <span className="min-w-0 flex-1">
-            {a.notes}
+            {a.item && <span className="text-default-900 font-semibold">{a.item}</span>}
+            {a.item && a.notes && <span className="text-default-500"> · </span>}
+            {a.item ? <span className="text-default-500">{a.notes}</span> : a.notes}
             {a.is_billable && <span className="text-default-500"> · billed</span>}
             {a.source_type !== 'manual' && <span className="text-default-500"> · {a.source_type.replaceAll('_', ' ')}</span>}
           </span>
@@ -1003,8 +1012,8 @@ const PersonPanel = ({
           {canAdjust && a.source_type === 'manual' && (
             <button
               className="text-danger hover:bg-danger/10 rounded px-1.5 leading-none"
-              title={`Remove ${money(a.value)} ${a.type}`}
-              aria-label={`Remove ${money(a.value)} ${a.type}`}
+              title={`Remove ${money(a.value)} ${a.item ?? a.type}`}
+              aria-label={`Remove ${money(a.value)} ${a.item ?? a.type}`}
               onClick={() => onRemoveAdjustment(a)}>
               ×
             </button>
@@ -1012,7 +1021,7 @@ const PersonPanel = ({
         </div>
       ))}
       {!adjustments.length && !adding && <p className="text-default-500 text-sm">No incentives or deductions this week.</p>}
-      {adding && <AdjustmentForm periodId={periodId} row={row} onDone={() => setAdding(false)} />}
+      {adding && <AdjustmentForm periodId={periodId} row={row} items={items} onDone={() => setAdding(false)} />}
     </SidePanel>
   )
 }
@@ -1021,33 +1030,81 @@ const SectionTitle = ({ children }: { children: ReactNode }) => (
   <div className="text-default-500 pt-1 text-[11px] font-medium tracking-wider uppercase">{children}</div>
 )
 
-const AdjustmentForm = ({ periodId, row, onDone }: { periodId: number; row: Row; onDone: () => void }) => {
-  const { data, setData, post, transform, processing, errors } = useForm({
+/**
+ * Add adjustment: pick an item from Billing → Adjustment Items. The item sets
+ * the type and whether the hotel is billed, and fills in its default amount,
+ * which the recruiter can change. There's no free-form entry: a missing item
+ * gets added to the list by the office.
+ */
+const AdjustmentForm = ({ periodId, row, items, onDone }: { periodId: number; row: Row; items: AdjustmentItem[]; onDone: () => void }) => {
+  const { data, setData, post, processing, errors } = useForm({
     person_id: row.person_id,
     work_order_id: row.work_order_id,
+    adjustment_item_id: '',
     amount: '',
-    type: 'deduction',
-    is_billable: false,
     notes: '',
   })
+  const item = items.find((i) => String(i.id) === data.adjustment_item_id)
+
+  const pick = (id: string) => {
+    const next = items.find((i) => String(i.id) === id)
+    setData((d) => ({ ...d, adjustment_item_id: id, amount: next?.default_value != null ? (next.default_value / 100).toFixed(2) : '' }))
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    // Only an incentive can be billed to the property.
-    transform((d) => ({ ...d, is_billable: d.type === 'incentive' ? d.is_billable : false }))
     post(`/admin/payroll-periods/${periodId}/adjustments`, { ...keep, onSuccess: onDone })
   }
 
+  if (!items.length) {
+    return (
+      <div className="bg-light/60 rounded-xl p-4 text-sm">
+        <p className="text-default-900">There are no adjustment items yet.</p>
+        <p className="text-default-500 mt-1">The office adds them under Billing → Adjustment Items.</p>
+        <div className="mt-3 flex justify-end">
+          <button type="button" className="btn btn-sm bg-card hover:text-primary" onClick={onDone}>
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const incentives = items.filter((i) => i.type === 'incentive')
+  const deductions = items.filter((i) => i.type === 'deduction')
+  const optionLabel = (i: AdjustmentItem) => `${i.name}${i.default_value != null ? ` · ${money(i.default_value)}` : ''}${i.is_billable ? ' · billed' : ''}`
+
   return (
     <form onSubmit={submit} className="bg-light/60 grid grid-cols-2 gap-3 rounded-xl p-4">
-      <div>
-        <label className="form-label" htmlFor="adjustment-type">
-          Type
+      <div className="col-span-2">
+        <label className="form-label" htmlFor="adjustment-item">
+          Adjustment
         </label>
-        <select id="adjustment-type" className="form-select" value={data.type} onChange={(e) => setData('type', e.target.value)}>
-          <option value="deduction">Deduction</option>
-          <option value="incentive">Incentive</option>
+        <select id="adjustment-item" className="form-select" value={data.adjustment_item_id} onChange={(e) => pick(e.target.value)} autoFocus required>
+          <option value="" disabled>
+            Pick from the list
+          </option>
+          {incentives.length > 0 && (
+            <optgroup label="Incentives">
+              {incentives.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {optionLabel(i)}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {deductions.length > 0 && (
+            <optgroup label="Deductions">
+              {deductions.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {optionLabel(i)}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
+        {errors.adjustment_item_id && <p className="text-danger mt-1 text-sm">{errors.adjustment_item_id}</p>}
+        <p className="text-default-500 mt-1 text-xs">Not on the list? Ask the office to add it under Billing → Adjustment Items.</p>
       </div>
       <div>
         <label className="form-label" htmlFor="adjustment-amount">
@@ -1061,23 +1118,24 @@ const AdjustmentForm = ({ periodId, row, onDone }: { periodId: number; row: Row;
           className="form-input"
           value={data.amount}
           onChange={(e) => setData('amount', e.target.value)}
-          autoFocus
           required
         />
         {errors.amount && <p className="text-danger mt-1 text-sm">{errors.amount}</p>}
       </div>
+      <div className="flex items-end pb-2">
+        {item && (
+          <span className="flex flex-wrap items-center gap-1.5 text-sm">
+            <Chip tone={item.type === 'deduction' ? 'danger' : 'success'}>{item.type === 'deduction' ? 'Deduction' : 'Incentive'}</Chip>
+            <span className="text-default-500">{item.is_billable ? 'Billed to the hotel' : 'Not billed'}</span>
+          </span>
+        )}
+      </div>
       <div className="col-span-2">
         <label className="form-label" htmlFor="adjustment-notes">
-          Note
+          Note <span className="text-default-500 font-normal">(optional)</span>
         </label>
-        <input id="adjustment-notes" type="text" className="form-input" value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
+        <input id="adjustment-notes" type="text" className="form-input" maxLength={2000} value={data.notes} onChange={(e) => setData('notes', e.target.value)} />
       </div>
-      {data.type === 'incentive' && (
-        <label className="col-span-2 flex items-center gap-2 text-sm">
-          <input type="checkbox" className="form-checkbox" checked={data.is_billable} onChange={(e) => setData('is_billable', e.target.checked)} />
-          Billable (adds to the property invoice)
-        </label>
-      )}
       <div className="col-span-2 flex justify-end gap-2">
         <button type="button" className="btn btn-sm bg-card hover:text-primary" onClick={onDone}>
           Cancel

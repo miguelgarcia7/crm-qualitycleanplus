@@ -95,6 +95,7 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | `time_entries.edit` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own, period open) | ⚪ | ⚪ | ⚪ |
 | `time_entries.delete` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own, period open) | ⚪ | ⚪ | ⚪ |
 | `time_entries.add_adjustment` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own, period open) | ⚪ | ⚪ | ⚪ |
+| `adjustments.items.manage` (Billing → Adjustment Items: the list recruiters pick from) | ✅ | ✅ | ✅ | ⚪ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ |
 | `time_entries.qr_clock_in` (per ADR-0017) | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a — public flow, phone+GPS+selfie are the credential |
 
 ## Field visits (recruiter accountability — per ADR-0017)
