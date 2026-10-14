@@ -11,6 +11,7 @@ use App\Domain\Imports\Enums\ImportBatchStatus;
 use App\Domain\Imports\Enums\ImportRowStatus;
 use App\Domain\Imports\Models\ImportBatch;
 use App\Domain\Imports\Models\ImportBatchRow;
+use App\Domain\Imports\Support\HourImportTemplate;
 use App\Domain\Imports\Support\ImportRowMatcher;
 use App\Domain\Imports\Support\ResolvesImportRates;
 use App\Domain\People\Enums\PersonStatus;
@@ -30,6 +31,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Excel hour-import wizard for import-only properties (Phase 05,
@@ -81,12 +84,40 @@ class ImportController extends Controller
         abort_unless($user instanceof Person && $user->can('imports.upload'), 403);
 
         return Inertia::render('admin/imports/create', [
-            'properties' => $this->importProperties($user),
+            'properties' => $this->importProperties($user, app(HourImportTemplate::class)),
             'prefill' => [
                 'property_id' => $request->integer('property_id') ?: null,
                 'payroll_period_id' => $request->integer('payroll_period_id') ?: null,
             ],
         ]);
+    }
+
+    /**
+     * The week's hour file for an import-only hotel, already filled in with
+     * everyone working there: the person only types hours (HourImportTemplate).
+     */
+    public function template(Request $request, HourImportTemplate $template): StreamedResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof Person && $user->can('imports.upload'), 403);
+
+        $validated = $request->validate([
+            'property_id' => ['required', 'integer', 'exists:properties,id'],
+            'payroll_period_id' => ['required', 'integer', 'exists:payroll_periods,id'],
+        ]);
+
+        $property = Property::findOrFail($validated['property_id']);
+        $this->authorizeProperty($property);
+        abort_unless($property->time_source === PropertyTimeSource::Import, 422, 'That property is not configured for imports.');
+        $period = PayrollPeriod::where('property_id', $property->id)->findOrFail($validated['payroll_period_id']);
+
+        $book = $template->build($property, $period);
+
+        return response()->streamDownload(
+            fn () => (new Xlsx($book))->save('php://output'),
+            $template->fileName($property, $period),
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        );
     }
 
     public function store(Request $request, CreateImportBatch $action): RedirectResponse
@@ -438,7 +469,7 @@ class ImportController extends Controller
      *
      * @return list<array<string, mixed>>
      */
-    private function importProperties(Person $user): array
+    private function importProperties(Person $user, HourImportTemplate $template): array
     {
         $query = Property::query()
             ->where('time_source', PropertyTimeSource::Import->value)
@@ -455,16 +486,40 @@ class ImportController extends Controller
             'periods' => PayrollPeriod::query()
                 ->where('property_id', $p->id)
                 ->where('status', PayrollPeriodStatus::Open->value)
+                // Hours arrive for weeks that have started; weeks ahead are empty.
+                ->whereDate('week_start', '<=', $p->localDate())
                 ->orderByDesc('week_start')
                 ->limit(8)
                 ->get()
                 ->map(fn (PayrollPeriod $period): array => [
                     'id' => $period->id,
-                    'label' => $period->week_start->toDateString().' – '.$period->week_end->toDateString(),
+                    'label' => $period->week_start->format('D, M j').' – '.$period->week_end->format('D, M j, Y'),
                     'week_start' => $period->week_start->toDateString(),
+                    'ended' => $period->week_end->toDateString() < $p->localDate(),
+                    // For the download step: who the file lists, and holidays to flag.
+                    'people' => count($template->people($p, $period)),
+                    'holidays' => $this->holidaysIn($p, $period),
                 ])
                 ->all(),
         ])->all();
+    }
+
+    /**
+     * The holidays the hotel observes in a week, as "Thanksgiving, Thu Nov 26".
+     *
+     * @return list<string>
+     */
+    private function holidaysIn(Property $property, PayrollPeriod $period): array
+    {
+        $dates = $property->holidayDates(array_values(array_unique([$period->week_start->year, $period->week_end->year])));
+        $out = [];
+        for ($day = $period->week_start->copy(); $day->lte($period->week_end); $day = $day->addDay()) {
+            if (isset($dates[$day->toDateString()])) {
+                $out[] = $dates[$day->toDateString()].', '.$day->format('D M j');
+            }
+        }
+
+        return $out;
     }
 
     private function authorizeProperty(Property $property): void

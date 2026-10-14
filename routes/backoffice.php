@@ -242,6 +242,7 @@ Route::post('field-visits/check-out', [FieldVisitController::class, 'checkOut'])
 // Hour imports — Excel import wizard for import-only properties (Phase 05)
 Route::get('imports', [ImportController::class, 'index'])->middleware('can:imports.upload')->name('backoffice.imports.index');
 Route::get('imports/create', [ImportController::class, 'create'])->middleware('can:imports.upload')->name('backoffice.imports.create');
+Route::get('imports/template', [ImportController::class, 'template'])->middleware('can:imports.upload')->name('backoffice.imports.template');
 Route::post('imports', [ImportController::class, 'store'])->middleware('can:imports.upload')->name('backoffice.imports.store');
 Route::get('imports/{importBatch}', [ImportController::class, 'show'])->name('backoffice.imports.show');
 Route::post('imports/{importBatch}/resolve', [ImportController::class, 'resolve'])->name('backoffice.imports.resolve');

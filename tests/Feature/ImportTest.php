@@ -25,6 +25,7 @@ use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -288,4 +289,46 @@ it('never pays a weekly total as holiday hours, even when the week starts on a h
     expect($summary->holiday_minutes)->toBe(0)
         ->and($summary->regular_minutes)->toBe(2400)
         ->and($summary->overtime_minutes)->toBe(300);
+});
+
+it('downloads the week’s file filled in with everyone working there, holidays marked', function () {
+    $s = importScenario(); // week of Mon 2026-06-01
+    $holiday = Holiday::create(['name' => 'Founders Day', 'slug' => 'founders-day', 'type' => HolidayType::Custom, 'month' => 6, 'day' => 4]);
+    $s['property']->holidays()->attach($holiday->id);
+    $jane = linkedContractor($s['property'], $s['position'], 'LS-1001', payRate: 1550);
+    $jane->update(['name' => 'Jane Doe']);
+    WorkOrder::query()->where('person_id', $jane->id)->update(['start_date' => '2026-05-01']);
+    // Not working there that week: started after it.
+    linkedContractor($s['property'], $s['position'], 'LS-1002')->workOrders()->update(['start_date' => '2026-06-15']);
+
+    $response = $this->actingAs(person('office_manager'))
+        ->get(main("/admin/imports/template?property_id={$s['property']->id}&payroll_period_id={$s['period']->id}"))
+        ->assertOk();
+    expect($response->headers->get('content-disposition'))->toContain('Jun 1.xlsx');
+
+    $path = tempnam(sys_get_temp_dir(), 'tpl').'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+    $book = IOFactory::load($path);
+    $hours = $book->getSheetByName('Hours');
+
+    expect($book->getSheetNames())->toBe(['Hours', 'How to fill this in'])
+        ->and($hours->rangeToArray('A4:M4')[0])->toBe(['Name', 'Hotel ID', 'Position', 'Pay Rate', 'Mon 6/1', 'Tue 6/2', 'Wed 6/3', 'Thu 6/4 Holiday', 'Fri 6/5', 'Sat 6/6', 'Sun 6/7', 'Total', 'Notes'])
+        ->and($hours->rangeToArray('A5:D5', null, false, false)[0])->toBe(['Jane Doe', 'LS-1001', 'Housekeeper', 15.5])
+        ->and($hours->rangeToArray('A6:B6', null, false, false)[0])->toBe([null, null])
+        ->and($hours->getCell('L5')->getValue())->toBe('=IF(COUNT(E5:K5)=0,"",SUM(E5:K5))')
+        ->and($book->getSheetByName('How to fill this in')->getCell('B14')->getValue())->toContain('Founders Day (Thu, Jun 4)');
+});
+
+it('keeps the file download to the user’s own import hotels', function () {
+    $s = importScenario();
+    $url = main("/admin/imports/template?property_id={$s['property']->id}&payroll_period_id={$s['period']->id}");
+
+    $this->actingAs(person('recruiter'))->get($url)->assertForbidden(); // not assigned
+    $this->actingAs(person('hr'))->get($url)->assertForbidden();         // no imports.upload
+
+    $clockIn = Property::factory()->create(['time_source' => PropertyTimeSource::ClockIn]);
+    $period = PayrollPeriod::factory()->create(['property_id' => $clockIn->id]);
+    $this->actingAs(person('office_manager'))
+        ->get(main("/admin/imports/template?property_id={$clockIn->id}&payroll_period_id={$period->id}"))
+        ->assertStatus(422);
 });
