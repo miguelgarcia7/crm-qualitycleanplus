@@ -2,6 +2,7 @@ import { confirmAction } from '@/components/ConfirmHost'
 import GeofenceMapCard from '@/components/GeofenceMapCard'
 import PageBreadcrumb from '@/components/PageBreadcrumb'
 import SidePanel from '@/components/SidePanel'
+import StatusFilter from '@/components/table/StatusFilter'
 import TablePagination from '@/components/table/TablePagination'
 import { Stat, StatusTrack } from '@/components/timesheet/WeekSummary'
 import Icon from '@/components/wrappers/Icon'
@@ -68,6 +69,40 @@ type Contract = {
 type HistoryRow = { id: number; description: string; event: string | null; causer: string | null; created_at: string | null }
 /** One server-side page of the change log (ADR-0029: the log grows without bound). */
 type HistoryPage = { rows: HistoryRow[]; current_page: number; last_page: number; total: number; from: number | null; to: number | null }
+type VisitRow = {
+  id: number
+  date: string
+  recruiter: string | null
+  in: string
+  out: string | null
+  minutes: number | null
+  open: boolean
+  off_site: boolean
+  late: boolean
+  covering: boolean
+}
+type Visits = {
+  /** 'own' for a recruiter: only their visits, no recruiter filter or team card. */
+  scope: 'everyone' | 'own'
+  timezone: string
+  stats: {
+    last: { ago: string; date: string; recruiter: string | null } | null
+    visits30: number
+    avgMinutes30: number | null
+    flagged30: { off_site: number; late: number; covering: number }
+  }
+  recruiters: { id: number; name: string; assigned: boolean; last: string | null; visits30: number }[] | null
+  filters: { range: string; flag: string; recruiter: number | null }
+  ranges: ValueLabel[]
+  counts: Record<string, number>
+  recruiterOptions: Option[]
+  rows: VisitRow[]
+  current_page: number
+  last_page: number
+  total: number
+  from: number | null
+  to: number | null
+}
 type PropertyHoliday = { id: number; name: string; type_label: string; this_year: string; enabled: boolean }
 type JobCodeRow = { position_id: number; position: string; job_code: string | null }
 type Option = { id: number; name: string }
@@ -139,6 +174,8 @@ type Props = {
   overview: Overview | null
   /** Null when the viewer can't see work orders. */
   workOrders: WorkOrders | null
+  /** Null when the viewer can't see field visits. */
+  visits: Visits | null
   departments: Dept[]
   rates: Rate[]
   assignments: Assignment[]
@@ -1549,6 +1586,200 @@ const HistoryTab = ({ property, history }: { property: Property; history: Histor
   )
 }
 
+// --- Visits tab --------------------------------------------------------------------
+
+const fmtMinutes = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`)
+
+const VISIT_FLAGS = [
+  { key: '', label: 'All' },
+  { key: 'off_site', label: 'Off-site' },
+  { key: 'late', label: 'Closed late' },
+  { key: 'covering', label: 'Covering' },
+]
+
+const VisitFlags = ({ v }: { v: VisitRow }) =>
+  v.open || v.off_site || v.late || v.covering ? (
+    <div className="flex flex-wrap gap-1">
+      {v.open && <span className="badge badge-label bg-danger/15 text-danger">Still open</span>}
+      {v.off_site && <span className="badge badge-label bg-warning/15 text-warning">Off-site</span>}
+      {v.late && <span className="badge badge-label bg-secondary/15 text-secondary">Closed late</span>}
+      {v.covering && <span className="badge badge-label bg-info/15 text-info">Covering</span>}
+    </div>
+  ) : (
+    <span className="text-default-500">—</span>
+  )
+
+/** Recruiter visits to this hotel: how often, by whom, and each visit. Only this tab reloads as filters change. */
+const VisitsTab = ({ property, visits }: { property: Property; visits: Visits }) => {
+  const { stats, filters } = visits
+  const reload = (changes: Partial<{ visits_range: string; visits_flag: string; visits_recruiter: number | null; visits_page: number }>) => {
+    const params = {
+      visits_range: filters.range,
+      visits_flag: filters.flag,
+      visits_recruiter: filters.recruiter,
+      visits_page: 1,
+      ...changes,
+    }
+    router.get(
+      `/admin/properties/${property.id}#visits`,
+      Object.fromEntries(Object.entries(params).filter(([k, v]) => v !== null && v !== '' && !(k === 'visits_range' && v === '90') && !(k === 'visits_page' && v === 1))),
+      { only: ['visits'], preserveState: true, preserveScroll: true, replace: true },
+    )
+  }
+  const flagged = stats.flagged30.off_site + stats.flagged30.late + stats.flagged30.covering
+  const flaggedNote = [
+    stats.flagged30.off_site && `${stats.flagged30.off_site} off-site`,
+    stats.flagged30.late && `${stats.flagged30.late} closed late`,
+    stats.flagged30.covering && `${stats.flagged30.covering} covering`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  const own = visits.scope === 'own'
+
+  return (
+    <div className="space-y-5">
+      <div className="card">
+        <CardHeading title={own ? 'Your visits here' : 'Recruiter visits'}>Times in {timezoneName(visits.timezone)}</CardHeading>
+        <div className="border-default-300 grid grid-cols-2 border-t lg:grid-cols-4">
+          <Stat label="Last visit" value={stats.last ? stats.last.ago : 'None yet'} note={stats.last ? `${stats.last.date}${own ? '' : ` · ${stats.last.recruiter ?? ''}`}` : 'No recruiter has checked in here'} />
+          <Stat label="Visits, last 30 days" value={String(stats.visits30)} note={stats.visits30 >= 4 ? 'About once a week or more' : stats.visits30 > 0 ? 'Less than once a week' : 'None in 30 days'} />
+          <Stat label="Average time on site" value={stats.avgMinutes30 === null ? '—' : fmtMinutes(stats.avgMinutes30)} note="Last 30 days, closed visits" />
+          <Stat
+            label="Flagged, last 30 days"
+            value={String(flagged)}
+            valueClass={flagged ? 'text-warning' : undefined}
+            note={flagged ? flaggedNote : 'Nothing flagged'}
+          />
+        </div>
+      </div>
+
+      {visits.recruiters && (
+        <div className="card">
+          <CardHeading title="Recruiters at this hotel">Assign recruiters on Settings › Contacts.</CardHeading>
+          <div className="card-body pt-0">
+            {visits.recruiters.length === 0 ? (
+              <p className="text-default-500">No recruiter is assigned to this hotel yet.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {visits.recruiters.map((r) => (
+                  <div key={r.id} className="border-default-300 flex items-center justify-between gap-3 rounded-lg border px-4 py-3">
+                    <div className="min-w-0">
+                      <Link href={`/admin/people/${r.id}`} className="text-default-900 font-semibold hover:underline">
+                        {r.name}
+                      </Link>
+                      <div className="text-default-500 text-sm">
+                        {r.assigned ? 'Assigned' : 'Not assigned, covered'}
+                        {r.last ? ` · last visit ${r.last}` : ' · no visits yet'}
+                      </div>
+                    </div>
+                    <span className="badge badge-label bg-light text-default-600 shrink-0">{r.visits30} in 30 days</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="card-header flex flex-wrap items-center gap-3">
+          <h4 className="card-title me-auto">Visits</h4>
+          <StatusFilter
+            label="Show visits"
+            options={VISIT_FLAGS.map((f) => ({ key: f.key, label: f.label, count: visits.counts[f.key] }))}
+            value={filters.flag}
+            onChange={(key) => reload({ visits_flag: key })}
+          />
+          <label className="sr-only" htmlFor="visits-range">
+            When
+          </label>
+          <select id="visits-range" className="form-select w-auto" value={filters.range} onChange={(e) => reload({ visits_range: e.target.value })}>
+            {visits.ranges.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          {!own && (
+            <>
+              <label className="sr-only" htmlFor="visits-recruiter">
+                Recruiter
+              </label>
+              <select
+                id="visits-recruiter"
+                className="form-select w-auto"
+                value={filters.recruiter ?? ''}
+                onChange={(e) => reload({ visits_recruiter: e.target.value ? Number(e.target.value) : null })}
+              >
+                <option value="">All recruiters</option>
+                {visits.recruiterOptions.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+        <div className="table-wrapper">
+          <table className="table">
+            <thead className="thead-sm">
+              <tr className="bg-light/25 text-xs uppercase">
+                <th>Date</th>
+                {!own && <th>Recruiter</th>}
+                <th>Checked in</th>
+                <th>Checked out</th>
+                <th>Time on site</th>
+                <th>Flags</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visits.rows.length ? (
+                visits.rows.map((v) => (
+                  <tr key={v.id}>
+                    <td className="whitespace-nowrap">{v.date}</td>
+                    {!own && <td className="text-default-900 font-medium whitespace-nowrap">{v.recruiter ?? '—'}</td>}
+                    <td className="whitespace-nowrap tabular-nums">{v.in}</td>
+                    <td className="whitespace-nowrap tabular-nums">{v.out ?? '—'}</td>
+                    <td className="whitespace-nowrap tabular-nums">{v.minutes === null ? '—' : fmtMinutes(v.minutes)}</td>
+                    <td>
+                      <VisitFlags v={v} />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={own ? 5 : 6} className="text-default-500 py-6 text-center">
+                    No visits match.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {visits.last_page > 1 && (
+          <div className="card-footer">
+            <TablePagination
+              totalItems={visits.total}
+              start={visits.from ?? 0}
+              end={visits.to ?? 0}
+              itemsName="visits"
+              showInfo
+              pageIndex={visits.current_page - 1}
+              pageCount={visits.last_page}
+              setPageIndex={(i) => reload({ visits_page: i + 1 })}
+              canPreviousPage={visits.current_page > 1}
+              canNextPage={visits.current_page < visits.last_page}
+              previousPage={() => reload({ visits_page: visits.current_page - 1 })}
+              nextPage={() => reload({ visits_page: visits.current_page + 1 })}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // --- Settings tab ----------------------------------------------------------------
 // Each card saves only its own fields: UpdatePropertyRequest takes partial updates.
 
@@ -2098,13 +2329,14 @@ const SettingsTab = ({
 
 // --- Page ------------------------------------------------------------------
 
-type TabKey = 'overview' | 'timesheets' | 'workorders' | 'rates' | 'settings'
+type TabKey = 'overview' | 'timesheets' | 'workorders' | 'rates' | 'visits' | 'settings'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'timesheets', label: 'Timesheets' },
   { key: 'workorders', label: 'Work Orders' },
   { key: 'rates', label: 'Rates & Job Codes' },
+  { key: 'visits', label: 'Visits' },
   { key: 'settings', label: 'Settings' },
 ]
 
@@ -2134,6 +2366,7 @@ const Page = ({
   property,
   overview,
   workOrders,
+  visits,
   departments,
   rates,
   assignments,
@@ -2155,9 +2388,13 @@ const Page = ({
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // Timesheets, Work Orders and Rates need their own view permissions; without them the tab is hidden.
+  // Timesheets, Work Orders, Rates and Visits need their own view permissions; without them the tab is hidden.
   const tabs = TABS.filter(
-    (t) => (t.key !== 'timesheets' || overview?.weeks) && (t.key !== 'workorders' || workOrders) && (t.key !== 'rates' || can.viewRates),
+    (t) =>
+      (t.key !== 'timesheets' || overview?.weeks) &&
+      (t.key !== 'workorders' || workOrders) &&
+      (t.key !== 'rates' || can.viewRates) &&
+      (t.key !== 'visits' || visits),
   )
   const tab = tabs.some((t) => t.key === location.tab) ? location.tab : 'overview'
   // Weeks someone has to act on: waiting for the PM, or sent back to us.
@@ -2223,6 +2460,8 @@ const Page = ({
       {tab === 'workorders' && workOrders && <WorkOrdersTab property={property} workOrders={workOrders} can={can} />}
 
       {tab === 'rates' && <RatesTab property={property} rates={rates} jobCodes={jobCodes} catalogs={catalogs} can={can} />}
+
+      {tab === 'visits' && visits && <VisitsTab property={property} visits={visits} />}
 
       {tab === 'settings' && (
         <SettingsTab

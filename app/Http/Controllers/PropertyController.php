@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Dashboards\Services\PropertyListSummary;
 use App\Domain\Dashboards\Services\PropertyOverview;
 use App\Domain\Devices\Models\Device;
+use App\Domain\FieldVisits\Support\PropertyVisits;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Actions\CreateProperty;
 use App\Domain\PropertyBible\Actions\UpdateProperty;
@@ -91,7 +92,7 @@ class PropertyController extends Controller
         return to_route('properties.show', $property)->with('success', 'Property created.');
     }
 
-    public function show(Request $request, Property $property, PropertyOverview $overview, DirectHireProgress $directHire): Response
+    public function show(Request $request, Property $property, PropertyOverview $overview, DirectHireProgress $directHire, PropertyVisits $visits): Response
     {
         $this->authorize('view', $property);
 
@@ -116,6 +117,7 @@ class PropertyController extends Controller
             'property' => $this->propertyPayload($property),
             'overview' => $user instanceof Person ? $overview->build($property, $user) : null,
             'workOrders' => $user instanceof Person && $user->can('work_orders.view') ? $this->workOrdersPayload($property, $directHire) : null,
+            'visits' => $user instanceof Person ? $visits->build($property, $user, $request) : null,
             // Pairing codes are for whoever sets the tablets up.
             'devices' => $user instanceof Person && $user->can('devices.manage')
                 ? Device::query()->where('property_id', $property->id)->orderBy('name')->get()->map(fn (Device $d): array => [

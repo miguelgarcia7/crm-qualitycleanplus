@@ -190,7 +190,7 @@ Recruiters cannot edit visits after the fact — only super_admin can correct mi
 ### Desktop / mobile (Back Office)
 
 - **"My Visits"** page (recruiter) — list of own visit history with filters
-- **"Property Visit History"** page (managers + admins) — visits to a specific property
+- **"Property Visit History"** — the Visits tab on the property page (managers + admins see everyone, a recruiter only their own)
 - **"Recruiter Activity"** report — visits by recruiter over time
 
 ## Edge cases
