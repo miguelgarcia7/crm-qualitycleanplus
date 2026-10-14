@@ -5,10 +5,15 @@ namespace App\Domain\Dashboards\Services;
 use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Devices\Models\Device;
+use App\Domain\FieldVisits\Models\FieldVisit;
+use App\Domain\FieldVisits\Support\RecruiterActivity;
 use App\Domain\People\Models\Person;
+use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
+use App\Domain\PropertyBible\Enums\PropertyStatus;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\PropertyBible\Models\PropertyAssignment;
 use App\Domain\PropertyBible\Models\PropertyDepartment;
 use App\Domain\PropertyBible\Models\PropertyPositionRate;
 use App\Support\CompanyTime;
@@ -16,8 +21,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * What needs someone at each property: weeks stuck in approval, and gaps in
- * its setup. One set of rules for the property page's Overview (one property)
+ * What needs someone at each property: weeks stuck in approval, hotels no
+ * recruiter has visited lately, and gaps in its setup. One set of rules for the property page's Overview (one property)
  * and the properties list (all of them) — each check is one query for the
  * whole set, never one per property.
  *
@@ -89,6 +94,19 @@ class PropertyAttention
                 });
         }
 
+        if ($user->canAny(['field_visits.view_all', 'field_visits.view_by_property'])) {
+            collect($this->unvisited($properties))->each(function (array $gap) use (&$items): void {
+                $items[$gap['property_id']][] = [
+                    'key' => 'visits',
+                    'title' => $gap['days'] === null ? 'No recruiter visit yet' : "No recruiter visit in {$gap['days']} days",
+                    'detail' => $gap['days'] === null
+                        ? "{$gap['recruiters']} ".(str_contains($gap['recruiters'], ',') ? 'are' : 'is')." assigned but hasn't checked in here."
+                        : "Last visit {$gap['last']}".($gap['by'] ? " by {$gap['by']}" : '').'.',
+                    'action' => ['label' => 'Visits', 'tab' => 'visits'],
+                ];
+            });
+        }
+
         if ($user->can('bible.rates.view')) {
             // Same rule as Property::configuredPositions(): an active rate already in effect.
             $priced = PropertyPositionRate::query()
@@ -151,6 +169,57 @@ class PropertyAttention
         }
 
         return $items;
+    }
+
+    /**
+     * Active hotels with a recruiter assigned that no recruiter has visited in
+     * RecruiterActivity::STALE_DAYS days, or ever — the same rule as the
+     * Recruiter activity report.
+     *
+     * @param  Collection<int, Property>  $properties
+     * @return list<array{property_id: int, days: int|null, last: string|null, by: string|null, recruiters: string}>
+     */
+    private function unvisited(Collection $properties): array
+    {
+        $active = $properties->filter(fn (Property $p): bool => $p->status === PropertyStatus::Active)->pluck('id');
+        $assigned = PropertyAssignment::query()
+            ->whereIn('property_id', $active)
+            ->where('role', PropertyAssignmentRole::Recruiter->value)
+            ->with('person:id,name')
+            ->get()
+            ->groupBy('property_id');
+
+        if ($assigned->isEmpty()) {
+            return [];
+        }
+
+        // Each hotel's latest check-in (times can be fixed by hand, so not the latest id).
+        $lastAt = FieldVisit::query()
+            ->whereIn('property_id', $assigned->keys())
+            ->groupBy('property_id')
+            ->selectRaw('property_id, MAX(check_in_at) as last_at')
+            ->pluck('last_at', 'property_id');
+        $latest = FieldVisit::query()
+            ->whereIn('property_id', $lastAt->keys())
+            ->whereIn('check_in_at', $lastAt->values())
+            ->with('person:id,name')
+            ->get()
+            ->filter(fn (FieldVisit $v): bool => $v->check_in_at->eq(CarbonImmutable::parse($lastAt[$v->property_id], 'UTC')))
+            ->keyBy('property_id');
+        $today = CompanyTime::today();
+
+        return $assigned->map(function (Collection $rows, int $propertyId) use ($latest, $today): array {
+            $visit = $latest->get($propertyId);
+            $at = CompanyTime::of($visit?->check_in_at);
+
+            return [
+                'property_id' => $propertyId,
+                'days' => $at === null ? null : (int) $at->startOfDay()->diffInDays($today),
+                'last' => $at?->format('M j'),
+                'by' => $visit?->person?->name,
+                'recruiters' => $rows->map(fn (PropertyAssignment $a) => $a->person?->name)->filter()->implode(', '),
+            ];
+        })->filter(fn (array $gap): bool => $gap['days'] === null || $gap['days'] >= RecruiterActivity::STALE_DAYS)->values()->all();
     }
 
     /**

@@ -181,6 +181,8 @@ When a `field_visit` is purged past its 1-year retention:
 
 Same balance as time_entries — historical fact preserved, sensitive verification data purged.
 
+Built as `field-visits:purge` (daily at 02:00, `PurgeFieldVisitLocations`); visits of a person on legal hold are skipped. The time_entries GPS/selfie purge is not built yet.
+
 ### Anonymization (for "right to be forgotten" requests)
 
 When a former contractor formally requests data removal and we can honor it:

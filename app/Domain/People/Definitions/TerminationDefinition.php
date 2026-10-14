@@ -2,6 +2,7 @@
 
 namespace App\Domain\People\Definitions;
 
+use App\Domain\FieldVisits\Actions\CloseOpenVisitsForLeaver;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Models\TerminationRecord;
@@ -124,7 +125,7 @@ class TerminationDefinition extends WorkflowDefinition
         $this->person($workflow)->update(['status' => PersonStatus::PendingTermination]);
     }
 
-    /** Step 2: close active work orders at the effective date; detach property assignments. */
+    /** Step 2: close active work orders at the effective date and any open field visit; detach property assignments. */
     private function removeFromRosters(Workflow $workflow): void
     {
         $person = $this->person($workflow);
@@ -133,6 +134,8 @@ class TerminationDefinition extends WorkflowDefinition
         foreach ($person->workOrders()->active()->get() as $workOrder) {
             $this->closeWorkOrder->handle($workOrder, $effectiveDate);
         }
+
+        app(CloseOpenVisitsForLeaver::class)->handle($person, $workflow->initiator);
 
         $person->propertyAssignments()->delete();
     }

@@ -38,6 +38,8 @@ const fmtMinutes = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} 
 /** Where the recruiter stood, against the hotel's check-in area. */
 const whereText = (p: Place, radius: number | null) => {
   if (p.gps_status === 'denied') return 'No location: the phone refused to share it'
+  // GPS was taken but is gone: the yearly purge removed it.
+  if (p.gps_status === 'ok' && p.maps_url === null) return 'Location deleted after a year'
   if (p.distance === null) return 'No location: GPS wasn’t available'
   if (radius !== null && p.distance <= radius) return `Inside the hotel’s check-in area (${p.distance} m from it)`
   const km = p.distance >= 1000 ? `${(p.distance / 1000).toFixed(1)} km` : `${p.distance} m`

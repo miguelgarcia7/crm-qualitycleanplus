@@ -4,6 +4,7 @@ use App\Console\Commands\ContractExpirationCheck;
 use App\Console\Commands\DemoSimulate;
 use App\Console\Commands\EnsurePayrollPeriods;
 use App\Console\Commands\ProcessPtoTenureCrossings;
+use App\Console\Commands\PurgeFieldVisitLocations;
 use App\Console\Commands\RefreshReportRollups;
 use App\Domain\Adjustments\Jobs\ApplyScheduledContractorCharges;
 use App\Domain\WorkOrders\Jobs\ProcessTemporaryAssignmentEnds;
@@ -41,6 +42,10 @@ Schedule::command(ProcessPtoTenureCrossings::class)->dailyAt('01:00')
 // Reports — nightly rollup backstop over the trailing 90 days (ADR-0028).
 Schedule::command(RefreshReportRollups::class)->dailyAt('01:30')
     ->description('Rebuild report totals for the last 90 days');
+
+// Field visits — selfies and GPS are deleted a year on; the visit stays (ADR-0010).
+Schedule::command(PurgeFieldVisitLocations::class)->dailyAt('02:00')
+    ->description('Delete selfies and GPS from field visits older than a year');
 
 // Demo environment only — Acme Hotel's simulated punches + billing steps
 // (docs/80-plan/demo-environment.md). Weekday working hours, written as one
