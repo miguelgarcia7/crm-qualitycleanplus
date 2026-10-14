@@ -24,7 +24,8 @@ use Illuminate\Queue\SerializesModels;
  * qcp.time.holiday_multiplier) and is never overtime — but it still advances
  * the weekly 40h counter, so holiday hours push later days into OT. Attribution
  * is by start date only (an overnight shift starting on the holiday is all
- * holiday). Training is paid at the WO's pay rate and is not billed; amounts
+ * holiday). An imported weekly total has no start date, so it is never holiday
+ * time. Training is paid at the WO's pay rate and is not billed; amounts
  * use the WO's rates (entries on a WO share the same snapshot).
  */
 class RecomputeTimeSummary implements ShouldQueue
@@ -63,6 +64,7 @@ class RecomputeTimeSummary implements ShouldQueue
         // Split training out; group work minutes by local day.
         $trainingMinutes = 0;
         $workByDay = [];
+        $undated = 0;
         foreach ($entries as $entry) {
             $minutes = $entry->duration_minutes ?? 0;
             if ($entry->entry_type === TimeEntryType::Training) {
@@ -70,11 +72,20 @@ class RecomputeTimeSummary implements ShouldQueue
 
                 continue;
             }
-            $day = $entry->start_at_utc?->copy()->setTimezone($tz)->toDateString()
-                ?? $period->week_start->toDateString();
+            // An imported weekly total has no day: it can't be on a holiday,
+            // so it's counted after the dated days, as regular then overtime.
+            if ($entry->start_at_utc === null) {
+                $undated += $minutes;
+
+                continue;
+            }
+            $day = $entry->start_at_utc->copy()->setTimezone($tz)->toDateString();
             $workByDay[$day] = ($workByDay[$day] ?? 0) + $minutes;
         }
         ksort($workByDay);
+        if ($undated > 0) {
+            $workByDay['undated'] = $undated;
+        }
 
         // Weekly 40h split: holiday days go entirely to the holiday bucket
         // (never OT) but advance the counter; other days fill regular up to

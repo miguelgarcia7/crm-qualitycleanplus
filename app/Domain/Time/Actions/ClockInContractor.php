@@ -37,7 +37,7 @@ class ClockInContractor
         $lat = $data['lat'] ?? null;
         $lng = $data['lng'] ?? null;
 
-        if (TimeEntry::query()->where('person_id', $workOrder->person_id)->whereNull('end_at_utc')->exists()) {
+        if (TimeEntry::query()->where('person_id', $workOrder->person_id)->whereNotNull('start_at_utc')->whereNull('end_at_utc')->exists()) {
             throw ValidationException::withMessages([
                 'work_order_id' => 'You are already clocked in. Please clock out first.',
             ]);

@@ -2,7 +2,9 @@
 
 use App\Domain\Adjustments\Models\TimeEntryAdjustment;
 use App\Domain\Billing\Enums\InvoiceStatus;
+use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Billing\Models\Invoice;
+use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Imports\Actions\CreateImportBatch;
 use App\Domain\Imports\Enums\ImportBatchStatus;
 use App\Domain\Imports\Enums\ImportRowStatus;
@@ -10,12 +12,15 @@ use App\Domain\Imports\Models\ImportBatch;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
 use App\Domain\People\Models\PersonExternalId;
+use App\Domain\PropertyBible\Enums\HolidayType;
 use App\Domain\PropertyBible\Enums\PropertyTimeSource;
+use App\Domain\PropertyBible\Models\Holiday;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
+use App\Domain\Time\Models\TimeSummary;
 use App\Domain\WorkOrders\Enums\WorkOrderStatus;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Database\Seeders\RolePermissionSeeder;
@@ -253,4 +258,34 @@ it('only offers import-only properties on the upload form', function () {
             ->component('admin/imports/create')
             ->where('properties', fn ($properties) => collect($properties)->pluck('id')->all() === [$import->id]),
         );
+});
+
+it('commits into the week’s draft timesheet that payroll:ensure-periods already made', function () {
+    $s = importScenario();
+    linkedContractor($s['property'], $s['position'], '1001');
+    $draft = $s['period']->timesheet()->create(['property_id' => $s['property']->id, 'source' => 'clock_in', 'status' => TimesheetStatus::Draft]);
+    $batch = makeBatch($s, [['Jane', '1001', 40, 20, 30, '2026-06-01', '2026-06-07', 'Housekeeper']]);
+
+    $this->actingAs(person('office_manager'))->post(main("/admin/imports/{$batch->id}/commit"))->assertSessionHasNoErrors();
+
+    $draft->refresh();
+    expect(Timesheet::query()->where('payroll_period_id', $s['period']->id)->count())->toBe(1)
+        ->and($draft->status)->toBe(TimesheetStatus::Invoiced)
+        ->and($draft->source)->toBe('imported')
+        ->and($draft->invoice_id)->toBe($batch->fresh()->invoice_id);
+});
+
+it('never pays a weekly total as holiday hours, even when the week starts on a holiday', function () {
+    $s = importScenario();
+    $holiday = Holiday::create(['name' => 'Week-start holiday', 'slug' => 'week-start-holiday', 'type' => HolidayType::Custom, 'month' => 6, 'day' => 1]);
+    $s['property']->holidays()->attach($holiday->id);
+    $person = linkedContractor($s['property'], $s['position'], '1001');
+    $batch = makeBatch($s, [['Jane', '1001', 45, 20, 30, '2026-06-01', '2026-06-07', 'Housekeeper']]);
+
+    $this->actingAs(person('office_manager'))->post(main("/admin/imports/{$batch->id}/commit"))->assertSessionHasNoErrors();
+
+    $summary = TimeSummary::query()->where('person_id', $person->id)->firstOrFail();
+    expect($summary->holiday_minutes)->toBe(0)
+        ->and($summary->regular_minutes)->toBe(2400)
+        ->and($summary->overtime_minutes)->toBe(300);
 });

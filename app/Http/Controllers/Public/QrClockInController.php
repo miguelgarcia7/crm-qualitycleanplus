@@ -50,7 +50,7 @@ class QrClockInController extends Controller
             ->where('status', WorkOrderStatus::Active->value)
             ->with('position:id,name')->get();
 
-        $open = TimeEntry::query()->where('person_id', $person->id)->whereNull('end_at_utc')
+        $open = TimeEntry::query()->where('person_id', $person->id)->whereNotNull('start_at_utc')->whereNull('end_at_utc')
             ->with('property:id,name', 'workOrder.position:id,name')->first();
 
         if ($workOrders->isEmpty() && $open === null) {
@@ -101,7 +101,7 @@ class QrClockInController extends Controller
         $property = $this->property($token);
         $validated = $this->validateClock($request, ['time_entry_id' => ['required', 'integer']]);
 
-        $entry = TimeEntry::query()->where('property_id', $property->id)->whereNull('end_at_utc')
+        $entry = TimeEntry::query()->where('property_id', $property->id)->whereNotNull('start_at_utc')->whereNull('end_at_utc')
             ->find($validated['time_entry_id']);
 
         if ($entry === null) {

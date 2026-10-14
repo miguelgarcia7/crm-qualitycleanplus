@@ -270,7 +270,7 @@ class TimesheetApprovalController extends Controller
                 ->selectRaw('SUM(regular_minutes + overtime_minutes + holiday_minutes + training_minutes) as minutes')
                 ->value('minutes'),
             'on_the_clock' => $period === null ? 0 : TimeEntry::query()->where('payroll_period_id', $period->id)
-                ->whereNull('end_at_utc')->distinct()->count('work_order_id'),
+                ->whereNotNull('start_at_utc')->whereNull('end_at_utc')->distinct()->count('work_order_id'),
         ];
     }
 

@@ -152,3 +152,20 @@ it('unpairs a tablet from Devices: after Regenerate or Revoke its token stops wo
     app('auth')->forgetGuards();
     $this->withHeaders($headers)->getJson(qcminute('/device/context'))->assertUnauthorized();
 })->with(['regenerate', 'revoke']);
+
+it('does not mistake imported hours for an open punch', function () {
+    $s = tabletScenario();
+    // A week of hours imported from another hotel's file: a total, no clock-in or out.
+    TimeEntry::factory()->create([
+        'person_id' => $s['workOrder']->person_id, 'source' => 'imported', 'clock_method' => null,
+        'start_at_utc' => null, 'end_at_utc' => null, 'duration_minutes' => 2400,
+    ]);
+    $headers = ['Authorization' => "Bearer {$s['token']}", 'Accept' => 'application/json'];
+
+    $this->withHeaders($headers)->postJson(qcminute('/device/lookup'), ['phone' => $s['phone']])
+        ->assertOk()->assertJsonPath('open_entry', null);
+
+    $this->withHeaders($headers)->post(qcminute('/device/clock-in'), [
+        'phone' => $s['phone'], 'work_order_id' => $s['workOrder']->id, 'selfie' => UploadedFile::fake()->image('s.jpg'),
+    ])->assertOk();
+});

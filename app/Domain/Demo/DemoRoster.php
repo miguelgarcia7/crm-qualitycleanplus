@@ -6,15 +6,15 @@ use Carbon\CarbonImmutable;
 
 /**
  * The demo cast (docs/80-plan/demo-environment.md): one login per role (two
- * recruiters, a manager per company), three companies with their Bible rate
+ * recruiters, a manager per company), four companies with their Bible rate
  * history, their contractors, and each contractor's daily shift plan. The
- * single source for DemoSeeder (who exists) and SimulateClock (when they
- * punch).
+ * single source for DemoSeeder (who exists), SimulateClock (when they punch)
+ * and ImportDemoHours (the hours an import-only company sends each week).
  *
  * @phpstan-type DemoRate array{0: int, 1: int}
- * @phpstan-type DemoContractor array{name: string, email: string, phone: string, position: string, rate: DemoRate|null, raise: array{weeks_ago: int, rate: DemoRate}|null, shift: string, method: string, started_weeks_ago: int}
- * @phpstan-type DemoPlacedContractor array{name: string, email: string, phone: string, position: string, rate: DemoRate|null, raise: array{weeks_ago: int, rate: DemoRate}|null, shift: string, method: string, started_weeks_ago: int, property: string}
- * @phpstan-type DemoProperty array{name: string, address: string, city: string, state: string, zip: string, phone: string, email: string, latitude: float, longitude: float, tax_rate: float, recruiter: string, pm: string, pm_phone: string, tablet: array{0: string, 1: string}|null, rate_history: list<array{months_ago: int, rates: array<string, DemoRate>}>, contractors: list<DemoContractor>}
+ * @phpstan-type DemoContractor array{name: string, email: string, phone: string, position: string, rate: DemoRate|null, raise: array{weeks_ago: int, rate: DemoRate}|null, shift: string, method: string, started_weeks_ago: int, hotel_id?: string}
+ * @phpstan-type DemoPlacedContractor array{name: string, email: string, phone: string, position: string, rate: DemoRate|null, raise: array{weeks_ago: int, rate: DemoRate}|null, shift: string, method: string, started_weeks_ago: int, hotel_id?: string, property: string}
+ * @phpstan-type DemoProperty array{name: string, address: string, city: string, state: string, zip: string, phone: string, email: string, latitude: float, longitude: float, tax_rate: float, recruiter: string, pm: string, pm_phone: string, tablet: array{0: string, 1: string}|null, imports_hours?: bool, rate_history: list<array{months_ago: int, rates: array<string, DemoRate>}>, contractors: list<DemoContractor>}
  */
 final class DemoRoster
 {
@@ -50,6 +50,7 @@ final class DemoRoster
         'pm@example.com' => ['property_manager', 'Pat Manager', null],
         'pm.qcp@example.com' => ['property_manager', 'Quinn Porter', null],
         'pm.mag@example.com' => ['property_manager', 'Megan Grant', null],
+        'pm.lakeside@example.com' => ['property_manager', 'Leo Banks', null],
     ];
 
     /**
@@ -59,7 +60,9 @@ final class DemoRoster
      * at (null: the current Bible rate); `raise` supersedes that work order
      * with a pay increase on the Monday `weeks_ago` weeks back. `shift` picks
      * the plan in shiftsFor(); `method` is how they punch — QR on their phone
-     * or the property's tablet.
+     * or the property's tablet. A company with `imports_hours` doesn't clock in:
+     * it sends a weekly file, and each contractor's `hotel_id` is their ID in
+     * that company's payroll system (`method` is `import`).
      *
      * @var list<DemoProperty>
      */
@@ -145,7 +148,53 @@ final class DemoRoster
                 ['name' => 'Grace Kim', 'email' => 'grace.kim@example.com', 'phone' => '(972) 555-0162', 'position' => 'dishwasher', 'rate' => null, 'raise' => ['weeks_ago' => 3, 'rate' => [1525, 2450]], 'shift' => 'day', 'method' => 'tablet', 'started_weeks_ago' => 15],
             ],
         ],
+        [
+            // Doesn't clock in: the hotel sends its hours each week and the
+            // office uploads them (Billing → Hour Imports).
+            'name' => 'Lakeside Suites',
+            'address' => '2100 Allen Pkwy',
+            'city' => 'Houston',
+            'state' => 'TX',
+            'zip' => '77019',
+            'phone' => '(713) 555-0110',
+            'email' => 'lakeside@example.com',
+            'latitude' => 29.7601,
+            'longitude' => -95.3870,
+            'tax_rate' => 0.0825,
+            'recruiter' => 'recruiter@example.com',
+            'pm' => 'pm.lakeside@example.com',
+            'pm_phone' => '(713) 555-0111',
+            'tablet' => null,
+            'imports_hours' => true,
+            'rate_history' => [
+                ['months_ago' => 8, 'rates' => [
+                    'housekeeper' => [1550, 2500],
+                    'houseman' => [1625, 2625],
+                    'laundry-attendant' => [1500, 2425],
+                    'public-space-attendant' => [1575, 2550],
+                ]],
+            ],
+            'contractors' => [
+                ['name' => 'Daniel Okafor', 'email' => 'daniel.okafor@example.com', 'phone' => '(713) 555-0181', 'position' => 'housekeeper', 'rate' => null, 'raise' => null, 'shift' => 'long', 'method' => 'import', 'started_weeks_ago' => 20, 'hotel_id' => 'LS-1042'],
+                ['name' => 'Grace Liu', 'email' => 'grace.liu@example.com', 'phone' => '(713) 555-0182', 'position' => 'housekeeper', 'rate' => null, 'raise' => null, 'shift' => 'day', 'method' => 'import', 'started_weeks_ago' => 16, 'hotel_id' => 'LS-1057'],
+                ['name' => 'Marco Silva', 'email' => 'marco.silva@example.com', 'phone' => '(713) 555-0183', 'position' => 'houseman', 'rate' => null, 'raise' => null, 'shift' => 'day', 'method' => 'import', 'started_weeks_ago' => 14, 'hotel_id' => 'LS-1063'],
+                ['name' => 'Priya Shah', 'email' => 'priya.shah@example.com', 'phone' => '(713) 555-0184', 'position' => 'laundry-attendant', 'rate' => null, 'raise' => null, 'shift' => 'day', 'method' => 'import', 'started_weeks_ago' => 11, 'hotel_id' => 'LS-1071'],
+                ['name' => 'Rosa Delgado', 'email' => 'rosa.delgado@example.com', 'phone' => '(713) 555-0185', 'position' => 'public-space-attendant', 'rate' => null, 'raise' => null, 'shift' => 'day', 'method' => 'import', 'started_weeks_ago' => 8, 'hotel_id' => 'LS-1088'],
+            ],
+        ],
     ];
+
+    /**
+     * The demo companies as list<DemoProperty>. Loop over this rather than the
+     * constant: Larastan reads the constant's literal value instead of its
+     * declared type and loses track of the optional keys.
+     *
+     * @return list<DemoProperty>
+     */
+    public static function properties(): array
+    {
+        return self::PROPERTIES;
+    }
 
     /**
      * Every contractor, with the company they work at.
@@ -155,7 +204,7 @@ final class DemoRoster
     public static function contractors(): array
     {
         $all = [];
-        foreach (self::PROPERTIES as $property) {
+        foreach (self::properties() as $property) {
             foreach ($property['contractors'] as $contractor) {
                 $all[] = [...$contractor, 'property' => $property['name']];
             }

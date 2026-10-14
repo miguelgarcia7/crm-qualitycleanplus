@@ -6,6 +6,7 @@ use App\Domain\Billing\Enums\TimesheetStatus;
 use App\Domain\Demo\Concerns\TravelsInTime;
 use App\Domain\Demo\DemoRoster;
 use App\Domain\Demo\Support\PlaceholderSelfie;
+use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Time\Actions\ClockInContractor;
 use App\Domain\Time\Actions\ClockOutContractor;
@@ -38,6 +39,11 @@ class SimulateClock
     /** @return int punches recorded */
     public function handle(Property $property, CarbonImmutable $from, CarbonImmutable $until): int
     {
+        // Import-only companies send their hours (ImportDemoHours): no punches.
+        if ($property->time_source === PropertyTimeSource::Import) {
+            return 0;
+        }
+
         $tz = $property->timezone;
         $workOrders = $property->workOrders()
             ->where('status', WorkOrderStatus::Active)

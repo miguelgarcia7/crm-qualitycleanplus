@@ -7,18 +7,23 @@ use App\Domain\Billing\Models\Timesheet;
 use App\Domain\Demo\DemoRoster;
 use App\Domain\FieldVisits\Enums\FieldVisitStatus;
 use App\Domain\FieldVisits\Models\FieldVisit;
+use App\Domain\Imports\Enums\ImportBatchStatus;
+use App\Domain\Imports\Models\ImportBatch;
 use App\Domain\Inventory\Models\ItemVariant;
 use App\Domain\Inventory\Models\PurchaseOrder;
 use App\Domain\Inventory\Models\SupplyRequest;
 use App\Domain\Marketing\Models\ContactInquiry;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
+use App\Domain\People\Models\PersonExternalId;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
+use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Property;
 use App\Domain\Pto\Enums\PtoRequestStatus;
 use App\Domain\Pto\Models\PtoRequest;
 use App\Domain\Recruiting\Models\JobApplication;
 use App\Domain\Recruiting\Models\JobPosting;
+use App\Domain\Time\Enums\PayrollPeriodStatus;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
 use App\Domain\Workflows\Enums\WorkflowStatus;
@@ -55,7 +60,7 @@ function demoProperty(string $name): Property
 
 function openEntries(): int
 {
-    return TimeEntry::query()->whereNull('end_at_utc')->count();
+    return TimeEntry::query()->whereNotNull('start_at_utc')->whereNull('end_at_utc')->count();
 }
 
 it('seeds a login for every role, a recruiter and manager per company, and their contractors', function () {
@@ -65,8 +70,8 @@ it('seeds a login for every role, a recruiter and manager per company, and their
         expect(Person::role($role)->count())->toBeGreaterThan(0, $role);
     }
     expect(Person::role('recruiter')->count())->toBe(2)
-        ->and(Person::role('property_manager')->count())->toBe(3)
-        ->and(Person::role('contractor')->count())->toBe(9);
+        ->and(Person::role('property_manager')->count())->toBe(4)
+        ->and(Person::role('contractor')->count())->toBe(14);
 
     $acme = demoProperty('Acme Hotel');
     expect($acme->workOrders()->where('status', WorkOrderStatus::Active)->count())->toBe(5)
@@ -124,17 +129,17 @@ it('seeds three job postings and three applicants at different stages', function
         ->and(Person::query()->where('status', PersonStatus::Applicant)->count())->toBe(3);
 });
 
-it('replays six weeks so only the long-shift contractor runs into overtime', function () {
+it('replays six weeks so only the long-shift contractors run into overtime', function () {
     seedDemoAt();
-    $james = Person::query()->where('email', 'james.carter@example.com')->firstOrFail();
+    // James punches long days at Acme; Daniel's imported weeks at Lakeside are long too.
+    $long = Person::query()->whereIn('email', ['james.carter@example.com', 'daniel.okafor@example.com'])->pluck('id');
 
     $summaries = TimeSummary::query()->with('workOrder')->get();
     $overtime = $summaries->where('overtime_minutes', '>', 0);
 
-    expect($overtime)->not->toBeEmpty()
-        ->and($overtime->every(fn (TimeSummary $s) => $s->workOrder->person_id === $james->id))->toBeTrue()
+    expect($overtime->pluck('workOrder.person_id')->unique()->sort()->values()->all())->toBe($long->sort()->values()->all())
         ->and($summaries
-            ->filter(fn (TimeSummary $s) => $s->workOrder->person_id !== $james->id)
+            ->filter(fn (TimeSummary $s) => ! $long->contains($s->workOrder->person_id))
             ->every(fn (TimeSummary $s) => $s->regular_minutes + $s->overtime_minutes + $s->holiday_minutes < 40 * 60))->toBeTrue();
 });
 
@@ -142,17 +147,44 @@ it('leaves billing at every stage: last week with the PM, older weeks invoiced, 
     seedDemoAt();
 
     // Weeks close Sunday. Week of 9/21 → submitted 9/28, approval due 10/5.
-    // 8/17–9/14 → invoiced + sent at each of the three companies. Acme and
-    // QCP pay 22 days after close (through 9/6); MAG Solutions pays after 52,
-    // so none of its are paid yet and the oldest (due 9/30) is overdue.
+    // 8/17–9/14 → invoiced + sent at each of the four companies (Lakeside's
+    // by import, no PM step). Acme, QCP and Lakeside pay 22 days after close
+    // (through 9/6); MAG Solutions pays after 52, so none of its are paid yet
+    // and the oldest (due 9/30) is overdue.
     $mag = demoProperty('MAG Solutions');
 
     expect(Timesheet::query()->where('status', TimesheetStatus::PendingApproval)->count())->toBe(3)
-        ->and(Invoice::query()->count())->toBe(15)
-        ->and(Invoice::query()->where('status', InvoiceStatus::InvoiceSent)->count())->toBe(15)
-        ->and(Invoice::query()->whereNotNull('paid_at')->count())->toBe(6)
+        ->and(Invoice::query()->count())->toBe(20)
+        ->and(Invoice::query()->where('status', InvoiceStatus::InvoiceSent)->count())->toBe(20)
+        ->and(Invoice::query()->whereNotNull('paid_at')->count())->toBe(9)
         ->and(Invoice::query()->where('property_id', $mag->id)->whereNotNull('paid_at')->count())->toBe(0)
         ->and(Invoice::query()->where('property_id', $mag->id)->whereNull('paid_at')->whereDate('due_date', '<', '2026-10-01')->count())->toBe(1);
+});
+
+it('imports Lakeside Suites’ weekly hours instead of punches, leaving last week to upload', function () {
+    seedDemoAt();
+    $lakeside = demoProperty('Lakeside Suites');
+    $lastWeek = $lakeside->payrollPeriods()->whereDate('week_start', '2026-09-21')->firstOrFail();
+
+    expect($lakeside->time_source)->toBe(PropertyTimeSource::Import)
+        ->and($lakeside->qr_clock_enabled)->toBeFalse()
+        ->and(PersonExternalId::query()->where('property_id', $lakeside->id)->pluck('external_id')->sort()->values()->all())
+        ->toBe(['LS-1042', 'LS-1057', 'LS-1063', 'LS-1071', 'LS-1088'])
+        // 8/17–9/14, each imported the Monday after the next week closed.
+        ->and(ImportBatch::query()->where('property_id', $lakeside->id)->where('status', ImportBatchStatus::Applied)->count())->toBe(5)
+        ->and(TimeEntry::query()->where('property_id', $lakeside->id)->whereNotNull('start_at_utc')->count())->toBe(0)
+        ->and($lastWeek->status)->toBe(PayrollPeriodStatus::Open)
+        ->and(ImportBatch::query()->where('payroll_period_id', $lastWeek->id)->exists())->toBeFalse()
+        // Labor Day week: weekly totals are never holiday pay.
+        ->and(TimeSummary::query()->where('property_id', $lakeside->id)->sum('holiday_minutes'))->toBe(0);
+
+    // A week later the simulator imports 9/21 itself, and only once.
+    config(['demo.enabled' => true]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-05 11:00', 'America/Chicago')->utc());
+    $this->artisan('demo:simulate')->assertSuccessful();
+    $this->artisan('demo:simulate')->assertSuccessful();
+
+    expect(ImportBatch::query()->where('payroll_period_id', $lastWeek->id)->where('status', ImportBatchStatus::Applied)->count())->toBe(1);
 });
 
 it('keeps contractors on the clock and punches them out on plan, idempotently', function () {

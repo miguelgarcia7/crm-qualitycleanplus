@@ -99,7 +99,7 @@ class ContractorHome
     {
         $open = TimeEntry::query()
             ->where('person_id', $person->id)
-            ->whereNull('end_at_utc')
+            ->whereNotNull('start_at_utc')->whereNull('end_at_utc')
             ->with('workOrder.property:id,name,timezone', 'workOrder.position:id,name')
             ->latest('start_at_utc')
             ->first();

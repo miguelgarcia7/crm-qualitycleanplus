@@ -91,14 +91,19 @@ class CommitImport
 
             $adjustmentIds = $this->applyAdjustments($batch, $period, $rowWorkOrders, $user);
 
-            $timesheet = Timesheet::create([
+            // One timesheet per week: payroll:ensure-periods has usually made
+            // a draft one already, and a rolled-back import leaves a voided
+            // one. Either way the import takes it over; the commit is the
+            // approval.
+            $timesheet = Timesheet::query()->firstOrNew(['payroll_period_id' => $period->id]);
+            $timesheet->fill([
                 'property_id' => $property->id,
-                'payroll_period_id' => $period->id,
                 'source' => 'imported',
                 'status' => TimesheetStatus::Approved,
                 'approved_at' => now(),
                 'approved_by' => $user->id,
-            ]);
+                'invoice_id' => null,
+            ])->save();
 
             $invoice = $this->generateInvoice->handle($timesheet);
 

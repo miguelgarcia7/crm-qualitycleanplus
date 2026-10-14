@@ -23,10 +23,14 @@ declared in `app/Domain/Demo/DemoRoster.php`.
 
 - **Logins** (all share `DEMO_PASSWORD`, default `password`):
   - Back office (`DOMAIN_MAIN/admin`): `super-admin@`, `admin@`, `office-manager@`,
-    `front-desk@`, `hr@`, `payroll@`, `recruiter@` (Acme), `recruiter2@` (QCP Property
+    `front-desk@`, `hr@`, `payroll@`, `recruiter@` (Acme, Lakeside Suites), `recruiter2@` (QCP Property
     and MAG Solutions), `w2@` — all `@example.com`.
   - QC Minute (`DOMAIN_QCMINUTE`): a property manager per company (`pm@`, `pm.qcp@`,
-    `pm.mag@`) and the nine contractors.
+    `pm.mag@`, `pm.lakeside@`) and the fourteen contractors.
+- **Lakeside Suites** — Houston, Time Source **Import** (no QR, no tablet): its five
+  contractors carry a hotel ID (`people_external_ids`, `LS-1042`…) and their hours
+  arrive as a weekly Excel file. Daniel Okafor works the long shift, so his weeks run
+  into overtime.
 - **Acme Hotel** — Chicago, Mon–Sun weeks, 6.25% tax, QR clock-in on, the default
   holidays (Labor Day falls inside the history, so one week shows holiday pay), a
   lobby tablet with activation code `ACME01`.
@@ -78,7 +82,14 @@ demo commands refuse in production). Each run:
    | Invoice emailed | that Tuesday 10:00 |
    | Marked paid (by payroll) | ~3 weeks after close |
 
-Both steps run for each demo company. They stamp each action at its **planned** time,
+3. **Hour imports** (Lakeside Suites) — `ImportDemoHours` writes the weekly file the
+   hotel would send (each contractor's shift plan summed to a weekly total, at their
+   work order's pay rate) and runs it through the real `CreateImportBatch` +
+   `CommitImport`, by the recruiter, the Monday after the *following* week closes.
+   Last week is therefore always waiting to be uploaded by hand in a demo; a week
+   someone already imported is skipped. Import-only companies get no punches.
+
+All steps run for each demo company. They stamp each action at its **planned** time,
 not the cron tick that noticed it (`TravelsInTime`), and read progress back from the
 data — so they're idempotent, a missed run or a sleeping environment catches up on the
 next run, and the seeder builds the six-week history by running the very same code

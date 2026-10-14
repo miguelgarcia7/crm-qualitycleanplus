@@ -28,7 +28,7 @@ class SubmitTimesheetForApproval
         // billed short, and locking it would leave nobody able to close it.
         $open = TimeEntry::query()
             ->where('payroll_period_id', $timesheet->payroll_period_id)
-            ->whereNull('end_at_utc')
+            ->whereNotNull('start_at_utc')->whereNull('end_at_utc')
             ->count();
 
         if ($open > 0) {

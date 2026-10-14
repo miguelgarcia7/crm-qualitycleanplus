@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Domain\Demo\Actions\AdvanceDemoBilling;
+use App\Domain\Demo\Actions\ImportDemoHours;
 use App\Domain\Demo\Actions\SimulateClock;
 use App\Domain\Demo\DemoRoster;
 use App\Domain\PropertyBible\Models\Property;
@@ -18,9 +19,9 @@ class DemoSimulate extends Command
 {
     protected $signature = 'demo:simulate';
 
-    protected $description = 'Advance the demo companies to now: contractor punches and weekly billing steps';
+    protected $description = 'Advance the demo companies to now: contractor punches, hour imports and weekly billing steps';
 
-    public function handle(SimulateClock $clock, AdvanceDemoBilling $billing): int
+    public function handle(SimulateClock $clock, ImportDemoHours $imports, AdvanceDemoBilling $billing): int
     {
         if ($this->laravel->isProduction() || ! config('demo.enabled')) {
             $this->error('demo:simulate only runs with DEMO_MODE=true, and never in production.');
@@ -42,6 +43,9 @@ class DemoSimulate extends Command
         foreach ($properties as $property) {
             $from = $property->weekStartFor($now->setTimezone($property->timezone))->subWeek();
             $punches += $clock->handle($property, $from, $now);
+            // Lakeside Suites: weeks nobody uploaded by hand are imported a
+            // week after they close, so the gap never grows past last week.
+            $imports->handle($property, $from->subWeeks(2), $now);
             $billing->handle($property, $now);
         }
 

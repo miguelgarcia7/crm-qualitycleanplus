@@ -42,6 +42,16 @@ Excel file (.xlsx). Columns (order may vary; headers detected):
 
 Extra columns are ignored. Missing required columns cause a hard fail with a clear error message.
 
+**No overtime column.** The week's total is enough: hours over 40 on a work order are
+paid and billed as overtime when the week is recomputed. A weekly total has no day, so
+it is never paid as holiday hours, even in a week that starts on a holiday (2026-10-14:
+before, the total landed on the week's first day, and a Labor Day or Memorial Day
+Monday made the whole week holiday pay).
+
+**One timesheet per week.** `payroll:ensure-periods` makes a draft timesheet for every
+week ahead of time, so the commit takes over that week's timesheet (draft, or voided by
+a rollback) rather than creating a second one.
+
 ## Visual flow
 
 ```

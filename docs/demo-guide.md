@@ -39,7 +39,7 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 | **Front Desk** | `front-desk@example.com` | Handles supplies and walk-ins: inventory, purchase orders, filling supply requests, the new-hire onboarding checklist, returning equipment. |
 | **HR** | `hr@example.com` | Handles people: applicants, contractors and staff, terminations and transfers, PTO approvals, knowledge-base articles. |
 | **Payroll** | `payroll@example.com` | Handles money: rates, contracts, hour imports, marking invoices paid or void, payroll and financial reports. |
-| **Recruiter** | `recruiter@example.com` | Rita. Owns **Acme Hotel** day to day: its contractors and work orders, fixing punches, submitting each week's timesheet to the hotel, sending invoices, property visits, job postings and applicants. |
+| **Recruiter** | `recruiter@example.com` | Rita. Owns **Acme Hotel** and **Lakeside Suites** day to day: its contractors and work orders, fixing punches, submitting each week's timesheet to the hotel, sending invoices, property visits, job postings and applicants. |
 | **Recruiter** | `recruiter2@example.com` | Ray. Same job for **QCP Property** and **MAG Solutions**. Compare the two to see that a recruiter only sees their own companies. |
 | **W-2 Employee** | `w2@example.com` | Wendy. Staff with no office duties. **My Profile** shows her time off (balances, days off coming up, her next tier) and the requests she's waiting on. She also requests time off and supplies and reads the knowledge base. Every staff role gets the same profile cards. |
 
@@ -50,6 +50,7 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 | **Property Manager** | `pm@example.com` | Pat, Acme Hotel's manager. |
 | **Property Manager** | `pm.qcp@example.com` | Quinn, QCP Property's manager. |
 | **Property Manager** | `pm.mag@example.com` | Megan, MAG Solutions' manager. |
+| **Property Manager** | `pm.lakeside@example.com` | Leo, Lakeside Suites' manager. Lakeside sends its hours instead of clocking in, so Leo has no timesheets to approve; he sees hours and invoices. |
 | **Contractor** | see below | A worker placed at a company. Their home shows whether they're on the clock, this week's hours, pay by week per job, uniform charges, their jobs and details, plus knowledge-base articles. **My hours** has every week, each one day by day, and **Report a problem** sends a week that looks wrong to their recruiter's My Tasks. |
 
 Each property manager sees only their own company: who's working and their hours,
@@ -63,6 +64,13 @@ a pay increase.
 | **Acme Hotel** | 233 N Michigan Ave, Chicago, IL 60601 | (312) 555-0100 · accounts.payable@example.com | Rita | 5 |
 | **QCP Property** | 1720 Regal Row, Dallas, TX 75235 | (214) 333-4444 · qcp@example.com | Ray | Janitor, Housekeeper |
 | **MAG Solutions** | 1519 Palisades Dr, Carrollton, TX 75007 | (214) 333-5555 · mag@example.com | Ray | Cook, Dishwasher |
+| **Lakeside Suites** | 2100 Allen Pkwy, Houston, TX 77019 | (713) 555-0110 · lakeside@example.com | Rita | 4 (sends its hours) |
+
+**Lakeside Suites doesn't clock in.** It's set to **Import** (Property Bible → Time
+Source): each week the hotel sends a file with everyone's hours, and the office uploads
+it under **Billing → Hour Imports**. Its earlier weeks are already imported, invoiced
+and paid. **Last week is waiting to be uploaded**, which is the one to try. The demo
+uploads it by itself the Monday after this week ends, if nobody has.
 
 QCP Property and MAG Solutions each have a **rate history**: their Bible rates went
 up a few months ago, so the property page's Rates tab shows the old rate (closed) and
@@ -92,9 +100,21 @@ last six weeks, so their work orders show the old rate, the raise, and hours at 
 
 All four work about 8:00–4:00.
 
+**Lakeside Suites** — no clock-in. Each person has an ID in the hotel's own payroll
+system, which is how the hotel's file is matched to them.
+
+| Name | Email | Hotel ID | Job | Usual week |
+|---|---|---|---|---|
+| **Daniel Okafor** | `daniel.okafor@example.com` | LS-1042 | Housekeeper | **~50h (overtime)** |
+| Grace Liu | `grace.liu@example.com` | LS-1057 | Housekeeper | ~38h |
+| Marco Silva | `marco.silva@example.com` | LS-1063 | Houseman | ~38h |
+| Priya Shah | `priya.shah@example.com` | LS-1071 | Laundry Attendant | ~38h |
+| Rosa Delgado | `rosa.delgado@example.com` | LS-1088 | Public Space Attendant | ~38h |
+
 Everyone takes a ~30-minute lunch around noon, so there are four punches a day.
-**James is the only one who goes over 40 hours a week**, which is what you need for
-testing overtime on timesheets and invoices. Times are Chicago time (Dallas is in the
+**James is the only one who clocks in and goes over 40 hours a week** (Daniel does too,
+in Lakeside's imported hours), which is what you need for testing overtime on
+timesheets and invoices. Times are Chicago time (Dallas is in the
 same time zone), Monday–Friday.
 
 ### Recruiting
@@ -180,7 +200,7 @@ php84 artisan demo:reset
 ```
 
 **Deletes everything in the database** and creates the demo: every account, the
-three companies, the contractors, job postings and applicants, and the last six weeks
+four companies, the contractors, job postings and applicants, and the last six weeks
 of hours, timesheets and invoices. It prints the account list when it's done. It only runs with
 `DEMO_MODE=true`, and never with `APP_ENV=production`. Use
 it to start over at any time. Your company details (Settings → Company: name,

@@ -165,7 +165,7 @@ class PropertyManagerHome
                 ->value('minutes'),
             'on_the_clock' => TimeEntry::query()
                 ->whereIn('payroll_period_id', $periodIds)
-                ->whereNull('end_at_utc')
+                ->whereNotNull('start_at_utc')->whereNull('end_at_utc')
                 ->with('workOrder:id,person_id,property_id', 'workOrder.person:id,name', 'workOrder.property:id,name')
                 ->orderBy('start_at_utc')
                 ->get()

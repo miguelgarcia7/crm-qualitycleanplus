@@ -63,7 +63,7 @@ class DeviceClockController extends Controller
             ->where('status', WorkOrderStatus::Active->value)
             ->with('position:id,name')->get();
 
-        $open = TimeEntry::query()->where('person_id', $person->id)->whereNull('end_at_utc')
+        $open = TimeEntry::query()->where('person_id', $person->id)->whereNotNull('start_at_utc')->whereNull('end_at_utc')
             ->with('workOrder.position:id,name')->first();
 
         if ($workOrders->isEmpty() && $open === null) {
@@ -111,7 +111,7 @@ class DeviceClockController extends Controller
             'selfie' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        $entry = TimeEntry::query()->where('property_id', $device->property_id)->whereNull('end_at_utc')->find($validated['time_entry_id']);
+        $entry = TimeEntry::query()->where('property_id', $device->property_id)->whereNotNull('start_at_utc')->whereNull('end_at_utc')->find($validated['time_entry_id']);
         if ($entry === null) {
             throw ValidationException::withMessages(['time_entry_id' => 'That clock-in could not be found.']);
         }

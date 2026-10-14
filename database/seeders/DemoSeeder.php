@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Domain\Demo\Actions\AdvanceDemoBilling;
+use App\Domain\Demo\Actions\ImportDemoHours;
 use App\Domain\Demo\Actions\SimulateClock;
 use App\Domain\Demo\Concerns\TravelsInTime;
 use App\Domain\Demo\DemoActivity;
@@ -11,8 +12,10 @@ use App\Domain\Devices\Models\Device;
 use App\Domain\People\Enums\BackgroundCheckStatus;
 use App\Domain\People\Enums\PersonStatus;
 use App\Domain\People\Models\Person;
+use App\Domain\People\Models\PersonExternalId;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Enums\PropertyStatus;
+use App\Domain\PropertyBible\Enums\PropertyTimeSource;
 use App\Domain\PropertyBible\Models\Holiday;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
@@ -38,7 +41,9 @@ use Illuminate\Support\Facades\Hash;
  * orders (some with a pay raise partway through), and six weeks of history
  * replayed through the same simulator that keeps the demo live — real clock
  * punches, then the billing cadence that leaves last week with each PM and
- * older weeks invoiced, sent and paid. Plus job postings and applicants.
+ * older weeks invoiced, sent and paid. The import-only company (Lakeside
+ * Suites) gets its weekly hour files imported instead, with last week left to
+ * upload by hand. Plus job postings and applicants.
  *
  * Runs on the structural seeders (roles, positions, holidays) via demo:reset,
  * and avoids factories — Faker isn't installed on Cloud builds.
@@ -80,7 +85,7 @@ class DemoSeeder extends Seeder
         $properties = [];
         $raises = [];
 
-        foreach (DemoRoster::PROPERTIES as $p) {
+        foreach (DemoRoster::properties() as $p) {
             $property = $this->createProperty($p, $positions, $now);
             $properties[$p['name']] = $property;
             $recruiter = $this->people[$p['recruiter']];
@@ -100,6 +105,12 @@ class DemoSeeder extends Seeder
                     'email_verified_at' => $now,
                 ]);
                 $contractor->syncRoles('contractor');
+
+                if (isset($c['hotel_id'])) {
+                    // Their ID in the hotel's payroll system: how its weekly
+                    // hour files are matched to them.
+                    PersonExternalId::create(['person_id' => $contractor->id, 'property_id' => $property->id, 'external_id' => $c['hotel_id']]);
+                }
 
                 $workOrder = app(CreateWorkOrder::class)->handle([
                     'person_id' => $contractor->id,
@@ -150,6 +161,8 @@ class DemoSeeder extends Seeder
         $this->replay($properties, $now, $now);
 
         foreach ($properties as $property) {
+            $from = $property->weekStartFor($now->setTimezone($property->timezone))->subWeeks(self::HISTORY_WEEKS);
+            app(ImportDemoHours::class)->handle($property, $from, $now);
             app(AdvanceDemoBilling::class)->handle($property, $now);
         }
 
@@ -183,7 +196,9 @@ class DemoSeeder extends Seeder
             'timezone' => 'America/Chicago',
             'latitude' => $p['latitude'],   // QR clock-in geofence
             'longitude' => $p['longitude'],
-            'qr_clock_enabled' => true,
+            // An import-only company sends its hours; nobody clocks in there.
+            'time_source' => ($p['imports_hours'] ?? false) ? PropertyTimeSource::Import : PropertyTimeSource::ClockIn,
+            'qr_clock_enabled' => ! ($p['imports_hours'] ?? false),
             'tax_rate' => $p['tax_rate'],
             'closing_day' => 7, // weeks run Monday–Sunday
             'status' => PropertyStatus::Active,
