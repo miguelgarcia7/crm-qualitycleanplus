@@ -21,7 +21,7 @@ export const menuItems: MenuItemType[] = [
   {
     icon: 'briefcase',
     slug: 'operations',
-    label: 'Operations',
+    label: 'Operations (Create)',
     isTitle: true,
     children: [
       { url: '/admin/properties', slug: 'bible', label: 'Property Bible', icon: 'building', permission: 'bible.properties.view' },
@@ -70,7 +70,7 @@ export const menuItems: MenuItemType[] = [
   {
     icon: 'checks',
     slug: 'approvals',
-    label: 'Approvals',
+    label: 'Approvals (Changes)',
     isTitle: true,
     children: [
       { url: '/admin/pay-increases', slug: 'pay-increases', label: 'Pay Increases', icon: 'trending-up', permission: 'workflows.pay_increase.initiate' },
