@@ -3,6 +3,7 @@
 use App\Domain\PropertyBible\Models\Contract;
 use App\Domain\PropertyBible\Models\Property;
 use App\Notifications\ContractExpiringNotification;
+use App\Notifications\ContractThreeYearsOldNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -108,4 +109,35 @@ it('does not alert when no contract is near a threshold', function () {
     $this->artisan('contracts:expiration-check')->assertSuccessful();
 
     Notification::assertNothingSent();
+});
+
+it('tells Admin once when a contract turns three years old, active or replaced', function () {
+    Notification::fake();
+    $this->travelTo('2026-10-14 12:00:00'); // 7 AM Central
+
+    $property = Property::factory()->create(['name' => 'Acme Hotel']);
+    $today = Contract::factory()->for($property)->create(['name' => 'Rate agreement', 'effective_date' => '2023-10-14', 'expiration_date' => null, 'is_active' => true]);
+    $replaced = Contract::factory()->for($property)->create(['effective_date' => '2023-10-10', 'expiration_date' => null, 'is_active' => false]); // a run missed this week
+    $noDate = Contract::factory()->for($property)->create(['effective_date' => null, 'expiration_date' => null]);
+    $noDate->forceFill(['created_at' => '2023-10-14 15:00:00'])->save();
+    Contract::factory()->for($property)->create(['effective_date' => '2023-10-15', 'expiration_date' => null]); // tomorrow
+    Contract::factory()->for($property)->create(['effective_date' => '2021-01-01', 'expiration_date' => null]); // long past: no burst
+
+    $admin = person('admin');
+    $payroll = person('payroll');
+
+    $this->artisan('contracts:expiration-check')->assertSuccessful();
+
+    Notification::assertSentToTimes($admin, ContractThreeYearsOldNotification::class, 3);
+    Notification::assertNotSentTo($payroll, ContractThreeYearsOldNotification::class);
+    Notification::assertSentTo($admin, ContractThreeYearsOldNotification::class,
+        fn (ContractThreeYearsOldNotification $n) => $n->contract->is($today)
+            && $n->toArray($admin)['message'] === 'Contract "Rate agreement" (Acme Hotel) is 3 years old (since Oct 14, 2023). Time to review it.');
+    expect($replaced->fresh()->three_year_notice_at)->not->toBeNull();
+
+    // Sent once: the next night says nothing more.
+    $this->travelTo('2026-10-15 12:00:00');
+    Notification::fake();
+    $this->artisan('contracts:expiration-check')->assertSuccessful();
+    Notification::assertSentToTimes($admin, ContractThreeYearsOldNotification::class, 1); // only the 10/15 one
 });

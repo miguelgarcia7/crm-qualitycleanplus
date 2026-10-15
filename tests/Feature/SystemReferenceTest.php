@@ -61,7 +61,7 @@ it('lists the scheduled tasks in Chicago time', function () {
     $this->actingAs(person('admin'))
         ->get(main('/admin/system'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('automations.0.name', 'Alert Admin and Payroll about contracts ending in 30 or 14 days')
+            ->where('automations.0.name', 'Alert Admin and Payroll about contracts ending in 30 or 14 days, and Admin about contracts turning 3 years old')
             ->where('automations.0.cadence', 'Daily at 7:00 AM')
             ->where('automations.1.name', 'Create the upcoming pay weeks')
         );
@@ -128,7 +128,7 @@ it('shows every notification against the roles that receive it', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/system/notifications')
             ->has('roles', 10) // nine roles plus outside inboxes
-            ->has('notices', 21)
+            ->has('notices', 22)
             ->where('initial', 'timesheet-submitted')
             ->where('notices.0', fn ($n) => $n['name'] === 'Week waiting for approval'
                 && $n['in_app'] && $n['email'] && ! $n['can_mute']
@@ -178,9 +178,9 @@ it('counts notifications on the overview', function () {
     $this->actingAs(person('admin'))
         ->get(main('/admin/system'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('stats.notifications', 21)
+            ->where('stats.notifications', 22)
             ->where('stats.notifications_email', 7) // three timesheet notices, invoice, invitation, reset, lead
-            ->has('notices', 21)
+            ->has('notices', 22)
         );
 });
 
@@ -204,7 +204,7 @@ it('shows every scheduled task with its times in Chicago and UTC', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/system/automations')
             ->has('tasks', count(app(Schedule::class)->events()))
-            ->where('tasks.0.name', 'Alert Admin and Payroll about contracts ending in 30 or 14 days')
+            ->where('tasks.0.name', 'Alert Admin and Payroll about contracts ending in 30 or 14 days, and Admin about contracts turning 3 years old')
             ->where('tasks.0.source', 'php artisan contracts:expiration-check')
             ->where('tasks.0.cadence', 'Daily at 7:00 AM')
             ->where('tasks.0.schedule_timezone', 'Chicago time')

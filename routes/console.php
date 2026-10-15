@@ -22,7 +22,7 @@ Artisan::command('inspire', function () {
 
 // Property Bible — daily contract expiration alerts (30/14 day).
 Schedule::command(ContractExpirationCheck::class)->dailyAt('07:00')
-    ->description('Alert Admin and Payroll about contracts ending in 30 or 14 days');
+    ->description('Alert Admin and Payroll about contracts ending in 30 or 14 days, and Admin about contracts turning 3 years old');
 
 // Time tracking — keep payroll periods materialized ahead (ADR-0009).
 Schedule::command(EnsurePayrollPeriods::class)->dailyAt('00:15')

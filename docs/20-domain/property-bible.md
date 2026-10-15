@@ -170,6 +170,7 @@ A daily scheduled job (`ContractExpirationCheck`) surfaces:
 
 - Contracts expiring in 30 days → alert to ownership + payroll
 - Contracts expiring in 14 days → second alert (escalation)
+- Contracts turning 3 years old (from the effective date, or the upload day when there is none) → one notice to Admin to review it, for every contract, active or replaced (2026-10-14). Contracts are never deleted automatically; the nightly `contracts:expiration-check` sends it once (`contracts.three_year_notice_at`), catching a run missed by up to a week
 - Contracts that have expired but have no successor → flagged on dashboard, but operations continue (work orders don't stop, invoices don't stop — see `90-open/parking-lot.md` for the policy decision)
 
 ## 5. Notes / History

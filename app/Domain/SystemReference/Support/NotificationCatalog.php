@@ -8,6 +8,7 @@ use App\Notifications\ApplicationReceived;
 use App\Notifications\AppNotification;
 use App\Notifications\ContactInquiryReceived;
 use App\Notifications\ContractExpiringNotification;
+use App\Notifications\ContractThreeYearsOldNotification;
 use App\Notifications\DirectHireEligible;
 use App\Notifications\InvoiceIssued;
 use App\Notifications\PasswordResetLink;
@@ -217,6 +218,15 @@ class NotificationCatalog
                 'who' => 'Everyone who can view contracts.',
                 'classes' => [ContractExpiringNotification::class => []],
                 'always' => 'bible.contracts.view',
+            ],
+            [
+                'id' => 'contract-three-years', 'group' => 'Contracts', 'name' => 'Contract three years old',
+                'summary' => 'Time to review a contract',
+                'what' => 'A property contract turned three years old. Contracts are kept, never deleted; this is a reminder to review it.',
+                'when' => 'The nightly check finds a contract three years past its effective date (or its upload day, when it has none). Sent once per contract.',
+                'who' => 'Admin.',
+                'classes' => [ContractThreeYearsOldNotification::class => []],
+                'always' => ['admin'],
             ],
             [
                 'id' => 'invitation', 'group' => 'Accounts', 'name' => 'Invitation to set a password',
