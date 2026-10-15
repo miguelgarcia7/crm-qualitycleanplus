@@ -12,6 +12,7 @@ use App\Notifications\ContractThreeYearsOldNotification;
 use App\Notifications\DirectHireEligible;
 use App\Notifications\InvoiceIssued;
 use App\Notifications\PasswordResetLink;
+use App\Notifications\PositionChangedNotification;
 use App\Notifications\PunchFlagged;
 use App\Notifications\TimesheetAwaitingApproval;
 use App\Notifications\TimesheetDecided;
@@ -226,6 +227,15 @@ class NotificationCatalog
                 'when' => 'The nightly check finds a contract three years past its effective date (or its upload day, when it has none). Sent once per contract.',
                 'who' => 'Admin.',
                 'classes' => [ContractThreeYearsOldNotification::class => []],
+                'always' => ['admin'],
+            ],
+            [
+                'id' => 'position-changed', 'group' => 'Property Bible', 'name' => 'Position added or renamed',
+                'summary' => 'Someone other than an Admin changed the position list',
+                'what' => 'A position was added, or renamed. A position\'s name is shared by every property, work order and invoice line.',
+                'when' => 'An Office Manager or Payroll adds or renames a position on Positions. Changes by an Admin aren\'t announced.',
+                'who' => 'Admin.',
+                'classes' => [PositionChangedNotification::class => []],
                 'always' => ['admin'],
             ],
             [

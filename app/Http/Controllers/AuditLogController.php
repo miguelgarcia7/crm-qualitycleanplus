@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\People\Models\Person;
+use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
 use App\Support\CompanyTime;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class AuditLogController extends Controller
     private const SUBJECT_LINKS = [
         Person::class => '/admin/people/%d',
         Property::class => '/admin/properties/%d',
+        Position::class => '/admin/positions',
     ];
 
     public function index(Request $request): Response

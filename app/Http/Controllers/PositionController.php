@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\People\Models\Person;
+use App\Domain\PropertyBible\Actions\SavePosition;
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\WorkOrders\Models\WorkOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,7 +17,8 @@ use Inertia\Response;
  * Global position catalog management (Property Bible). Position names are the
  * one canonical vocabulary used across every property, work order, and report —
  * a rename here propagates everywhere. Positions are never deleted (rates and
- * work orders reference them); deactivate instead. Routes gated
+ * work orders reference them); deactivate instead. Saving goes through
+ * SavePosition, which writes the Audit Log and tells Admin about others' changes. Routes gated
  * `bible.positions.view` / `bible.positions.edit`.
  */
 class PositionController extends Controller
@@ -47,24 +49,26 @@ class PositionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SavePosition $action): RedirectResponse
     {
-        $validated = $this->validated($request);
-
-        Position::create([
-            ...$validated,
-            'slug' => $this->uniqueSlug($validated['name']),
-        ]);
+        $action->handle(null, $this->validated($request), $this->actor($request));
 
         return back()->with('success', 'Position created.');
     }
 
-    public function update(Request $request, Position $position): RedirectResponse
+    public function update(Request $request, Position $position, SavePosition $action): RedirectResponse
     {
-        // Slug stays stable across renames — it's an internal identifier only.
-        $position->update($this->validated($request, $position));
+        $action->handle($position, $this->validated($request, $position), $this->actor($request));
 
         return back()->with('success', 'Position updated.');
+    }
+
+    private function actor(Request $request): Person
+    {
+        $user = $request->user();
+        abort_unless($user instanceof Person, 403);
+
+        return $user;
     }
 
     /**
@@ -81,19 +85,5 @@ class PositionController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
             'is_active' => ['required', 'boolean'],
         ]);
-    }
-
-    private function uniqueSlug(string $name): string
-    {
-        $base = Str::slug($name);
-        $slug = $base;
-        $i = 2;
-
-        while (Position::withTrashed()->where('slug', $slug)->exists()) {
-            $slug = "{$base}-{$i}";
-            $i++;
-        }
-
-        return $slug;
     }
 }

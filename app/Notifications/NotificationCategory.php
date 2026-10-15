@@ -15,6 +15,7 @@ enum NotificationCategory: string
     case Contracts = 'contracts';
     case TimeTracking = 'time_tracking';
     case Applications = 'applications';
+    case PropertyBible = 'property_bible';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum NotificationCategory: string
             self::Contracts => 'Contracts',
             self::TimeTracking => 'Clock-in alerts',
             self::Applications => 'New applications',
+            self::PropertyBible => 'Property Bible changes',
         };
     }
 
@@ -48,6 +50,7 @@ enum NotificationCategory: string
             self::Contracts => 'Property contracts approaching their expiration date, or turning three years old.',
             self::TimeTracking => 'QR punches recorded without verified GPS.',
             self::Applications => 'Each job application submitted through the website.',
+            self::PropertyBible => 'Positions added or renamed by someone other than an Admin.',
         };
     }
 }

@@ -2,7 +2,10 @@
 
 use App\Domain\PropertyBible\Models\Position;
 use App\Domain\PropertyBible\Models\Property;
+use App\Notifications\PositionChangedNotification;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Support\Facades\Notification;
+use Spatie\Activitylog\Models\Activity;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
 
@@ -103,4 +106,42 @@ it('blocks a contractor from the positions catalog', function () {
     $this->actingAs(person('contractor'))
         ->get(main('/admin/positions'))
         ->assertForbidden();
+});
+
+it('writes each position change to the Audit Log in plain words', function () {
+    $payroll = tap(person('payroll'))->update(['name' => 'Paul Payroll']);
+
+    $this->actingAs($payroll)->post(main('/admin/positions'), ['name' => 'Housekeeper', 'notes' => null, 'is_active' => true])->assertSessionHasNoErrors();
+    $position = Position::query()->where('name', 'Housekeeper')->firstOrFail();
+    $this->actingAs($payroll)->put(main("/admin/positions/{$position->id}"), ['name' => 'Room Attendant', 'notes' => null, 'is_active' => false])->assertSessionHasNoErrors();
+
+    $log = Activity::query()->where('subject_type', $position->getMorphClass())->where('subject_id', $position->id)->orderBy('id')->get();
+    expect($log->pluck('description')->all())->toBe([
+        'Added the position "Housekeeper"',
+        'Renamed the position "Housekeeper" to "Room Attendant"; Made inactive: "Room Attendant"',
+    ])
+        ->and($log->pluck('log_name')->unique()->all())->toBe(['property_bible'])
+        ->and($log->first()->causer_id)->toBe($payroll->id);
+});
+
+it('tells Admin when an Office Manager or Payroll adds or renames a position, not about their own changes', function () {
+    Notification::fake();
+    $admin = person('admin');
+    $om = tap(person('office_manager'))->update(['name' => 'Olivia Office']);
+
+    $this->actingAs($om)->post(main('/admin/positions'), ['name' => 'Housekeeper', 'notes' => null, 'is_active' => true]);
+    $position = Position::query()->where('name', 'Housekeeper')->firstOrFail();
+    $this->actingAs($om)->put(main("/admin/positions/{$position->id}"), ['name' => 'Room Attendant', 'notes' => null, 'is_active' => true]);
+    $this->actingAs($om)->put(main("/admin/positions/{$position->id}"), ['name' => 'Room Attendant', 'notes' => 'Floors 1–3', 'is_active' => true]); // not a rename
+
+    Notification::assertSentToTimes($admin, PositionChangedNotification::class, 2);
+    Notification::assertNotSentTo($om, PositionChangedNotification::class);
+    Notification::assertSentTo($admin, PositionChangedNotification::class,
+        fn (PositionChangedNotification $n) => $n->toArray($admin)['message'] === 'Olivia Office renamed the position "Housekeeper" to "Room Attendant". The new name shows everywhere it\'s used.');
+
+    // An Admin's own change isn't announced to the other Admins.
+    Notification::fake();
+    person('admin');
+    $this->actingAs($admin)->post(main('/admin/positions'), ['name' => 'Houseman', 'notes' => null, 'is_active' => true]);
+    Notification::assertNothingSent();
 });

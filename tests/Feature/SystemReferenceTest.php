@@ -128,7 +128,7 @@ it('shows every notification against the roles that receive it', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/system/notifications')
             ->has('roles', 10) // nine roles plus outside inboxes
-            ->has('notices', 22)
+            ->has('notices', 23)
             ->where('initial', 'timesheet-submitted')
             ->where('notices.0', fn ($n) => $n['name'] === 'Week waiting for approval'
                 && $n['in_app'] && $n['email'] && ! $n['can_mute']
@@ -178,9 +178,9 @@ it('counts notifications on the overview', function () {
     $this->actingAs(person('admin'))
         ->get(main('/admin/system'))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('stats.notifications', 22)
+            ->where('stats.notifications', 23)
             ->where('stats.notifications_email', 7) // three timesheet notices, invoice, invitation, reset, lead
-            ->has('notices', 22)
+            ->has('notices', 23)
         );
 });
 
