@@ -47,7 +47,7 @@ Signed in on the wrong website? You'll see "This account cannot access…". Clic
 
 | Role | Email | What they do |
 |---|---|---|
-| **Property Manager** | `pm@example.com` | Pat, Acme Hotel's manager. |
+| **Property Manager** | `pm@example.com` | Pat, Acme Hotel's manager. Every property manager can upload their hotel's weekly schedule under **Schedules**; the recruiter gets a notice with a download link. |
 | **Property Manager** | `pm.qcp@example.com` | Quinn, QCP Property's manager. |
 | **Property Manager** | `pm.mag@example.com` | Megan, MAG Solutions' manager. |
 | **Property Manager** | `pm.lakeside@example.com` | Leo, Lakeside Suites' manager. Lakeside sends its hours instead of clocking in, so Leo has no timesheets to approve; he sees hours and invoices. |

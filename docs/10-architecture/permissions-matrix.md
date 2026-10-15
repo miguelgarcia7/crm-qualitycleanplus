@@ -96,6 +96,8 @@ When a permission needs property-level scoping (e.g. a recruiter can edit *their
 | `time_entries.delete` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own, period open) | ⚪ | ⚪ | ⚪ |
 | `time_entries.add_adjustment` | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own, period open) | ⚪ | ⚪ | ⚪ |
 | `adjustments.items.manage` (Billing → Adjustment Items: the list recruiters pick from) | ✅ | ✅ | ✅ | ⚪ | ⚪ | ✅ | ⚪ | ⚪ | ⚪ | ⚪ |
+| `schedules.upload` (QC Minute → Schedules: the hotel's own weekly schedule files) | ✅ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ⚪ | ✅ (own) | ⚪ |
+| `schedules.view` (download a hotel's weekly schedule) | ✅ | ✅ | ✅ | ⚪ | ⚪ | ⚪ | ✅ (own) | ⚪ | ⚪ | ⚪ |
 | `time_entries.qr_clock_in` (per ADR-0017) | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a — public flow, phone+GPS+selfie are the credential |
 
 ## Field visits (recruiter accountability — per ADR-0017)

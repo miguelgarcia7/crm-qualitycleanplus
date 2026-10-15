@@ -21,7 +21,7 @@ Request (`app/Http/Requests/…`) → call one Action → return an Inertia resp
 | Context | Covers |
 |---|---|
 | `People` | `Person` (the one identity spine for every human — applicant/contractor/staff), `PersonStatus`, legal-hold + lifecycle |
-| `PropertyBible` | Properties, departments, positions, per-property rates (effective-dated), contracts, property assignments |
+| `PropertyBible` | Properties, departments, positions, per-property rates (effective-dated), contracts, property assignments, the hotel's weekly schedules (`WeekSchedule`: files a PM uploads per work week) |
 | `WorkOrders` | Work orders (contractor↔property↔position + rates); authoritative rate source for time entries |
 | `Time` | Payroll periods, time entries, time summaries, `RecomputeTimeSummary` bucketing, `TimeEntrySaved` broadcast; QR clock in/out (`ClockInContractor`/`ClockOutContractor`, GPS + selfie, Phase 07a) |
 | `Billing` | Timesheets (approval state machine), invoices + items, `GenerateInvoice` / `SendInvoice` |

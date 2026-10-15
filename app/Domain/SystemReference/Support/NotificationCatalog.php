@@ -14,6 +14,7 @@ use App\Notifications\InvoiceIssued;
 use App\Notifications\PasswordResetLink;
 use App\Notifications\PositionChangedNotification;
 use App\Notifications\PunchFlagged;
+use App\Notifications\ScheduleUploadedNotification;
 use App\Notifications\TimesheetAwaitingApproval;
 use App\Notifications\TimesheetDecided;
 use App\Notifications\TimesheetStatusChanged;
@@ -237,6 +238,15 @@ class NotificationCatalog
                 'who' => 'Admin.',
                 'classes' => [PositionChangedNotification::class => []],
                 'always' => ['admin'],
+            ],
+            [
+                'id' => 'schedule-uploaded', 'group' => 'Property Bible', 'name' => 'Hotel schedule uploaded',
+                'summary' => 'A property manager uploaded a week\'s schedule',
+                'what' => 'The hotel\'s own schedule for a work week, in whatever files it keeps it, with the property manager\'s note. Clicking it downloads the files.',
+                'when' => 'A property manager uploads files on QC Minute → Schedules.',
+                'who' => 'The hotel\'s recruiter.',
+                'classes' => [ScheduleUploadedNotification::class => []],
+                'always' => ['recruiter'],
             ],
             [
                 'id' => 'invitation', 'group' => 'Accounts', 'name' => 'Invitation to set a password',

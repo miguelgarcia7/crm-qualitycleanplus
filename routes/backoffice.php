@@ -40,6 +40,7 @@ use App\Http\Controllers\PropertyPositionRateController;
 use App\Http\Controllers\PtoController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ScheduleDownloadController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\StockController;
@@ -95,6 +96,9 @@ Route::delete('properties/{property}/rates/{rate}', [PropertyPositionRateControl
 Route::put('properties/{property}/holidays', [PropertyHolidayController::class, 'sync'])->name('properties.holidays.sync');
 
 Route::put('properties/{property}/job-codes', [PropertyJobCodeController::class, 'sync'])->name('properties.job-codes.sync');
+
+// A week's schedule from a property manager (the recruiter's notice links here)
+Route::get('schedules/{weekSchedule}/download', [ScheduleDownloadController::class, 'week'])->middleware('can:schedules.view')->whereNumber('weekSchedule')->name('schedules.download');
 
 Route::post('properties/{property}/contracts', [ContractController::class, 'store'])->name('properties.contracts.store');
 Route::get('properties/{property}/contracts/{contract}/download', [ContractController::class, 'download'])->name('properties.contracts.download');

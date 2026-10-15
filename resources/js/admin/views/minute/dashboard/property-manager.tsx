@@ -40,6 +40,7 @@ type Props = {
   requests: Request[]
   direct_hire: { rows: DirectHire[]; contractors: number }
   hours: Week[]
+  schedules: { id: number; name: string; weeks: { week_start: string; label: string; when: string; files: number }[] }[] | null
 }
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -54,7 +55,7 @@ const Figure = ({ label, value, note, valueClass }: { label: string; value: stri
 )
 
 const Page = (props: Props) => {
-  const { greeting, scope, today, many_properties: many, waiting, next_up, this_week, invoices, requests, direct_hire, hours } = props
+  const { greeting, scope, today, many_properties: many, waiting, next_up, this_week, invoices, requests, direct_hire, hours, schedules } = props
   const permissions = (usePage().props as { auth?: { permissions?: string[] } }).auth?.permissions ?? []
   const peak = Math.max(1, ...hours.map((w) => w.straight_minutes + w.overtime_minutes))
 
@@ -166,7 +167,9 @@ const Page = (props: Props) => {
         </DashCard>
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className={cn('mb-5 grid grid-cols-1 gap-5', schedules ? 'lg:grid-cols-3' : 'lg:grid-cols-2')}>
+        {schedules && <SchedulesCard hotels={schedules} />}
+
         <DashCard title="Invoices" description="What you owe and when it's due" footer={<ViewAll href="/invoices">All invoices</ViewAll>}>
           <div className="flex gap-10 py-2">
             <Figure label="Open balance" value={money(invoices.open_total)} note={invoices.open_count ? count(invoices.open_count, 'invoice', 'invoices') : 'Nothing to pay'} />
@@ -286,6 +289,42 @@ const Page = (props: Props) => {
         </DashCard>
       </div>
     </>
+  )
+}
+
+/**
+ * Is the hotel's schedule up for this week and the next two? One hotel: the
+ * three weeks. Several: next week at each hotel.
+ */
+const SchedulesCard = ({ hotels }: { hotels: NonNullable<Props['schedules']> }) => {
+  const rows =
+    hotels.length === 1
+      ? hotels[0].weeks.map((w) => ({ key: w.week_start, title: `${w.when} · ${w.label}`, week: w, property: hotels[0].id }))
+      : hotels.map((h) => ({ key: String(h.id), title: h.name, week: h.weeks[1], property: h.id }))
+
+  return (
+    <DashCard title="Schedules" description="Your recruiter plans staff from these" footer={<ViewAll href="/schedules">All weeks</ViewAll>}>
+      {rows.map((r) => (
+        <DashRow
+          key={r.key}
+          end={
+            r.week.files > 0 ? (
+              <Pill tone="success">{count(r.week.files, 'file', 'files')}</Pill>
+            ) : r.week.when === 'In 2 weeks' ? (
+              <Link href={`/schedules?property=${r.property}`} className="text-primary text-sm font-medium">
+                Upload early
+              </Link>
+            ) : (
+              <Link href={`/schedules?property=${r.property}`} className="btn btn-sm bg-primary hover:bg-primary-hover font-semibold text-white">
+                Upload
+              </Link>
+            )
+          }>
+          <span className="text-default-900 font-semibold">{r.title}</span>
+          <span className="text-default-500 block text-xs">{r.week.files > 0 ? 'Uploaded' : hotels.length > 1 ? `Next week · ${r.week.label} · not uploaded yet` : 'Not uploaded yet'}</span>
+        </DashRow>
+      ))}
+    </DashCard>
   )
 }
 

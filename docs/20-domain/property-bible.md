@@ -173,6 +173,31 @@ A daily scheduled job (`ContractExpirationCheck`) surfaces:
 - Contracts turning 3 years old (from the effective date, or the upload day when there is none) → one notice to Admin to review it, for every contract, active or replaced (2026-10-14). Contracts are never deleted automatically; the nightly `contracts:expiration-check` sends it once (`contracts.three_year_notice_at`), catching a run missed by up to a week
 - Contracts that have expired but have no successor → flagged on dashboard, but operations continue (work orders don't stop, invoices don't stop — see `90-open/parking-lot.md` for the policy decision)
 
+## 4b. Weekly schedules (2026-10-14)
+
+Each hotel keeps its own schedule of the staff it needs, in its own form (a PDF, a
+spreadsheet, a photo of a whiteboard), usually a week or two ahead. The property
+manager uploads it on **QC Minute → Schedules** (`schedules.upload`, property managers,
+their own hotels):
+
+- A month calendar, one row per work week (the hotel's own week), with a wide
+  "Schedule for the week" column; on tablets and phones the weeks are cards (date range,
+  files, one button) and the upload panel offers **Take a photo** or **Choose a file**.
+- A week (`week_schedules`, one per property + week start) holds any number of files
+  (`files`, polymorphic; PDF, Word, Excel/CSV, text or images, 20 MB each) and one
+  optional note for the recruiter. Uploads are allowed from the current week up to 8
+  weeks ahead. Files can be added or removed until the week is over; then the week is a
+  read-only record of what the hotel sent.
+- The hotel's recruiters get a bell notice ("Pat Manager uploaded the schedule for Acme
+  Hotel, Oct 19 – 25: 2 files. Note: …"); clicking it downloads the week (one file as
+  is, several as a zip) through `/admin/schedules/{id}/download` (`schedules.view`:
+  admin, office manager, recruiter for their hotels).
+- The PM dashboard has a Schedules card: this week and the next two.
+- Uploads and removals go on the property's History.
+
+The recruiter's own screens for schedules are on hold until the recruiter workflow
+and the property page's tabs are rethought.
+
 ## 5. Notes / History
 
 The activity log filtered to this property — every Bible edit, every rate change, every contract upload. Read-only display, sortable by date.

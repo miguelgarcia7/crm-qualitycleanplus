@@ -84,6 +84,10 @@ class RolePermissionSeeder extends Seeder
             'time_entries.delete' => ['admin', 'office_manager', 'recruiter'],
             'time_entries.add_adjustment' => ['admin', 'office_manager', 'recruiter'],
 
+            // Weekly schedules: the hotel's own schedule files, per work week
+            'schedules.upload' => ['property_manager'],
+            'schedules.view' => ['admin', 'office_manager', 'recruiter'],
+
             // Adjustment items: the list recruiters pick incentives and deductions from
             'adjustments.items.manage' => ['admin', 'office_manager', 'payroll'],
 

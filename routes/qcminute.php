@@ -8,6 +8,7 @@ use App\Http\Controllers\Minute\KbController;
 use App\Http\Controllers\Minute\MoreStaffController;
 use App\Http\Controllers\Minute\MyHoursController;
 use App\Http\Controllers\Minute\PayIncreaseController;
+use App\Http\Controllers\Minute\ScheduleController;
 use App\Http\Controllers\Minute\TimesheetApprovalController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Settings\PasswordController;
@@ -45,6 +46,12 @@ Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('qcmi
 Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('qcminute.invoices.pdf');
 
 // Property-manager pay increase requests (Phase 04b, ADR-0020)
+// Weekly schedules — the PM uploads the hotel's own schedule files per work week
+Route::get('schedules', [ScheduleController::class, 'index'])->middleware('can:schedules.upload')->name('qcminute.schedules.index');
+Route::post('schedules/{property}/{week}', [ScheduleController::class, 'store'])->middleware('can:schedules.upload')->where('week', '\d{4}-\d{2}-\d{2}')->name('qcminute.schedules.store');
+Route::delete('schedules/files/{file}', [ScheduleController::class, 'destroyFile'])->middleware('can:schedules.upload')->whereNumber('file')->name('qcminute.schedules.files.destroy');
+Route::get('schedules/files/{file}', [ScheduleController::class, 'download'])->middleware('can:schedules.upload')->whereNumber('file')->name('qcminute.schedules.files.download');
+
 Route::get('pay-increases', [PayIncreaseController::class, 'index'])->name('qcminute.pay-increases.index');
 Route::post('pay-increases', [PayIncreaseController::class, 'store'])->name('qcminute.pay-increases.store');
 Route::patch('pay-increases/{workflow}', [PayIncreaseController::class, 'update'])->name('qcminute.pay-increases.update');

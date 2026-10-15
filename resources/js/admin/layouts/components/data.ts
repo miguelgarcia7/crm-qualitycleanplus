@@ -161,6 +161,7 @@ export const minuteMenuItems: MenuItemType[] = [
     isTitle: true,
     children: [
       { url: '/timesheets', slug: 'minute-timesheets', label: 'Timesheets', icon: 'clock', permission: 'timesheets.view_live' },
+      { url: '/schedules', slug: 'minute-schedules', label: 'Schedules', icon: 'calendar-week', permission: 'schedules.upload' },
       { url: '/invoices', slug: 'minute-invoices', label: 'Invoices', icon: 'file-invoice', permission: 'invoices.view' },
       { url: '/contractors', slug: 'minute-contractors', label: 'Contractors', icon: 'users', permission: 'people.contractors.view' },
     ],

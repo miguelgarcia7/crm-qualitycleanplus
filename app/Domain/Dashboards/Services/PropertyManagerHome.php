@@ -11,6 +11,7 @@ use App\Domain\Dashboards\Support\DashboardFormat;
 use App\Domain\People\Models\Person;
 use App\Domain\PropertyBible\Enums\PropertyAssignmentRole;
 use App\Domain\PropertyBible\Models\Property;
+use App\Domain\PropertyBible\Support\ScheduleCalendar;
 use App\Domain\Time\Models\PayrollPeriod;
 use App\Domain\Time\Models\TimeEntry;
 use App\Domain\Time\Models\TimeSummary;
@@ -39,7 +40,10 @@ class PropertyManagerHome
 
     private const WEEKS = 8;
 
-    public function __construct(private readonly DirectHireProgress $directHire) {}
+    public function __construct(
+        private readonly DirectHireProgress $directHire,
+        private readonly ScheduleCalendar $schedules,
+    ) {}
 
     /** @return array<string, mixed> */
     public function build(Person $user): array
@@ -62,6 +66,10 @@ class PropertyManagerHome
             'requests' => $this->requests($user, $ids),
             'direct_hire' => $this->directHire($ids),
             'hours' => $this->hours($properties),
+            // This week and the next two, per hotel: is the schedule up yet?
+            'schedules' => $user->can('schedules.upload')
+                ? $properties->map(fn (Property $p): array => ['id' => $p->id, 'name' => $p->name, 'weeks' => $this->schedules->upcoming($p)])->values()->all()
+                : null,
         ];
     }
 

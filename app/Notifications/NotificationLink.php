@@ -37,6 +37,7 @@ class NotificationLink
             $type === 'workflow_hours_problem' => '/admin/tasks',
             $type === 'workflow_transfer', $type === 'workflow_temporary_assignment' => '/admin/work-orders',
             $type === 'position_changed' => '/admin/positions',
+            $type === 'schedule_uploaded' && isset($data['schedule_id']) => "/admin/schedules/{$data['schedule_id']}/download",
             in_array($type, ['contract_expiring', 'contract_three_years'], true) && isset($data['property_id']) => "/admin/properties/{$data['property_id']}",
             $type === 'application_received' && isset($data['application_id']) => "/admin/applicants/{$data['application_id']}",
             default => null,
